@@ -17,10 +17,12 @@ logger = configure_logging("main-api")
 
 # Environment variables
 sys.path.append('/app/infra')
-from config import config
+from infra.config import config
 
 POSTGRES_DSN = config.POSTGRES_DSN
 BUS_BROKER = config.BUS_BROKER
+
+logger.info(f"Using PostgreSQL DSN: {POSTGRES_DSN}")
 
 # Global instances
 db = DatabaseManager(POSTGRES_DSN)
@@ -50,6 +52,7 @@ class JobStatusResponse(BaseModel):
 @app.on_event("startup")
 async def startup():
     """Initialize connections on startup"""
+    logger.info(f"Connecting to database with DSN: {POSTGRES_DSN}")
     await db.connect()
     await broker.connect()
     logger.info("Main API service started")

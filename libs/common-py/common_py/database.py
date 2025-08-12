@@ -1,56 +1,57 @@
 import asyncpg
-from typing import Optional, Dict, Any, List
-import structlog
+import logging
+from typing import Optional, List, Dict, Any
 
-logger = structlog.get_logger()
-
+logger = logging.getLogger(__name__)
 
 class DatabaseManager:
-    """PostgreSQL database manager with connection pooling"""
+    """Async PostgreSQL database manager using asyncpg"""
     
-    def __init__(self, dsn: str, min_size: int = 5, max_size: int = 20):
+    def __init__(self, dsn: str):
         self.dsn = dsn
-        self.min_size = min_size
-        self.max_size = max_size
-        self.pool = None
+        self.pool: Optional[asyncpg.Pool] = None
     
     async def connect(self):
         """Create connection pool"""
-        try:
-            self.pool = await asyncpg.create_pool(
-                self.dsn,
-                min_size=self.min_size,
-                max_size=self.max_size
-            )
-            logger.info("Connected to PostgreSQL", dsn=self.dsn)
-        except Exception as e:
-            logger.error("Failed to connect to PostgreSQL", error=str(e))
-            raise
+        self.pool = await asyncpg.create_pool(
+            self.dsn,
+            min_size=1,
+            max_size=10
+        )
     
     async def disconnect(self):
         """Close connection pool"""
         if self.pool:
             await self.pool.close()
-            logger.info("Disconnected from PostgreSQL")
     
     async def execute(self, query: str, *args) -> str:
-        """Execute a query that doesn't return data"""
+        """Execute a query and return status"""
+        if not self.pool:
+            raise RuntimeError("Database not connected")
+        
         async with self.pool.acquire() as conn:
             return await conn.execute(query, *args)
     
     async def fetch_one(self, query: str, *args) -> Optional[Dict[str, Any]]:
-        """Fetch a single row"""
+        """Fetch single row"""
+        if not self.pool:
+            raise RuntimeError("Database not connected")
+        
         async with self.pool.acquire() as conn:
-            row = await conn.fetchrow(query, *args)
-            return dict(row) if row else None
+            return await conn.fetchrow(query, *args)
     
     async def fetch_all(self, query: str, *args) -> List[Dict[str, Any]]:
         """Fetch all rows"""
+        if not self.pool:
+            raise RuntimeError("Database not connected")
+        
         async with self.pool.acquire() as conn:
-            rows = await conn.fetch(query, *args)
-            return [dict(row) for row in rows]
+            return await conn.fetch(query, *args)
     
-    async def fetch_val(self, query: str, *args):
-        """Fetch a single value"""
+    async def fetch_val(self, query: str, *args) -> Any:
+        """Fetch single value"""
+        if not self.pool:
+            raise RuntimeError("Database not connected")
+        
         async with self.pool.acquire() as conn:
             return await conn.fetchval(query, *args)

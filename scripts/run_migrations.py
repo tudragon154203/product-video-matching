@@ -7,11 +7,15 @@ import os
 import asyncio
 sys.path.append('/tmp/libs')
 
+# Add the project root to the path so we can import infra.config
+sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
+
 from common_py.database import DatabaseManager
+from infra.config import config
 
 async def run_migrations():
     """Run database migrations"""
-    dsn = os.getenv('POSTGRES_DSN', 'postgresql://postgres:dev@postgres:5432/postgres')
+    dsn = config.POSTGRES_DSN
     db = DatabaseManager(dsn)
     await db.connect()
     

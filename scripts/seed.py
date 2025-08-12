@@ -13,12 +13,12 @@ import sys
 sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'libs'))
 
 from common_py.logging_config import configure_logging
+from infra.config import config
 
 logger = configure_logging("seed")
 
 # Database connection
-PORT_POSTGRES = os.getenv("PORT_POSTGRES", "5435")
-POSTGRES_DSN = os.getenv("POSTGRES_DSN", f"postgresql://postgres:dev@localhost:{PORT_POSTGRES}/postgres")
+POSTGRES_DSN = config.POSTGRES_DSN
 
 
 async def seed_database():

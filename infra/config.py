@@ -58,7 +58,11 @@ class Config:
     PORT_RESULTS: int = field(default_factory=lambda: get_env_int("PORT_RESULTS", 8080))
     
     # Database Configuration
-    POSTGRES_DSN: str = field(default_factory=lambda: get_env_var("POSTGRES_DSN", "postgresql://postgres:dev@localhost:5432/postgres"))
+    POSTGRES_USER: str = field(default_factory=lambda: get_env_var("POSTGRES_USER", "postgres"))
+    POSTGRES_PASSWORD: str = field(default_factory=lambda: get_env_var("POSTGRES_PASSWORD", "dev"))
+    POSTGRES_DB: str = field(default_factory=lambda: get_env_var("POSTGRES_DB", "postgres"))
+    POSTGRES_HOST: str = field(default_factory=lambda: get_env_var("POSTGRES_HOST", "localhost"))
+    POSTGRES_DSN: str = field(default_factory=lambda: get_env_var("POSTGRES_DSN") or f"postgresql://{get_env_var('POSTGRES_USER', 'postgres')}:{get_env_var('POSTGRES_PASSWORD', 'dev')}@{get_env_var('POSTGRES_HOST', 'localhost')}:5432/{get_env_var('POSTGRES_DB', 'postgres')}")
     
     # Message Broker Configuration
     BUS_BROKER: str = field(default_factory=lambda: get_env_var("BUS_BROKER", "amqp://guest:guest@localhost:5672/"))
@@ -83,8 +87,8 @@ class Config:
     LOG_LEVEL: str = field(default_factory=lambda: get_env_var("LOG_LEVEL", "INFO"))
     
     # Service URLs (for inter-service communication)
-    MAIN_API_URL: str = field(default_factory=lambda: get_env_var("MAIN_API_URL", f"http://localhost:{get_env_int('PORT_MAIN', 8000)}"))
-    RESULTS_API_URL: str = field(default_factory=lambda: get_env_var("RESULTS_API_URL", f"http://localhost:{get_env_int('PORT_RESULTS', 8080)}"))
+    MAIN_API_URL: str = field(default_factory=lambda: get_env_var("MAIN_API_URL", f"http://localhost:{get_env_int('PORT_MAIN', 8888)}"))
+    RESULTS_API_URL: str = field(default_factory=lambda: get_env_var("RESULTS_API_URL", f"http://localhost:{get_env_int('PORT_RESULTS', 8890)}"))
 
 # Create global config instance
 config = Config()

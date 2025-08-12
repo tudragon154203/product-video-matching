@@ -17,7 +17,7 @@ services:
     image: sosedoff/pgweb:latest
     env_file:
       - .env
-    container_name: pgweb
+    container_name: postgres-webui
     restart: unless-stopped
     ports:
       - "${PORT_POSTGRES_UI}:8081"
@@ -51,13 +51,12 @@ services:
     env_file:
       - .env
     environment:
-      POSTGRES_DSN: postgresql://postgres:dev@postgres:5432/product_video_matching
-      BUS_BROKER: amqp://guest:guest@rabbitmq:5672/
       PYTHONPATH: /app/libs
     ports:
       - "${PORT_MAIN}:8000"
     volumes:
       - ../../libs:/app/libs:ro
+      - ../../infra:/app/infra:ro
       - ../../data:/app/data
     depends_on:
       postgres:
@@ -73,7 +72,6 @@ services:
     env_file:
       - .env
     environment:
-      POSTGRES_DSN: postgresql://postgres:dev@postgres:5432/product_video_matching
       DATA_ROOT: /app/data
       PYTHONPATH: /app/libs
     ports:
@@ -90,9 +88,9 @@ services:
     build:
       context: ../../
       dockerfile: services/catalog-collector/Dockerfile
+    env_file:
+      - .env
     environment:
-      POSTGRES_DSN: postgresql://postgres:dev@postgres:5432/postgres
-      BUS_BROKER: amqp://guest:guest@rabbitmq:5672/
       DATA_ROOT: /app/data
       PYTHONPATH: /app/libs
     volumes:
@@ -109,9 +107,9 @@ services:
     build:
       context: ../../
       dockerfile: services/media-ingestion/Dockerfile
+    env_file:
+      - .env
     environment:
-      POSTGRES_DSN: postgresql://postgres:dev@postgres:5432/postgres
-      BUS_BROKER: amqp://guest:guest@rabbitmq:5672/
       DATA_ROOT: /app/data
       PYTHONPATH: /app/libs
     volumes:
@@ -128,10 +126,9 @@ services:
     build:
       context: ../../
       dockerfile: services/vision-embedding/Dockerfile
+    env_file:
+      - .env
     environment:
-      POSTGRES_DSN: postgresql://postgres:dev@postgres:5432/postgres
-      BUS_BROKER: amqp://guest:guest@rabbitmq:5672/
-      EMBED_MODEL: clip-vit-b32
       PYTHONPATH: /app/libs
     volumes:
       - ../../libs:/app/libs:ro
@@ -143,20 +140,19 @@ services:
         condition: service_healthy
     restart: unless-stopped
     # Uncomment for GPU support
-    # deploy:
-    #   resources:
-    #     reservations:
-    #       devices:
-    #         - capabilities: [gpu]
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - capabilities: [gpu]
 
   vision-keypoint:
     build:
       context: ../../
       dockerfile: services/vision-keypoint/Dockerfile
+    env_file:
+      - .env
     environment:
-      POSTGRES_DSN: postgresql://postgres:dev@postgres:5432/postgres
-      BUS_BROKER: amqp://guest:guest@rabbitmq:5672/
-      DATA_ROOT: /app/data
       PYTHONPATH: /app/libs
     volumes:
       - ../../libs:/app/libs:ro
@@ -175,8 +171,6 @@ services:
     env_file:
       - .env
     environment:
-      POSTGRES_DSN: postgresql://postgres:dev@postgres:5432/product_video_matching
-      BUS_BROKER: amqp://guest:guest@rabbitmq:5672/
       PYTHONPATH: /app/libs
     volumes:
       - ../../libs:/app/libs:ro
@@ -194,13 +188,7 @@ services:
     env_file:
       - .env
     environment:
-      POSTGRES_DSN: postgresql://postgres:dev@postgres:5432/product_video_matching
-      BUS_BROKER: amqp://guest:guest@rabbitmq:5672/
       DATA_ROOT: /app/data
-      RETRIEVAL_TOPK: 20
-      SIM_DEEP_MIN: 0.82
-      INLIERS_MIN: 0.35
-      MATCH_BEST_MIN: 0.88
     volumes:
       - ../../libs:/app/libs:ro
       - ../../data:/app/data:ro
@@ -217,9 +205,9 @@ services:
     build:
       context: ../../
       dockerfile: services/evidence-builder/Dockerfile
+    env_file:
+      - .env
     environment:
-      POSTGRES_DSN: postgresql://postgres:dev@postgres:5432/postgres
-      BUS_BROKER: amqp://guest:guest@rabbitmq:5672/
       DATA_ROOT: /app/data
       PYTHONPATH: /app/libs
     volumes:

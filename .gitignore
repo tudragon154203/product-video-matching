@@ -4,6 +4,7 @@ desktop.ini
 cline_mcp_settings.json
 model_cache/
 data/
+.crush/
 
 # Environment variables
 .env
