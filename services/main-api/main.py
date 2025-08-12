@@ -1,40 +1,40 @@
 import os
 import uuid
-from typing import Optional
+import json
+import time
+from typing import Optional, Dict, Any
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 import asyncio
 import sys
+import httpx
 
 from common_py.logging_config import configure_logging
 from common_py.database import DatabaseManager
 from common_py.messaging import MessageBroker
-from flows import MatchingFlow
 
 # Configure logging
 logger = configure_logging("main-api")
 
-# Environment variables
-from config import config
+# Load service-specific configuration
+from config_loader import load_env, MainAPIConfig
+config: MainAPIConfig = load_env()
 
-POSTGRES_DSN = config.POSTGRES_DSN
-BUS_BROKER = config.BUS_BROKER
-
-logger.info(f"Using PostgreSQL DSN: {POSTGRES_DSN}")
+# Set OLLAMA_HOST for the ollama client
+os.environ["OLLAMA_HOST"] = config.ollama_host
 
 # Global instances
-db = DatabaseManager(POSTGRES_DSN)
-broker = MessageBroker(BUS_BROKER)
+db = DatabaseManager(os.getenv("POSTGRES_DSN", "postgresql://postgres:dev@localhost:5432/product_video_matching"))
+broker = MessageBroker(os.getenv("BUS_BROKER", "amqp://guest:guest@localhost:5672/"))
 app = FastAPI(title="Main API Service", version="1.0.0")
 
 # Request/Response models
 class StartJobRequest(BaseModel):
-    industry: str
-    top_amz: int = 10
-    top_ebay: int = 10
-    queries: Optional[list] = None
-    platforms: list = ["youtube"]
-    recency_days: int = 365
+    query: str
+    top_amz: int = config.default_top_amz
+    top_ebay: int = config.default_top_ebay
+    platforms: list = config.default_platforms
+    recency_days: int = config.default_recency_days
 
 class StartJobResponse(BaseModel):
     job_id: str
