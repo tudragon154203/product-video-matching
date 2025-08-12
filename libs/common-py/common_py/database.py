@@ -1,5 +1,6 @@
 import asyncpg
 import logging
+import os
 from typing import Optional, List, Dict, Any
 
 logger = logging.getLogger(__name__)
@@ -13,10 +14,14 @@ class DatabaseManager:
     
     async def connect(self):
         """Create connection pool"""
+        # Get timezone from environment variable
+        timezone = os.getenv("TZ", "UTC")
+        
         self.pool = await asyncpg.create_pool(
             self.dsn,
             min_size=1,
-            max_size=10
+            max_size=10,
+            init=lambda conn: conn.execute(f"SET TIME ZONE '{timezone}'")
         )
     
     async def disconnect(self):

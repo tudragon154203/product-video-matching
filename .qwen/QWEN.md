@@ -4,7 +4,6 @@
 
 ## Load steering first (authoritative)
 @./ROUTER.md
-@../.kiro/steering/interactive-feedback-mcp.md
 @../.kiro/steering/refactor.md
 
 

@@ -4,7 +4,6 @@ You are the Task Router and Implementer for this repository.
 
 
 ## Context bootstrap (load in this order)
-@../.kiro/steering/interactive-feedback-mcp.md
 @../.kiro/steering/refactor.md
 
 

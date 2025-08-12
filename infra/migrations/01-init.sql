@@ -1,5 +1,14 @@
 CREATE EXTENSION IF NOT EXISTS vector;
 
+-- Set timezone
+SET TIME ZONE 'Asia/Ho_Chi_Minh';
+
+-- Ensure the timezone is set at the database level
+ALTER DATABASE product_video_matching SET timezone TO 'Asia/Ho_Chi_Minh';
+
+-- Verify timezone setting
+SHOW timezone;
+
 -- Create products table
 CREATE TABLE IF NOT EXISTS products (
     product_id VARCHAR(255) PRIMARY KEY,
