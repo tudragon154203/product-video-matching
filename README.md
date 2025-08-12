@@ -231,7 +231,7 @@ Key configuration options in `.env`:
 
 ```bash
 # Database
-POSTGRES_DSN=postgresql://postgres:dev@localhost:5432/postgres
+POSTGRES_DSN=postgresql://postgres:dev@localhost:5432/product_video_matching
 
 # Message Broker
 BUS_BROKER=amqp://guest:guest@localhost:5672/

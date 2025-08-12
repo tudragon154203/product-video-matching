@@ -70,7 +70,6 @@ CREATE TABLE IF NOT EXISTS matches (
 CREATE TABLE IF NOT EXISTS jobs (
     job_id VARCHAR(255) PRIMARY KEY,
     industry VARCHAR(255) NOT NULL,
-    status VARCHAR(50) NOT NULL,
     phase VARCHAR(50) NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
@@ -81,7 +80,6 @@ CREATE INDEX IF NOT EXISTS idx_matches_job_id ON matches(job_id);
 CREATE INDEX IF NOT EXISTS idx_matches_score ON matches(score);
 CREATE INDEX IF NOT EXISTS idx_product_images_product_id ON product_images(product_id);
 CREATE INDEX IF NOT EXISTS idx_video_frames_video_id ON video_frames(video_id);
-CREATE INDEX IF NOT EXISTS idx_jobs_status ON jobs(status);
 CREATE INDEX IF NOT EXISTS idx_products_job_id ON products(job_id);
 CREATE INDEX IF NOT EXISTS idx_videos_job_id ON videos(job_id);
 

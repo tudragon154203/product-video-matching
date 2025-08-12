@@ -2,7 +2,13 @@ from logging.config import fileConfig
 from sqlalchemy import engine_from_config
 from sqlalchemy import pool
 from alembic import context
-import os
+import sys
+from pathlib import Path
+
+# Add the project root to the Python path
+sys.path.append(str(Path(__file__).parent.parent.parent))
+
+from infra.config import config
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
@@ -25,8 +31,8 @@ target_metadata = None
 # ... etc.
 
 def get_url():
-    """Get database URL from environment or config"""
-    return os.getenv("POSTGRES_DSN", config.get_main_option("sqlalchemy.url"))
+    """Get database URL from centralized config"""
+    return config.POSTGRES_DSN
 
 def run_migrations_offline() -> None:
     """Run migrations in 'offline' mode.

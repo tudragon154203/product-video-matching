@@ -74,8 +74,8 @@ async def start_job(request: StartJobRequest):
         
         # Create job record
         await db.execute(
-            "INSERT INTO jobs (job_id, industry, status, phase) VALUES ($1, $2, $3, $4)",
-            job_id, request.industry, "running", "collection"
+            "INSERT INTO jobs (job_id, industry, phase) VALUES ($1, $2, $3)",
+            job_id, request.industry, "collection"
         )
         
         # Create and start the flow

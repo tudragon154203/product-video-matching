@@ -70,8 +70,8 @@ async def test_results_api_endpoints(http_client, results_api_url, db_manager, c
     
     # Insert test data
     await db_manager.execute(
-        "INSERT INTO jobs (job_id, industry, status, phase) VALUES ($1, $2, $3, $4)",
-        job_id, "test api", "completed", "completed"
+        "INSERT INTO jobs (job_id, industry, phase) VALUES ($1, $2, $3)",
+        job_id, "test api", "completed"
     )
     
     await db_manager.execute(

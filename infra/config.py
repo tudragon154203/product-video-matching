@@ -60,9 +60,9 @@ class Config:
     # Database Configuration
     POSTGRES_USER: str = field(default_factory=lambda: get_env_var("POSTGRES_USER", "postgres"))
     POSTGRES_PASSWORD: str = field(default_factory=lambda: get_env_var("POSTGRES_PASSWORD", "dev"))
-    POSTGRES_DB: str = field(default_factory=lambda: get_env_var("POSTGRES_DB", "postgres"))
+    POSTGRES_DB: str = field(default_factory=lambda: get_env_var("POSTGRES_DB", "product_video_matching"))
     POSTGRES_HOST: str = field(default_factory=lambda: get_env_var("POSTGRES_HOST", "localhost"))
-    POSTGRES_DSN: str = field(default_factory=lambda: get_env_var("POSTGRES_DSN") or f"postgresql://{get_env_var('POSTGRES_USER', 'postgres')}:{get_env_var('POSTGRES_PASSWORD', 'dev')}@{get_env_var('POSTGRES_HOST', 'localhost')}:5432/{get_env_var('POSTGRES_DB', 'postgres')}")
+    POSTGRES_DSN: str = field(default_factory=lambda: get_env_var("POSTGRES_DSN") or f"postgresql://{get_env_var('POSTGRES_USER', 'postgres')}:{get_env_var('POSTGRES_PASSWORD', 'dev')}@{get_env_var('POSTGRES_HOST', 'localhost')}:5432/{get_env_var('POSTGRES_DB', 'product_video_matching')}")
     
     # Message Broker Configuration
     BUS_BROKER: str = field(default_factory=lambda: get_env_var("BUS_BROKER", "amqp://guest:guest@localhost:5672/"))

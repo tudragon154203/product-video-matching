@@ -9,6 +9,9 @@ import statistics
 import os
 import sys
 
+# Import centralized config
+from infra.config import config
+
 # Add libs to path
 sys.path.append(os.path.join(os.path.dirname(__file__), 'libs'))
 
@@ -17,8 +20,8 @@ from common_py.logging_config import configure_logging
 logger = configure_logging("performance-test")
 
 # Service URLs
-MAIN_API_URL = os.getenv("MAIN_API_URL", "http://localhost:8000")
-RESULTS_API_URL = os.getenv("RESULTS_API_URL", "http://localhost:8080")
+MAIN_API_URL = config.MAIN_API_URL
+RESULTS_API_URL = config.RESULTS_API_URL
 
 
 async def run_performance_test():

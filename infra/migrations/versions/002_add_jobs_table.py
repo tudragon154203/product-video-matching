@@ -20,7 +20,6 @@ def upgrade() -> None:
     op.create_table('jobs',
         sa.Column('job_id', sa.String(255), primary_key=True),
         sa.Column('industry', sa.String(255), nullable=False),
-        sa.Column('status', sa.String(50), nullable=False),
         sa.Column('phase', sa.String(50), nullable=False),
         sa.Column('created_at', sa.TIMESTAMP(), server_default=sa.text('CURRENT_TIMESTAMP')),
         sa.Column('updated_at', sa.TIMESTAMP(), server_default=sa.text('CURRENT_TIMESTAMP'))
@@ -31,14 +30,12 @@ def upgrade() -> None:
     op.add_column('videos', sa.Column('job_id', sa.String(255)))
     
     # Create indexes
-    op.create_index('idx_jobs_status', 'jobs', ['status'])
     op.create_index('idx_products_job_id', 'products', ['job_id'])
     op.create_index('idx_videos_job_id', 'videos', ['job_id'])
 
 
 def downgrade() -> None:
     # Drop indexes
-    op.drop_index('idx_jobs_status')
     op.drop_index('idx_products_job_id')
     op.drop_index('idx_videos_job_id')
     

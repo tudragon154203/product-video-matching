@@ -249,7 +249,7 @@ smoke:
 **.env.example**
 
 ```
-POSTGRES_DSN=postgresql://postgres:dev@localhost:5432/postgres
+POSTGRES_DSN=postgresql://postgres:dev@localhost:5432/product_video_matching
 BUS_BROKER=amqp://guest:guest@localhost:5672/
 DATA_ROOT=./data
 EMBED_MODEL=clip-vit-b32

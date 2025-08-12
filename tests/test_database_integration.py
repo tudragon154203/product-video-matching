@@ -20,8 +20,8 @@ async def test_create_job(db_manager, clean_database, test_data):
     industry = test_data["industry"]
     
     await db_manager.execute(
-        "INSERT INTO jobs (job_id, industry, status, phase) VALUES ($1, $2, $3, $4)",
-        job_id, industry, "running", "collection"
+        "INSERT INTO jobs (job_id, industry, phase) VALUES ($1, $2, $3)",
+        job_id, industry, "collection"
     )
     
     # Verify job was created
@@ -32,7 +32,6 @@ async def test_create_job(db_manager, clean_database, test_data):
     assert job is not None
     assert job["job_id"] == job_id
     assert job["industry"] == industry
-    assert job["status"] == "running"
 
 
 @pytest.mark.asyncio
@@ -43,8 +42,8 @@ async def test_create_product_with_images(db_manager, clean_database, test_data)
     
     # Create job first
     await db_manager.execute(
-        "INSERT INTO jobs (job_id, industry, status, phase) VALUES ($1, $2, $3, $4)",
-        job_id, "test", "running", "collection"
+        "INSERT INTO jobs (job_id, industry, phase) VALUES ($1, $2, $3)",
+        job_id, "test", "collection"
     )
     
     # Create product
@@ -86,8 +85,8 @@ async def test_create_video_with_frames(db_manager, clean_database, test_data):
     
     # Create job first
     await db_manager.execute(
-        "INSERT INTO jobs (job_id, industry, status, phase) VALUES ($1, $2, $3, $4)",
-        job_id, "test", "running", "collection"
+        "INSERT INTO jobs (job_id, industry, phase) VALUES ($1, $2, $3)",
+        job_id, "test", "collection"
     )
     
     # Create video
@@ -134,8 +133,8 @@ async def test_create_match(db_manager, clean_database, test_data):
     
     # Create job
     await db_manager.execute(
-        "INSERT INTO jobs (job_id, industry, status, phase) VALUES ($1, $2, $3, $4)",
-        job_id, "test", "running", "collection"
+        "INSERT INTO jobs (job_id, industry, phase) VALUES ($1, $2, $3)",
+        job_id, "test", "collection"
     )
     
     # Create product and video
@@ -191,8 +190,8 @@ async def test_vector_operations(db_manager, clean_database, test_data):
     
     # Create job and product
     await db_manager.execute(
-        "INSERT INTO jobs (job_id, industry, status, phase) VALUES ($1, $2, $3, $4)",
-        job_id, "test", "running", "collection"
+        "INSERT INTO jobs (job_id, industry, phase) VALUES ($1, $2, $3)",
+        job_id, "test", "collection"
     )
     
     await db_manager.execute(

@@ -32,8 +32,8 @@ async def seed_database():
         # Create sample job
         job_id = str(uuid.uuid4())
         await conn.execute(
-            "INSERT INTO jobs (job_id, industry, status, phase) VALUES ($1, $2, $3, $4)",
-            job_id, "ergonomic pillows", "completed", "completed"
+            "INSERT INTO jobs (job_id, industry, phase) VALUES ($1, $2, $3)",
+            job_id, "ergonomic pillows", "completed"
         )
         logger.info("Created sample job", job_id=job_id)
         
