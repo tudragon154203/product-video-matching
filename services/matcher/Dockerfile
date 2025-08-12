@@ -22,6 +22,3 @@ RUN pip install -r requirements.txt
 # Install shared libraries
 RUN pip install -e /tmp/libs/common-py
 RUN pip install -e /tmp/libs/contracts
-
-# Run the application
-CMD ["python", "app/main.py"]

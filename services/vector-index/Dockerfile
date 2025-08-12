@@ -20,6 +20,3 @@ RUN pip install -e /tmp/libs/contracts
 
 # Expose port
 EXPOSE 8081
-
-# Run the application
-CMD ["python", "-m", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8081"]
