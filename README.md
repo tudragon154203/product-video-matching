@@ -20,7 +20,7 @@ This system processes industry keywords to find visual matches between products 
 
 ```
 ┌─────────────┐    ┌─────────────┐    ┌─────────────┐
-│   n8n/UI   │───▶│Orchestrator │───▶│ RabbitMQ    │
+│   n8n/UI   │───▶│  Main API   │───▶│ RabbitMQ    │
 └─────────────┘    └─────────────┘    │Event Bus    │
                                       └─────┬───────┘
                                             │
@@ -136,7 +136,7 @@ http://localhost:8080/evidence/{match_id}
 
 ## API Documentation
 
-### Orchestrator API (Port 8000)
+### Main API (Port 8000)
 
 - `POST /start-job` - Start a new matching job
 - `GET /status/{job_id}` - Get job status and progress
@@ -164,7 +164,7 @@ http://localhost:8080/evidence/{match_id}
 
 ```
 ├── services/           # Microservices
-│   ├── orchestrator/   # Job orchestration
+│   ├── main-api/      # Job orchestration
 │   ├── results-api/    # Results REST API
 │   ├── catalog-collector/  # Product collection
 │   ├── media-ingestion/    # Video processing
@@ -205,10 +205,10 @@ make up-dev
 make logs
 
 # Restart specific service
-make restart-orchestrator
+make restart-main-api
 
 # View service logs
-make logs-orchestrator
+make logs-main-api
 
 # Check service health
 make health
@@ -275,7 +275,7 @@ The system uses configurable thresholds for matching:
 All services expose `/health` endpoints:
 
 ```bash
-curl http://localhost:8000/health  # Orchestrator
+curl http://localhost:8000/health  # Main API
 curl http://localhost:8080/health  # Results API
 curl http://localhost:8081/health  # Vector Index
 ```

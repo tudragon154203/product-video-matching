@@ -97,8 +97,8 @@ def test_data():
 
 # Service URL fixtures
 @pytest.fixture
-def orchestrator_url():
-    return os.getenv("ORCHESTRATOR_URL", "http://localhost:8000")
+def main_api_url():
+    return os.getenv("MAIN_API_URL", "http://localhost:8000")
 
 
 @pytest.fixture

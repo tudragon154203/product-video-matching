@@ -13,7 +13,7 @@ from common_py.messaging import MessageBroker
 from flows import MatchingFlow
 
 # Configure logging
-logger = configure_logging("orchestrator")
+logger = configure_logging("main-api")
 
 # Environment variables
 POSTGRES_DSN = os.getenv("POSTGRES_DSN", "postgresql://postgres:dev@postgres:5432/postgres")
@@ -22,7 +22,7 @@ BUS_BROKER = os.getenv("BUS_BROKER", "amqp://guest:guest@rabbitmq:5672/")
 # Global instances
 db = DatabaseManager(POSTGRES_DSN)
 broker = MessageBroker(BUS_BROKER)
-app = FastAPI(title="Orchestrator Service", version="1.0.0")
+app = FastAPI(title="Main API Service", version="1.0.0")
 
 # Request/Response models
 class StartJobRequest(BaseModel):
@@ -49,7 +49,7 @@ async def startup():
     """Initialize connections on startup"""
     await db.connect()
     await broker.connect()
-    logger.info("Orchestrator service started")
+    logger.info("Main API service started")
 
 
 @app.on_event("shutdown")
@@ -57,7 +57,7 @@ async def shutdown():
     """Clean up connections on shutdown"""
     await db.disconnect()
     await broker.disconnect()
-    logger.info("Orchestrator service stopped")
+    logger.info("Main API service stopped")
 
 
 @app.post("/start-job", response_model=StartJobResponse)
@@ -143,7 +143,7 @@ async def get_job_status(job_id: str):
 @app.get("/health")
 async def health_check():
     """Health check endpoint"""
-    return {"status": "healthy", "service": "orchestrator"}
+    return {"status": "healthy", "service": "main-api"}
 
 
 if __name__ == "__main__":

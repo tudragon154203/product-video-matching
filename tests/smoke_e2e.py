@@ -16,7 +16,7 @@ from common_py.logging_config import configure_logging
 logger = configure_logging("smoke-test")
 
 # Service URLs
-ORCHESTRATOR_URL = os.getenv("ORCHESTRATOR_URL", "http://localhost:8000")
+MAIN_API_URL = os.getenv("MAIN_API_URL", "http://localhost:8000")
 RESULTS_API_URL = os.getenv("RESULTS_API_URL", "http://localhost:8080")
 VECTOR_INDEX_URL = os.getenv("VECTOR_INDEX_URL", "http://localhost:8081")
 
@@ -54,7 +54,7 @@ async def check_service_health(client):
     logger.info("Checking service health...")
     
     services = [
-        ("Orchestrator", f"{ORCHESTRATOR_URL}/health"),
+        ("Main API", f"{MAIN_API_URL}/health"),
         ("Results API", f"{RESULTS_API_URL}/health"),
         ("Vector Index", f"{VECTOR_INDEX_URL}/health")
     ]
@@ -81,7 +81,7 @@ async def start_job(client):
         "recency_days": 365
     }
     
-    response = await client.post(f"{ORCHESTRATOR_URL}/start-job", json=job_request)
+    response = await client.post(f"{MAIN_API_URL}/start-job", json=job_request)
     response.raise_for_status()
     
     job_data = response.json()
@@ -99,7 +99,7 @@ async def wait_for_job_completion(client, job_id, max_wait_time=120):
     
     while time.time() - start_time < max_wait_time:
         try:
-            response = await client.get(f"{ORCHESTRATOR_URL}/status/{job_id}")
+            response = await client.get(f"{MAIN_API_URL}/status/{job_id}")
             response.raise_for_status()
             
             status_data = response.json()

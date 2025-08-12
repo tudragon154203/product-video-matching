@@ -72,7 +72,7 @@ make down
 make logs
 
 # Restart specific service
-make restart-orchestrator
+make restart-main-api
 
 # Check health
 make health
@@ -135,7 +135,7 @@ Once the system is running, you can access:
 - **PostgreSQL**: `localhost:5435` (user: postgres, password: dev)
 - **RabbitMQ Management**: http://localhost:15672 (guest/guest)
 - **RabbitMQ AMQP**: `localhost:5672`
-- **Orchestrator API**: http://localhost:8000 (when running)
+- **Main API**: http://localhost:8000 (when running)
 - **Results API**: http://localhost:8080 (when running)
 - **Vector Index API**: http://localhost:8081 (when running)
 

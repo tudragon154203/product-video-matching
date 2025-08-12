@@ -11,7 +11,7 @@ RUN apt-get update && apt-get install -y \
 COPY libs /tmp/libs
 
 # Copy requirements first for better caching
-COPY services/orchestrator/requirements.txt .
+COPY services/main-api/requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Install shared libraries
@@ -19,7 +19,7 @@ RUN pip install -e /tmp/libs/common-py
 RUN pip install -e /tmp/libs/contracts
 
 # Copy application code
-COPY services/orchestrator/ .
+COPY services/main-api/ .
 
 # Expose port
 EXPOSE 8000

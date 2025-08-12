@@ -13,7 +13,7 @@ from pathlib import Path
 def wait_for_services():
     """Wait for services to be ready"""
     services = [
-        ("Orchestrator", "http://localhost:8000/health"),
+        ("Main API", "http://localhost:8000/health"),
         ("Results API", "http://localhost:8080/health"),
         ("Vector Index", "http://localhost:8081/health")
     ]
@@ -61,7 +61,7 @@ def run_tests():
     env.update({
         "POSTGRES_DSN": "postgresql://postgres:dev@localhost:5432/postgres",
         "BUS_BROKER": "amqp://guest:guest@localhost:5672/",
-        "ORCHESTRATOR_URL": "http://localhost:8000",
+        "MAIN_API_URL": "http://localhost:8000",
         "RESULTS_API_URL": "http://localhost:8080",
         "VECTOR_INDEX_URL": "http://localhost:8081"
     })

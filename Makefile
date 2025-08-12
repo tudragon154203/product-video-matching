@@ -82,6 +82,6 @@ logs-%:
 # Check service health
 health:
 	@echo "Checking service health..."
-	@curl -s http://localhost:8000/health | jq . || echo "Orchestrator: DOWN"
+	@curl -s http://localhost:8000/health | jq . || echo "Main API: DOWN"
 	@curl -s http://localhost:8080/health | jq . || echo "Results API: DOWN"
 	@curl -s http://localhost:8081/health | jq . || echo "Vector Index: DOWN"

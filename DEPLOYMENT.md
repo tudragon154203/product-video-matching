@@ -36,7 +36,7 @@ make smoke
 
 ### Service Ports
 
-- Orchestrator: 8000
+- Main API: 8000
 - Results API: 8080
 - Vector Index: 8081
 - PostgreSQL: 5432
@@ -271,7 +271,7 @@ global:
 scrape_configs:
   - job_name: 'product-video-matching'
     static_configs:
-      - targets: ['orchestrator:8000', 'results-api:8080', 'vector-index:8081']
+      - targets: ['main-api:8000', 'results-api:8080', 'vector-index:8081']
     metrics_path: '/metrics'
     scrape_interval: 30s
 ```
@@ -454,10 +454,10 @@ docker compose up -d --scale vision-embedding=3 --scale matcher=2
 
 ```nginx
 # nginx.conf
-upstream orchestrator {
-    server orchestrator-1:8000;
-    server orchestrator-2:8000;
-    server orchestrator-3:8000;
+upstream main-api {
+    server main-api-1:8000;
+    server main-api-2:8000;
+    server main-api-3:8000;
 }
 
 upstream results-api {
@@ -522,7 +522,7 @@ docker run -d --name kibana --link elasticsearch kibana:7.17.0
 #!/bin/bash
 # scripts/rolling-update.sh
 
-SERVICES=("orchestrator" "results-api" "vector-index")
+SERVICES=("main-api" "results-api" "vector-index")
 
 for service in "${SERVICES[@]}"; do
     echo "Updating $service..."

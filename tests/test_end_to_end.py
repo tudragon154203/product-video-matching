@@ -7,7 +7,7 @@ import uuid
 
 
 @pytest.mark.asyncio
-async def test_complete_pipeline_flow(http_client, orchestrator_url, results_api_url, db_manager, clean_database):
+async def test_complete_pipeline_flow(http_client, main_api_url, results_api_url, db_manager, clean_database):
     """Test complete pipeline from job start to results"""
     # Start a job
     job_request = {
@@ -18,7 +18,7 @@ async def test_complete_pipeline_flow(http_client, orchestrator_url, results_api
         "recency_days": 30
     }
     
-    response = await http_client.post(f"{orchestrator_url}/start-job", json=job_request)
+    response = await http_client.post(f"{main_api_url}/start-job", json=job_request)
     assert response.status_code == 200
     
     job_data = response.json()
@@ -31,7 +31,7 @@ async def test_complete_pipeline_flow(http_client, orchestrator_url, results_api
     
     final_phase = None
     while waited_time < max_wait_time:
-        response = await http_client.get(f"{orchestrator_url}/status/{job_id}")
+        response = await http_client.get(f"{main_api_url}/status/{job_id}")
         assert response.status_code == 200
         
         status_data = response.json()
@@ -70,7 +70,7 @@ async def test_complete_pipeline_flow(http_client, orchestrator_url, results_api
 
 
 @pytest.mark.asyncio
-async def test_service_resilience(http_client, orchestrator_url, results_api_url):
+async def test_service_resilience(http_client, main_api_url, results_api_url):
     """Test system resilience to various conditions"""
     # Test with invalid job request
     invalid_request = {
@@ -79,7 +79,7 @@ async def test_service_resilience(http_client, orchestrator_url, results_api_url
         "top_ebay": 0
     }
     
-    response = await http_client.post(f"{orchestrator_url}/start-job", json=invalid_request)
+    response = await http_client.post(f"{main_api_url}/start-job", json=invalid_request)
     # Should handle gracefully (might return 400 or process with defaults)
     assert response.status_code in [200, 400, 422]
     
@@ -92,13 +92,13 @@ async def test_service_resilience(http_client, orchestrator_url, results_api_url
         "recency_days": 10000
     }
     
-    response = await http_client.post(f"{orchestrator_url}/start-job", json=large_request)
+    response = await http_client.post(f"{main_api_url}/start-job", json=large_request)
     # Should handle gracefully
     assert response.status_code in [200, 400, 422]
 
 
 @pytest.mark.asyncio
-async def test_concurrent_jobs(http_client, orchestrator_url):
+async def test_concurrent_jobs(http_client, main_api_url):
     """Test handling multiple concurrent jobs"""
     job_requests = []
     for i in range(3):
@@ -114,7 +114,7 @@ async def test_concurrent_jobs(http_client, orchestrator_url):
     tasks = []
     for request in job_requests:
         task = asyncio.create_task(
-            http_client.post(f"{orchestrator_url}/start-job", json=request)
+            http_client.post(f"{main_api_url}/start-job", json=request)
         )
         tasks.append(task)
     
@@ -132,7 +132,7 @@ async def test_concurrent_jobs(http_client, orchestrator_url):
     
     # Check status of all jobs
     for job_id in job_ids:
-        response = await http_client.get(f"{orchestrator_url}/status/{job_id}")
+        response = await http_client.get(f"{main_api_url}/status/{job_id}")
         assert response.status_code == 200
         
         status_data = response.json()
@@ -140,7 +140,7 @@ async def test_concurrent_jobs(http_client, orchestrator_url):
 
 
 @pytest.mark.asyncio
-async def test_data_consistency(http_client, orchestrator_url, results_api_url, db_manager):
+async def test_data_consistency(http_client, main_api_url, results_api_url, db_manager):
     """Test data consistency across services"""
     # Start a job and let it run
     job_request = {
@@ -151,7 +151,7 @@ async def test_data_consistency(http_client, orchestrator_url, results_api_url, 
         "recency_days": 30
     }
     
-    response = await http_client.post(f"{orchestrator_url}/start-job", json=job_request)
+    response = await http_client.post(f"{main_api_url}/start-job", json=job_request)
     assert response.status_code == 200
     
     job_data = response.json()
@@ -197,11 +197,11 @@ async def test_data_consistency(http_client, orchestrator_url, results_api_url, 
 
 
 @pytest.mark.asyncio
-async def test_error_recovery(http_client, orchestrator_url):
+async def test_error_recovery(http_client, main_api_url):
     """Test system recovery from errors"""
     # Test job status for non-existent job
     fake_job_id = str(uuid.uuid4())
-    response = await http_client.get(f"{orchestrator_url}/status/{fake_job_id}")
+    response = await http_client.get(f"{main_api_url}/status/{fake_job_id}")
     assert response.status_code == 404
     
     # Test malformed requests
@@ -214,7 +214,7 @@ async def test_error_recovery(http_client, orchestrator_url):
     
     for request in malformed_requests:
         try:
-            response = await http_client.post(f"{orchestrator_url}/start-job", json=request)
+            response = await http_client.post(f"{main_api_url}/start-job", json=request)
             # Should return error status
             assert response.status_code >= 400
         except Exception:

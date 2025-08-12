@@ -11,7 +11,7 @@ This guide helps diagnose and resolve common issues with the Product-Video Match
 make health
 
 # Or manually check each service
-curl http://localhost:8000/health  # Orchestrator
+curl http://localhost:8000/health  # Main API
 curl http://localhost:8080/health  # Results API
 curl http://localhost:8081/health  # Vector Index
 ```
@@ -26,7 +26,7 @@ docker compose -f infra/pvm/docker-compose.dev.yml ps
 make logs
 
 # Check specific service logs
-make logs-orchestrator
+make logs-main-api
 ```
 
 ### Database Connectivity
@@ -64,7 +64,7 @@ open http://localhost:15672  # guest/guest
 #### Diagnosis
 ```bash
 # Check container logs
-docker compose logs orchestrator
+docker compose logs main-api
 
 # Check port conflicts
 netstat -tulpn | grep :8000
@@ -119,7 +119,7 @@ docker logs postgres
 docker exec postgres pg_isready -U postgres
 
 # Check connection from service container
-docker exec orchestrator ping postgres
+docker exec main-api ping postgres
 ```
 
 #### Solutions
@@ -146,7 +146,7 @@ docker compose up -d
 **Configuration Issues:**
 ```bash
 # Check environment variables
-docker exec orchestrator env | grep POSTGRES
+docker exec main-api env | grep POSTGRES
 
 # Verify connection string format
 # postgresql://user:password@host:port/database
@@ -165,7 +165,7 @@ docker exec orchestrator env | grep POSTGRES
 docker logs rabbitmq
 
 # Check connection from service
-docker exec orchestrator ping rabbitmq
+docker exec main-api ping rabbitmq
 
 # Check queue status
 docker exec rabbitmq rabbitmqctl list_queues
@@ -280,7 +280,7 @@ docker logs vision-embedding --tail 50
 docker stats
 
 # Check matching parameters
-docker exec orchestrator env | grep -E "(RETRIEVAL|SIM_|MATCH_)"
+docker exec main-api env | grep -E "(RETRIEVAL|SIM_|MATCH_)"
 
 # Check vector index performance
 curl http://localhost:8081/stats
@@ -530,7 +530,7 @@ docker exec postgres psql -U postgres -d postgres -c "
 
 ```bash
 # Search for errors
-docker logs orchestrator 2>&1 | grep -i error
+docker logs main-api 2>&1 | grep -i error
 
 # Monitor processing rates
 docker logs matcher 2>&1 | grep "Processed.*matches" | tail -10
@@ -545,7 +545,7 @@ docker logs vision-embedding 2>&1 | grep -i "memory\|oom"
 
 ```bash
 # Restart individual service
-docker compose restart orchestrator
+docker compose restart main-api
 
 # Restart all services
 docker compose restart

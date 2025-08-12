@@ -17,7 +17,7 @@ from common_py.logging_config import configure_logging
 logger = configure_logging("performance-test")
 
 # Service URLs
-ORCHESTRATOR_URL = os.getenv("ORCHESTRATOR_URL", "http://localhost:8000")
+MAIN_API_URL = os.getenv("MAIN_API_URL", "http://localhost:8000")
 RESULTS_API_URL = os.getenv("RESULTS_API_URL", "http://localhost:8080")
 
 
@@ -48,7 +48,7 @@ async def test_api_response_times(client):
     logger.info("Testing API response times...")
     
     endpoints = [
-        ("Health Check", f"{ORCHESTRATOR_URL}/health"),
+        ("Health Check", f"{MAIN_API_URL}/health"),
         ("Results API Health", f"{RESULTS_API_URL}/health"),
         ("System Stats", f"{RESULTS_API_URL}/stats"),
         ("Results List", f"{RESULTS_API_URL}/results?limit=10")
@@ -125,7 +125,7 @@ async def start_and_wait_for_job(client, job_request, job_suffix):
         unique_request = {**job_request, "industry": f"{job_request['industry']}-{job_suffix}"}
         
         # Start job
-        response = await client.post(f"{ORCHESTRATOR_URL}/start-job", json=unique_request)
+        response = await client.post(f"{MAIN_API_URL}/start-job", json=unique_request)
         response.raise_for_status()
         
         job_data = response.json()
@@ -135,7 +135,7 @@ async def start_and_wait_for_job(client, job_request, job_suffix):
         await asyncio.sleep(30)  # Wait 30 seconds
         
         # Check final status
-        response = await client.get(f"{ORCHESTRATOR_URL}/status/{job_id}")
+        response = await client.get(f"{MAIN_API_URL}/status/{job_id}")
         response.raise_for_status()
         
         status_data = response.json()

@@ -7,14 +7,14 @@ import uuid
 
 
 @pytest.mark.asyncio
-async def test_orchestrator_health(http_client, orchestrator_url):
-    """Test orchestrator health endpoint"""
-    response = await http_client.get(f"{orchestrator_url}/health")
+async def test_main_api_health(http_client, main_api_url):
+    """Test main API health endpoint"""
+    response = await http_client.get(f"{main_api_url}/health")
     assert response.status_code == 200
     
     data = response.json()
     assert data["status"] == "healthy"
-    assert data["service"] == "orchestrator"
+    assert data["service"] == "main-api"
 
 
 @pytest.mark.asyncio
@@ -40,7 +40,7 @@ async def test_vector_index_health(http_client, vector_index_url):
 
 
 @pytest.mark.asyncio
-async def test_start_job_api(http_client, orchestrator_url):
+async def test_start_job_api(http_client, main_api_url):
     """Test starting a job via API"""
     job_request = {
         "industry": "test integration pillows",
@@ -50,7 +50,7 @@ async def test_start_job_api(http_client, orchestrator_url):
         "recency_days": 30
     }
     
-    response = await http_client.post(f"{orchestrator_url}/start-job", json=job_request)
+    response = await http_client.post(f"{main_api_url}/start-job", json=job_request)
     assert response.status_code == 200
     
     data = response.json()
@@ -60,7 +60,7 @@ async def test_start_job_api(http_client, orchestrator_url):
     job_id = data["job_id"]
     
     # Check job status
-    response = await http_client.get(f"{orchestrator_url}/status/{job_id}")
+    response = await http_client.get(f"{main_api_url}/status/{job_id}")
     assert response.status_code == 200
     
     status_data = response.json()

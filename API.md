@@ -4,7 +4,7 @@ This document provides detailed API documentation for the Product-Video Matching
 
 ## Base URLs
 
-- **Orchestrator API**: `http://localhost:8000`
+- **Main API**: `http://localhost:8000`
 - **Results API**: `http://localhost:8080`
 - **Vector Index API**: `http://localhost:8081`
 
@@ -34,7 +34,7 @@ Currently, no authentication is required for MVP. In production, implement appro
 }
 ```
 
-## Orchestrator API
+## Main API
 
 ### Start Job
 
@@ -110,7 +110,7 @@ Get the current status and progress of a job.
 
 ### Health Check
 
-Check orchestrator service health.
+Check main API service health.
 
 **Endpoint:** `GET /health`
 
@@ -118,7 +118,7 @@ Check orchestrator service health.
 ```json
 {
   "status": "healthy",
-  "service": "orchestrator",
+  "service": "main-api",
   "timestamp": "2024-01-15T10:30:00Z"
 }
 ```
@@ -594,7 +594,7 @@ async function runExample() {
 ## OpenAPI Specification
 
 The complete OpenAPI 3.0 specification is available at:
-- Orchestrator: `http://localhost:8000/docs`
+- Main API: `http://localhost:8000/docs`
 - Results API: `http://localhost:8080/docs`
 - Vector Index: `http://localhost:8081/docs`
 
