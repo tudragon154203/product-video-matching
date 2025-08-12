@@ -74,7 +74,7 @@ def run_tests():
     # Run pytest
     cmd = [
         sys.executable, "-m", "pytest",
-        "scripts/tests/",
+        "tests/",
         "-v",
         "--tb=short",
         "--durations=10"

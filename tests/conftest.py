@@ -10,7 +10,7 @@ import sys
 from pathlib import Path
 
 # Add libs to path
-sys.path.append(str(Path(__file__).parent.parent.parent / "libs"))
+sys.path.append(str(Path(__file__).parent.parent / "libs"))
 
 from common_py.database import DatabaseManager
 from common_py.messaging import MessageBroker

@@ -67,7 +67,7 @@ clean:
 # Run integration tests
 test:
 	@echo "Running integration tests..."
-	python -m pytest scripts/tests/ -v
+	python -m pytest tests/ -v
 	@echo "Tests completed."
 
 # Quick restart of a specific service

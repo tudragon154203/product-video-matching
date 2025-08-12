@@ -9,7 +9,7 @@ import os
 import sys
 
 # Add libs to path
-sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'libs'))
+sys.path.append(os.path.join(os.path.dirname(__file__), 'libs'))
 
 from common_py.logging_config import configure_logging
 
