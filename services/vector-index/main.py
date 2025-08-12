@@ -106,9 +106,13 @@ async def search_similar(request: SearchRequest):
             top_k=request.top_k
         )
         
+        # Debug logging
+        logger.info("Search results", count=len(results), results=results)
+        
         # Format results
         search_results = []
         for result in results:
+            logger.info("Processing result", result=result)
             search_results.append(SearchResult(
                 img_id=result["img_id"],
                 product_id=result["product_id"],
@@ -122,8 +126,9 @@ async def search_similar(request: SearchRequest):
         )
         
     except Exception as e:
-        logger.error("Failed to perform similarity search", error=str(e))
-        raise HTTPException(status_code=500, detail=str(e))
+        error_msg = f"{type(e).__name__}: {str(e) if str(e) else 'Unknown error'}"
+        logger.error("Failed to perform similarity search", error=error_msg)
+        raise HTTPException(status_code=500, detail=error_msg)
 
 
 @app.get("/stats")

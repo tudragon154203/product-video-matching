@@ -14,14 +14,23 @@ class VectorOperations:
     async def upsert_product_embeddings(self, img_id: str, emb_rgb: List[float], emb_gray: List[float]):
         """Upsert embeddings for a product image"""
         try:
+            # Handle empty vectors
+            if not emb_rgb or not emb_gray:
+                logger.warning("Empty embeddings received, skipping upsert", img_id=img_id)
+                return
+                
+            # Convert lists to vector string format for PostgreSQL
+            rgb_vector = '[' + ','.join(map(str, emb_rgb)) + ']'
+            gray_vector = '[' + ','.join(map(str, emb_gray)) + ']'
+            
             # Update embeddings in the database
             query = """
             UPDATE product_images 
-            SET emb_rgb = $1, emb_gray = $2
+            SET emb_rgb = $1::vector, emb_gray = $2::vector
             WHERE img_id = $3
             """
             
-            await self.db.execute(query, emb_rgb, emb_gray, img_id)
+            await self.db.execute(query, rgb_vector, gray_vector, img_id)
             
             logger.info("Upserted product embeddings", img_id=img_id)
             
@@ -35,6 +44,14 @@ class VectorOperations:
             # Validate vector type
             if vector_type not in ["emb_rgb", "emb_gray"]:
                 raise ValueError(f"Invalid vector type: {vector_type}")
+                
+            # Handle empty query vector
+            if not query_vector:
+                logger.warning("Empty query vector received, returning empty results")
+                return []
+            
+            # Convert query vector to string format
+            query_vector_str = '[' + ','.join(map(str, query_vector)) + ']'
             
             # Perform similarity search using pgvector
             query = f"""
@@ -42,14 +59,14 @@ class VectorOperations:
                 pi.img_id,
                 pi.product_id,
                 pi.local_path,
-                1 - (pi.{vector_type} <=> $1) as similarity
+                1 - (pi.{vector_type} <=> $1::vector) as similarity
             FROM product_images pi
             WHERE pi.{vector_type} IS NOT NULL
-            ORDER BY pi.{vector_type} <=> $1
+            ORDER BY pi.{vector_type} <=> $1::vector
             LIMIT $2
             """
             
-            results = await self.db.fetch_all(query, query_vector, top_k)
+            results = await self.db.fetch_all(query, query_vector_str, top_k)
             
             logger.info("Performed similarity search", 
                        vector_type=vector_type, 

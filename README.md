@@ -225,6 +225,10 @@ make down
 4. Add to docker-compose.dev.yml
 5. Update documentation
 
+### Event Contracts
+
+For information about event contracts and message schemas, see [CONTRACTS.md](CONTRACTS.md).
+
 ## Configuration
 
 ### Environment Variables
