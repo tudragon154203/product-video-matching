@@ -6,55 +6,55 @@ This guide provides quick commands to run and manage the Product-Video Matching 
 
 ### Basic startup:
 ```bash
-docker compose -f infra/compose/docker-compose.dev.yml up -d
+docker compose -f infra/pvm/docker-compose.dev.yml up -d
 ```
 
 ### With rebuild (recommended after code changes):
 ```bash
-docker compose -f infra/compose/docker-compose.dev.yml up -d --build
+docker compose -f infra/pvm/docker-compose.dev.yml up -d --build
 ```
 
 ### View logs while starting:
 ```bash
-docker compose -f infra/compose/docker-compose.dev.yml up --build
+docker compose -f infra/pvm/docker-compose.dev.yml up --build
 ```
 
 ## 🛑 **Stopping the System (Down)**
 
 ### Stop services but keep data:
 ```bash
-docker compose -f infra/compose/docker-compose.dev.yml down
+docker compose -f infra/pvm/docker-compose.dev.yml down
 ```
 
 ### Stop services and remove volumes (⚠️ **deletes all data**):
 ```bash
-docker compose -f infra/compose/docker-compose.dev.yml down -v
+docker compose -f infra/pvm/docker-compose.dev.yml down -v
 ```
 
 ### Stop and remove everything including images:
 ```bash
-docker compose -f infra/compose/docker-compose.dev.yml down -v --rmi all
+docker compose -f infra/pvm/docker-compose.dev.yml down -v --rmi all
 ```
 
 ## 📊 **Monitoring Commands**
 
 ### Check service status:
 ```bash
-docker compose -f infra/compose/docker-compose.dev.yml ps
+docker compose -f infra/pvm/docker-compose.dev.yml ps
 ```
 
 ### View logs:
 ```bash
 # All services
-docker compose -f infra/compose/docker-compose.dev.yml logs -f
+docker compose -f infra/pvm/docker-compose.dev.yml logs -f
 
 # Specific service
-docker compose -f infra/compose/docker-compose.dev.yml logs -f orchestrator
+docker compose -f infra/pvm/docker-compose.dev.yml logs -f orchestrator
 ```
 
 ### Restart specific service:
 ```bash
-docker compose -f infra/compose/docker-compose.dev.yml restart orchestrator
+docker compose -f infra/pvm/docker-compose.dev.yml restart orchestrator
 ```
 
 ## 🎯 **Quick Commands (if you have the Makefile)**
@@ -84,16 +84,16 @@ Here's the recommended sequence for a fresh deployment:
 
 ```bash
 # 1. Stop any existing containers
-docker compose -f infra/compose/docker-compose.dev.yml down -v
+docker compose -f infra/pvm/docker-compose.dev.yml down -v
 
 # 2. Start the system
-docker compose -f infra/compose/docker-compose.dev.yml up -d --build
+docker compose -f infra/pvm/docker-compose.dev.yml up -d --build
 
 # 3. Wait for services to be ready (about 30 seconds)
 sleep 30
 
 # 4. Check status
-docker compose -f infra/compose/docker-compose.dev.yml ps
+docker compose -f infra/pvm/docker-compose.dev.yml ps
 
 # 5. Seed the database (with correct connection string)
 # On Windows PowerShell:
@@ -116,16 +116,16 @@ curl http://localhost:8000/health  # Orchestrator
 docker logs compose-orchestrator-1 --tail 20
 
 # Rebuild specific service
-docker compose -f infra/compose/docker-compose.dev.yml build orchestrator
-docker compose -f infra/compose/docker-compose.dev.yml up -d orchestrator
+docker compose -f infra/pvm/docker-compose.dev.yml build orchestrator
+docker compose -f infra/pvm/docker-compose.dev.yml up -d orchestrator
 ```
 
 ### Clean slate restart:
 ```bash
 # Nuclear option - removes everything
-docker compose -f infra/compose/docker-compose.dev.yml down -v --rmi all
+docker compose -f infra/pvm/docker-compose.dev.yml down -v --rmi all
 docker system prune -f
-docker compose -f infra/compose/docker-compose.dev.yml up -d --build
+docker compose -f infra/pvm/docker-compose.dev.yml up -d --build
 ```
 
 ## 🌐 **Service Access Points**
@@ -141,7 +141,7 @@ Once the system is running, you can access:
 
 ## 📝 **Key Points**
 
-- **Always use the full path**: `infra/compose/docker-compose.dev.yml`
+- **Always use the full path**: `infra/pvm/docker-compose.dev.yml`
 - **Use `-d` flag** for detached mode (runs in background)
 - **Use `--build` flag** when you've made code changes
 - **PostgreSQL runs on port 5435** (not the default 5432)
@@ -160,7 +160,7 @@ docker exec compose-postgres-1 psql -U postgres -d postgres -c "SELECT 1;"
 docker exec compose-rabbitmq-1 rabbitmqctl status
 
 # Check all container status
-docker compose -f infra/compose/docker-compose.dev.yml ps
+docker compose -f infra/pvm/docker-compose.dev.yml ps
 ```
 
 ## 🚨 **Common Issues**

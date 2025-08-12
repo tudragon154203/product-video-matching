@@ -16,33 +16,33 @@ help:
 # Start development environment
 up-dev:
 	@echo "Starting development environment..."
-	docker compose -f infra/compose/docker-compose.dev.yml up -d --build
+	docker compose -f infra/pvm/docker-compose.dev.yml up -d --build
 	@echo "Waiting for services to be ready..."
 	sleep 10
 	@echo "Running database migrations..."
 	$(MAKE) migrate
 	@echo "Services started successfully!"
-	docker compose -f infra/compose/docker-compose.dev.yml ps
+	docker compose -f infra/pvm/docker-compose.dev.yml ps
 
 # Stop development environment
 down:
 	@echo "Stopping development environment..."
-	docker compose -f infra/compose/docker-compose.dev.yml down -v
+	docker compose -f infra/pvm/docker-compose.dev.yml down -v
 	@echo "Environment stopped and volumes removed."
 
 # Show logs
 logs:
-	docker compose -f infra/compose/docker-compose.dev.yml logs -f --tail=200
+	docker compose -f infra/pvm/docker-compose.dev.yml logs -f --tail=200
 
 # Build all images
 build:
 	@echo "Building all Docker images..."
-	docker compose -f infra/compose/docker-compose.dev.yml build
+	docker compose -f infra/pvm/docker-compose.dev.yml build
 
 # Run database migrations
 migrate:
 	@echo "Running database migrations..."
-	docker compose -f infra/compose/docker-compose.dev.yml exec -T postgres psql -U postgres -d postgres -c "CREATE EXTENSION IF NOT EXISTS vector;"
+	docker compose -f infra/pvm/docker-compose.dev.yml exec -T postgres psql -U postgres -d postgres -c "CREATE EXTENSION IF NOT EXISTS vector;"
 	@echo "Migrations completed."
 
 # Seed database with sample data
@@ -60,7 +60,7 @@ smoke:
 # Clean up Docker resources
 clean:
 	@echo "Cleaning up Docker resources..."
-	docker compose -f infra/compose/docker-compose.dev.yml down -v --rmi all
+	docker compose -f infra/pvm/docker-compose.dev.yml down -v --rmi all
 	docker system prune -f
 	@echo "Cleanup completed."
 
@@ -73,11 +73,11 @@ test:
 # Quick restart of a specific service
 restart-%:
 	@echo "Restarting service: $*"
-	docker compose -f infra/compose/docker-compose.dev.yml restart $*
+	docker compose -f infra/pvm/docker-compose.dev.yml restart $*
 
 # View logs for a specific service
 logs-%:
-	docker compose -f infra/compose/docker-compose.dev.yml logs -f $*
+	docker compose -f infra/pvm/docker-compose.dev.yml logs -f $*
 
 # Check service health
 health:

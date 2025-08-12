@@ -145,7 +145,7 @@ repo-root/
 │  └─ vision-common/              # normalize, gray+CLAHE, IO ảnh, RANSAC helpers
 │
 ├─ infra/
-│  ├─ compose/
+│  ├─ pvm/
 │  │  └─ docker-compose.dev.yml   # dev local: postgres, rabbitmq, services
 │  ├─ migrations/                 # alembic (Postgres schema)
 │  └─ k8s/                        # (later) manifests/helm
@@ -229,15 +229,15 @@ services:
 ```makefile
 .PHONY: up-dev down logs seed smoke
 up-dev:
-	docker compose -f infra/compose/docker-compose.dev.yml up -d --build
+	docker compose -f infra/pvm/docker-compose.dev.yml up -d --build
 	sleep 2
-	docker compose -f infra/compose/docker-compose.dev.yml ps
+	docker compose -f infra/pvm/docker-compose.dev.yml ps
 
 down:
-	docker compose -f infra/compose/docker-compose.dev.yml down -v
+	docker compose -f infra/pvm/docker-compose.dev.yml down -v
 
 logs:
-	docker compose -f infra/compose/docker-compose.dev.yml logs -f --tail=200
+	docker compose -f infra/pvm/docker-compose.dev.yml logs -f --tail=200
 
 seed:
 	python scripts/seed.py

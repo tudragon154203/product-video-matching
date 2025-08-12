@@ -20,7 +20,7 @@ curl http://localhost:8081/health  # Vector Index
 
 ```bash
 # Check Docker containers
-docker compose -f infra/compose/docker-compose.dev.yml ps
+docker compose -f infra/pvm/docker-compose.dev.yml ps
 
 # Check logs
 make logs

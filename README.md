@@ -71,7 +71,7 @@ cp .env.example .env
 make up-dev
 
 # Or using Docker Compose directly
-docker compose -f infra/compose/docker-compose.dev.yml up -d --build
+docker compose -f infra/pvm/docker-compose.dev.yml up -d --build
 ```
 
 ### 3. Run Database Migrations
@@ -178,7 +178,7 @@ http://localhost:8080/evidence/{match_id}
 │   ├── common-py/     # Common utilities
 │   └── vision-common/ # Vision processing
 ├── infra/             # Infrastructure
-│   ├── compose/       # Docker Compose files
+│   ├── pvm/           # Docker Compose files
 │   └── migrations/    # Database migrations
 ├── data/              # Local data storage
 ├── scripts/           # Development scripts
