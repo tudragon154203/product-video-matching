@@ -14,9 +14,12 @@ from embedding import EmbeddingExtractor
 logger = configure_logging("vision-embedding")
 
 # Environment variables
-POSTGRES_DSN = os.getenv("POSTGRES_DSN", "postgresql://postgres:dev@postgres:5432/postgres")
-BUS_BROKER = os.getenv("BUS_BROKER", "amqp://guest:guest@rabbitmq:5672/")
-EMBED_MODEL = os.getenv("EMBED_MODEL", "clip-vit-b32")
+sys.path.append('/app/infra')
+from config import config
+
+POSTGRES_DSN = config.POSTGRES_DSN
+BUS_BROKER = config.BUS_BROKER
+EMBED_MODEL = config.EMBED_MODEL
 
 # Global instances
 db = DatabaseManager(POSTGRES_DSN)

@@ -9,15 +9,16 @@ import time
 import requests
 from pathlib import Path
 
+# Add libs to path
+sys.path.append(str(Path(__file__).parent.parent / 'infra'))
+
+from config import config
 
 def wait_for_services():
     """Wait for services to be ready"""
-    # Get URLs from environment variables or use defaults
-    port_main = os.environ.get("PORT_MAIN", "8888")
-    port_results = os.environ.get("PORT_RESULTS", "8890")
-    
-    main_api_url = os.environ.get("MAIN_API_URL", f"http://localhost:{port_main}")
-    results_api_url = os.environ.get("RESULTS_API_URL", f"http://localhost:{port_results}")
+    # Get URLs from configuration
+    main_api_url = config.MAIN_API_URL
+    results_api_url = config.RESULTS_API_URL
     
     services = [
         ("Main API", f"{main_api_url}/health"),
@@ -48,13 +49,6 @@ def wait_for_services():
         if all_ready:
             print("All services are ready!")
             return True
-        
-        if elapsed < max_wait - wait_interval:
-            print(f"Waiting {wait_interval} more seconds...")
-            time.sleep(wait_interval)
-    
-    print("Services did not become ready in time")
-    return False
 
 
 def run_tests():
@@ -63,20 +57,26 @@ def run_tests():
     project_root = Path(__file__).parent.parent
     os.chdir(project_root)
     
-    # Get URLs from environment variables or use defaults
-    port_main = os.environ.get("PORT_MAIN", "8888")
-    port_results = os.environ.get("PORT_RESULTS", "8890")
-    
-    main_api_url = os.environ.get("MAIN_API_URL", f"http://localhost:{port_main}")
-    results_api_url = os.environ.get("RESULTS_API_URL", f"http://localhost:{port_results}")
+    # Get URLs from configuration
+    main_api_url = config.MAIN_API_URL
+    results_api_url = config.RESULTS_API_URL
     
     # Set environment variables
     env = os.environ.copy()
     env.update({
-        "POSTGRES_DSN": "postgresql://postgres:dev@localhost:5432/postgres",
-        "BUS_BROKER": "amqp://guest:guest@localhost:5672/",
+        "POSTGRES_DSN": config.POSTGRES_DSN,
+        "BUS_BROKER": config.BUS_BROKER,
         "MAIN_API_URL": main_api_url,
         "RESULTS_API_URL": results_api_url,
+        "DATA_ROOT": config.DATA_ROOT,
+        "EMBED_MODEL": config.EMBED_MODEL,
+        "RETRIEVAL_TOPK": str(config.RETRIEVAL_TOPK),
+        "SIM_DEEP_MIN": str(config.SIM_DEEP_MIN),
+        "INLIERS_MIN": str(config.INLIERS_MIN),
+        "MATCH_BEST_MIN": str(config.MATCH_BEST_MIN),
+        "MATCH_CONS_MIN": str(config.MATCH_CONS_MIN),
+        "MATCH_ACCEPT": str(config.MATCH_ACCEPT),
+        "LOG_LEVEL": config.LOG_LEVEL,
     })
     
     # Wait for services

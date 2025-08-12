@@ -2,10 +2,8 @@ services:
   # Infrastructure Services
   postgres:
     image: pgvector/pgvector:pg17
-    environment:
-      POSTGRES_DB: product_video_matching
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: dev
+    env_file:
+      - .env
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ../../infra/migrations:/docker-entrypoint-initdb.d:ro
@@ -14,6 +12,20 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+
+  pgweb:
+    image: sosedoff/pgweb:latest
+    env_file:
+      - .env
+    container_name: pgweb
+    restart: unless-stopped
+    ports:
+      - "${PORT_POSTGRES_UI}:8081"
+    environment:
+      PGWEB_DATABASE_URL: "postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?sslmode=disable"
+    depends_on:
+      postgres:
+        condition: service_healthy
 
   rabbitmq:
     image: rabbitmq:3-management

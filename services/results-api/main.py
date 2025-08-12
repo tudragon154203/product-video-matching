@@ -15,8 +15,11 @@ from common_py.models import Product, Video, Match
 logger = configure_logging("results-api")
 
 # Environment variables
-POSTGRES_DSN = os.getenv("POSTGRES_DSN", "postgresql://postgres:dev@postgres:5432/postgres")
-DATA_ROOT = os.getenv("DATA_ROOT", "/app/data")
+sys.path.append('/app/infra')
+from config import config
+
+POSTGRES_DSN = config.POSTGRES_DSN
+DATA_ROOT = config.DATA_ROOT
 
 # Global instances
 db = DatabaseManager(POSTGRES_DSN)

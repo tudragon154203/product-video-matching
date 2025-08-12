@@ -16,8 +16,11 @@ from vector_ops import VectorOperations
 logger = configure_logging("vector-index")
 
 # Environment variables
-POSTGRES_DSN = os.getenv("POSTGRES_DSN", "postgresql://postgres:dev@postgres:5432/postgres")
-BUS_BROKER = os.getenv("BUS_BROKER", "amqp://guest:guest@rabbitmq:5672/")
+sys.path.append('/app/infra')
+from config import config
+
+POSTGRES_DSN = config.POSTGRES_DSN
+BUS_BROKER = config.BUS_BROKER
 
 # Global instances
 db = DatabaseManager(POSTGRES_DSN)

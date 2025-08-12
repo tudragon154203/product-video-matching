@@ -9,15 +9,16 @@ import os
 import sys
 
 # Add libs to path
-sys.path.append(os.path.join(os.path.dirname(__file__), 'libs'))
+sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'infra'))
 
 from common_py.logging_config import configure_logging
+from config import config
 
 logger = configure_logging("smoke-test")
 
 # Service URLs
-MAIN_API_URL = os.getenv("MAIN_API_URL", "http://localhost:8000")
-RESULTS_API_URL = os.getenv("RESULTS_API_URL", "http://localhost:8080")
+MAIN_API_URL = config.MAIN_API_URL
+RESULTS_API_URL = config.RESULTS_API_URL
 
 
 async def run_smoke_test():

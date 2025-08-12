@@ -16,9 +16,12 @@ from collector import ProductCollector
 logger = configure_logging("catalog-collector")
 
 # Environment variables
-POSTGRES_DSN = os.getenv("POSTGRES_DSN", "postgresql://postgres:dev@postgres:5432/postgres")
-BUS_BROKER = os.getenv("BUS_BROKER", "amqp://guest:guest@rabbitmq:5672/")
-DATA_ROOT = os.getenv("DATA_ROOT", "/app/data")
+sys.path.append('/app/infra')
+from config import config
+
+POSTGRES_DSN = config.POSTGRES_DSN
+BUS_BROKER = config.BUS_BROKER
+DATA_ROOT = config.DATA_ROOT
 
 # Global instances
 db = DatabaseManager(POSTGRES_DSN)

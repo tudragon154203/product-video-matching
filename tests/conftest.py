@@ -11,9 +11,11 @@ from pathlib import Path
 
 # Add libs to path
 sys.path.append(str(Path(__file__).parent.parent / "libs"))
+sys.path.append(str(Path(__file__).parent.parent / "infra"))
 
 from common_py.database import DatabaseManager
 from common_py.messaging import MessageBroker
+from config import config
 
 
 @pytest.fixture(scope="session")
@@ -27,7 +29,7 @@ def event_loop():
 @pytest.fixture(scope="session")
 async def db_manager():
     """Database manager fixture"""
-    dsn = os.getenv("POSTGRES_DSN", "postgresql://postgres:dev@localhost:5432/postgres")
+    dsn = config.POSTGRES_DSN
     db = DatabaseManager(dsn)
     await db.connect()
     yield db
@@ -37,7 +39,7 @@ async def db_manager():
 @pytest.fixture(scope="session")
 async def message_broker():
     """Message broker fixture"""
-    broker_url = os.getenv("BUS_BROKER", "amqp://guest:guest@localhost:5672/")
+    broker_url = config.BUS_BROKER
     broker = MessageBroker(broker_url)
     await broker.connect()
     yield broker
@@ -98,9 +100,9 @@ def test_data():
 # Service URL fixtures
 @pytest.fixture
 def main_api_url():
-    return os.getenv("MAIN_API_URL", "http://localhost:8000")
+    return config.MAIN_API_URL
 
 
 @pytest.fixture
 def results_api_url():
-    return os.getenv("RESULTS_API_URL", "http://localhost:8080")
+    return config.RESULTS_API_URL

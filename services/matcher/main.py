@@ -16,17 +16,20 @@ from matching import MatchingEngine
 logger = configure_logging("matcher")
 
 # Environment variables
-POSTGRES_DSN = os.getenv("POSTGRES_DSN", "postgresql://postgres:dev@postgres:5432/postgres")
-BUS_BROKER = os.getenv("BUS_BROKER", "amqp://guest:guest@rabbitmq:5672/")
-DATA_ROOT = os.getenv("DATA_ROOT", "/app/data")
+sys.path.append('/app/infra')
+from config import config
+
+POSTGRES_DSN = config.POSTGRES_DSN
+BUS_BROKER = config.BUS_BROKER
+DATA_ROOT = config.DATA_ROOT
 
 # Matching parameters
-RETRIEVAL_TOPK = int(os.getenv("RETRIEVAL_TOPK", "20"))
-SIM_DEEP_MIN = float(os.getenv("SIM_DEEP_MIN", "0.82"))
-INLIERS_MIN = float(os.getenv("INLIERS_MIN", "0.35"))
-MATCH_BEST_MIN = float(os.getenv("MATCH_BEST_MIN", "0.88"))
-MATCH_CONS_MIN = int(os.getenv("MATCH_CONS_MIN", "2"))
-MATCH_ACCEPT = float(os.getenv("MATCH_ACCEPT", "0.80"))
+RETRIEVAL_TOPK = config.RETRIEVAL_TOPK
+SIM_DEEP_MIN = config.SIM_DEEP_MIN
+INLIERS_MIN = config.INLIERS_MIN
+MATCH_BEST_MIN = config.MATCH_BEST_MIN
+MATCH_CONS_MIN = config.MATCH_CONS_MIN
+MATCH_ACCEPT = config.MATCH_ACCEPT
 
 # Global instances
 db = DatabaseManager(POSTGRES_DSN)
