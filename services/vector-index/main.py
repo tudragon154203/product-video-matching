@@ -4,7 +4,6 @@ from typing import List, Dict, Any, Optional
 from fastapi import FastAPI, HTTPException, Query
 from pydantic import BaseModel
 import sys
-sys.path.append('/app/libs')
 
 from common_py.logging_config import configure_logging
 from common_py.database import DatabaseManager
@@ -16,7 +15,6 @@ from vector_ops import VectorOperations
 logger = configure_logging("vector-index")
 
 # Environment variables
-sys.path.append('/app/infra')
 from config import config
 
 POSTGRES_DSN = config.POSTGRES_DSN

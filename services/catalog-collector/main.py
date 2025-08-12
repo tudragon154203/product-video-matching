@@ -2,7 +2,6 @@ import os
 import asyncio
 import uuid
 import sys
-sys.path.append('/app/libs')
 
 from common_py.logging_config import configure_logging
 from common_py.database import DatabaseManager
@@ -16,7 +15,6 @@ from collector import ProductCollector
 logger = configure_logging("catalog-collector")
 
 # Environment variables
-sys.path.append('/app/infra')
 from config import config
 
 POSTGRES_DSN = config.POSTGRES_DSN

@@ -16,8 +16,7 @@ from flows import MatchingFlow
 logger = configure_logging("main-api")
 
 # Environment variables
-sys.path.append('/app/infra')
-from infra.config import config
+from config import config
 
 POSTGRES_DSN = config.POSTGRES_DSN
 BUS_BROKER = config.BUS_BROKER

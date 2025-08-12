@@ -31,10 +31,10 @@ This system processes industry keywords to find visual matches between products 
         │   │ Collector   │    │ Ingestion   │    │ Embedding   │              │
         │   └─────────────┘    └─────────────┘    └─────────────┘              │
         │                                                                       │
-        │   ┌─────────────┐    ┌─────────────┐    ┌─────────────┐              │
-        │   │   Vision    │    │   Vector    │    │   Matcher   │              │
-        │   │  Keypoint   │    │   Index     │    │             │              │
-        │   └─────────────┘    └─────────────┘    └─────────────┘              │
+        │   ┌─────────────┐    ┌─────────────┐              │
+        │   │   Vision    │    │   Matcher   │              │
+        │   │  Keypoint   │    │             │              │
+        │   └─────────────┘    └─────────────┘              │
         │                                                                       │
         │   ┌─────────────┐    ┌─────────────┐                                 │
         │   │  Evidence   │    │ Results API │                                 │
@@ -164,7 +164,6 @@ http://localhost:$PORT_RESULTS/evidence/{match_id}
 │   ├── media-ingestion/    # Video processing
 │   ├── vision-embedding/   # Deep learning features
 │   ├── vision-keypoint/    # Traditional CV features
-│   ├── vector-index/       # Similarity search
 │   ├── matcher/           # Core matching logic
 │   └── evidence-builder/  # Visual evidence
 ├── libs/              # Shared libraries
@@ -269,9 +268,8 @@ The system uses configurable thresholds for matching:
 All services expose `/health` endpoints:
 
 ```bash
-curl http://localhost:8000/health  # Main API
-curl http://localhost:8080/health  # Results API
-curl http://localhost:8081/health  # Vector Index
+curl http://localhost:8888/health  # Main API
+curl http://localhost:8890/health  # Results API
 ```
 
 ### Metrics
@@ -279,8 +277,7 @@ curl http://localhost:8081/health  # Vector Index
 Basic metrics are available through service endpoints:
 
 ```bash
-curl http://localhost:8080/stats      # System statistics
-curl http://localhost:8081/stats      # Vector index stats
+curl http://localhost:8890/stats      # System statistics
 ```
 
 ### Logs
@@ -298,7 +295,7 @@ make logs-orchestrator      # Specific service
 
 1. **Services not starting**
    - Check Docker daemon is running
-   - Verify ports 5432, 5672, 8000, 8080, 8081 are available
+   - Verify ports 5432, 5672, 8888, 8890 are available
    - Run `make down` then `make up-dev`
 
 2. **Database connection errors**
@@ -329,7 +326,7 @@ LOG_LEVEL=DEBUG
 
 Service startup order:
 1. PostgreSQL, RabbitMQ
-2. Orchestrator, Results API, Vector Index
+2. Orchestrator, Results API
 3. All processing services
 
 ## Performance

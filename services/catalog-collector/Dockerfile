@@ -13,7 +13,7 @@ COPY libs /tmp/libs
 
 # Copy requirements first for better caching
 COPY services/catalog-collector/requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install -r requirements.txt
 
 # Install shared libraries
 RUN pip install -e /tmp/libs/common-py

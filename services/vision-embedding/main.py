@@ -1,7 +1,6 @@
 import os
 import asyncio
 import sys
-sys.path.append('/app/libs')
 
 from common_py.logging_config import configure_logging
 from common_py.database import DatabaseManager
@@ -14,7 +13,6 @@ from embedding import EmbeddingExtractor
 logger = configure_logging("vision-embedding")
 
 # Environment variables
-sys.path.append('/app/infra')
 from config import config
 
 POSTGRES_DSN = config.POSTGRES_DSN

@@ -4,8 +4,8 @@ This document provides detailed API documentation for the Product-Video Matching
 
 ## Base URLs
 
-- **Main API**: `http://localhost:${PORT_MAIN}`
-- **Results API**: `http://localhost:${PORT_RESULTS}`
+- **Main API**: `http://localhost:8888`
+- **Results API**: `http://localhost:8890`
 
 ## Authentication
 
@@ -48,7 +48,7 @@ Start a new product-video matching job.
   "top_amz": 10,
   "top_ebay": 5,
   "queries": ["ergonomic pillows", "neck support pillows"],
-  "platforms": ["youtube", "bilibili"],
+  "platforms": ["youtube"],
   "recency_days": 365
 }
 ```
@@ -56,7 +56,7 @@ Start a new product-video matching job.
 **Parameters:**
 - `industry` (string, required): Industry keyword for search
 - `top_amz` (integer, optional, default: 10): Number of Amazon products to collect
-- `top_ebay` (integer, optional, default: 10): Number of eBay products to collect
+- `top_ebay` (integer, optional, default: 5): Number of eBay products to collect
 - `queries` (array, optional): Custom search queries (defaults to industry keyword)
 - `platforms` (array, optional, default: ["youtube"]): Video platforms to search
 - `recency_days` (integer, optional, default: 365): How many days back to search videos
@@ -312,93 +312,41 @@ Check Results API service health.
 }
 ```
 
-## Vector Index API
 
-### Search Similar Images
+## Configuration Parameters
 
-Perform vector similarity search for product images.
+### Port Configuration
+- `PORT_MAIN`: Main API port (default: 8888)
+- `PORT_RESULTS`: Results API port (default: 8890)
+- `PORT_POSTGRES_UI`: PostgreSQL UI port (default: 8081)
 
-**Endpoint:** `POST /search`
+### Database Configuration
+- `POSTGRES_USER`: PostgreSQL username (default: postgres)
+- `POSTGRES_PASSWORD`: PostgreSQL password (default: dev)
+- `POSTGRES_DB`: PostgreSQL database name (default: product_video_matching)
+- `POSTGRES_HOST`: PostgreSQL host (default: localhost)
 
-**Request Body:**
-```json
-{
-  "query_vector": [0.1, 0.2, 0.3, ...],
-  "vector_type": "emb_rgb",
-  "top_k": 20
-}
-```
+### Message Broker Configuration
+- `BUS_BROKER`: Message broker connection string (default: amqp://guest:guest@localhost:5672/)
 
-**Parameters:**
-- `query_vector` (array, required): 512-dimensional embedding vector
-- `vector_type` (string, optional, default: "emb_rgb"): Vector type ("emb_rgb" or "emb_gray")
-- `top_k` (integer, optional, default: 20): Number of results to return
+### Data Storage
+- `DATA_ROOT`: Root directory for data storage (default: ./data)
 
-**Response:**
-```json
-{
-  "results": [
-    {
-      "img_id": "img-202",
-      "product_id": "prod-789",
-      "similarity": 0.95,
-      "local_path": "/app/data/products/prod-789/img-202.jpg"
-    }
-  ],
-  "total_found": 1
-}
-```
+### Vision Models
+- `EMBED_MODEL`: Vision embedding model (default: clip-vit-b32)
 
-**Status Codes:**
-- `200`: Search completed successfully
-- `400`: Invalid request parameters
-- `500`: Internal server error
+### Vector Search Configuration
+- `RETRIEVAL_TOPK`: Number of results to return in vector search (default: 20)
 
-### Get Index Statistics
+### Matching Thresholds
+- `SIM_DEEP_MIN`: Minimum similarity threshold for deep matching (default: 0.82)
+- `INLIERS_MIN`: Minimum inliers ratio for keypoint matching (default: 0.35)
+- `MATCH_BEST_MIN`: Minimum score for best match (default: 0.88)
+- `MATCH_CONS_MIN`: Minimum consistent matches (default: 2)
+- `MATCH_ACCEPT`: Minimum acceptance score for matches (default: 0.80)
 
-Get vector index statistics and performance metrics.
-
-**Endpoint:** `GET /stats`
-
-**Response:**
-```json
-{
-  "total_images": 3750,
-  "rgb_indexed": 3750,
-  "gray_indexed": 3750,
-  "indexing_progress": {
-    "rgb": 100.0,
-    "gray": 100.0
-  },
-  "indexes": [
-    {
-      "schemaname": "public",
-      "tablename": "product_images",
-      "indexname": "idx_product_images_emb_rgb",
-      "size": "45 MB"
-    }
-  ]
-}
-```
-
-**Status Codes:**
-- `200`: Statistics retrieved successfully
-- `500`: Internal server error
-
-### Health Check
-
-Check Vector Index service health.
-
-**Endpoint:** `GET /health`
-
-**Response:**
-```json
-{
-  "status": "healthy",
-  "service": "vector-index",
-  "timestamp": "2024-01-15T10:30:00Z"
-}
-```
+### Logging
+- `LOG_LEVEL`: Logging level (default: INFO)
 
 ## Error Codes
 
@@ -474,7 +422,7 @@ For real-time job progress updates (not implemented in MVP):
 
 ```javascript
 // Connect to WebSocket
-const ws = new WebSocket('ws://localhost:8000/ws/job/{job_id}');
+const ws = new WebSocket('ws://localhost:8888/ws/job/{job_id}');
 
 // Receive progress updates
 ws.onmessage = function(event) {
@@ -492,9 +440,9 @@ import requests
 import json
 
 class ProductVideoMatchingClient:
-    def __init__(self, base_url="http://localhost:8000"):
+    def __init__(self, base_url="http://localhost:8888"):
         self.base_url = base_url
-        self.results_url = base_url.replace("8000", "8080")
+        self.results_url = base_url.replace("8888", "8890")
     
     def start_job(self, industry, top_amz=10, top_ebay=5):
         response = requests.post(f"{self.base_url}/start-job", json={
@@ -534,9 +482,9 @@ print(f"Found {len(results)} matches")
 
 ```javascript
 class ProductVideoMatchingClient {
-  constructor(baseUrl = 'http://localhost:8000') {
+  constructor(baseUrl = 'http://localhost:8888') {
     this.baseUrl = baseUrl;
-    this.resultsUrl = baseUrl.replace('8000', '8080');
+    this.resultsUrl = baseUrl.replace('8888', '8890');
   }
 
   async startJob(industry, options = {}) {
@@ -545,8 +493,8 @@ class ProductVideoMatchingClient {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         industry,
-        top_amz: options.topAmz || 10,
-        top_ebay: options.topEbay || 5,
+        topAmz: options.topAmz || 10,
+        topEbay: options.topEbay || 5,
         platforms: options.platforms || ['youtube']
       })
     });
@@ -593,8 +541,7 @@ async function runExample() {
 ## OpenAPI Specification
 
 The complete OpenAPI 3.0 specification is available at:
-- Main API: `http://localhost:8000/docs`
-- Results API: `http://localhost:8080/docs`
-- Vector Index: `http://localhost:8081/docs`
+- Main API: `http://localhost:8888/docs`
+- Results API: `http://localhost:8890/docs`
 
 This provides interactive API documentation and testing capabilities.

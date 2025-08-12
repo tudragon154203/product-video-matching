@@ -10,9 +10,12 @@ RUN apt-get update && apt-get install -y \
 # Copy shared libraries first
 COPY libs /tmp/libs
 
+# Copy infra directory
+COPY infra /app/infra
+
 # Copy requirements first for better caching
 COPY services/results-api/requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install -r requirements.txt
 
 # Install shared libraries
 RUN pip install -e /tmp/libs/common-py

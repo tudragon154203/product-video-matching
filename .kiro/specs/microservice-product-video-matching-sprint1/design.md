@@ -410,7 +410,6 @@ Each main topic has a corresponding DLQ:
 ### End-to-End Testing
 
 - **Smoke Tests**: Complete pipeline with sample data
-- **Performance Tests**: Throughput and latency under load
 - **Quality Tests**: Precision/recall validation with labeled dataset
 - **Failure Tests**: Service failure scenarios and recovery
 

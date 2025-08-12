@@ -2,7 +2,6 @@ import os
 import asyncio
 import uuid
 import sys
-sys.path.append('/app/libs')
 
 from common_py.logging_config import configure_logging
 from common_py.database import DatabaseManager
@@ -16,7 +15,6 @@ from matching import MatchingEngine
 logger = configure_logging("matcher")
 
 # Environment variables
-sys.path.append('/app/infra')
 from config import config
 
 POSTGRES_DSN = config.POSTGRES_DSN
@@ -36,7 +34,7 @@ db = DatabaseManager(POSTGRES_DSN)
 broker = MessageBroker(BUS_BROKER)
 match_crud = MatchCRUD(db)
 matching_engine = MatchingEngine(
-    db, DATA_ROOT, "http://vector-index:8081",
+    db, DATA_ROOT,
     retrieval_topk=RETRIEVAL_TOPK,
     sim_deep_min=SIM_DEEP_MIN,
     inliers_min=INLIERS_MIN,

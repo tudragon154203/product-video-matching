@@ -36,8 +36,8 @@ make smoke
 
 ### Service Ports
 
-- Main API: 8000
-- Results API: 8080
+- Main API: 8888
+- Results API: 8890
 - Vector Index: 8081
 - PostgreSQL: 5432
 - RabbitMQ: 5672 (Management: 15672)
@@ -271,7 +271,7 @@ global:
 scrape_configs:
   - job_name: 'product-video-matching'
     static_configs:
-      - targets: ['main-api:8000', 'results-api:8080', 'vector-index:8081']
+      - targets: ['main-api:8888', 'results-api:8890', 'vector-index:8081']
     metrics_path: '/metrics'
     scrape_interval: 30s
 ```
@@ -455,14 +455,14 @@ docker compose up -d --scale vision-embedding=3 --scale matcher=2
 ```nginx
 # nginx.conf
 upstream main-api {
-    server main-api-1:8000;
-    server main-api-2:8000;
-    server main-api-3:8000;
+    server main-api-1:8888;
+    server main-api-2:8888;
+    server main-api-3:8888;
 }
 
 upstream results-api {
-    server results-api-1:8080;
-    server results-api-2:8080;
+    server results-api-1:8890;
+    server results-api-2:8890;
 }
 ```
 
@@ -533,7 +533,7 @@ for service in "${SERVICES[@]}"; do
     sleep 30
     
     # Verify service is healthy
-    if ! curl -f http://localhost:8080/health; then
+    if ! curl -f http://localhost:8890/health; then
         echo "Health check failed for $service"
         exit 1
     fi
