@@ -18,7 +18,6 @@ logger = configure_logging("smoke-test")
 # Service URLs
 MAIN_API_URL = os.getenv("MAIN_API_URL", "http://localhost:8000")
 RESULTS_API_URL = os.getenv("RESULTS_API_URL", "http://localhost:8080")
-VECTOR_INDEX_URL = os.getenv("VECTOR_INDEX_URL", "http://localhost:8081")
 
 
 async def run_smoke_test():
@@ -55,8 +54,7 @@ async def check_service_health(client):
     
     services = [
         ("Main API", f"{MAIN_API_URL}/health"),
-        ("Results API", f"{RESULTS_API_URL}/health"),
-        ("Vector Index", f"{VECTOR_INDEX_URL}/health")
+        ("Results API", f"{RESULTS_API_URL}/health")
     ]
     
     for service_name, health_url in services:
@@ -191,12 +189,6 @@ async def test_api_endpoints(client):
     response.raise_for_status()
     stats = response.json()
     logger.info("System stats", stats=stats)
-    
-    # Test vector index stats
-    response = await client.get(f"{VECTOR_INDEX_URL}/stats")
-    response.raise_for_status()
-    vector_stats = response.json()
-    logger.info("Vector index stats", stats=vector_stats)
     
     # Test results with filters
     response = await client.get(f"{RESULTS_API_URL}/results", params={"min_score": 0.5})

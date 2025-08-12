@@ -10,10 +10,9 @@ logger = structlog.get_logger()
 class MatchingEngine:
     """Core matching logic combining embeddings and keypoints"""
     
-    def __init__(self, db, data_root: str, vector_index_url: str, **params):
+    def __init__(self, db, data_root: str, **params):
         self.db = db
         self.data_root = Path(data_root)
-        self.vector_index_url = vector_index_url
         self.client = None
         
         # Matching parameters

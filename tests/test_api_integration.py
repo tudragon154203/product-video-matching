@@ -29,17 +29,6 @@ async def test_results_api_health(http_client, results_api_url):
 
 
 @pytest.mark.asyncio
-async def test_vector_index_health(http_client, vector_index_url):
-    """Test vector index health endpoint"""
-    response = await http_client.get(f"{vector_index_url}/health")
-    assert response.status_code == 200
-    
-    data = response.json()
-    assert data["status"] == "healthy"
-    assert data["service"] == "vector-index"
-
-
-@pytest.mark.asyncio
 async def test_start_job_api(http_client, main_api_url):
     """Test starting a job via API"""
     job_request = {
@@ -176,35 +165,6 @@ async def test_results_api_endpoints(http_client, results_api_url, db_manager, c
     assert "videos" in stats
     assert "matches" in stats
     assert stats["matches"] >= 1
-
-
-@pytest.mark.asyncio
-async def test_vector_index_api(http_client, vector_index_url):
-    """Test vector index API endpoints"""
-    # Test stats endpoint
-    response = await http_client.get(f"{vector_index_url}/stats")
-    assert response.status_code == 200
-    
-    stats = response.json()
-    assert "total_images" in stats
-    assert "rgb_indexed" in stats
-    assert "gray_indexed" in stats
-    
-    # Test search endpoint with mock vector
-    test_vector = [0.1] * 512  # 512-dimensional test vector
-    search_request = {
-        "query_vector": test_vector,
-        "vector_type": "emb_rgb",
-        "top_k": 10
-    }
-    
-    response = await http_client.post(f"{vector_index_url}/search", json=search_request)
-    assert response.status_code == 200
-    
-    search_results = response.json()
-    assert "results" in search_results
-    assert "total_found" in search_results
-    assert isinstance(search_results["results"], list)
 
 
 @pytest.mark.asyncio

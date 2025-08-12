@@ -18,7 +18,6 @@ def wait_for_services():
     
     main_api_url = os.environ.get("MAIN_API_URL", f"http://localhost:{port_main}")
     results_api_url = os.environ.get("RESULTS_API_URL", f"http://localhost:{port_results}")
-    vector_index_url = os.environ.get("VECTOR_INDEX_URL", "http://localhost:8081")
     
     services = [
         ("Main API", f"{main_api_url}/health"),
@@ -70,7 +69,6 @@ def run_tests():
     
     main_api_url = os.environ.get("MAIN_API_URL", f"http://localhost:{port_main}")
     results_api_url = os.environ.get("RESULTS_API_URL", f"http://localhost:{port_results}")
-    vector_index_url = os.environ.get("VECTOR_INDEX_URL", "http://localhost:8081")
     
     # Set environment variables
     env = os.environ.copy()
@@ -79,7 +77,6 @@ def run_tests():
         "BUS_BROKER": "amqp://guest:guest@localhost:5672/",
         "MAIN_API_URL": main_api_url,
         "RESULTS_API_URL": results_api_url,
-        "VECTOR_INDEX_URL": vector_index_url
     })
     
     # Wait for services

@@ -19,7 +19,6 @@ logger = configure_logging("matcher")
 POSTGRES_DSN = os.getenv("POSTGRES_DSN", "postgresql://postgres:dev@postgres:5432/postgres")
 BUS_BROKER = os.getenv("BUS_BROKER", "amqp://guest:guest@rabbitmq:5672/")
 DATA_ROOT = os.getenv("DATA_ROOT", "/app/data")
-VECTOR_INDEX_URL = os.getenv("VECTOR_INDEX_URL", "http://vector-index:8081")
 
 # Matching parameters
 RETRIEVAL_TOPK = int(os.getenv("RETRIEVAL_TOPK", "20"))
@@ -34,7 +33,7 @@ db = DatabaseManager(POSTGRES_DSN)
 broker = MessageBroker(BUS_BROKER)
 match_crud = MatchCRUD(db)
 matching_engine = MatchingEngine(
-    db, DATA_ROOT, VECTOR_INDEX_URL,
+    db, DATA_ROOT, "http://vector-index:8081",
     retrieval_topk=RETRIEVAL_TOPK,
     sim_deep_min=SIM_DEEP_MIN,
     inliers_min=INLIERS_MIN,

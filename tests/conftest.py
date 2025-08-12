@@ -104,8 +104,3 @@ def main_api_url():
 @pytest.fixture
 def results_api_url():
     return os.getenv("RESULTS_API_URL", "http://localhost:8080")
-
-
-@pytest.fixture
-def vector_index_url():
-    return os.getenv("VECTOR_INDEX_URL", "http://localhost:8081")
