@@ -1,0 +1,230 @@
+version: "3.9"
+
+services:
+  # Infrastructure Services
+  postgres:
+    image: pgvector/pgvector:pg17
+    environment:
+      POSTGRES_DB: product_video_matching
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: dev
+    ports:
+      - "5435:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  rabbitmq:
+    image: rabbitmq:3-management
+    environment:
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Application Services
+  orchestrator:
+    build:
+      context: ../../
+      dockerfile: services/orchestrator/Dockerfile
+    environment:
+      POSTGRES_DSN: postgresql://postgres:dev@postgres:5432/postgres
+      BUS_BROKER: amqp://guest:guest@rabbitmq:5672/
+      PYTHONPATH: /app/libs
+    ports:
+      - "8000:8000"
+    volumes:
+      - ../../libs:/app/libs:ro
+      - ../../data:/app/data
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    restart: unless-stopped
+
+  results-api:
+    build:
+      context: ../../
+      dockerfile: services/results-api/Dockerfile
+    environment:
+      POSTGRES_DSN: postgresql://postgres:dev@postgres:5432/postgres
+      DATA_ROOT: /app/data
+      PYTHONPATH: /app/libs
+    ports:
+      - "8080:8080"
+    volumes:
+      - ../../libs:/app/libs:ro
+      - ../../data:/app/data:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+
+  catalog-collector:
+    build:
+      context: ../../
+      dockerfile: services/catalog-collector/Dockerfile
+    environment:
+      POSTGRES_DSN: postgresql://postgres:dev@postgres:5432/postgres
+      BUS_BROKER: amqp://guest:guest@rabbitmq:5672/
+      DATA_ROOT: /app/data
+      PYTHONPATH: /app/libs
+    volumes:
+      - ../../libs:/app/libs:ro
+      - ../../data:/app/data
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    restart: unless-stopped
+
+  media-ingestion:
+    build:
+      context: ../../
+      dockerfile: services/media-ingestion/Dockerfile
+    environment:
+      POSTGRES_DSN: postgresql://postgres:dev@postgres:5432/postgres
+      BUS_BROKER: amqp://guest:guest@rabbitmq:5672/
+      DATA_ROOT: /app/data
+      PYTHONPATH: /app/libs
+    volumes:
+      - ../../libs:/app/libs:ro
+      - ../../data:/app/data
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    restart: unless-stopped
+
+  vision-embedding:
+    build:
+      context: ../../
+      dockerfile: services/vision-embedding/Dockerfile
+    environment:
+      POSTGRES_DSN: postgresql://postgres:dev@postgres:5432/postgres
+      BUS_BROKER: amqp://guest:guest@rabbitmq:5672/
+      EMBED_MODEL: clip-vit-b32
+      PYTHONPATH: /app/libs
+    volumes:
+      - ../../libs:/app/libs:ro
+      - ../../data:/app/data:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    restart: unless-stopped
+    # Uncomment for GPU support
+    # deploy:
+    #   resources:
+    #     reservations:
+    #       devices:
+    #         - capabilities: [gpu]
+
+  vision-keypoint:
+    build:
+      context: ../../
+      dockerfile: services/vision-keypoint/Dockerfile
+    environment:
+      POSTGRES_DSN: postgresql://postgres:dev@postgres:5432/postgres
+      BUS_BROKER: amqp://guest:guest@rabbitmq:5672/
+      DATA_ROOT: /app/data
+      PYTHONPATH: /app/libs
+    volumes:
+      - ../../libs:/app/libs:ro
+      - ../../data:/app/data
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    restart: unless-stopped
+
+  vector-index:
+    build:
+      context: ../../
+      dockerfile: services/vector-index/Dockerfile
+    environment:
+      POSTGRES_DSN: postgresql://postgres:dev@postgres:5432/postgres
+      BUS_BROKER: amqp://guest:guest@rabbitmq:5672/
+      PYTHONPATH: /app/libs
+    ports:
+      - "8081:8081"
+    volumes:
+      - ../../libs:/app/libs:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    restart: unless-stopped
+
+  matcher:
+    build:
+      context: ../../
+      dockerfile: services/matcher/Dockerfile
+    environment:
+      POSTGRES_DSN: postgresql://postgres:dev@postgres:5432/postgres
+      BUS_BROKER: amqp://guest:guest@rabbitmq:5672/
+      DATA_ROOT: /app/data
+      VECTOR_INDEX_URL: http://vector-index:8081
+      RETRIEVAL_TOPK: 20
+      SIM_DEEP_MIN: 0.82
+      INLIERS_MIN: 0.35
+      MATCH_BEST_MIN: 0.88
+      MATCH_CONS_MIN: 2
+      MATCH_ACCEPT: 0.80
+      PYTHONPATH: /app/libs
+    volumes:
+      - ../../libs:/app/libs:ro
+      - ../../data:/app/data:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      vector-index:
+        condition: service_started
+    restart: unless-stopped
+
+  evidence-builder:
+    build:
+      context: ../../
+      dockerfile: services/evidence-builder/Dockerfile
+    environment:
+      POSTGRES_DSN: postgresql://postgres:dev@postgres:5432/postgres
+      BUS_BROKER: amqp://guest:guest@rabbitmq:5672/
+      DATA_ROOT: /app/data
+      PYTHONPATH: /app/libs
+    volumes:
+      - ../../libs:/app/libs:ro
+      - ../../data:/app/data
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+  rabbitmq_data:
+
+networks:
+  default:
+    name: product-video-matching

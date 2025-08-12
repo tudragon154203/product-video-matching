@@ -1,0 +1,28 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "ProductsCollectRequest",
+  "type": "object",
+  "required": ["job_id", "industry", "top_amz", "top_ebay"],
+  "properties": {
+    "job_id": {
+      "type": "string",
+      "description": "Unique identifier for the job"
+    },
+    "industry": {
+      "type": "string",
+      "description": "Industry keyword for product search"
+    },
+    "top_amz": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 100,
+      "description": "Number of top Amazon products to collect"
+    },
+    "top_ebay": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 100,
+      "description": "Number of top eBay products to collect"
+    }
+  }
+}

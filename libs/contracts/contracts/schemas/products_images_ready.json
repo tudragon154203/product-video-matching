@@ -1,0 +1,28 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "ProductsImagesReady",
+  "type": "object",
+  "required": ["product_id", "image_id", "local_path"],
+  "properties": {
+    "product_id": {
+      "type": "string",
+      "description": "Unique identifier for the product"
+    },
+    "image_id": {
+      "type": "string",
+      "description": "Unique identifier for the image"
+    },
+    "local_path": {
+      "type": "string",
+      "description": "Local file system path to the image"
+    },
+    "metadata": {
+      "type": "object",
+      "properties": {
+        "width": {"type": "integer"},
+        "height": {"type": "integer"},
+        "format": {"type": "string"}
+      }
+    }
+  }
+}

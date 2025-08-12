@@ -1,0 +1,54 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "MatchResultEnriched",
+  "type": "object",
+  "required": ["job_id", "product_id", "video_id", "best_pair", "score", "ts", "evidence_path"],
+  "properties": {
+    "job_id": {
+      "type": "string",
+      "description": "Unique identifier for the job"
+    },
+    "product_id": {
+      "type": "string",
+      "description": "Unique identifier for the matched product"
+    },
+    "video_id": {
+      "type": "string",
+      "description": "Unique identifier for the matched video"
+    },
+    "best_pair": {
+      "type": "object",
+      "required": ["img_id", "frame_id", "score_pair"],
+      "properties": {
+        "img_id": {
+          "type": "string",
+          "description": "Best matching image ID"
+        },
+        "frame_id": {
+          "type": "string",
+          "description": "Best matching frame ID"
+        },
+        "score_pair": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "Similarity score for the best pair"
+        }
+      }
+    },
+    "score": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1,
+      "description": "Overall match score"
+    },
+    "ts": {
+      "type": "number",
+      "description": "Timestamp of the best matching frame"
+    },
+    "evidence_path": {
+      "type": "string",
+      "description": "Path to the evidence image file"
+    }
+  }
+}

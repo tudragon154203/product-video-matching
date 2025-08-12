@@ -1,0 +1,30 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "MatchRequest",
+  "type": "object",
+  "required": ["job_id", "industry", "product_set_id", "video_set_id", "top_k"],
+  "properties": {
+    "job_id": {
+      "type": "string",
+      "description": "Unique identifier for the job"
+    },
+    "industry": {
+      "type": "string",
+      "description": "Industry keyword for filtering"
+    },
+    "product_set_id": {
+      "type": "string",
+      "description": "Identifier for the product set to match"
+    },
+    "video_set_id": {
+      "type": "string",
+      "description": "Identifier for the video set to match against"
+    },
+    "top_k": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 100,
+      "description": "Number of top candidates to retrieve"
+    }
+  }
+}
