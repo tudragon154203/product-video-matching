@@ -97,8 +97,8 @@ make smoke
 ### Starting a Matching Job
 
 ```bash
-curl -X POST http://localhost:8000/start-job \
-  -H "Content-Type: application/json" \
+curl -X POST http://localhost:$PORT_MAIN/start-job \\
+  -H "Content-Type: application/json" \\
   -d '{
     "industry": "ergonomic pillows",
     "top_amz": 10,
@@ -111,38 +111,38 @@ curl -X POST http://localhost:8000/start-job \
 ### Checking Job Status
 
 ```bash
-curl http://localhost:8000/status/{job_id}
+curl http://localhost:$PORT_MAIN/status/{job_id}
 ```
 
 ### Getting Results
 
 ```bash
 # All results
-curl http://localhost:8080/results
+curl http://localhost:$PORT_RESULTS/results
 
 # Filtered results
-curl "http://localhost:8080/results?min_score=0.8&industry=pillows"
+curl "http://localhost:$PORT_RESULTS/results?min_score=0.8&industry=pillows"
 
 # Specific match details
-curl http://localhost:8080/matches/{match_id}
+curl http://localhost:$PORT_RESULTS/matches/{match_id}
 ```
 
 ### Viewing Evidence
 
 Evidence images are available at:
 ```
-http://localhost:8080/evidence/{match_id}
+http://localhost:$PORT_RESULTS/evidence/{match_id}
 ```
 
 ## API Documentation
 
-### Main API (Port 8000)
+### Main API (Port $PORT_MAIN)
 
 - `POST /start-job` - Start a new matching job
 - `GET /status/{job_id}` - Get job status and progress
 - `GET /health` - Health check
 
-### Results API (Port 8080)
+### Results API (Port $PORT_RESULTS)
 
 - `GET /results` - List matching results (with filtering)
 - `GET /products/{id}` - Get product details
@@ -150,12 +150,6 @@ http://localhost:8080/evidence/{match_id}
 - `GET /matches/{id}` - Get match details
 - `GET /evidence/{match_id}` - Get evidence image
 - `GET /stats` - System statistics
-- `GET /health` - Health check
-
-### Vector Index API (Port 8081)
-
-- `POST /search` - Vector similarity search
-- `GET /stats` - Index statistics
 - `GET /health` - Health check
 
 ## Development

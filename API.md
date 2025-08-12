@@ -4,9 +4,8 @@ This document provides detailed API documentation for the Product-Video Matching
 
 ## Base URLs
 
-- **Main API**: `http://localhost:8000`
-- **Results API**: `http://localhost:8080`
-- **Vector Index API**: `http://localhost:8081`
+- **Main API**: `http://localhost:${PORT_MAIN}`
+- **Results API**: `http://localhost:${PORT_RESULTS}`
 
 ## Authentication
 

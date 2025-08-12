@@ -17,7 +17,8 @@ from common_py.logging_config import configure_logging
 logger = configure_logging("seed")
 
 # Database connection
-POSTGRES_DSN = os.getenv("POSTGRES_DSN", "postgresql://postgres:dev@localhost:5432/postgres")
+PORT_POSTGRES = os.getenv("PORT_POSTGRES", "5435")
+POSTGRES_DSN = os.getenv("POSTGRES_DSN", f"postgresql://postgres:dev@localhost:{PORT_POSTGRES}/postgres")
 
 
 async def seed_database():

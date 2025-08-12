@@ -6,10 +6,9 @@ services:
       POSTGRES_DB: product_video_matching
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: dev
-    ports:
-      - "5435:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+      - ../../infra/migrations:/docker-entrypoint-initdb.d:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 10s
@@ -37,12 +36,14 @@ services:
     build:
       context: ../../
       dockerfile: services/main-api/Dockerfile
+    env_file:
+      - .env
     environment:
-      POSTGRES_DSN: postgresql://postgres:dev@postgres:5432/postgres
+      POSTGRES_DSN: postgresql://postgres:dev@postgres:5432/product_video_matching
       BUS_BROKER: amqp://guest:guest@rabbitmq:5672/
       PYTHONPATH: /app/libs
     ports:
-      - "8000:8000"
+      - "${PORT_MAIN}:8000"
     volumes:
       - ../../libs:/app/libs:ro
       - ../../data:/app/data
@@ -57,12 +58,14 @@ services:
     build:
       context: ../../
       dockerfile: services/results-api/Dockerfile
+    env_file:
+      - .env
     environment:
-      POSTGRES_DSN: postgresql://postgres:dev@postgres:5432/postgres
+      POSTGRES_DSN: postgresql://postgres:dev@postgres:5432/product_video_matching
       DATA_ROOT: /app/data
       PYTHONPATH: /app/libs
     ports:
-      - "8080:8080"
+      - "${PORT_RESULTS}:8080"
     volumes:
       - ../../libs:/app/libs:ro
       - ../../data:/app/data:ro
