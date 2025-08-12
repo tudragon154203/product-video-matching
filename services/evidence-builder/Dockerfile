@@ -24,8 +24,5 @@ RUN pip install -r requirements.txt
 RUN pip install -e /tmp/libs/common-py
 RUN pip install -e /tmp/libs/contracts
 
-# Copy application code
-COPY services/evidence-builder/ .
-
 # Run the application
-CMD ["python", "main.py"]
+CMD ["python", "app/main.py"]

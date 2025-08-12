@@ -58,6 +58,7 @@ services:
       - ../../libs:/app/libs:ro
       - ../../infra:/app/infra:ro
       - ../../data:/app/data
+      - ../../services/main-api:/app/app
     depends_on:
       postgres:
         condition: service_healthy
@@ -79,6 +80,7 @@ services:
     volumes:
       - ../../libs:/app/libs:ro
       - ../../data:/app/data:ro
+      - ../../services/results-api:/app/app
     depends_on:
       postgres:
         condition: service_healthy
@@ -96,6 +98,7 @@ services:
     volumes:
       - ../../libs:/app/libs:ro
       - ../../data:/app/data
+      - ../../services/catalog-collector:/app/app
     depends_on:
       postgres:
         condition: service_healthy
@@ -115,6 +118,7 @@ services:
     volumes:
       - ../../libs:/app/libs:ro
       - ../../data:/app/data
+      - ../../services/media-ingestion:/app/app
     depends_on:
       postgres:
         condition: service_healthy
@@ -133,6 +137,7 @@ services:
     volumes:
       - ../../libs:/app/libs:ro
       - ../../data:/app/data:ro
+      - ../../services/vision-embedding:/app/app
     depends_on:
       postgres:
         condition: service_healthy
@@ -157,6 +162,7 @@ services:
     volumes:
       - ../../libs:/app/libs:ro
       - ../../data:/app/data
+      - ../../services/vision-keypoint:/app/app
     depends_on:
       postgres:
         condition: service_healthy
@@ -174,6 +180,7 @@ services:
       PYTHONPATH: /app/libs
     volumes:
       - ../../libs:/app/libs:ro
+      - ../../services/vector-index:/app/app
     depends_on:
       postgres:
         condition: service_healthy
@@ -189,9 +196,11 @@ services:
       - .env
     environment:
       DATA_ROOT: /app/data
+      PYTHONPATH: /app/libs
     volumes:
       - ../../libs:/app/libs:ro
       - ../../data:/app/data:ro
+      - ../../services/matcher:/app/app
     depends_on:
       postgres:
         condition: service_healthy
@@ -213,6 +222,7 @@ services:
     volumes:
       - ../../libs:/app/libs:ro
       - ../../data:/app/data
+      - ../../services/evidence-builder:/app/app
     depends_on:
       postgres:
         condition: service_healthy

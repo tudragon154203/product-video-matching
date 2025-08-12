@@ -5,7 +5,6 @@ from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 import asyncio
 import sys
-sys.path.append('/app/libs')
 
 from common_py.logging_config import configure_logging
 from common_py.database import DatabaseManager

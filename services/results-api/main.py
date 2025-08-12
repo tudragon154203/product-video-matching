@@ -4,7 +4,6 @@ from fastapi import FastAPI, HTTPException, Query
 from fastapi.responses import FileResponse
 from pydantic import BaseModel
 import sys
-sys.path.append('/app/libs')
 
 from common_py.logging_config import configure_logging
 from common_py.database import DatabaseManager
@@ -15,7 +14,6 @@ from common_py.models import Product, Video, Match
 logger = configure_logging("results-api")
 
 # Environment variables
-sys.path.append('/app/infra')
 from config import config
 
 POSTGRES_DSN = config.POSTGRES_DSN

@@ -18,11 +18,8 @@ RUN pip install -r requirements.txt
 RUN pip install -e /tmp/libs/common-py
 RUN pip install -e /tmp/libs/contracts
 
-# Copy application code
-COPY services/vector-index/ .
-
 # Expose port
 EXPOSE 8081
 
 # Run the application
-CMD ["python", "-m", "uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8081"]
+CMD ["python", "-m", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8081"]

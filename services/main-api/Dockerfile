@@ -18,11 +18,8 @@ RUN pip install -r requirements.txt
 RUN pip install -e /tmp/libs/common-py
 RUN pip install -e /tmp/libs/contracts
 
-# Copy application code
-COPY services/main-api/ .
-
 # Expose port
 EXPOSE 8000
 
 # Run the application
-CMD ["python", "-m", "uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["python", "-m", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
