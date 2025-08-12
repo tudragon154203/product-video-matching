@@ -3,6 +3,7 @@ desktop.ini
 *repomix*
 cline_mcp_settings.json
 model_cache/
+data/
 
 # Environment variables
 .env
@@ -10,6 +11,7 @@ model_cache/
 .env.*.local
 
 # Python
+*.npz
 __pycache__/
 *.py[cod]
 *$py.class

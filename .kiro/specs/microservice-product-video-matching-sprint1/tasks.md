@@ -58,7 +58,7 @@
 
 
 
-- [ ] 7. Create Vision Embedding service with GPU support
+- [x] 7. Create Vision Embedding service with GPU support
   - Set up Docker container with PyTorch GPU base image
   - Create service structure with event consumers for image/frame ready events
   - Add placeholder embedding generation (return random vectors)
@@ -68,7 +68,7 @@
 
   - _Requirements: 5.1, 5.2, 5.3, 5.4, 5.5_
 
-- [ ] 8. Implement Vision Keypoint service
+- [x] 8. Implement Vision Keypoint service
   - Create service structure with event consumers for image/frame ready events
   - Add placeholder keypoint extraction (generate mock keypoint data)
   - Implement keypoint blob storage in data/kp/ directory
@@ -78,7 +78,7 @@
   - Add basic image processing utilities
   - _Requirements: 5.1, 5.3, 5.4_
 
-- [ ] 9. Build Vector Index service with pgvector
+- [x] 9. Build Vector Index service with pgvector
   - Create service structure with event consumer for features.ready (products only)
 
 
@@ -90,7 +90,7 @@
 
 
 
-- [ ] 10. Create Matcher service with placeholder logic
+- [x] 10. Create Matcher service with placeholder logic
   - Create service structure with event consumer for match.request
   - Add placeholder retrieval logic (call Vector Index service)
   - Implement placeholder rerank logic (return mock similarity scores)
@@ -100,7 +100,7 @@
 
   - _Requirements: 7.1, 7.2, 7.3, 7.4, 7.5_
 
-- [ ] 11. Implement Evidence Builder service
+- [x] 11. Implement Evidence Builder service
   - Create service structure with event consumer for match.result
   - Add placeholder evidence image generation (create simple comparison images)
   - Implement evidence storage in data/evidence/ directory
@@ -110,7 +110,7 @@
   - Add basic image composition utilities
   - _Requirements: 8.1, 8.2, 8.3, 8.4_
 
-- [ ] 12. Build Results API service
+- [x] 12. Build Results API service
   - Create FastAPI application with all required endpoints
 
 
@@ -122,7 +122,7 @@
 
 
 
-- [ ] 13. Set up Docker Compose development environment
+- [x] 13. Set up Docker Compose development environment
   - Create docker-compose.dev.yml with all services
   - Configure PostgreSQL with pgvector extension
   - Set up RabbitMQ with management interface
@@ -131,7 +131,7 @@
 
   - _Requirements: 1.1, 1.2, 1.3, 1.4_
 
-- [ ] 14. Create development utilities and scripts
+- [x] 14. Create development utilities and scripts
   - Create Makefile with common development commands
   - Add database seeding script with sample data
   - Implement basic logging configuration across all services
@@ -139,7 +139,7 @@
   - Add service health check endpoints
   - _Requirements: 1.5, 11.3_
 
-- [ ] 15. Implement end-to-end smoke test
+- [x] 15. Implement end-to-end smoke test
   - Create smoke test script that calls POST /start-job
   - Add verification that all events flow through the system
   - Check that placeholder results are generated and stored
