@@ -198,6 +198,18 @@ The Dockerfiles follow a cache-friendly order:
 5. Copy application code (if needed)
 
 This allows Docker to cache layers effectively, speeding up subsequent builds when only application code changes.
+
+### Dynamic Library Updates
+
+In development mode, shared libraries in the `libs/` directory are mounted as volumes to enable dynamic updates without rebuilding containers:
+
+- **Volume Mount**: `../../libs:/app/libs` (writable)
+- **PYTHONPATH**: Includes `/app/libs`, `/app/libs/common-py`, and `/app/libs/contracts`
+- **No Static Installation**: Libraries are not copied into containers during build
+- **Live Updates**: Changes to library files are immediately reflected in running services
+
+This allows developers to modify shared library code and see changes take effect immediately without restarting services or rebuilding containers.
+
 ## Development
 
 ### Project Structure

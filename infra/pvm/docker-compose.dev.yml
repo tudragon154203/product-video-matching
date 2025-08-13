@@ -51,11 +51,11 @@ services:
     env_file:
       - .env
     environment:
-      PYTHONPATH: /app/libs
+      PYTHONPATH: /app/libs:/app/libs/common-py:/app/libs/contracts
     ports:
       - "${PORT_MAIN}:8000"
     volumes:
-      - ../../libs:/app/libs:ro
+      - ../../libs:/app/libs
       - ../../infra:/app/infra:ro
       - ../../data:/app/data
       - ../../services/main-api:/app/app
@@ -75,11 +75,11 @@ services:
       - .env
     environment:
       DATA_ROOT: /app/data
-      PYTHONPATH: /app/libs
+      PYTHONPATH: /app/libs:/app/libs/common-py:/app/libs/contracts
     ports:
       - "${PORT_RESULTS}:8080"
     volumes:
-      - ../../libs:/app/libs:ro
+      - ../../libs:/app/libs
       - ../../data:/app/data:ro
       - ../../services/results-api:/app/app
     depends_on:
@@ -96,9 +96,9 @@ services:
       - .env
     environment:
       DATA_ROOT: /app/data
-      PYTHONPATH: /app/libs
+      PYTHONPATH: /app/libs:/app/libs/common-py:/app/libs/contracts
     volumes:
-      - ../../libs:/app/libs:ro
+      - ../../libs:/app/libs
       - ../../data:/app/data
       - ../../services/catalog-collector:/app/app
     depends_on:
@@ -117,9 +117,9 @@ services:
       - .env
     environment:
       DATA_ROOT: /app/data
-      PYTHONPATH: /app/libs
+      PYTHONPATH: /app/libs:/app/libs/common-py:/app/libs/contracts
     volumes:
-      - ../../libs:/app/libs:ro
+      - ../../libs:/app/libs
       - ../../data:/app/data
       - ../../services/media-ingestion:/app/app
     depends_on:
@@ -137,9 +137,9 @@ services:
     env_file:
       - .env
     environment:
-      PYTHONPATH: /app/libs
+      PYTHONPATH: /app/libs:/app/libs/common-py:/app/libs/contracts
     volumes:
-      - ../../libs:/app/libs:ro
+      - ../../libs:/app/libs
       - ../../data:/app/data:ro
       - ../../services/vision-embedding:/app/app
     depends_on:
@@ -163,9 +163,9 @@ services:
     env_file:
       - .env
     environment:
-      PYTHONPATH: /app/libs
+      PYTHONPATH: /app/libs:/app/libs/common-py:/app/libs/contracts
     volumes:
-      - ../../libs:/app/libs:ro
+      - ../../libs:/app/libs
       - ../../data:/app/data
       - ../../services/vision-keypoint:/app/app
     depends_on:
@@ -183,9 +183,9 @@ services:
     env_file:
       - .env
     environment:
-      PYTHONPATH: /app/libs
+      PYTHONPATH: /app/libs:/app/libs/common-py:/app/libs/contracts
     volumes:
-      - ../../libs:/app/libs:ro
+      - ../../libs:/app/libs
       - ../../services/vector-index:/app/app
     depends_on:
       postgres:
@@ -203,9 +203,9 @@ services:
       - .env
     environment:
       DATA_ROOT: /app/data
-      PYTHONPATH: /app/libs
+      PYTHONPATH: /app/libs:/app/libs/common-py:/app/libs/contracts
     volumes:
-      - ../../libs:/app/libs:ro
+      - ../../libs:/app/libs
       - ../../data:/app/data:ro
       - ../../services/matcher:/app/app
     depends_on:
@@ -226,9 +226,9 @@ services:
       - .env
     environment:
       DATA_ROOT: /app/data
-      PYTHONPATH: /app/libs
+      PYTHONPATH: /app/libs:/app/libs/common-py:/app/libs/contracts
     volumes:
-      - ../../libs:/app/libs:ro
+      - ../../libs:/app/libs
       - ../../data:/app/data
       - ../../services/evidence-builder:/app/app
     depends_on:
