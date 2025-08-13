@@ -20,26 +20,24 @@ from common_py.messaging import MessageBroker
 logger = configure_logging("main-api")
 
 # Load service-specific configuration
-from config_loader import load_env, MainAPIConfig
-import os
-config: MainAPIConfig = load_env(os.path.join(os.path.dirname(__file__), ".env"))
+from config_loader import config
 # Set OLLAMA_HOST for the ollama client
-os.environ["OLLAMA_HOST"] = config.ollama_host
+os.environ["OLLAMA_HOST"] = config.OLLAMA_HOST
 
 # Global instances
 # Use configuration from the config object
-postgres_dsn = config.postgres_dsn or f"postgresql://{config.postgres_user}:{config.postgres_password}@{config.postgres_host}:{config.postgres_port}/{config.postgres_db}"
+postgres_dsn = config.POSTGRES_DSN
 db = DatabaseManager(postgres_dsn)
-broker = MessageBroker(config.bus_broker)
+broker = MessageBroker(config.BUS_BROKER)
 app = FastAPI(title="Main API Service", version="1.0.0")
 
 # Request/Response models
 class StartJobRequest(BaseModel):
     query: str
-    top_amz: int = config.default_top_amz
-    top_ebay: int = config.default_top_ebay
-    platforms: list = config.default_platforms
-    recency_days: int = config.default_recency_days
+    top_amz: int = config.DEFAULT_TOP_AMZ
+    top_ebay: int = config.DEFAULT_TOP_EBAY
+    platforms: list = config.DEFAULT_PLATFORMS
+    recency_days: int = config.DEFAULT_RECENCY_DAYS
 
 class StartJobResponse(BaseModel):
     job_id: str
@@ -66,14 +64,14 @@ async def phase_update_task():
 @app.on_event("startup")
 async def startup():
     """Initialize connections on startup"""
-    postgres_dsn = config.postgres_dsn or f"postgresql://{config.postgres_user}:{config.postgres_password}@{config.postgres_host}:{config.postgres_port}/{config.postgres_db}"
+    postgres_dsn = config.POSTGRES_DSN
     logger.info(f"Connecting to database with DSN: {postgres_dsn}")
     try:
         await db.connect()
     except Exception as e:
         logger.warning(f"Failed to connect to database: {e}. Continuing without database connection.")
     
-    broker_url = config.bus_broker
+    broker_url = config.BUS_BROKER
     logger.info(f"Connecting to message broker: {broker_url}")
     try:
         await broker.connect()
@@ -97,41 +95,32 @@ async def shutdown():
 def build_cls_prompt(query: str, industry_labels: list) -> str:
     """Build prompt for industry classification."""
     labels_csv = ",".join(industry_labels)
-    return f"""Bạn là bộ phân loại zero-shot. 
-Nhiệm vụ: Gán truy vấn sau vào đúng 1 nhãn industry trong danh sách cho trước.
+    return f"""Classify this query into one industry label from the list:
 
-YÊU CẦU BẮT BUỘC:
-- Chỉ in ra đúng 1 nhãn duy nhất, không thêm chữ nào khác.
-- Nếu độ chắc chắn thấp, hãy chọn "other".
-- Danh sách nhãn hợp lệ: [{labels_csv}]
+Query: {query}
+Labels: {labels_csv}
 
-Truy vấn:
-{query}"""
+Output only the label name, nothing else."""
 
 
 def build_gen_prompt(query: str, industry: str) -> str:
     """Build prompt for query generation."""
-    return f"""Bạn là bộ sinh từ khoá tìm kiếm đa ngôn ngữ cho TMĐT và video.
+    return f"""Generate search queries in JSON format:
 
-ĐẦU VÀO:
-- query_goc = "{query}"
-- industry = "{industry}"
+Input query: {query}
+Industry: {industry}
 
-YÊU CẦU ĐẦU RA:
-- Chỉ in RA JSON hợp lệ theo schema:
-  {{
-    "product": {{ "en": [strings...] }},
-    "video":   {{ "vi": [strings...], "zh": [strings...] }}
-  }}
+Output JSON format:
+{{
+  "product": {{ "en": [queries] }},
+  "video": {{ "vi": [queries], "zh": [queries] }}
+}}
 
-QUY TẮC:
-1) "product.en": 2–4 cụm từ tiếng Anh để tìm sản phẩm/dropship.
-2) "video.vi": 2–4 cụm từ tiếng Việt để tìm video.
-3) "video.zh": 2–4 cụm từ tiếng Trung giản thể để tìm video.
-4) Không vượt quá 5 từ khoá mỗi nhóm; không thêm chú thích ngoài JSON.
-5) Giữ nghĩa cốt lõi của query_goc; không bịa thương hiệu.
-
-BẮT ĐẦU."""
+Rules:
+- 2-4 English product queries
+- 2-4 Vietnamese video queries
+- 2-4 Chinese video queries
+- Output only JSON, no additional text"""
 
 
 def normalize_queries(queries: Dict[str, Any], min_items: int = 2, max_items: int = 4) -> Dict[str, Any]:
@@ -205,7 +194,7 @@ async def call_ollama(model: str, prompt: str, timeout_s: int, options: dict = N
     async with httpx.AsyncClient() as client:
         try:
             response = await client.post(
-                f"{config.ollama_host}/api/generate",
+                f"{config.OLLAMA_HOST}/api/generate",
                 json={
                     "model": model,
                     "prompt": prompt,
@@ -243,13 +232,13 @@ async def start_job(request: StartJobRequest):
         query = request.query.strip()
         
         # A) Classify industry using Ollama
-        cls_prompt = build_cls_prompt(query, config.industry_labels)
+        cls_prompt = build_cls_prompt(query, config.INDUSTRY_LABELS)
         t0 = time.time()
         try:
             cls_response = await call_ollama(
-                model=config.model_classify,
+                model=config.OLLAMA_MODEL_CLASSIFY,
                 prompt=cls_prompt,
-                timeout_s=config.ollama_timeout
+                timeout_s=config.OLLAMA_TIMEOUT
             )
             industry = cls_response["response"].strip()
             if industry not in config.industry_labels:
@@ -262,9 +251,9 @@ async def start_job(request: StartJobRequest):
         t0 = time.time()
         try:
             gen_response = await call_ollama(
-                model=config.model_generate,
+                model=config.OLLAMA_MODEL_GENERATE,
                 prompt=gen_prompt,
-                timeout_s=config.ollama_timeout,
+                timeout_s=config.OLLAMA_TIMEOUT,
                 options={"temperature": 0.2}
             )
             try:
@@ -533,7 +522,7 @@ async def health_check():
         # Check Ollama connection (optional - don't fail if Ollama is not available)
         try:
             async with httpx.AsyncClient() as client:
-                response = await client.get(f"{config.ollama_host}/api/tags", timeout=5)
+                response = await client.get(f"{config.OLLAMA_HOST}/api/tags", timeout=5)
                 response.raise_for_status()
                 ollama_status = "healthy"
         except Exception as ollama_error:

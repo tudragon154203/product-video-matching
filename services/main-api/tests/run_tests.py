@@ -12,9 +12,14 @@ def run_tests():
     
     # Run unit tests with pytest
     print("\n1. Running unit tests with pytest...")
+    # Set PYTHONPATH to include project root and libs
+    env = os.environ.copy()
+    project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    env["PYTHONPATH"] = f"{project_root}{os.pathsep}{project_root}/libs{os.pathsep}{env.get('PYTHONPATH', '')}"
+    
     result = subprocess.run([
         sys.executable, "-m", "pytest", "tests/test_main_api.py", "-v"
-    ], cwd=os.path.join(os.path.dirname(__file__), ".."))
+    ], cwd=os.path.join(os.path.dirname(__file__), ".."), env=env)
     
     if result.returncode != 0:
         print("Unit tests failed!")
