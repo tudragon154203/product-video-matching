@@ -52,6 +52,17 @@ class JobStatusResponse(BaseModel):
     counts: dict
 
 
+async def phase_update_task():
+    """Background task to update job phases"""
+    while True:
+        try:
+            await update_job_phases()
+            await asyncio.sleep(30)  # Update every 30 seconds
+        except Exception as e:
+            logger.error("Phase update task error", error=str(e))
+            await asyncio.sleep(60)  # Wait longer on error
+
+
 @app.on_event("startup")
 async def startup():
     """Initialize connections on startup"""
@@ -68,6 +79,9 @@ async def startup():
         await broker.connect()
     except Exception as e:
         logger.warning(f"Failed to connect to message broker: {e}. Continuing without broker connection.")
+    
+    # Start background task for phase updates
+    asyncio.create_task(phase_update_task())
     
     logger.info("Main API service started")
 
@@ -387,6 +401,109 @@ async def get_job_status(job_id: str):
     except Exception as e:
         logger.error("Failed to get job status", job_id=job_id, error=str(e))
         raise HTTPException(status_code=500, detail=str(e))
+
+
+async def update_job_phases():
+    """Update job phases based on progress"""
+    try:
+        # Get all jobs that are not completed or failed
+        jobs = await db.fetch_all(
+            "SELECT job_id, phase FROM jobs WHERE phase NOT IN ('completed', 'failed')"
+        )
+        
+        for job in jobs:
+            job_id = job["job_id"]
+            current_phase = job["phase"]
+            
+            # Get counts for this job
+            product_count = await db.fetch_val(
+                "SELECT COUNT(*) FROM products WHERE job_id = $1", job_id
+            ) or 0
+            
+            video_count = await db.fetch_val(
+                "SELECT COUNT(*) FROM videos WHERE job_id = $1", job_id
+            ) or 0
+            
+            # Count products with features (embeddings or keypoints)
+            products_with_features = await db.fetch_val(
+                "SELECT COUNT(DISTINCT product_id) FROM product_images WHERE product_id IN (SELECT product_id FROM products WHERE job_id = $1) AND (emb_rgb IS NOT NULL OR kp_blob_path IS NOT NULL)", 
+                job_id
+            ) or 0
+            
+            # Count videos with features
+            videos_with_features = await db.fetch_val(
+                "SELECT COUNT(DISTINCT video_id) FROM video_frames WHERE video_id IN (SELECT video_id FROM videos WHERE job_id = $1) AND (emb_rgb IS NOT NULL OR kp_blob_path IS NOT NULL)", 
+                job_id
+            ) or 0
+            
+            match_count = await db.fetch_val(
+                "SELECT COUNT(*) FROM matches WHERE job_id = $1", job_id
+            ) or 0
+            
+            # Determine new phase based on progress
+            new_phase = current_phase
+            
+            if current_phase == "collection":
+                # Move to feature_extraction if we have products and videos
+                if product_count > 0 and video_count > 0:
+                    new_phase = "feature_extraction"
+            
+            elif current_phase == "feature_extraction":
+                # Move to matching if most products and videos have features
+                if (products_with_features >= product_count * 0.8 and 
+                    videos_with_features >= video_count * 0.8):
+                    new_phase = "matching"
+                    
+                    # Publish match request when transitioning to matching phase
+                    try:
+                        await broker.publish_event(
+                            "match.request",
+                            {
+                                "job_id": job_id,
+                                "industry": "home_garden",  # TODO: get from job record
+                                "product_set_id": job_id,
+                                "video_set_id": job_id,
+                                "top_k": 20
+                            },
+                            correlation_id=job_id
+                        )
+                        logger.info("Published match request", job_id=job_id)
+                    except Exception as e:
+                        logger.error("Failed to publish match request", job_id=job_id, error=str(e))
+            
+            elif current_phase == "matching":
+                # Move to evidence if we have matches
+                if match_count > 0:
+                    new_phase = "evidence"
+                # Or move to completed if no matches found after reasonable time
+                elif product_count > 0 and video_count > 0:
+                    # Check if job is older than 5 minutes
+                    job_age = await db.fetch_val(
+                        "SELECT EXTRACT(EPOCH FROM (NOW() - created_at)) FROM jobs WHERE job_id = $1", 
+                        job_id
+                    )
+                    if job_age and job_age > 300:  # 5 minutes
+                        new_phase = "completed"
+            
+            elif current_phase == "evidence":
+                # Move to completed
+                new_phase = "completed"
+            
+            # Update phase if it changed
+            if new_phase != current_phase:
+                await db.execute(
+                    "UPDATE jobs SET phase = $1, updated_at = NOW() WHERE job_id = $2",
+                    new_phase, job_id
+                )
+                logger.info("Updated job phase", job_id=job_id, 
+                           old_phase=current_phase, new_phase=new_phase,
+                           products=product_count, videos=video_count, 
+                           products_with_features=products_with_features,
+                           videos_with_features=videos_with_features,
+                           matches=match_count)
+                
+    except Exception as e:
+        logger.error("Failed to update job phases", error=str(e))
 
 
 @app.get("/health")
