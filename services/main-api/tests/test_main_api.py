@@ -165,7 +165,7 @@ def test_start_job_request_model():
         config = load_env()
     except FileNotFoundError:
         config = MainAPIConfig(
-            ollama_host="http://localhost:11434",
+            ollama_host="http://host.docker.internal:11434",
             model_classify="qwen3:4b-instruct",
             model_generate="qwen3:4b-instruct",
             ollama_timeout=60,

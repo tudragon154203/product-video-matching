@@ -57,7 +57,12 @@ def load_env(env_path: str = "services/main-api/.env") -> MainAPIConfig:
     """Load configuration from environment file and global config."""
     # Check if env_path is absolute, if not make it relative to the project root
     if not os.path.isabs(env_path):
-        env_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), env_path)
+        # Try to find the .env file in the current directory first
+        if os.path.exists(".env"):
+            env_path = ".env"
+        else:
+            # Fallback to the original path calculation
+            env_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), env_path)
     
     # Load the global configuration
     global_config = GlobalConfig()

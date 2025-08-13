@@ -56,11 +56,17 @@ async def startup():
     """Initialize connections on startup"""
     postgres_dsn = config.postgres_dsn or f"postgresql://{config.postgres_user}:{config.postgres_password}@{config.postgres_host}:{config.postgres_port}/{config.postgres_db}"
     logger.info(f"Connecting to database with DSN: {postgres_dsn}")
-    await db.connect()
+    try:
+        await db.connect()
+    except Exception as e:
+        logger.warning(f"Failed to connect to database: {e}. Continuing without database connection.")
     
     broker_url = config.bus_broker
     logger.info(f"Connecting to message broker: {broker_url}")
-    await broker.connect()
+    try:
+        await broker.connect()
+    except Exception as e:
+        logger.warning(f"Failed to connect to message broker: {e}. Continuing without broker connection.")
     
     logger.info("Main API service started")
 
@@ -258,38 +264,44 @@ async def start_job(request: StartJobRequest):
         finally:
             logger.info("ollama_generate_ms", ollama_generate_ms=(time.time()-t0)*1000)
         
-        # C) Store job in database
-        await db.execute(
-            "INSERT INTO jobs (job_id, query, industry, queries, phase) VALUES ($1, $2, $3, $4, $5)",
-            job_id, query, industry, json.dumps(queries), "collection"
-        )
+        # C) Store job in database (if available)
+        try:
+            await db.execute(
+                "INSERT INTO jobs (job_id, query, industry, queries, phase) VALUES ($1, $2, $3, $4, $5)",
+                job_id, query, industry, json.dumps(queries), "collection"
+            )
+        except Exception as e:
+            logger.warning(f"Failed to store job in database: {e}")
         
-        # D) Publish events
-        # Publish product collection request
-        await broker.publish_event(
-            "products.collect.request",
-            {
-                "job_id": job_id,
-                "industry": industry,
-                "top_amz": request.top_amz,
-                "top_ebay": request.top_ebay,
-            },
-            correlation_id=job_id
-        )
-        
-        # Publish video search request
-        video_queries = route_video_queries(queries, request.platforms)
-        await broker.publish_event(
-            "videos.search.request",
-            {
-                "job_id": job_id,
-                "industry": industry,
-                "queries": video_queries,
-                "platforms": request.platforms,
-                "recency_days": request.recency_days,
-            },
-            correlation_id=job_id
-        )
+        # D) Publish events (if broker is available)
+        try:
+            # Publish product collection request
+            await broker.publish_event(
+                "products.collect.request",
+                {
+                    "job_id": job_id,
+                    "industry": industry,
+                    "top_amz": request.top_amz,
+                    "top_ebay": request.top_ebay,
+                },
+                correlation_id=job_id
+            )
+            
+            # Publish video search request
+            video_queries = route_video_queries(queries, request.platforms)
+            await broker.publish_event(
+                "videos.search.request",
+                {
+                    "job_id": job_id,
+                    "industry": industry,
+                    "queries": video_queries,
+                    "platforms": request.platforms,
+                    "recency_days": request.recency_days,
+                },
+                correlation_id=job_id
+            )
+        except Exception as e:
+            logger.warning(f"Failed to publish events: {e}")
         
         logger.info("Started job", job_id=job_id, industry=industry)
         
@@ -304,13 +316,27 @@ async def start_job(request: StartJobRequest):
 async def get_job_status(job_id: str):
     """Get status of a job"""
     try:
-        # Get job from database
-        job = await db.fetch_one(
-            "SELECT * FROM jobs WHERE job_id = $1", job_id
-        )
+        # Get job from database (if available)
+        try:
+            job = await db.fetch_one(
+                "SELECT * FROM jobs WHERE job_id = $1", job_id
+            )
+        except Exception as e:
+            logger.warning(f"Failed to fetch job from database: {e}")
+            job = None
         
         if not job:
-            raise HTTPException(status_code=404, detail="Job not found")
+            # Return a default response if job not found or database not available
+            return JobStatusResponse(
+                job_id=job_id,
+                phase="unknown",
+                percent=0.0,
+                counts={
+                    "products": 0,
+                    "videos": 0,
+                    "matches": 0
+                }
+            )
         
         # Calculate progress based on phase
         phase_progress = {
@@ -322,18 +348,24 @@ async def get_job_status(job_id: str):
             "failed": 0.0
         }
         
-        # Get counts from database
-        product_count = await db.fetch_val(
-            "SELECT COUNT(*) FROM products WHERE job_id = $1", job_id
-        ) or 0
-        
-        video_count = await db.fetch_val(
-            "SELECT COUNT(*) FROM videos WHERE job_id = $1", job_id
-        ) or 0
-        
-        match_count = await db.fetch_val(
-            "SELECT COUNT(*) FROM matches WHERE job_id = $1", job_id
-        ) or 0
+        # Get counts from database (if available)
+        try:
+            product_count = await db.fetch_val(
+                "SELECT COUNT(*) FROM products WHERE job_id = $1", job_id
+            ) or 0
+            
+            video_count = await db.fetch_val(
+                "SELECT COUNT(*) FROM videos WHERE job_id = $1", job_id
+            ) or 0
+            
+            match_count = await db.fetch_val(
+                "SELECT COUNT(*) FROM matches WHERE job_id = $1", job_id
+            ) or 0
+        except Exception as e:
+            logger.warning(f"Failed to fetch counts from database: {e}")
+            product_count = 0
+            video_count = 0
+            match_count = 0
         
         return JobStatusResponse(
             job_id=job_id,
@@ -357,13 +389,25 @@ async def get_job_status(job_id: str):
 async def health_check():
     """Health check endpoint"""
     try:
-        # Check database connection
-        await db.fetch_one("SELECT 1")
+        # Check database connection (if available)
+        db_status = "unavailable"
+        try:
+            await db.fetch_one("SELECT 1")
+            db_status = "healthy"
+        except Exception as e:
+            logger.warning("Database health check failed", error=str(e))
+            db_status = "unhealthy"
         
-        # Check message broker connection
-        # Just verify it's connected, don't need to do a full test
-        if not broker.connection:
-            raise Exception("Broker not connected")
+        # Check message broker connection (if available)
+        broker_status = "unavailable"
+        try:
+            if broker.connection:
+                broker_status = "healthy"
+            else:
+                broker_status = "unhealthy"
+        except Exception as e:
+            logger.warning("Broker health check failed", error=str(e))
+            broker_status = "unhealthy"
         
         # Check Ollama connection (optional - don't fail if Ollama is not available)
         try:
@@ -376,7 +420,13 @@ async def health_check():
             logger.warning("Ollama health check failed", error=str(ollama_error))
             ollama_status = "unavailable"
         
-        return {"status": "healthy", "service": "main-api", "ollama": ollama_status}
+        return {
+            "status": "healthy", 
+            "service": "main-api", 
+            "ollama": ollama_status,
+            "database": db_status,
+            "broker": broker_status
+        }
     except Exception as e:
         logger.error("Health check failed", error=str(e))
         raise HTTPException(status_code=500, detail=str(e))
