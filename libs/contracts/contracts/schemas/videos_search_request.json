@@ -13,9 +13,21 @@
       "description": "Industry keyword for video search"
     },
     "queries": {
-      "type": "array",
-      "items": {"type": "string"},
-      "description": "List of search queries"
+      "type": "object",
+      "description": "Search queries by language",
+      "properties": {
+        "vi": {
+          "type": "array",
+          "items": {"type": "string"},
+          "description": "Vietnamese search queries"
+        },
+        "zh": {
+          "type": "array",
+          "items": {"type": "string"},
+          "description": "Chinese search queries"
+        }
+      },
+      "additionalProperties": false
     },
     "platforms": {
       "type": "array",

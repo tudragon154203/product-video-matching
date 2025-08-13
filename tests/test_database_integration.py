@@ -20,8 +20,8 @@ async def test_create_job(db_manager, clean_database, test_data):
     industry = test_data["industry"]
     
     await db_manager.execute(
-        "INSERT INTO jobs (job_id, industry, phase) VALUES ($1, $2, $3)",
-        job_id, industry, "collection"
+        "INSERT INTO jobs (job_id, query, industry, queries, phase) VALUES ($1, $2, $3, $4, $5)",
+        job_id, "test query", industry, '{"product":{"en":["test"]},"video":{"vi":["test"],"zh":["test"]}}', "collection"
     )
     
     # Verify job was created
@@ -42,8 +42,8 @@ async def test_create_product_with_images(db_manager, clean_database, test_data)
     
     # Create job first
     await db_manager.execute(
-        "INSERT INTO jobs (job_id, industry, phase) VALUES ($1, $2, $3)",
-        job_id, "test", "collection"
+        "INSERT INTO jobs (job_id, query, industry, queries, phase) VALUES ($1, $2, $3, $4, $5)",
+        job_id, "test query", "test", '{"product":{"en":["test"]},"video":{"vi":["test"],"zh":["test"]}}', "collection"
     )
     
     # Create product
@@ -85,8 +85,8 @@ async def test_create_video_with_frames(db_manager, clean_database, test_data):
     
     # Create job first
     await db_manager.execute(
-        "INSERT INTO jobs (job_id, industry, phase) VALUES ($1, $2, $3)",
-        job_id, "test", "collection"
+        "INSERT INTO jobs (job_id, query, industry, queries, phase) VALUES ($1, $2, $3, $4, $5)",
+        job_id, "test query", "test", '{"product":{"en":["test"]},"video":{"vi":["test"],"zh":["test"]}}', "collection"
     )
     
     # Create video
@@ -133,8 +133,8 @@ async def test_create_match(db_manager, clean_database, test_data):
     
     # Create job
     await db_manager.execute(
-        "INSERT INTO jobs (job_id, industry, phase) VALUES ($1, $2, $3)",
-        job_id, "test", "collection"
+        "INSERT INTO jobs (job_id, query, industry, queries, phase) VALUES ($1, $2, $3, $4, $5)",
+        job_id, "test query", "test", '{"product":{"en":["test"]},"video":{"vi":["test"],"zh":["test"]}}', "collection"
     )
     
     # Create product and video
@@ -190,8 +190,8 @@ async def test_vector_operations(db_manager, clean_database, test_data):
     
     # Create job and product
     await db_manager.execute(
-        "INSERT INTO jobs (job_id, industry, phase) VALUES ($1, $2, $3)",
-        job_id, "test", "collection"
+        "INSERT INTO jobs (job_id, query, industry, queries, phase) VALUES ($1, $2, $3, $4, $5)",
+        job_id, "test query", "test", '{"product":{"en":["test"]},"video":{"vi":["test"],"zh":["test"]}}', "collection"
     )
     
     await db_manager.execute(

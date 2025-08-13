@@ -10,6 +10,7 @@ import requests
 from pathlib import Path
 
 # Add libs to path
+sys.path.append(str(Path(__file__).parent.parent / 'libs'))
 sys.path.append(str(Path(__file__).parent.parent / 'infra'))
 
 from config import config
