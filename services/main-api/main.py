@@ -241,7 +241,7 @@ async def start_job(request: StartJobRequest):
                 timeout_s=config.OLLAMA_TIMEOUT
             )
             industry = cls_response["response"].strip()
-            if industry not in config.industry_labels:
+            if industry not in config.INDUSTRY_LABELS:
                 industry = "other"
         finally:
             logger.info("ollama_classify_ms", ollama_classify_ms=(time.time()-t0)*1000)

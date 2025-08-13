@@ -168,7 +168,7 @@ def start_job(payload: dict, cfg: MainAPIConfig, db, broker):
     q = payload["query"].strip()
 
     # A) classify
-    cls_prompt = build_cls_prompt(q, cfg.industry_labels)
+    cls_prompt = build_cls_prompt(q, cfg.INDUSTRY_LABELS)
     t0 = time.time()
     try:
         res = ollama.generate(
@@ -177,7 +177,7 @@ def start_job(payload: dict, cfg: MainAPIConfig, db, broker):
             options={"timeout": cfg.ollama_timeout_s*1000}  # ms
         )
         industry = res["response"].strip()
-        if industry not in cfg.industry_labels:
+        if industry not in cfg.INDUSTRY_LABELS:
             industry = "other"
     finally:
         log_ms("ollama_classify_ms", (time.time()-t0)*1000)
