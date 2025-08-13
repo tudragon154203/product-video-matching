@@ -20,7 +20,6 @@ async def service_context():
         # Initialize connections
         await handler.db.connect()
         await handler.broker.connect()
-        await handler.initialize()
         yield handler
     finally:
         # Cleanup resources

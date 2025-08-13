@@ -9,7 +9,7 @@ This guide provides quick commands to run and manage the Product-Video Matching 
 docker compose -f infra/pvm/docker-compose.dev.yml up -d
 ```
 
-### With rebuild (recommended after code changes):
+### With rebuild (recommended after requirement/base lib changes):
 ```bash
 docker compose -f infra/pvm/docker-compose.dev.yml up -d --build
 ```

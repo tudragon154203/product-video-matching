@@ -8,13 +8,8 @@ class VectorIndexHandler:
     def __init__(self):
         self.db = DatabaseManager(config.POSTGRES_DSN)
         self.broker = MessageBroker(config.BUS_BROKER)
-        self.service = VectorIndexService(self.db, self.broker, config.DATA_ROOT)
+        self.service = VectorIndexService(self.db, self.broker)
         self.initialized = False
-        
-    async def initialize(self):
-        if not self.initialized:
-            await self.service.initialize()
-            self.initialized = True
         
     @validate_event("features_ready")
     async def handle_features_ready(self, event_data):
