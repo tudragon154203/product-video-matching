@@ -1,67 +1,51 @@
-import os
 import asyncio
 import sys
+import os
+from contextlib import asynccontextmanager
+
+# Add the app directory to the Python path for bind mount setup
+sys.path.append("/app/app")
 
 from common_py.logging_config import configure_logging
-from common_py.database import DatabaseManager
-from common_py.messaging import MessageBroker
-from contracts.validator import validator
-from service import EvidenceBuilderService
-
-# Configure logging
-logger = configure_logging("evidence-builder")
-
-# Environment variables
+from handlers.evidence_handler import EvidenceHandler
 from config_loader import config
 
-POSTGRES_DSN = config.POSTGRES_DSN
-BUS_BROKER = config.BUS_BROKER
-DATA_ROOT = config.DATA_ROOT
+logger = configure_logging("evidence-builder")
 
-# Global instances
-db = DatabaseManager(POSTGRES_DSN)
-broker = MessageBroker(BUS_BROKER)
-service = EvidenceBuilderService(db, broker, DATA_ROOT)
-
-
-async def handle_match_result(event_data):
-    """Handle match result event and generate evidence"""
+@asynccontextmanager
+async def service_context():
+    """Context manager for service resources"""
+    handler = EvidenceHandler()
     try:
-        # Validate event
-        validator.validate_event("match_result", event_data)
-        await service.handle_match_result(event_data)
-    except Exception as e:
-        logger.error("Failed to process match result", error=str(e))
-        raise
-
+        # Initialize connections
+        await handler.db.connect()
+        await handler.broker.connect()
+        yield handler
+    finally:
+        # Cleanup resources
+        await handler.db.disconnect()
+        await handler.broker.disconnect()
 
 async def main():
     """Main service loop"""
     try:
-        # Initialize connections
-        await db.connect()
-        await broker.connect()
-        
-        # Subscribe to events
-        await broker.subscribe_to_topic(
-            "match.result",
-            handle_match_result
-        )
-        
-        logger.info("Evidence builder service started")
-        
-        # Keep service running
-        while True:
-            await asyncio.sleep(1)
+        async with service_context() as handler:
+            # Subscribe to events
+            await handler.broker.subscribe_to_topic(
+                "match.result",
+                handler.handle_match_result
+            )
             
+            logger.info("Evidence builder service started")
+            
+            # Keep service running
+            while True:
+                await asyncio.sleep(1)
+                
     except KeyboardInterrupt:
         logger.info("Shutting down evidence builder service")
     except Exception as e:
         logger.error("Service error", error=str(e))
-    finally:
-        await db.disconnect()
-        await broker.disconnect()
-
 
 if __name__ == "__main__":
     asyncio.run(main())

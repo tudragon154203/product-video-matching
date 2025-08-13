@@ -52,9 +52,27 @@ docker compose -f infra/pvm/docker-compose.dev.yml logs -f
 docker compose -f infra/pvm/docker-compose.dev.yml logs -f orchestrator
 ```
 
-### Restart specific service:
+### Start/Stop Individual Services:
+
+#### ▶️ Start a specific service:
 ```bash
-docker compose -f infra/pvm/docker-compose.dev.yml restart orchestrator
+docker compose -f infra/pvm/docker-compose.dev.yml up -d --no-deps <service_name>
+```
+
+#### ⏹️ Stop a specific service:
+```bash
+docker compose -f infra/pvm/docker-compose.dev.yml stop <service_name>
+```
+
+#### 🔄 Restart specific service:
+```bash
+docker compose -f infra/pvm/docker-compose.dev.yml restart <service_name>
+```
+
+#### 🛠️ Rebuild specific service:
+```bash
+docker compose -f infra/pvm/docker-compose.dev.yml build <service_name>
+docker compose -f infra/pvm/docker-compose.dev.yml up -d --no-deps <service_name>
 ```
 
 ## 🎯 **Quick Commands (if you have the Makefile)**

@@ -21,8 +21,5 @@ COPY libs/config.py /app/libs/config.py
 RUN pip install -e /app/libs/common-py
 RUN pip install -e /app/libs/contracts
 
-# Copy application code
-COPY services/results-api/ .
-
 # Expose port
 EXPOSE 8080

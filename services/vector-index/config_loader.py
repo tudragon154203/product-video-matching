@@ -30,6 +30,9 @@ class VectorIndexConfig:
     
     # Message broker configuration (from global config)
     BUS_BROKER: str = global_config.BUS_BROKER
+
+    # Data storage (from global config)
+    DATA_ROOT: str = global_config.DATA_ROOT
     
     # Logging (from global config)
     LOG_LEVEL: str = global_config.LOG_LEVEL

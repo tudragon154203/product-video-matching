@@ -1,83 +1,57 @@
-import os
 import asyncio
 import sys
+import os
+from contextlib import asynccontextmanager
+
+# Add the app directory to the Python path for bind mount setup
+sys.path.append("/app/app")
 
 from common_py.logging_config import configure_logging
-from common_py.database import DatabaseManager
-from common_py.messaging import MessageBroker
-from contracts.validator import validator
-from service import VisionKeypointService
-
-# Configure logging
-logger = configure_logging("vision-keypoint")
-
-# Environment variables
+from handlers.keypoint_handler import VisionKeypointHandler
 from config_loader import config
 
-POSTGRES_DSN = config.POSTGRES_DSN
-BUS_BROKER = config.BUS_BROKER
-DATA_ROOT = config.DATA_ROOT
+logger = configure_logging("vision-keypoint")
 
-# Global instances
-db = DatabaseManager(POSTGRES_DSN)
-broker = MessageBroker(BUS_BROKER)
-service = VisionKeypointService(db, broker, DATA_ROOT)
-
-
-async def handle_products_images_ready(event_data):
-    """Handle product images ready event"""
+@asynccontextmanager
+async def service_context():
+    """Context manager for service resources"""
+    handler = VisionKeypointHandler()
     try:
-        # Validate event
-        validator.validate_event("products_images_ready", event_data)
-        await service.handle_products_images_ready(event_data)
-    except Exception as e:
-        logger.error("Failed to process product image keypoints", error=str(e))
-        raise
-
-
-async def handle_videos_keyframes_ready(event_data):
-    """Handle video keyframes ready event"""
-    try:
-        # Validate event
-        validator.validate_event("videos_keyframes_ready", event_data)
-        await service.handle_videos_keyframes_ready(event_data)
-    except Exception as e:
-        logger.error("Failed to process video frame keypoints", error=str(e))
-        raise
-
+        # Initialize connections
+        await handler.db.connect()
+        await handler.broker.connect()
+        await handler.initialize()
+        yield handler
+    finally:
+        # Cleanup resources
+        await handler.broker.disconnect()
+        await handler.db.disconnect()
 
 async def main():
     """Main service loop"""
     try:
-        # Initialize connections
-        await db.connect()
-        await broker.connect()
-        
-        # Subscribe to events
-        await broker.subscribe_to_topic(
-            "products.images.ready",
-            handle_products_images_ready
-        )
-        
-        await broker.subscribe_to_topic(
-            "videos.keyframes.ready",
-            handle_videos_keyframes_ready
-        )
-        
-        logger.info("Vision keypoint service started")
-        
-        # Keep service running
-        while True:
-            await asyncio.sleep(1)
+        async with service_context() as handler:
+            # Subscribe to events
+            await handler.broker.subscribe_to_topic(
+                "products.images.ready",
+                handler.handle_products_images_ready
+            )
             
+            await handler.broker.subscribe_to_topic(
+                "videos.keyframes.ready",
+                handler.handle_videos_keyframes_ready
+            )
+            
+            logger.info("Vision keypoint service started")
+            
+            # Keep service running
+            while True:
+                await asyncio.sleep(1)
+                
     except KeyboardInterrupt:
         logger.info("Shutting down vision keypoint service")
     except Exception as e:
         logger.error("Service error", error=str(e))
-    finally:
-        await db.disconnect()
-        await broker.disconnect()
-
 
 if __name__ == "__main__":
     asyncio.run(main())

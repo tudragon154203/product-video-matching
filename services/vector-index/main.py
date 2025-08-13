@@ -1,135 +1,52 @@
-import os
-import sys
 import asyncio
-from typing import List, Dict, Any, Optional
-from fastapi import FastAPI, HTTPException, Query
-from pydantic import BaseModel
+import sys
+import os
+from contextlib import asynccontextmanager
 
-# Add current directory to path for imports
-sys.path.insert(0, os.path.dirname(__file__))
+# Add the app directory to the Python path for bind mount setup
+sys.path.append("/app/app")
 
 from common_py.logging_config import configure_logging
-from common_py.database import DatabaseManager
-from common_py.messaging import MessageBroker
-from contracts.validator import validator
-
-# Configure logging
-logger = configure_logging("vector-index")
-
-# Environment variables
+from handlers.vector_index_handler import VectorIndexHandler
 from config_loader import config
 
-POSTGRES_DSN = config.POSTGRES_DSN
-BUS_BROKER = config.BUS_BROKER
+logger = configure_logging("vector-index")
 
-# Global instances
-db = DatabaseManager(POSTGRES_DSN)
-broker = MessageBroker(BUS_BROKER)
-app = FastAPI(title="Vector Index Service", version="1.0.0")
-
-# Import service after db and broker initialization
-from service import VectorIndexService
-service = VectorIndexService(db, broker)
-
-# Request/Response models
-class SearchRequest(BaseModel):
-    query_vector: List[float]
-    vector_type: str = "emb_rgb"  # or "emb_gray"
-    top_k: int = 20
-
-class SearchResult(BaseModel):
-    img_id: str
-    product_id: str
-    similarity: float
-    local_path: str
-
-class SearchResponse(BaseModel):
-    results: List[SearchResult]
-    total_found: int
-
-
-async def handle_features_ready(event_data):
-    """Handle features ready event for product images only"""
+@asynccontextmanager
+async def service_context():
+    """Context manager for service resources"""
+    handler = VectorIndexHandler()
     try:
-        # Validate event
-        validator.validate_event("features_ready", event_data)
-        await service.handle_features_ready(event_data)
-    except Exception as e:
-        logger.error("Failed to process features ready event", error=str(e))
-        raise
+        # Initialize connections
+        await handler.db.connect()
+        await handler.broker.connect()
+        await handler.initialize()
+        yield handler
+    finally:
+        # Cleanup resources
+        await handler.broker.disconnect()
+        await handler.db.disconnect()
 
-
-@app.on_event("startup")
-async def startup():
-    """Initialize connections on startup"""
-    await db.connect()
-    await broker.connect()
-    
-    # Subscribe to features ready events
-    await broker.subscribe_to_topic(
-        "features.ready",
-        handle_features_ready
-    )
-    
-    logger.info("Vector index service started")
-
-
-@app.on_event("shutdown")
-async def shutdown():
-    """Clean up connections on shutdown"""
-    await db.disconnect()
-    await broker.disconnect()
-    logger.info("Vector index service stopped")
-
-
-@app.post("/search", response_model=SearchResponse)
-async def search_similar(request: SearchRequest):
-    """Search for similar product images using vector similarity"""
+async def main():
+    """Main service loop"""
     try:
-        results = await service.search_similar_products(
-            query_vector=request.query_vector,
-            vector_type=request.vector_type,
-            top_k=request.top_k
-        )
-        
-        # Format results
-        search_results = []
-        for result in results:
-            search_results.append(SearchResult(
-                img_id=result["img_id"],
-                product_id=result["product_id"],
-                similarity=result["similarity"],
-                local_path=result["local_path"]
-            ))
-        
-        return SearchResponse(
-            results=search_results,
-            total_found=len(search_results)
-        )
-        
+        async with service_context() as handler:
+            # Subscribe to events
+            await handler.broker.subscribe_to_topic(
+                "features.ready",
+                handler.handle_features_ready
+            )
+            
+            logger.info("Vector index service started")
+            
+            # Keep service running
+            while True:
+                await asyncio.sleep(1)
+                
+    except KeyboardInterrupt:
+        logger.info("Shutting down vector index service")
     except Exception as e:
-        error_msg = f"{type(e).__name__}: {str(e) if str(e) else 'Unknown error'}"
-        logger.error("Failed to perform similarity search", error=error_msg)
-        raise HTTPException(status_code=500, detail=error_msg)
-
-
-@app.get("/stats")
-async def get_index_stats():
-    """Get statistics about the vector index"""
-    try:
-        stats = await service.get_index_stats()
-        return stats
-    except Exception as e:
-        logger.error("Failed to get index stats", error=str(e))
-        raise HTTPException(status_code=500, detail=str(e))
-
-
-@app.get("/health")
-async def health_check():
-    """Health check endpoint"""
-    return {"status": "healthy", "service": "vector-index"}
-
+        logger.error("Service error", error=str(e))
 
 if __name__ == "__main__":
-    import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8081)
+    asyncio.run(main())

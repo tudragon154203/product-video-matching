@@ -2,7 +2,7 @@ import os
 import sys
 from fastapi import FastAPI, HTTPException
 
-# Add the app directory to the Python path
+# Add the app directory to the Python path for bind mount setup
 sys.path.append("/app/app")
 
 from common_py.logging_config import configure_logging

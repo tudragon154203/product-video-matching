@@ -20,6 +20,3 @@ COPY libs/config.py /app/libs/config.py
 # Install shared libraries in development mode
 RUN pip install -e /app/libs/common-py
 RUN pip install -e /app/libs/contracts
-
-# Copy application code
-COPY services/catalog-collector/ .
