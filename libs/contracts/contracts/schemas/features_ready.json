@@ -2,7 +2,7 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "FeaturesReady",
   "type": "object",
-  "additionalProperties": false,
+  "additionalProperties": true,
   "required": ["entity_type", "id", "emb_rgb", "emb_gray"],
   "properties": {
     "entity_type": {

@@ -478,7 +478,7 @@ async def update_job_phases():
                         "SELECT EXTRACT(EPOCH FROM (NOW() - created_at)) FROM jobs WHERE job_id = $1", 
                         job_id
                     )
-                    if job_age and job_age > 300:  # 5 minutes
+                    if job_age and job_age > 60:  # 1 minute
                         new_phase = "completed"
             
             elif current_phase == "evidence":

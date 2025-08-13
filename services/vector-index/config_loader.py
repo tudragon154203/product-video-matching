@@ -6,10 +6,15 @@ import os
 import sys
 from dataclasses import dataclass
 
-# Add project root to PYTHONPATH for local imports
-sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+# Add libs directory to PYTHONPATH for imports
+sys.path.insert(0, '/app/libs')
 
-from libs.config import config as global_config
+try:
+    from config import config as global_config
+except ImportError:
+    # Fallback for local development
+    sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+    from libs.config import config as global_config
 
 @dataclass
 class VectorIndexConfig:

@@ -3,6 +3,7 @@
   "title": "VideosSearchRequest",
   "type": "object",
   
+  "additionalProperties": true,
   "required": ["job_id", "industry", "queries", "platforms", "recency_days"],
   "properties": {
     "job_id": {
@@ -29,7 +30,7 @@
           "description": "Chinese search queries"
         }
       },
-      "additionalProperties": false
+      "additionalProperties": true
     },
     "platforms": {
       "type": "array",

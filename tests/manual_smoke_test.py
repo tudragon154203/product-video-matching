@@ -90,7 +90,7 @@ async def start_job(client):
     return job_id
 
 
-async def wait_for_job_completion(client, job_id, max_wait_time=120):
+async def wait_for_job_completion(client, job_id, max_wait_time=180):
     """Wait for job to complete"""
     logger.info("Waiting for job completion...", job_id=job_id)
     
