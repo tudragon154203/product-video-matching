@@ -2,6 +2,7 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "MatchRequest",
   "type": "object",
+  "additionalProperties": false,
   "required": ["job_id", "industry", "product_set_id", "video_set_id", "top_k"],
   "properties": {
     "job_id": {

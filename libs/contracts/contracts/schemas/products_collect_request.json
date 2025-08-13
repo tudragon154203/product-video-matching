@@ -2,15 +2,12 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "ProductsCollectRequest",
   "type": "object",
-  "required": ["job_id", "industry", "top_amz", "top_ebay"],
+  
+  "required": ["job_id", "top_amz", "top_ebay", "queries"],
   "properties": {
     "job_id": {
       "type": "string",
       "description": "Unique identifier for the job"
-    },
-    "industry": {
-      "type": "string",
-      "description": "Industry keyword for product search"
     },
     "top_amz": {
       "type": "integer",
@@ -23,6 +20,20 @@
       "minimum": 1,
       "maximum": 100,
       "description": "Number of top eBay products to collect"
+    },
+    "queries": {
+      "type": "object",
+      "required": ["en"],
+      "properties": {
+        "en": {
+          "type": "array",
+          "items": {"type": "string"},
+          "minItems": 1,
+          "maxItems": 10,
+          "description": "English search queries"
+        }
+      },
+      "additionalProperties": false
     }
   }
 }

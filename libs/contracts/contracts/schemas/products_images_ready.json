@@ -2,6 +2,7 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "ProductsImagesReady",
   "type": "object",
+  "additionalProperties": false,
   "required": ["product_id", "image_id", "local_path"],
   "properties": {
     "product_id": {

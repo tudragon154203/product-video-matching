@@ -2,6 +2,7 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "VideosSearchRequest",
   "type": "object",
+  
   "required": ["job_id", "industry", "queries", "platforms", "recency_days"],
   "properties": {
     "job_id": {
@@ -15,6 +16,7 @@
     "queries": {
       "type": "object",
       "description": "Search queries by language",
+      "required": ["vi", "zh"],
       "properties": {
         "vi": {
           "type": "array",

@@ -2,6 +2,7 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "VideosKeyframesReady",
   "type": "object",
+  "additionalProperties": false,
   "required": ["video_id", "frames"],
   "properties": {
     "video_id": {

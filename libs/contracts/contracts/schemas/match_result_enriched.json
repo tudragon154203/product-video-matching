@@ -2,6 +2,7 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "MatchResultEnriched",
   "type": "object",
+  "additionalProperties": false,
   "required": ["job_id", "product_id", "video_id", "best_pair", "score", "ts", "evidence_path"],
   "properties": {
     "job_id": {

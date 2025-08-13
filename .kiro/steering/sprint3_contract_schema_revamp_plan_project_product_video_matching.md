@@ -58,13 +58,11 @@ This section **fully specifies** the event shapes we accept after Sprint 3. All 
 {
   "type": "object",
   "required": ["job_id", "queries", "top_amz", "top_ebay"],
-  "additionalProperties": false,
   "properties": {
     "job_id": {"type": "string", "minLength": 1},
     "queries": {
       "type": "object",
       "required": ["en"],
-      "additionalProperties": false,
       "properties": {
         "en": {
           "type": "array",
@@ -123,14 +121,12 @@ This section **fully specifies** the event shapes we accept after Sprint 3. All 
 {
   "type": "object",
   "required": ["job_id", "industry", "queries", "platforms", "recency_days"],
-  "additionalProperties": false,
   "properties": {
     "job_id": {"type": "string", "minLength": 1},
     "industry": {"type": "string", "minLength": 1},
     "queries": {
       "type": "object",
       "minProperties": 1,
-      "additionalProperties": false,
       "properties": {
         "vi": {"type": "array", "items": {"type": "string", "minLength": 1}},
         "zh": {"type": "array", "items": {"type": "string", "minLength": 1}}
