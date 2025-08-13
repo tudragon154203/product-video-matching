@@ -14,3 +14,10 @@ To run tests, use pytest:
 ```bash
 python -m pytest tests/ -v
 ```
+
+## Test Coverage
+
+Current tests cover:
+- Event handling
+- Collector implementations
+- Service initialization

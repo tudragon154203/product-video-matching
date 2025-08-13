@@ -7,24 +7,23 @@ import sys
 
 from common_py.logging_config import configure_logging
 from common_py.database import DatabaseManager
-from common_py.crud import ProductCRUD, VideoCRUD, MatchCRUD
-from common_py.models import Product, Video, Match
 
 # Configure logging
 logger = configure_logging("results-api")
 
 # Environment variables
-from config import config
+from config_loader import config
 
 POSTGRES_DSN = config.POSTGRES_DSN
 DATA_ROOT = config.DATA_ROOT
 
 # Global instances
 db = DatabaseManager(POSTGRES_DSN)
-product_crud = ProductCRUD(db)
-video_crud = VideoCRUD(db)
-match_crud = MatchCRUD(db)
 app = FastAPI(title="Results API", version="1.0.0")
+
+# Import service after db initialization
+from service import ResultsService
+service = ResultsService(db)
 
 # Response models
 class MatchResult(BaseModel):
@@ -101,52 +100,14 @@ async def get_results(
 ):
     """Get matching results with optional filtering"""
     try:
-        # Get matches
-        matches = await match_crud.list_matches(
-            job_id=job_id,
+        results = await service.get_results(
+            industry=industry,
             min_score=min_score,
+            job_id=job_id,
             limit=limit,
             offset=offset
         )
-        
-        # Enrich with product and video information
-        enriched_matches = []
-        for match in matches:
-            # Get product info
-            product = await product_crud.get_product(match.product_id)
-            
-            # Get video info
-            video = await video_crud.get_video(match.video_id)
-            
-            # Filter by industry if specified
-            if industry and product and industry.lower() not in (product.title or "").lower():
-                continue
-            
-            enriched_match = MatchResult(
-                match_id=match.match_id,
-                job_id=match.job_id,
-                product_id=match.product_id,
-                video_id=match.video_id,
-                best_img_id=match.best_img_id,
-                best_frame_id=match.best_frame_id,
-                ts=match.ts,
-                score=match.score,
-                evidence_path=match.evidence_path,
-                created_at=match.created_at.isoformat() if match.created_at else "",
-                product_title=product.title if product else None,
-                video_title=video.title if video else None,
-                video_platform=video.platform if video else None
-            )
-            
-            enriched_matches.append(enriched_match)
-        
-        logger.info("Retrieved results", 
-                   count=len(enriched_matches), 
-                   industry=industry, 
-                   min_score=min_score)
-        
-        return enriched_matches
-        
+        return results
     except Exception as e:
         logger.error("Failed to get results", error=str(e))
         raise HTTPException(status_code=500, detail=str(e))
@@ -156,27 +117,10 @@ async def get_results(
 async def get_product(product_id: str):
     """Get detailed product information"""
     try:
-        product = await product_crud.get_product(product_id)
+        product = await service.get_product(product_id)
         if not product:
             raise HTTPException(status_code=404, detail="Product not found")
-        
-        # Get image count
-        image_count = await db.fetch_val(
-            "SELECT COUNT(*) FROM product_images WHERE product_id = $1",
-            product_id
-        ) or 0
-        
-        return ProductDetail(
-            product_id=product.product_id,
-            src=product.src,
-            asin_or_itemid=product.asin_or_itemid,
-            title=product.title,
-            brand=product.brand,
-            url=product.url,
-            created_at=product.created_at.isoformat() if product.created_at else "",
-            image_count=image_count
-        )
-        
+        return product
     except HTTPException:
         raise
     except Exception as e:
@@ -188,27 +132,10 @@ async def get_product(product_id: str):
 async def get_video(video_id: str):
     """Get detailed video information"""
     try:
-        video = await video_crud.get_video(video_id)
+        video = await service.get_video(video_id)
         if not video:
             raise HTTPException(status_code=404, detail="Video not found")
-        
-        # Get frame count
-        frame_count = await db.fetch_val(
-            "SELECT COUNT(*) FROM video_frames WHERE video_id = $1",
-            video_id
-        ) or 0
-        
-        return VideoDetail(
-            video_id=video.video_id,
-            platform=video.platform,
-            url=video.url,
-            title=video.title,
-            duration_s=video.duration_s,
-            published_at=video.published_at.isoformat() if video.published_at else None,
-            created_at=video.created_at.isoformat() if video.created_at else "",
-            frame_count=frame_count
-        )
-        
+        return video
     except HTTPException:
         raise
     except Exception as e:
@@ -220,62 +147,10 @@ async def get_video(video_id: str):
 async def get_match(match_id: str):
     """Get detailed match information"""
     try:
-        match = await match_crud.get_match(match_id)
+        match = await service.get_match(match_id)
         if not match:
             raise HTTPException(status_code=404, detail="Match not found")
-        
-        # Get product details
-        product = await product_crud.get_product(match.product_id)
-        if not product:
-            raise HTTPException(status_code=404, detail="Product not found")
-        
-        # Get video details
-        video = await video_crud.get_video(match.video_id)
-        if not video:
-            raise HTTPException(status_code=404, detail="Video not found")
-        
-        # Get counts
-        product_image_count = await db.fetch_val(
-            "SELECT COUNT(*) FROM product_images WHERE product_id = $1",
-            match.product_id
-        ) or 0
-        
-        video_frame_count = await db.fetch_val(
-            "SELECT COUNT(*) FROM video_frames WHERE video_id = $1",
-            match.video_id
-        ) or 0
-        
-        return MatchDetail(
-            match_id=match.match_id,
-            job_id=match.job_id,
-            product=ProductDetail(
-                product_id=product.product_id,
-                src=product.src,
-                asin_or_itemid=product.asin_or_itemid,
-                title=product.title,
-                brand=product.brand,
-                url=product.url,
-                created_at=product.created_at.isoformat() if product.created_at else "",
-                image_count=product_image_count
-            ),
-            video=VideoDetail(
-                video_id=video.video_id,
-                platform=video.platform,
-                url=video.url,
-                title=video.title,
-                duration_s=video.duration_s,
-                published_at=video.published_at.isoformat() if video.published_at else None,
-                created_at=video.created_at.isoformat() if video.created_at else "",
-                frame_count=video_frame_count
-            ),
-            best_img_id=match.best_img_id,
-            best_frame_id=match.best_frame_id,
-            ts=match.ts,
-            score=match.score,
-            evidence_path=match.evidence_path,
-            created_at=match.created_at.isoformat() if match.created_at else ""
-        )
-        
+        return match
     except HTTPException:
         raise
     except Exception as e:
@@ -287,20 +162,15 @@ async def get_match(match_id: str):
 async def get_evidence_image(match_id: str):
     """Serve evidence image for a match"""
     try:
-        match = await match_crud.get_match(match_id)
-        if not match or not match.evidence_path:
+        evidence_path = await service.get_evidence_path(match_id)
+        if not evidence_path:
             raise HTTPException(status_code=404, detail="Evidence image not found")
         
-        # Check if file exists
-        if not os.path.exists(match.evidence_path):
-            raise HTTPException(status_code=404, detail="Evidence file not found on disk")
-        
         return FileResponse(
-            match.evidence_path,
+            evidence_path,
             media_type="image/jpeg",
             filename=f"evidence_{match_id}.jpg"
         )
-        
     except HTTPException:
         raise
     except Exception as e:
@@ -312,17 +182,8 @@ async def get_evidence_image(match_id: str):
 async def get_stats():
     """Get system statistics"""
     try:
-        stats = {
-            "products": await db.fetch_val("SELECT COUNT(*) FROM products") or 0,
-            "product_images": await db.fetch_val("SELECT COUNT(*) FROM product_images") or 0,
-            "videos": await db.fetch_val("SELECT COUNT(*) FROM videos") or 0,
-            "video_frames": await db.fetch_val("SELECT COUNT(*) FROM video_frames") or 0,
-            "matches": await db.fetch_val("SELECT COUNT(*) FROM matches") or 0,
-            "jobs": await db.fetch_val("SELECT COUNT(*) FROM jobs") or 0
-        }
-        
+        stats = await service.get_stats()
         return stats
-        
     except Exception as e:
         logger.error("Failed to get stats", error=str(e))
         raise HTTPException(status_code=500, detail=str(e))

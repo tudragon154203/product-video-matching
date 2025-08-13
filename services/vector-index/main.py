@@ -12,13 +12,12 @@ from common_py.logging_config import configure_logging
 from common_py.database import DatabaseManager
 from common_py.messaging import MessageBroker
 from contracts.validator import validator
-from vector_ops import VectorOperations
 
 # Configure logging
 logger = configure_logging("vector-index")
 
 # Environment variables
-from config import config
+from config_loader import config
 
 POSTGRES_DSN = config.POSTGRES_DSN
 BUS_BROKER = config.BUS_BROKER
@@ -26,8 +25,11 @@ BUS_BROKER = config.BUS_BROKER
 # Global instances
 db = DatabaseManager(POSTGRES_DSN)
 broker = MessageBroker(BUS_BROKER)
-vector_ops = VectorOperations(db)
 app = FastAPI(title="Vector Index Service", version="1.0.0")
+
+# Import service after db and broker initialization
+from service import VectorIndexService
+service = VectorIndexService(db, broker)
 
 # Request/Response models
 class SearchRequest(BaseModel):
@@ -51,23 +53,7 @@ async def handle_features_ready(event_data):
     try:
         # Validate event
         validator.validate_event("features_ready", event_data)
-        
-        entity_type = event_data["entity_type"]
-        entity_id = event_data["id"]
-        emb_rgb = event_data["emb_rgb"]
-        emb_gray = event_data["emb_gray"]
-        
-        # Only index product images (not video frames)
-        if entity_type == "product_image":
-            logger.info("Indexing product image embeddings", image_id=entity_id)
-            
-            # Upsert embeddings into vector index
-            await vector_ops.upsert_product_embeddings(entity_id, emb_rgb, emb_gray)
-            
-            logger.info("Indexed product image embeddings", image_id=entity_id)
-        else:
-            logger.debug("Skipping non-product entity", entity_type=entity_type, entity_id=entity_id)
-        
+        await service.handle_features_ready(event_data)
     except Exception as e:
         logger.error("Failed to process features ready event", error=str(e))
         raise
@@ -100,23 +86,15 @@ async def shutdown():
 async def search_similar(request: SearchRequest):
     """Search for similar product images using vector similarity"""
     try:
-        if len(request.query_vector) != 512:
-            raise HTTPException(status_code=400, detail="Query vector must be 512-dimensional")
-        
-        # Perform similarity search
-        results = await vector_ops.search_similar_products(
+        results = await service.search_similar_products(
             query_vector=request.query_vector,
             vector_type=request.vector_type,
             top_k=request.top_k
         )
         
-        # Debug logging
-        logger.info("Search results", count=len(results), results=results)
-        
         # Format results
         search_results = []
         for result in results:
-            logger.info("Processing result", result=result)
             search_results.append(SearchResult(
                 img_id=result["img_id"],
                 product_id=result["product_id"],
@@ -139,7 +117,7 @@ async def search_similar(request: SearchRequest):
 async def get_index_stats():
     """Get statistics about the vector index"""
     try:
-        stats = await vector_ops.get_index_stats()
+        stats = await service.get_index_stats()
         return stats
     except Exception as e:
         logger.error("Failed to get index stats", error=str(e))

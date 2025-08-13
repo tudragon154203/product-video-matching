@@ -1,21 +1,18 @@
 import os
 import asyncio
-import uuid
 import sys
 
 from common_py.logging_config import configure_logging
 from common_py.database import DatabaseManager
 from common_py.messaging import MessageBroker
-from common_py.crud import MatchCRUD
-from common_py.models import Match
 from contracts.validator import validator
-from matching import MatchingEngine
+from service import MatcherService
 
 # Configure logging
 logger = configure_logging("matcher")
 
 # Environment variables
-from config import config
+from config_loader import config
 
 POSTGRES_DSN = config.POSTGRES_DSN
 BUS_BROKER = config.BUS_BROKER
@@ -32,9 +29,8 @@ MATCH_ACCEPT = config.MATCH_ACCEPT
 # Global instances
 db = DatabaseManager(POSTGRES_DSN)
 broker = MessageBroker(BUS_BROKER)
-match_crud = MatchCRUD(db)
-matching_engine = MatchingEngine(
-    db, DATA_ROOT,
+service = MatcherService(
+    db, broker, DATA_ROOT,
     retrieval_topk=RETRIEVAL_TOPK,
     sim_deep_min=SIM_DEEP_MIN,
     inliers_min=INLIERS_MIN,
@@ -49,103 +45,10 @@ async def handle_match_request(event_data):
     try:
         # Validate event
         validator.validate_event("match_request", event_data)
-        
-        job_id = event_data["job_id"]
-        industry = event_data["industry"]
-        product_set_id = event_data["product_set_id"]
-        video_set_id = event_data["video_set_id"]
-        top_k = event_data["top_k"]
-        
-        logger.info("Processing match request", 
-                   job_id=job_id, industry=industry)
-        
-        # Get products and videos for this job
-        products = await get_job_products(job_id)
-        videos = await get_job_videos(job_id)
-        
-        logger.info("Found entities for matching", 
-                   job_id=job_id, 
-                   product_count=len(products),
-                   video_count=len(videos))
-        
-        # Perform matching for each product-video pair
-        total_matches = 0
-        for product in products:
-            for video in videos:
-                match_result = await matching_engine.match_product_video(
-                    product["product_id"], 
-                    video["video_id"],
-                    job_id
-                )
-                
-                if match_result:
-                    # Create match record
-                    match = Match(
-                        match_id=str(uuid.uuid4()),
-                        job_id=job_id,
-                        product_id=product["product_id"],
-                        video_id=video["video_id"],
-                        best_img_id=match_result["best_img_id"],
-                        best_frame_id=match_result["best_frame_id"],
-                        ts=match_result["ts"],
-                        score=match_result["score"]
-                    )
-                    
-                    await match_crud.create_match(match)
-                    
-                    # Emit match result event
-                    await broker.publish_event(
-                        "match.result",
-                        {
-                            "job_id": job_id,
-                            "product_id": product["product_id"],
-                            "video_id": video["video_id"],
-                            "best_pair": {
-                                "img_id": match_result["best_img_id"],
-                                "frame_id": match_result["best_frame_id"],
-                                "score_pair": match_result["best_pair_score"]
-                            },
-                            "score": match_result["score"],
-                            "ts": match_result["ts"]
-                        },
-                        correlation_id=job_id
-                    )
-                    
-                    total_matches += 1
-                    
-                    logger.info("Found match", 
-                               job_id=job_id,
-                               product_id=product["product_id"],
-                               video_id=video["video_id"],
-                               score=match_result["score"])
-        
-        logger.info("Completed matching", 
-                   job_id=job_id, 
-                   total_matches=total_matches)
-        
+        await service.handle_match_request(event_data)
     except Exception as e:
         logger.error("Failed to process match request", error=str(e))
         raise
-
-
-async def get_job_products(job_id: str):
-    """Get all products for a job"""
-    query = """
-    SELECT DISTINCT p.product_id, p.title
-    FROM products p
-    WHERE p.job_id = $1
-    """
-    return await db.fetch_all(query, job_id)
-
-
-async def get_job_videos(job_id: str):
-    """Get all videos for a job"""
-    query = """
-    SELECT DISTINCT v.video_id, v.title
-    FROM videos v
-    WHERE v.job_id = $1
-    """
-    return await db.fetch_all(query, job_id)
 
 
 async def main():
@@ -154,7 +57,7 @@ async def main():
         # Initialize connections
         await db.connect()
         await broker.connect()
-        await matching_engine.initialize()
+        await service.initialize()
         
         # Subscribe to events
         await broker.subscribe_to_topic(
@@ -173,7 +76,7 @@ async def main():
     except Exception as e:
         logger.error("Service error", error=str(e))
     finally:
-        await matching_engine.cleanup()
+        await service.cleanup()
         await db.disconnect()
         await broker.disconnect()
 
