@@ -152,6 +152,52 @@ http://localhost:$PORT_RESULTS/evidence/{match_id}
 - `GET /stats` - System statistics
 - `GET /health` - Health check
 
+
+## Docker Build Optimization
+
+### Build Context Optimization
+
+The Docker build process has been optimized to reduce build times by:
+
+1. **`.dockerignore` file**: Excludes unnecessary directories from the build context
+   - Tests, documentation, and temporary files
+   - Git history and development tools
+   - Large data directories
+
+2. **Optimized Dockerfiles**: Copy only essential files during build
+   - Shared libraries are copied first for better caching
+   - Requirements are copied before dependencies for layer caching
+   - Unnecessary files (like `infra` directory in results-api) are excluded
+
+### Build Performance
+
+The optimized build process provides significant improvements:
+- **Smaller build context**: From ~100MB+ to ~4KB
+- **Faster builds**: Reduced file copying and processing
+- **Better caching**: Layer reuse for common dependencies
+
+### Building Services
+
+To build a specific service with optimizations:
+
+```bash
+# Build with optimized context
+docker compose -f infra/pvm/docker-compose.dev.yml build --no-cache <service-name>
+
+# Example: Build main-api
+docker compose -f infra/pvm/docker-compose.dev.yml build --no-cache main-api
+```
+
+### Build Cache Strategy
+
+The Dockerfiles follow a cache-friendly order:
+1. Copy shared libraries (`libs/`)
+2. Copy requirements files
+3. Install Python dependencies
+4. Install shared libraries in development mode
+5. Copy application code (if needed)
+
+This allows Docker to cache layers effectively, speeding up subsequent builds when only application code changes.
 ## Development
 
 ### Project Structure

@@ -10,8 +10,6 @@ RUN apt-get update && apt-get install -y \
 # Copy shared libraries first
 COPY libs /tmp/libs
 
-# Copy infra directory
-COPY infra /app/infra
 
 # Copy requirements first for better caching
 COPY services/results-api/requirements.txt .
