@@ -23,7 +23,13 @@ class MainAPIConfig:
     OLLAMA_HOST: str = os.getenv("OLLAMA_HOST", "http://host.docker.internal:11434")
     OLLAMA_MODEL_CLASSIFY: str = os.getenv("OLLAMA_MODEL_CLASSIFY", "qwen3:4b-instruct")
     OLLAMA_MODEL_GENERATE: str = os.getenv("OLLAMA_MODEL_GENERATE", "qwen3:4b-instruct")
-    OLLAMA_TIMEOUT: int = int(os.getenv("OLLAMA_TIMEOUT", "60"))
+    
+    # LLM configuration
+    LLM_TIMEOUT: int = int(os.getenv("LLM_TIMEOUT", "60"))
+    
+    # Gemini configuration
+    GEMINI_API_KEY: str = os.getenv("GEMINI_API_KEY", "")
+    GEMINI_MODEL: str = os.getenv("GEMINI_MODEL", "gemini-1.5-flash")
     
     # Industry labels
     INDUSTRY_LABELS: List[str] = field(

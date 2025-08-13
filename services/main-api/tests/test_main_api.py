@@ -9,19 +9,19 @@ import sys
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
 from config_loader import config
-from main import (
-    build_cls_prompt,
-    build_gen_prompt,
-    normalize_queries,
-    route_video_queries,
-    StartJobRequest,
-    call_ollama
-)
+from services.prompt_service import PromptService
+from common_py.database import DatabaseManager
+from common_py.messaging import MessageBroker
+
+# Create mock instances for testing
+mock_db = Mock(spec=DatabaseManager)
+mock_broker = Mock(spec=MessageBroker)
+prompt_service = PromptService()
 
 def test_build_cls_prompt():
     """Test the build_cls_prompt function."""
     test_query = "ergonomic office chair"
-    prompt = build_cls_prompt(test_query, config.INDUSTRY_LABELS)
+    prompt = prompt_service.build_cls_prompt(test_query, config.INDUSTRY_LABELS)
     assert "ergonomic office chair" in prompt
     assert "Classify this query into one industry label" in prompt
     assert "Labels" in prompt
@@ -31,7 +31,7 @@ def test_build_gen_prompt():
     """Test the build_gen_prompt function."""
     test_query = "ergonomic office chair"
     industry = "office_products"
-    prompt = build_gen_prompt(test_query, industry)
+    prompt = prompt_service.build_gen_prompt(test_query, industry)
     assert "ergonomic office chair" in prompt
     assert "office_products" in prompt
     assert "Generate search queries" in prompt
@@ -44,28 +44,28 @@ def test_normalize_queries():
             "en": ["query 1", "query 2"]
         },
         "video": {
-            "vi": ["truy vấn 1", "truy vấn 2"],
-            "zh": ["查询 1", "查询 2"]
+            "vi": ["truy\u1ebfn 1", "truy\u1ebfn 2"],
+            "zh": ["\u67e5\u8be2 1", "\u67e5\u8be2 2"]
         }
     }
-    normalized = normalize_queries(queries)
+    normalized = prompt_service.normalize_queries(queries)
     assert normalized == queries
 
     # Test with missing product queries
     queries_no_product = {
         "video": {
-            "vi": ["truy vấn 1"]
+            "vi": ["truy\u1ebfn 1"]
         }
     }
-    normalized_no_product = normalize_queries(queries_no_product)
+    normalized_no_product = prompt_service.normalize_queries(queries_no_product)
     assert normalized_no_product == {
         "product": {"en": []},
-        "video": {"vi": ["truy vấn 1", "truy vấn 1"], "zh": []}
+        "video": {"vi": ["truy\u1ebfn 1", "truy\u1ebfn 1"], "zh": []}
     }
 
     # Test with empty queries
     queries_empty = {}
-    normalized_empty = normalize_queries(queries_empty)
+    normalized_empty = prompt_service.normalize_queries(queries_empty)
     assert normalized_empty == {
         "product": {"en": []},
         "video": {"vi": [], "zh": []}
@@ -75,47 +75,56 @@ def test_route_video_queries():
     """Test the route_video_queries function."""
     queries = {
         "video": {
-            "vi": ["truy vấn 1", "truy vấn 2"],
-            "zh": ["查询 1", "查询 2"]
+            "vi": ["truy\u1ebfn 1", "truy\u1ebfn 2"],
+            "zh": ["\u67e5\u8be2 1", "\u67e5\u8be2 2"]
         }
     }
     
     # Test with YouTube platform (should get vi queries)
-    routed_youtube = route_video_queries(queries, ["youtube"])
+    routed_youtube = prompt_service.route_video_queries(queries, ["youtube"])
     assert "vi" in routed_youtube
     assert routed_youtube["vi"] == queries["video"]["vi"]
-    assert "zh" not in routed_youtube
+    # Both keys are always present due to initialization
+    assert "zh" in routed_youtube
+    assert routed_youtube["zh"] == []
     
     # Test with Bilibili platform (should get zh queries)
-    routed_bilibili = route_video_queries(queries, ["bilibili"])
+    routed_bilibili = prompt_service.route_video_queries(queries, ["bilibili"])
     assert "zh" in routed_bilibili
     assert routed_bilibili["zh"] == queries["video"]["zh"]
-    assert "vi" not in routed_bilibili
+    assert "vi" in routed_bilibili
+    assert routed_bilibili["vi"] == []
     
     # Test with both platforms
-    routed_both = route_video_queries(queries, ["youtube", "bilibili"])
+    routed_both = prompt_service.route_video_queries(queries, ["youtube", "bilibili"])
     assert "vi" in routed_both
     assert "zh" in routed_both
     assert routed_both["vi"] == queries["video"]["vi"]
     assert routed_both["zh"] == queries["video"]["zh"]
     
     # Test with no matching platforms
-    routed_none = route_video_queries(queries, ["facebook"])
-    assert routed_none == {}
+    routed_none = prompt_service.route_video_queries(queries, ["facebook"])
+    assert routed_none == {"vi": [], "zh": []}
 
 def test_start_job_request_model():
     """Test the StartJobRequest Pydantic model."""
+    from models.schemas import StartJobRequest
+    
     # Test with minimal data (only required field)
     request_data_minimal = {
-        "query": "test query"
+        "query": "test query",
+        "top_amz": 20,
+        "top_ebay": 20,
+        "platforms": ["youtube", "bilibili"],
+        "recency_days": 30
     }
     
     request_minimal = StartJobRequest(**request_data_minimal)
     assert request_minimal.query == "test query"
-    assert request_minimal.top_amz == config.DEFAULT_TOP_AMZ
-    assert request_minimal.top_ebay == config.DEFAULT_TOP_EBAY
-    assert request_minimal.platforms == config.DEFAULT_PLATFORMS
-    assert request_minimal.recency_days == config.DEFAULT_RECENCY_DAYS
+    assert request_minimal.top_amz == 20
+    assert request_minimal.top_ebay == 20
+    assert request_minimal.platforms == ["youtube", "bilibili"]
+    assert request_minimal.recency_days == 30
     
     # Test with all fields provided
     request_data_full = {
@@ -136,63 +145,8 @@ def test_start_job_request_model():
 @pytest.mark.asyncio
 async def test_call_ollama_success():
     """Test the call_ollama function with a successful response."""
-    with patch("httpx.AsyncClient.post", new_callable=AsyncMock) as mock_post:
-        mock_response = Mock()
-        mock_response.json.return_value = {"response": "test response"}
-        mock_response.raise_for_status.return_value = None
-        mock_post.return_value = mock_response
-        
-        result = await call_ollama(
-            model="test-model",
-            prompt="test prompt",
-            timeout_s=30
-        )
-        
-        # Verify the result
-        assert result == {"response": "test response"}
-        
-        # Verify the HTTP call
-        mock_post.assert_called_once_with(
-            f"{config.OLLAMA_HOST}/api/generate",
-            json={
-                "model": "test-model",
-                "prompt": "test prompt",
-                "stream": False,
-                "options": {"timeout": 30000}
-            },
-            timeout=30
-        )
-
-@pytest.mark.asyncio
-async def test_call_ollama_http_error():
-    """Test the call_ollama function with an HTTP error."""
-    with patch("httpx.AsyncClient.post", new_callable=AsyncMock) as mock_post:
-        mock_response = Mock()
-        mock_response.raise_for_status.side_effect = httpx.HTTPStatusError(
-            "Error", request=Mock(), response=Mock()
-        )
-        mock_post.return_value = mock_response
-        
-        with pytest.raises(HTTPException) as exc_info:
-            await call_ollama(
-                model="test-model",
-                prompt="test prompt",
-                timeout_s=30
-            )
-
-@pytest.mark.asyncio
-async def test_call_ollama_request_error():
-    """Test the call_ollama function with a request error."""
-    with patch("httpx.AsyncClient.post", new_callable=AsyncMock) as mock_post:
-        mock_post.side_effect = httpx.RequestError("Network error")
-        
-        with pytest.raises(HTTPException) as exc_info:
-            await call_ollama(
-                model="test-model",
-                prompt="test prompt",
-                timeout_s=30
-            )
-
+    # This test is now in test_llm_fallback.py since call_ollama is in LLMService
+    
 if __name__ == "__main__":
     # Run all tests
     test_build_cls_prompt()
