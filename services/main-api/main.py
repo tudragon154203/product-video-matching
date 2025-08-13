@@ -21,31 +21,9 @@ logger = configure_logging("main-api")
 
 # Load service-specific configuration
 from config_loader import load_env, MainAPIConfig
-try:
-    config: MainAPIConfig = load_env()
-    # Set OLLAMA_HOST for the ollama client
-    os.environ["OLLAMA_HOST"] = config.ollama_host
-except FileNotFoundError:
-    # Fallback to default config if .env file is not found
-    config = MainAPIConfig(
-        ollama_host="http://localhost:11434",
-        model_classify="qwen3:4b-instruct",
-        model_generate="qwen3:4b-instruct",
-        ollama_timeout=60,
-        industry_labels=["fashion","beauty_personal_care","books","electronics","home_garden","sports_outdoors","baby_products","pet_supplies","toys_games","automotive","office_products","business_industrial","collectibles_art","jewelry_watches","other"],
-        default_top_amz=20,
-        default_top_ebay=20,
-        default_platforms=["youtube","bilibili"],
-        default_recency_days=30,
-        postgres_dsn="",
-        postgres_user="postgres",
-        postgres_password="dev",
-        postgres_host="postgres",
-        postgres_port="5432",
-        postgres_db="product_video_matching",
-        bus_broker="amqp://guest:guest@rabbitmq:5672/"
-    )
-    os.environ["OLLAMA_HOST"] = config.ollama_host
+config: MainAPIConfig = load_env()
+# Set OLLAMA_HOST for the ollama client
+os.environ["OLLAMA_HOST"] = config.ollama_host
 
 # Global instances
 # Use configuration from the config object
