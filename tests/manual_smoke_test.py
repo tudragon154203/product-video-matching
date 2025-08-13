@@ -9,7 +9,7 @@ import os
 import sys
 
 # Add libs to path
-sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'infra'))
+sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'libs'))
 
 from common_py.logging_config import configure_logging
 from config import config
@@ -73,7 +73,7 @@ async def start_job(client):
     logger.info("Starting new job...")
     
     job_request = {
-        "industry": "ergonomic pillows",
+        "query": "ergonomic pillows",
         "top_amz": 3,
         "top_ebay": 2,
         "platforms": ["youtube"],
@@ -181,18 +181,18 @@ async def check_results(client, job_id):
             raise Exception("Match detail missing product or video information")
 
 
-async def test_api_endpoints(client):
+async def test_api_endpoints(http_client):
     """Test various API endpoints"""
     logger.info("Testing API endpoints...")
     
     # Test stats endpoint
-    response = await client.get(f"{RESULTS_API_URL}/stats")
+    response = await http_client.get(f"{RESULTS_API_URL}/stats")
     response.raise_for_status()
     stats = response.json()
     logger.info("System stats", stats=stats)
     
     # Test results with filters
-    response = await client.get(f"{RESULTS_API_URL}/results", params={"min_score": 0.5})
+    response = await http_client.get(f"{RESULTS_API_URL}/results", params={"min_score": 0.5})
     response.raise_for_status()
     filtered_results = response.json()
     logger.info("Filtered results", count=len(filtered_results))

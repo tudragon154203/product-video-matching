@@ -1,9 +1,12 @@
 import os
+import sys
 import asyncio
 from typing import List, Dict, Any, Optional
 from fastapi import FastAPI, HTTPException, Query
 from pydantic import BaseModel
-import sys
+
+# Add current directory to path for imports
+sys.path.insert(0, os.path.dirname(__file__))
 
 from common_py.logging_config import configure_logging
 from common_py.database import DatabaseManager

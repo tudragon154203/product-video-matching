@@ -2,6 +2,7 @@
 Pytest configuration and fixtures for integration tests
 """
 import pytest
+import pytest_asyncio
 import asyncio
 import asyncpg
 import httpx
@@ -26,7 +27,7 @@ def event_loop():
     loop.close()
 
 
-@pytest.fixture(scope="session")
+@pytest_asyncio.fixture(scope="session")
 async def db_manager():
     """Database manager fixture"""
     dsn = config.POSTGRES_DSN
@@ -36,7 +37,7 @@ async def db_manager():
     await db.disconnect()
 
 
-@pytest.fixture(scope="session")
+@pytest_asyncio.fixture(scope="session")
 async def message_broker():
     """Message broker fixture"""
     broker_url = config.BUS_BROKER
@@ -46,14 +47,14 @@ async def message_broker():
     await broker.disconnect()
 
 
-@pytest.fixture(scope="session")
+@pytest_asyncio.fixture(scope="session")
 async def http_client():
     """HTTP client fixture"""
     async with httpx.AsyncClient(timeout=30.0) as client:
         yield client
 
 
-@pytest.fixture
+@pytest_asyncio.fixture
 async def clean_database(db_manager):
     """Clean database before each test"""
     # Clean up test data

@@ -8,7 +8,13 @@ from typing import Optional, Dict, Any
 from dataclasses import dataclass, field
 
 # Load environment variables from .env file
-def load_env_file(env_path: str = "infra/pvm/.env") -> Dict[str, str]:
+def load_env_file(env_path: str = None) -> Dict[str, str]:
+    if env_path is None:
+        # Check for test environment first
+        if os.getenv("PYTEST_CURRENT_TEST"):
+            env_path = "infra/pvm/.env.test"
+        else:
+            env_path = "infra/pvm/.env"
     """Load environment variables from .env file"""
     env_vars = {}
     env_file_path = Path(env_path)

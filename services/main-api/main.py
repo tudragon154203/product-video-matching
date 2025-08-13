@@ -21,7 +21,8 @@ logger = configure_logging("main-api")
 
 # Load service-specific configuration
 from config_loader import load_env, MainAPIConfig
-config: MainAPIConfig = load_env()
+import os
+config: MainAPIConfig = load_env(os.path.join(os.path.dirname(__file__), ".env"))
 # Set OLLAMA_HOST for the ollama client
 os.environ["OLLAMA_HOST"] = config.ollama_host
 
@@ -308,8 +309,11 @@ async def start_job(request: StartJobRequest):
         return StartJobResponse(job_id=job_id, status="started")
         
     except Exception as e:
-        logger.error("Failed to start job", error=str(e))
-        raise HTTPException(status_code=500, detail=str(e))
+        error_msg = f"{type(e).__name__}: {str(e) if str(e) else 'Unknown error'}"
+        logger.error("Failed to start job", error=error_msg, exception_type=type(e).__name__)
+        import traceback
+        logger.error("Exception traceback", traceback=traceback.format_exc())
+        raise HTTPException(status_code=500, detail=error_msg)
 
 
 @app.get("/status/{job_id}", response_model=JobStatusResponse)
