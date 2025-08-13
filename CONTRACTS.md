@@ -35,9 +35,11 @@ All pub/sub events follow this JSON envelope structure:
 ```json
 {
   "job_id": "string",
-  "industry": "string",
-  "top_amz": "integer",
-  "top_ebay": "integer"
+  "top_amz": "integer (1-100)",
+  "top_ebay": "integer (1-100)",
+  "queries": {
+    "en": ["string"]
+  }
 }
 ```
 
@@ -47,7 +49,12 @@ All pub/sub events follow this JSON envelope structure:
 {
   "product_id": "string",
   "image_id": "string",
-  "local_path": "string"
+  "local_path": "string",
+  "metadata": {
+    "width": "integer (optional)",
+    "height": "integer (optional)",
+    "format": "string (optional)"
+  }
 }
 ```
 
@@ -57,7 +64,10 @@ All pub/sub events follow this JSON envelope structure:
 {
   "job_id": "string",
   "industry": "string",
-  "queries": ["string"],
+  "queries": {
+    "vi": ["string"],
+    "zh": ["string"]
+  },
   "platforms": ["youtube", "bilibili"],
   "recency_days": "integer"
 }
@@ -71,7 +81,7 @@ All pub/sub events follow this JSON envelope structure:
   "frames": [
     {
       "frame_id": "string",
-      "ts": "float",
+      "ts": "number",
       "local_path": "string"
     }
   ]
@@ -84,9 +94,9 @@ All pub/sub events follow this JSON envelope structure:
 {
   "entity_type": "product_image|video_frame",
   "id": "string",
-  "emb_rgb": ["float"],
-  "emb_gray": ["float"],
-  "kp_blob_path": "string"
+  "emb_rgb": ["number"],
+  "emb_gray": ["number"],
+  "kp_blob_path": "string (optional)"
 }
 ```
 
@@ -98,7 +108,7 @@ All pub/sub events follow this JSON envelope structure:
   "industry": "string",
   "product_set_id": "string",
   "video_set_id": "string",
-  "top_k": "integer"
+  "top_k": "integer (1-100)"
 }
 ```
 
@@ -110,11 +120,12 @@ All pub/sub events follow this JSON envelope structure:
   "product_id": "string",
   "video_id": "string",
   "best_pair": {
-    "product_img": "string",
-    "video_frame": "string"
+    "img_id": "string",
+    "frame_id": "string",
+    "score_pair": "number (0-1)"
   },
-  "score": "float",
-  "ts": "float"
+  "score": "number (0-1)",
+  "ts": "number"
 }
 ```
 
@@ -126,11 +137,12 @@ All pub/sub events follow this JSON envelope structure:
   "product_id": "string",
   "video_id": "string",
   "best_pair": {
-    "product_img": "string",
-    "video_frame": "string"
+    "img_id": "string",
+    "frame_id": "string",
+    "score_pair": "number (0-1)"
   },
-  "score": "float",
-  "ts": "float",
+  "score": "number (0-1)",
+  "ts": "number",
   "evidence_path": "string"
 }
 ```
@@ -140,5 +152,5 @@ All pub/sub events follow this JSON envelope structure:
 - Validate before publishing/subscribing
 - Increment schema version when making breaking changes
 - All IDs are non-empty strings
-- All floats have ≤ 6 decimal places
+- All numeric values are numbers (integers or floats)
 - Payloads are ≤ 1MB (to avoid overloading the bus)
