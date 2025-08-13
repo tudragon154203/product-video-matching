@@ -20,23 +20,23 @@ class ProductCollector:
         # HTTP client for downloading images
         self.client = httpx.AsyncClient(timeout=30.0, follow_redirects=True)
     
-    async def collect_amazon_products(self, industry: str, top_k: int) -> List[Dict[str, Any]]:
+    async def collect_amazon_products(self, query: str, top_k: int) -> List[Dict[str, Any]]:
         """
         Collect Amazon products (mock implementation)
         In production, this would use Amazon Product API
         """
-        logger.info("Collecting Amazon products", industry=industry, count=top_k)
+        logger.info("Collecting Amazon products", query=query, count=top_k)
         
         # Mock product data for MVP
         mock_products = []
         for i in range(min(top_k, 5)):  # Limit to 5 for testing
             product = {
-                "id": f"amazon_{industry}_{i}",
-                "title": f"Mock {industry} Product {i+1}",
+                "id": f"amazon_{query}_{i}",
+                "title": f"Mock {query} Product {i+1}",
                 "brand": f"Brand{i+1}",
                 "url": f"https://amazon.com/mock-product-{i}",
                 "images": [
-                    f"https://picsum.photos/400/400?random={i*10+j}" 
+                    f"https://picsum.photos/400/400?random={i*10+j}"
                     for j in range(3)  # 3 images per product
                 ]
             }
@@ -45,23 +45,23 @@ class ProductCollector:
         logger.info("Collected Amazon products", count=len(mock_products))
         return mock_products
     
-    async def collect_ebay_products(self, industry: str, top_k: int) -> List[Dict[str, Any]]:
+    async def collect_ebay_products(self, query: str, top_k: int) -> List[Dict[str, Any]]:
         """
         Collect eBay products (mock implementation)
         In production, this would use eBay API
         """
-        logger.info("Collecting eBay products", industry=industry, count=top_k)
+        logger.info("Collecting eBay products", query=query, count=top_k)
         
         # Mock product data for MVP
         mock_products = []
         for i in range(min(top_k, 5)):  # Limit to 5 for testing
             product = {
-                "id": f"ebay_{industry}_{i}",
-                "title": f"Mock eBay {industry} Item {i+1}",
+                "id": f"ebay_{query}_{i}",
+                "title": f"Mock eBay {query} Item {i+1}",
                 "brand": f"EBrand{i+1}",
                 "url": f"https://ebay.com/mock-item-{i}",
                 "images": [
-                    f"https://picsum.photos/400/400?random={i*20+j+100}" 
+                    f"https://picsum.photos/400/400?random={i*20+j+100}"
                     for j in range(2)  # 2 images per product
                 ]
             }

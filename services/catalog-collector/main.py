@@ -36,25 +36,27 @@ async def handle_products_collect_request(event_data):
         validator.validate_event("products_collect_request", event_data)
         
         job_id = event_data["job_id"]
-        industry = event_data["industry"]
+        queries = event_data["queries"]["en"]  # Use English queries
         top_amz = event_data["top_amz"]
         top_ebay = event_data["top_ebay"]
         
-        logger.info("Processing product collection request", 
-                   job_id=job_id, industry=industry)
+        logger.info("Processing product collection request",
+                   job_id=job_id, query_count=len(queries))
         
-        # Collect Amazon products
-        amazon_products = await collector.collect_amazon_products(industry, top_amz)
-        for product_data in amazon_products:
-            await process_product(product_data, job_id, "amazon")
+        # Collect Amazon products for each query
+        for query in queries:
+            amazon_products = await collector.collect_amazon_products(query, top_amz)
+            for product_data in amazon_products:
+                await process_product(product_data, job_id, "amazon")
         
-        # Collect eBay products
-        ebay_products = await collector.collect_ebay_products(industry, top_ebay)
-        for product_data in ebay_products:
-            await process_product(product_data, job_id, "ebay")
+        # Collect eBay products for each query
+        for query in queries:
+            ebay_products = await collector.collect_ebay_products(query, top_ebay)
+            for product_data in ebay_products:
+                await process_product(product_data, job_id, "ebay")
         
-        logger.info("Completed product collection", 
-                   job_id=job_id, 
+        logger.info("Completed product collection",
+                   job_id=job_id,
                    amazon_count=len(amazon_products),
                    ebay_count=len(ebay_products))
         

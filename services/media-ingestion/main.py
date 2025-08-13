@@ -41,19 +41,26 @@ async def handle_videos_search_request(event_data):
         platforms = event_data["platforms"]
         recency_days = event_data["recency_days"]
         
-        logger.info("Processing video search request", 
+        logger.info("Processing video search request",
                    job_id=job_id, industry=industry, platforms=platforms)
         
         # Search videos on each platform
         all_videos = []
         
         for platform in platforms:
-            if platform == "youtube":
-                videos = await ingestion.search_youtube_videos(queries, recency_days)
-                all_videos.extend(videos)
-            elif platform == "bilibili":
-                videos = await ingestion.search_bilibili_videos(queries, recency_days)
-                all_videos.extend(videos)
+            platform_queries = []
+            if platform == "youtube" and "vi" in queries:
+                platform_queries = queries["vi"]
+            elif platform == "bilibili" and "zh" in queries:
+                platform_queries = queries["zh"]
+                
+            if platform_queries:
+                if platform == "youtube":
+                    videos = await ingestion.search_youtube_videos(platform_queries, recency_days)
+                    all_videos.extend(videos)
+                elif platform == "bilibili":
+                    videos = await ingestion.search_bilibili_videos(platform_queries, recency_days)
+                    all_videos.extend(videos)
         
         # Process each video
         for video_data in all_videos:

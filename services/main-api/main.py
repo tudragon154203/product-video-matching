@@ -21,13 +21,10 @@ logger = configure_logging("main-api")
 
 # Load service-specific configuration
 from config_loader import config
-# Set OLLAMA_HOST for the ollama client
-os.environ["OLLAMA_HOST"] = config.OLLAMA_HOST
 
 # Global instances
 # Use configuration from the config object
-postgres_dsn = config.POSTGRES_DSN
-db = DatabaseManager(postgres_dsn)
+db = DatabaseManager(config.POSTGRES_DSN)
 broker = MessageBroker(config.BUS_BROKER)
 app = FastAPI(title="Main API Service", version="1.0.0")
 
@@ -55,7 +52,7 @@ async def phase_update_task():
     while True:
         try:
             await update_job_phases()
-            await asyncio.sleep(30)  # Update every 30 seconds
+            await asyncio.sleep(5)  # Update every 5 seconds
         except Exception as e:
             logger.error("Phase update task error", error=str(e))
             await asyncio.sleep(60)  # Wait longer on error
@@ -173,8 +170,11 @@ def normalize_queries(queries: Dict[str, Any], min_items: int = 2, max_items: in
 
 
 def route_video_queries(queries: Dict[str, Any], platforms: list) -> Dict[str, list]:
-    """Route video queries based on platforms."""
-    video_queries = {}
+    """Route video queries based on platforms, ensuring both vi and zh are present."""
+    video_queries = {
+        "vi": [],
+        "zh": []
+    }
     if "youtube" in platforms and "vi" in queries["video"]:
         video_queries["vi"] = queries["video"]["vi"]
     if "bilibili" in platforms and "zh" in queries["video"]:
@@ -284,9 +284,11 @@ async def start_job(request: StartJobRequest):
                 "products.collect.request",
                 {
                     "job_id": job_id,
-                    "industry": industry,
                     "top_amz": request.top_amz,
                     "top_ebay": request.top_ebay,
+                    "queries": {
+                        "en": queries["product"]["en"]  # Use generated queries
+                    }
                 },
                 correlation_id=job_id
             )
@@ -433,23 +435,28 @@ async def update_job_phases():
             new_phase = current_phase
             
             if current_phase == "collection":
-                # Move to feature_extraction if we have products and videos
-                if product_count > 0 and video_count > 0:
+                # Move to feature_extraction if we have products OR videos
+                if product_count > 0 or video_count > 0:
                     new_phase = "feature_extraction"
             
             elif current_phase == "feature_extraction":
-                # Move to matching if most products and videos have features
-                if (products_with_features >= product_count * 0.8 and 
-                    videos_with_features >= video_count * 0.8):
+                # Move to matching if any products or videos have features
+                if products_with_features > 0 or videos_with_features > 0:
                     new_phase = "matching"
                     
                     # Publish match request when transitioning to matching phase
                     try:
+                        # Get industry from job record
+                        job_record = await db.fetch_one(
+                            "SELECT industry FROM jobs WHERE job_id = $1", job_id
+                        )
+                        industry = job_record["industry"] if job_record else "unknown"
+                        
                         await broker.publish_event(
                             "match.request",
                             {
                                 "job_id": job_id,
-                                "industry": "home_garden",  # TODO: get from job record
+                                "industry": industry,
                                 "product_set_id": job_id,
                                 "video_set_id": job_id,
                                 "top_k": 20

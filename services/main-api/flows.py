@@ -71,9 +71,11 @@ class MatchingFlow:
         # Emit product collection request
         product_event = {
             "job_id": self.job_id,
-            "industry": self.request.industry,
             "top_amz": self.request.top_amz,
-            "top_ebay": self.request.top_ebay
+            "top_ebay": self.request.top_ebay,
+            "queries": {
+                "en": self.request.product_queries  # Assume request has product_queries field
+            }
         }
         
         await self.broker.publish_event(
@@ -83,11 +85,13 @@ class MatchingFlow:
         )
         
         # Emit video search request
-        queries = self.request.queries or [self.request.industry]
         video_event = {
             "job_id": self.job_id,
             "industry": self.request.industry,
-            "queries": queries,
+            "queries": {
+                "vi": self.request.video_queries_vi,
+                "zh": self.request.video_queries_zh
+            },
             "platforms": self.request.platforms,
             "recency_days": self.request.recency_days
         }
