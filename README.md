@@ -218,8 +218,8 @@ This allows developers to modify shared library code and see changes take effect
 ├── services/           # Microservices
 │   ├── main-api/      # Job orchestration
 │   ├── results-api/    # Results REST API
-│   ├── catalog-collector/  # Product collection
-│   ├── media-ingestion/    # Video processing
+│   ├── dropship-product-finder/  # Product collection
+│   ├── video-crawler/    # Video processing
 │   ├── vision-embedding/   # Deep learning features
 │   ├── vision-keypoint/    # Traditional CV features
 │   ├── matcher/           # Core matching logic

@@ -1,6 +1,13 @@
 # API Documentation
 
 This document provides detailed API documentation for the Product-Video Matching System.
+## Updated Service Names
+
+The following services have been renamed as part of our latest update:
+- **Catalog Collector** → **Dropship Product Finder**
+- **Media Ingestion** → **Video Crawler**
+
+All API endpoints and functionality remain unchanged.
 
 ## Base URLs
 

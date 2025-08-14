@@ -114,13 +114,13 @@ class MatchingEngine:
             if not image.get("emb_rgb"):
                 return video_frames[:self.retrieval_topk]  # Return first N frames
             
-            # Mock similarity calculation
-            image_emb = np.array(image["emb_rgb"])
+            # Ensure embeddings are float arrays
+            image_emb = np.array(image["emb_rgb"], dtype=np.float32)
             similarities = []
             
             for frame in video_frames:
                 if frame.get("emb_rgb"):
-                    frame_emb = np.array(frame["emb_rgb"])
+                    frame_emb = np.array(frame["emb_rgb"], dtype=np.float32)
                     # Calculate cosine similarity
                     similarity = np.dot(image_emb, frame_emb) / (
                         np.linalg.norm(image_emb) * np.linalg.norm(frame_emb)
@@ -173,8 +173,9 @@ class MatchingEngine:
             if not image.get("emb_rgb") or not frame.get("emb_rgb"):
                 return np.random.uniform(0.7, 0.9)  # Mock similarity
             
-            image_emb = np.array(image["emb_rgb"])
-            frame_emb = np.array(frame["emb_rgb"])
+            # Ensure embeddings are float arrays
+            image_emb = np.array(image["emb_rgb"], dtype=np.float32)
+            frame_emb = np.array(frame["emb_rgb"], dtype=np.float32)
             
             # Cosine similarity
             similarity = np.dot(image_emb, frame_emb) / (

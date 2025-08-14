@@ -1,6 +1,13 @@
 # Event Contracts Specification
 
 ## 1. Standard Envelope
+## Updated Service Names
+
+The following services have been renamed as part of our latest update:
+- **Catalog Collector** → **Dropship Product Finder**
+- **Media Ingestion** → **Video Crawler**
+
+All event contracts and schemas remain unchanged except where service names were explicitly referenced.
 
 All pub/sub events follow this JSON envelope structure:
 

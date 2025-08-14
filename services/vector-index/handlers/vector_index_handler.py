@@ -12,6 +12,6 @@ class VectorIndexHandler:
         self.initialized = False
         
     @validate_event("features_ready")
-    async def handle_features_ready(self, event_data):
+    async def handle_features_ready(self, event_data, *args, **kwargs):
         """Handle features ready event"""
         await self.service.handle_features_ready(event_data)

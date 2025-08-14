@@ -91,10 +91,10 @@ services:
     restart: unless-stopped
     command: ["python", "app/main.py"]
 
-  catalog-collector:
+  dropship-product-finder:
     build:
       context: ../../
-      dockerfile: services/catalog-collector/Dockerfile
+      dockerfile: services/dropship-product-finder/Dockerfile
     env_file:
       - .env
     environment:
@@ -103,7 +103,7 @@ services:
     volumes:
       - ../../libs:/app/libs
       - ../../data:/app/data
-      - ../../services/catalog-collector:/app/app
+      - ../../services/dropship-product-finder:/app/app
     depends_on:
       postgres:
         condition: service_healthy
@@ -112,10 +112,10 @@ services:
     restart: unless-stopped
     command: ["python", "app/main.py"]
 
-  media-ingestion:
+  video-crawler:
     build:
       context: ../../
-      dockerfile: services/media-ingestion/Dockerfile
+      dockerfile: services/video-crawler/Dockerfile
     env_file:
       - .env
     environment:
@@ -124,7 +124,7 @@ services:
     volumes:
       - ../../libs:/app/libs
       - ../../data:/app/data
-      - ../../services/media-ingestion:/app/app
+      - ../../services/video-crawler:/app/app
     depends_on:
       postgres:
         condition: service_healthy
