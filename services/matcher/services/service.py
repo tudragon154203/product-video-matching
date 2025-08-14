@@ -99,6 +99,17 @@ class MatcherService:
                                    video_id=video["video_id"],
                                    score=match_result["score"])
             
+            # Emit matchings process completed event
+            event_id = str(uuid.uuid4())
+            await self.broker.publish_event(
+                "matchings.process.completed",
+                {
+                    "job_id": job_id,
+                    "event_id": event_id
+                },
+                correlation_id=job_id
+            )
+            
             logger.info("Completed matching", 
                        job_id=job_id, 
                        total_matches=total_matches)

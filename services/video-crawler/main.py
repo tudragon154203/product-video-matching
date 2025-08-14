@@ -36,7 +36,7 @@ async def main():
                 handler.handle_videos_search_request
             )
             
-            logger.info("Media ingestion service started")
+            logger.info("Video crawler service started")
             
             # Keep service running
             while True:

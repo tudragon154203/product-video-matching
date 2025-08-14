@@ -1,0 +1,20 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "ImageKeypointReady",
+  "type": "object",
+  "required": ["job_id", "asset_id", "event_id"],
+  "properties": {
+    "job_id": {
+      "type": "string",
+      "description": "Unique identifier for the job"
+    },
+    "asset_id": {
+      "type": "string",
+      "description": "Unique identifier for the image asset"
+    },
+    "event_id": {
+      "type": "string",
+      "description": "Unique identifier for the event (UUIDv4)"
+    }
+  }
+}

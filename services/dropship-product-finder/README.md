@@ -8,7 +8,7 @@ The service follows a modular architecture with the following components:
 
 1. **Main Entry Point** (`main.py`): Handles service initialization, event subscription, and graceful shutdown.
 2. **Configuration** (`config_loader.py`): Loads service configuration from environment variables.
-3. **Business Logic** (`services/service.py`): Contains the main `CatalogCollectorService` class that orchestrates product collection.
+3. **Business Logic** (`services/service.py`): Contains the main `DropshipProductFinderService` class that orchestrates product collection.
 4. **Collectors** (`collectors/collector.py`): Contains abstract base classes and implementations for different e-commerce platforms.
 5. **Tests** (`tests/`): Unit tests for the service components.
 
@@ -28,7 +28,7 @@ To add support for a new e-commerce platform:
 2. Implement the required abstract methods:
    - `collect_products(self, query: str, top_k: int) -> List[Dict[str, Any]]`
    - `get_source_name(self) -> str`
-3. Register the new collector in the `CatalogCollectorService.__init__` method
+3. Register the new collector in the `DropshipProductFinderService.__init__` method
 
 ## Running Tests
 

@@ -8,7 +8,7 @@ The service follows a modular architecture with the following components:
 
 1. **Main Entry Point** (`main.py`): Handles service initialization, event subscription, and graceful shutdown.
 2. **Configuration** (`config_loader.py`): Loads service configuration from environment variables.
-3. **Business Logic** (`service.py`): Contains the main `MediaIngestionService` class that orchestrates video processing.
+3. **Business Logic** (`service.py`): Contains the main `VideoCrawlerService` class that orchestrates video processing.
 4. **Video Ingestion** (`ingestion.py`): Contains the `VideoIngestion` class that handles video search and keyframe extraction.
 5. **Tests** (`tests/`): Unit tests for the service components.
 

@@ -1,5 +1,5 @@
 """
-Configuration loader for the media ingestion service.
+Configuration loader for the video crawler service.
 Uses environment variables directly since Docker Compose loads both shared and service-specific .env files.
 """
 import os
@@ -18,7 +18,7 @@ except ImportError:
 
 @dataclass
 class VideoCrawlerConfig:
-    """Configuration for the media ingestion service"""
+    """Configuration for the video crawler service"""
     
     # Database configuration (from global config)
     POSTGRES_DSN: str = global_config.POSTGRES_DSN

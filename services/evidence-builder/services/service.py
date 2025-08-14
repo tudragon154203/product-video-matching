@@ -1,4 +1,5 @@
 import structlog
+import uuid
 from typing import Dict, Any, Optional
 from common_py.database import DatabaseManager
 from common_py.messaging import MessageBroker
@@ -14,6 +15,8 @@ class EvidenceBuilderService:
         self.db = db
         self.broker = broker
         self.evidence_generator = EvidenceGenerator(data_root)
+        # Track processed jobs to ensure we only publish evidences.generation.completed once per job
+        self.processed_jobs = set()
     
     async def handle_match_result(self, event_data: Dict[str, Any]):
         """Handle match result event and generate evidence"""
@@ -60,23 +63,32 @@ class EvidenceBuilderService:
                     evidence_path, product_id, video_id, job_id
                 )
                 
-                # Emit enriched match result
-                enriched_event = {
-                    **event_data,
-                    "evidence_path": evidence_path
-                }
-                
-                await self.broker.publish_event(
-                    "match.result.enriched",
-                    enriched_event,
-                    correlation_id=job_id
-                )
-                
                 logger.info("Generated evidence", 
                            job_id=job_id,
                            product_id=product_id,
                            video_id=video_id,
                            evidence_path=evidence_path)
+                
+                # Check if we've already processed this job
+                if job_id not in self.processed_jobs:
+                    # Mark job as processed
+                    self.processed_jobs.add(job_id)
+                    
+                    # Publish evidences.generation.completed event
+                    evidences_completed_event = {
+                        "job_id": job_id,
+                        "event_id": str(uuid.uuid4())  # Generate a new UUID4 for this event
+                    }
+                    
+                    await self.broker.publish_event(
+                        "evidences.generation.completed",
+                        evidences_completed_event,
+                        correlation_id=job_id
+                    )
+                    
+                    logger.info("Published evidences.generation.completed", 
+                               job_id=job_id,
+                               event_id=evidences_completed_event["event_id"])
             else:
                 logger.error("Failed to generate evidence", 
                             job_id=job_id,

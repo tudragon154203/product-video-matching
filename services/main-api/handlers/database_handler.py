@@ -8,7 +8,7 @@ class DatabaseHandler:
     def __init__(self, db: DatabaseManager):
         self.db = db
 
-    async def store_job(self, job_id: str, query: str, industry: str, queries: Dict[str, Any], phase: str):
+    async def store_job(self, job_id: str, query: str, industry: str, queries: Dict[str, Any], phase: str = "collection"):
         """Store a new job in the database."""
         try:
             await self.db.execute(
@@ -109,3 +109,52 @@ class DatabaseHandler:
         except Exception as e:
             logger.error(f"Failed to fetch features counts: {e}")
             return 0, 0
+
+    async def get_job_phase(self, job_id: str) -> str:
+        """Get the current phase of a job."""
+        try:
+            result = await self.db.fetch_one(
+                "SELECT phase FROM jobs WHERE job_id = $1", job_id
+            )
+            return result["phase"] if result else "unknown"
+        except Exception as e:
+            logger.error(f"Failed to fetch job phase: {e}")
+            return "unknown"
+
+    async def store_phase_event(self, event_id: str, job_id: str, event_name: str):
+        """Store a phase event in the database."""
+        try:
+            await self.db.execute(
+                "INSERT INTO phase_events (event_id, job_id, name) VALUES ($1, $2, $3)",
+                event_id, job_id, event_name
+            )
+        except Exception as e:
+            logger.error(f"Failed to store phase event: {e}")
+            raise
+
+    async def has_phase_event(self, job_id: str, event_name: str) -> bool:
+        """Check if a phase event has been received for a job."""
+        try:
+            result = await self.db.fetch_val(
+                "SELECT COUNT(*) FROM phase_events WHERE job_id = $1 AND name = $2",
+                job_id, event_name
+            )
+            count = result or 0
+            logger.info("Checking phase event", job_id=job_id, event_name=event_name, count=count)
+            if count > 1:
+                logger.warning("MULTIPLE phase events found for same job/event", job_id=job_id, event_name=event_name, count=count)
+            return count > 0
+        except Exception as e:
+            logger.error(f"Failed to check phase event: {e}")
+            return False
+
+    async def clear_phase_events(self, job_id: str):
+        """Clear all phase events for a job (for testing/reset purposes)."""
+        try:
+            await self.db.execute(
+                "DELETE FROM phase_events WHERE job_id = $1",
+                job_id
+            )
+        except Exception as e:
+            logger.error(f"Failed to clear phase events: {e}")
+            raise

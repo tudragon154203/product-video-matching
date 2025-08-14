@@ -2,6 +2,7 @@ from common_py.database import DatabaseManager
 from common_py.messaging import MessageBroker
 from services.job_management_service import JobManagementService
 from services.phase_management_service import PhaseManagementService
+from services.phase_event_service import PhaseEventService
 from handlers.database_handler import DatabaseHandler
 from handlers.broker_handler import BrokerHandler
 
@@ -13,6 +14,7 @@ class JobService:
         self.broker_handler = BrokerHandler(broker)
         self.job_management_service = JobManagementService(self.db_handler, self.broker_handler)
         self.phase_management_service = PhaseManagementService(self.db_handler, self.broker_handler)
+        self.phase_event_service = PhaseEventService(self.db_handler, self.broker_handler)
 
     async def start_job(self, request):
         """Start a new job"""
@@ -23,9 +25,13 @@ class JobService:
         return await self.job_management_service.get_job_status(job_id)
 
     async def update_job_phases(self):
-        """Update job phases"""
+        """Update job phases - legacy method"""
         return await self.phase_management_service.update_job_phases()
 
     async def phase_update_task(self):
-        """Run the phase update task"""
+        """Run the phase update task - legacy method"""
         return await self.phase_management_service.phase_update_task()
+
+    async def handle_phase_event(self, event_type: str, event_data: dict):
+        """Handle a phase event"""
+        return await self.phase_event_service.handle_phase_event(event_type, event_data)

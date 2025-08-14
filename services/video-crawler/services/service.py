@@ -54,6 +54,17 @@ class VideoCrawlerService:
             for video_data in all_videos:
                 await self.process_video(video_data, job_id)
             
+            # Emit videos collections completed event
+            event_id = str(uuid.uuid4())
+            await self.broker.publish_event(
+                "videos.collections.completed",
+                {
+                    "job_id": job_id,
+                    "event_id": event_id
+                },
+                correlation_id=job_id
+            )
+            
             logger.info("Completed video search", 
                        job_id=job_id, 
                        total_videos=len(all_videos))

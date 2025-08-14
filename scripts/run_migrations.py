@@ -111,6 +111,23 @@ async def run_migrations():
         await db.execute("CREATE INDEX IF NOT EXISTS idx_matches_job_id ON matches(job_id);")
         await db.execute("CREATE INDEX IF NOT EXISTS idx_matches_score ON matches(score);")
         
+        # Phase-transition events
+        await db.execute("""
+            CREATE TABLE IF NOT EXISTS phase_events (
+                event_id VARCHAR(255) PRIMARY KEY,
+                job_id VARCHAR(255) NOT NULL,
+                name VARCHAR(100) NOT NULL,
+                received_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            );
+        """)
+        await db.execute("CREATE INDEX IF NOT EXISTS idx_phase_events_job_id ON phase_events(job_id);")
+        await db.execute("CREATE INDEX IF NOT EXISTS idx_phase_events_name ON phase_events(name);")
+
+        # Ensure jobs.phase exists (default 'collection')
+        await db.execute("""
+            ALTER TABLE jobs ADD COLUMN IF NOT EXISTS phase VARCHAR(50) NOT NULL;
+        """)
+
         print("Database migrations completed successfully!")
         
     finally:

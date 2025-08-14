@@ -1,0 +1,36 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "ImageEmbeddingsCompleted",
+  "type": "object",
+  "required": ["job_id", "event_id", "total_assets", "processed_assets", "failed_assets", "has_partial_completion", "watermark_ttl"],
+  "properties": {
+    "job_id": {
+      "type": "string",
+      "description": "Unique identifier for the job"
+    },
+    "event_id": {
+      "type": "string",
+      "description": "Unique identifier for the event (UUIDv4)"
+    },
+    "total_assets": {
+      "type": "integer",
+      "description": "Total number of assets expected for this job"
+    },
+    "processed_assets": {
+      "type": "integer",
+      "description": "Number of assets successfully processed"
+    },
+    "failed_assets": {
+      "type": "integer",
+      "description": "Number of assets that failed processing"
+    },
+    "has_partial_completion": {
+      "type": "boolean",
+      "description": "Whether the job completed with partial results (timeout or failure)"
+    },
+    "watermark_ttl": {
+      "type": "integer",
+      "description": "Watermark time-to-live in seconds"
+    }
+  }
+}

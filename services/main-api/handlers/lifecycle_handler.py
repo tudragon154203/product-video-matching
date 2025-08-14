@@ -30,8 +30,11 @@ class LifecycleHandler:
         except Exception as e:
             logger.warning(f"Failed to connect to message broker: {e}. Continuing without broker connection.")
         
-        # Start background task for phase updates
+        # Start background task for phase updates (deprecated but kept for compatibility)
         asyncio.create_task(self.job_service.phase_update_task())
+        
+        # Subscribe to phase events
+        await self.subscribe_to_phase_events()
         
         logger.info("Main API service started")
 
@@ -40,3 +43,35 @@ class LifecycleHandler:
         await self.db.disconnect()
         await self.broker.disconnect()
         logger.info("Main API service stopped")
+        
+    async def subscribe_to_phase_events(self):
+        """Subscribe to job-based completion events only"""
+        try:
+            # Subscribe to the four job-based completion events
+            await self.broker.subscribe_to_topic(
+                "image.embeddings.completed",
+                lambda event_data: self.job_service.handle_phase_event("image.embeddings.completed", event_data),
+                "main_api_image_embeddings_completed"
+            )
+            
+            await self.broker.subscribe_to_topic(
+                "video.embeddings.completed",
+                lambda event_data: self.job_service.handle_phase_event("video.embeddings.completed", event_data),
+                "main_api_video_embeddings_completed"
+            )
+            
+            await self.broker.subscribe_to_topic(
+                "image.keypoints.completed",
+                lambda event_data: self.job_service.handle_phase_event("image.keypoints.completed", event_data),
+                "main_api_image_keypoints_completed"
+            )
+            
+            await self.broker.subscribe_to_topic(
+                "video.keypoints.completed",
+                lambda event_data: self.job_service.handle_phase_event("video.keypoints.completed", event_data),
+                "main_api_video_keypoints_completed"
+            )
+            
+            logger.info("Subscribed to job-based completion events")
+        except Exception as e:
+            logger.error("Failed to subscribe to job-based completion events", error=str(e))

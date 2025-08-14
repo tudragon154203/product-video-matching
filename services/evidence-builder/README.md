@@ -25,7 +25,7 @@ The service follows a modular architecture with the following components:
 2. When a match result is received, it retrieves the product image and video frame information from the database
 3. It generates a visual evidence image showing the matched product and video frame side-by-side
 4. The evidence image is saved to disk and the match record is updated with the evidence path
-5. An enriched match result event (`match.result.enriched`) is published with the evidence path
+5. An `evidences.generation.completed` event is published to signal completion of evidence generation for the job
 
 ## Running Tests
 

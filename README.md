@@ -67,9 +67,11 @@ This system processes industry keywords to find visual matches between products 
                    v
    +-------------------------------+
    |  BARRIER (in Main API)        |
-   |  Wait for BOTH:               |
+   |  Wait for ALL:               |
    |   - image.embeddings.completed|
    |   - video.embeddings.completed|
+      - video.keypoints.completed
+      - image.keypoints.completed
    +-------------------------------+
                    |
                    v
@@ -105,6 +107,34 @@ This system processes industry keywords to find visual matches between products 
 - Python 3.10+ (for development)
 - Make (optional, for convenience commands)
 
+### Windows Setup
+
+Windows users can use PowerShell scripts to run development commands:
+
+1. **Enable script execution** (run once in PowerShell as Administrator):
+   ```powershell
+   Set-ExecutionPolicy RemoteSigned
+   ```
+
+2. **Use helper script** to set up aliases for current session:
+   ```powershell
+   .\win-setup.ps1
+   ```
+   
+   This will create temporary aliases:
+   - `up-dev` → Start development environment
+   - `migrate` → Run database migrations
+   - `seed` → Seed sample data
+   - `smoke` → Run smoke tests
+
+3. For **permanent aliases**, add these to your PowerShell profile:
+   ```powershell
+   Set-Alias up-dev   "$PSScriptRoot\up-dev.ps1"
+   Set-Alias migrate  "$PSScriptRoot\migrate.ps1"
+   Set-Alias seed     "$PSScriptRoot\seed.ps1"
+   Set-Alias smoke    "$PSScriptRoot\smoke.ps1"
+   ```
+
 ### 1. Clone and Setup
 
 ```bash
@@ -121,24 +151,36 @@ make up-dev
 
 # Or using Docker Compose directly
 docker compose -f infra/pvm/docker-compose.dev.yml up -d --build
+
+# Windows PowerShell:
+.\up-dev.ps1
 ```
 
 ### 3. Run Database Migrations
 
 ```bash
 make migrate
+
+# Windows PowerShell:
+.\migrate.ps1
 ```
 
 ### 4. Seed with Sample Data
 
 ```bash
 make seed
+
+# Windows PowerShell:
+.\seed.ps1
 ```
 
 ### 5. Run Smoke Test
 
 ```bash
 make smoke
+
+# Windows PowerShell:
+.\smoke.ps1
 ```
 
 ## Usage

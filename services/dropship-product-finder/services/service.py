@@ -11,7 +11,7 @@ logger = structlog.get_logger()
 
 
 class DropshipProductFinderService:
-    """Main service class for catalog collection"""
+    """Main service class for product collection"""
     
     def __init__(self, db: DatabaseManager, broker: MessageBroker, data_root: str):
         self.db = db
@@ -47,6 +47,17 @@ class DropshipProductFinderService:
                 ebay_products = await self.collectors["ebay"].collect_products(query, top_ebay)
                 for product_data in ebay_products:
                     await self.process_product(product_data, job_id, "ebay")
+            
+            # Emit products collections completed event
+            event_id = str(uuid.uuid4())
+            await self.broker.publish_event(
+                "products.collections.completed",
+                {
+                    "job_id": job_id,
+                    "event_id": event_id
+                },
+                correlation_id=job_id
+            )
             
             logger.info("Completed product collection",
                        job_id=job_id,
@@ -98,7 +109,8 @@ class DropshipProductFinderService:
                         {
                             "product_id": product.product_id,
                             "image_id": image_id,
-                            "local_path": local_path
+                            "local_path": local_path,
+                            "job_id": job_id
                         },
                         correlation_id=job_id
                     )
