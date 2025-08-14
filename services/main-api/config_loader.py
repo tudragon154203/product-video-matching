@@ -7,6 +7,13 @@ import sys
 from dataclasses import dataclass, field
 from typing import List
 
+# Load .env file if it exists
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except ImportError:
+    pass
+
 # Add libs directory to PYTHONPATH for imports
 sys.path.insert(0, '/app/libs')
 
@@ -29,7 +36,7 @@ class MainAPIConfig:
     
     # Gemini configuration
     GEMINI_API_KEY: str = os.getenv("GEMINI_API_KEY", "")
-    GEMINI_MODEL: str = os.getenv("GEMINI_MODEL", "gemini-1.5-flash")
+    GEMINI_MODEL: str = os.getenv("GEMINI_MODEL", "gemini-2.0-flash")
     
     # Industry labels
     INDUSTRY_LABELS: List[str] = field(

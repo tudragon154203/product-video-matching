@@ -18,7 +18,7 @@ def run_tests():
     env["PYTHONPATH"] = f"{project_root}{os.pathsep}{project_root}/libs{os.pathsep}{env.get('PYTHONPATH', '')}"
     
     result = subprocess.run([
-        sys.executable, "-m", "pytest", "tests/test_main_api.py", "-v"
+        sys.executable, "-m", "pytest", "tests/test_main_api.py", "tests/test_llm_fallback.py", "tests/test_ollama_unit.py", "tests/test_gemini_unit.py", "-v"
     ], cwd=os.path.join(os.path.dirname(__file__), ".."), env=env)
     
     if result.returncode != 0:
@@ -33,6 +33,16 @@ def run_tests():
     
     if result.returncode != 0:
         print("Ollama integration test failed!")
+        return False
+    
+    # Run Gemini integration test
+    print("\n3. Running Gemini integration test...")
+    result = subprocess.run([
+        sys.executable, "tests/test_gemini.py"
+    ], cwd=os.path.join(os.path.dirname(__file__), ".."))
+    
+    if result.returncode != 0:
+        print("Gemini integration test failed!")
         return False
     
     print("\nAll tests passed!")

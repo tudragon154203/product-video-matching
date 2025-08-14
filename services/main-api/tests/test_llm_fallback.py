@@ -44,7 +44,7 @@ async def test_call_gemini_success():
             mock_post.assert_called_once()
             args, kwargs = mock_post.call_args
             assert args[0] == "https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent"
-            assert kwargs["headers"] == {"Authorization": "Bearer test-api-key"}
+            assert kwargs["headers"] == {"x-goog-api-key": "test-api-key"}
             # Timeout is set on the client, not the post method
 
 @pytest.mark.asyncio

@@ -26,7 +26,7 @@ Output JSON format:
 
 Rules:
 - 2-4 English product queries
-- 2-4 Vietnamese video queries
+- 2-4 Vietnamese video queries (with diacritics/accents, e.g., "hế" not "he")
 - 2-4 Chinese video queries
 - Output only JSON, no additional text"""
 

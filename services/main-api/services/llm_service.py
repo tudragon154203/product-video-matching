@@ -58,7 +58,7 @@ class LLMService:
         if not config.GEMINI_API_KEY:
             raise RuntimeError("GEMINI_API_KEY is not set")
         
-        headers = {"Authorization": f"Bearer {config.GEMINI_API_KEY}"}
+        headers = {"x-goog-api-key": f"{config.GEMINI_API_KEY}"}
         payload = {
             "contents": [{
                 "parts": [{
