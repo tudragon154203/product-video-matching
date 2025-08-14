@@ -19,34 +19,83 @@ This system processes industry keywords to find visual matches between products 
 ## Architecture
 
 ```
-┌─────────────┐    ┌─────────────┐    ┌─────────────┐
-│   n8n/UI   │───▶│  Main API   │───▶│ RabbitMQ    │
-└─────────────┘    └─────────────┘    │Event Bus    │
-                                      └─────┬───────┘
-                                            │
-        ┌───────────────────────────────────┼───────────────────────────────────┐
-        │                                   ▼                                   │
-        │   ┌─────────────┐    ┌─────────────┐    ┌─────────────┐              │
-        │   │  Catalog    │    │   Media     │    │   Vision    │              │
-        │   │ Collector   │    │ Ingestion   │    │ Embedding   │              │
-        │   └─────────────┘    └─────────────┘    └─────────────┘              │
-        │                                                                       │
-        │   ┌─────────────┐    ┌─────────────┐              │
-        │   │   Vision    │    │   Matcher   │              │
-        │   │  Keypoint   │    │             │              │
-        │   └─────────────┘    └─────────────┘              │
-        │                                                                       │
-        │   ┌─────────────┐    ┌─────────────┐                                 │
-        │   │  Evidence   │    │ Results API │                                 │
-        │   │  Builder    │    │             │                                 │
-        │   └─────────────┘    └─────────────┘                                 │
-        └───────────────────────────────────────────────────────────────────────┘
-                                      │
-                              ┌───────▼───────┐
-                              │ PostgreSQL +  │
-                              │   pgvector    │
-                              └───────────────┘
-```
+[Client / UI / n8n]
+        |
+        v
+   +-------------------+
+   |   Main API        |
+   |  (State Machine)  |
+   +-------------------+
+        |
+        v
+   +-------------------+
+   | RabbitMQ (events) |
+   +-------------------+
+     /               \
+    v                 v
++----------------+  +----------------+
+| Dropship       |  | Video           |
+| Product Finder |  | Crawler         |
+| (sản phẩm+ảnh) |  | (video+frames)  |
+|  (song song)   |  |  (song song)    |
++----------------+  +----------------+
+    |                 |
+    v                 v
+ (products.images.   (videos.keyframes.
+     ready)              ready)
+    |                 |
+    +--------+--------+
+             |
+             v
+   +-------------------------------------+
+   |   Vision Embedding   || Vision Keypoint   |
+   |  (chạy song song)    ||  (chạy song song) |
+   +-------------------------------------+
+       |                         |
+       |                         |
+       | (emit image/video       | (emit image/video
+       | embeddings)             | keypoints)
+       |                         |
+       +-----------+-------------+
+                   |
+                   v
+           +-------------------+
+           |  Vector Index     |
+           |   (pgvector)      |
+           +-------------------+
+                   |
+                   v
+   +-------------------------------+
+   |  BARRIER (in Main API)        |
+   |  Wait for BOTH:               |
+   |   - image.embeddings.completed|
+   |   - video.embeddings.completed|
+   +-------------------------------+
+                   |
+                   v
+   +---------------------------------------------------------+
+   |                        Matcher                          |
+   |  - Lấy embedding ảnh & video từ Vector Index            |
+   |  - Dùng cosine similarity để tìm top‑K frame gần nhất   |
+   |  - Kết hợp với so khớp keypoint (SIFT/ORB + RANSAC) để  |
+   |    xác minh hình học                                    |
+   |  - Trộn điểm (embedding + keypoint) → final_score       |
+   |  - Lọc theo ngưỡng, gộp/đa dạng kết quả                 |
+   |  - Phát match.result(.enriched)                         |
+   +---------------------------------------------------------+
+                   |
+                   v
+   +-------------------+
+   | Evidence Builder  |
+   +-------------------+
+                   |
+                   v
+   +-------------------+
+   |    Results API    |
+   +-------------------+
+                   |
+                   v
+              [Client]
 
 ## Quick Start
 
