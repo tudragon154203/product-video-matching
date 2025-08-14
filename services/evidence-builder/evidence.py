@@ -16,7 +16,7 @@ class EvidenceGenerator:
         self.evidence_dir = self.data_root / "evidence"
         self.evidence_dir.mkdir(parents=True, exist_ok=True)
     
-    async def create_evidence(self, image_path: str, frame_path: str, 
+    def create_evidence(self, image_path: str, frame_path: str, 
                             img_id: str, frame_id: str, score: float, 
                             timestamp: float, kp_img_path: Optional[str] = None, 
                             kp_frame_path: Optional[str] = None) -> Optional[str]:
@@ -36,13 +36,13 @@ class EvidenceGenerator:
                 return None
             
             # Create side-by-side comparison
-            evidence_img = await self.create_side_by_side_comparison(
+            evidence_img = self.create_side_by_side_comparison(
                 product_img, frame_img, score, timestamp, img_id, frame_id
             )
             
             # Add keypoint overlays if available
             if kp_img_path and kp_frame_path:
-                evidence_img = await self.add_keypoint_overlays(
+                evidence_img = self.add_keypoint_overlays(
                     evidence_img, product_img, frame_img, 
                     kp_img_path, kp_frame_path
                 )
@@ -61,7 +61,7 @@ class EvidenceGenerator:
                         img_id=img_id, frame_id=frame_id, error=str(e))
             return None
     
-    async def create_side_by_side_comparison(self, product_img: np.ndarray, 
+    def create_side_by_side_comparison(self, product_img: np.ndarray, 
                                            frame_img: np.ndarray, score: float, 
                                            timestamp: float, img_id: str, 
                                            frame_id: str) -> np.ndarray:
@@ -129,7 +129,7 @@ class EvidenceGenerator:
             # Return simple concatenation as fallback
             return np.hstack([product_img, frame_img])
     
-    async def add_keypoint_overlays(self, evidence_img: np.ndarray, 
+    def add_keypoint_overlays(self, evidence_img: np.ndarray, 
                                   product_img: np.ndarray, frame_img: np.ndarray,
                                   kp_img_path: str, kp_frame_path: str) -> np.ndarray:
         """Add keypoint match overlays (mock implementation)"""

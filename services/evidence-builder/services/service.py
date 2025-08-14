@@ -42,7 +42,7 @@ class EvidenceBuilderService:
                 return
             
             # Generate evidence image
-            evidence_path = await self.evidence_generator.create_evidence(
+            evidence_path = self.evidence_generator.create_evidence(
                 image_path=image_info["local_path"],
                 frame_path=frame_info["local_path"],
                 img_id=best_pair["img_id"],
