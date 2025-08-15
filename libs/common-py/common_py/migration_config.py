@@ -39,7 +39,7 @@ class MigrationConfig:
             try:
                 from libs.config import config
                 database_url = config.POSTGRES_DSN
-                logger.info("Using POSTGRES_DSN from libs.config")
+                logger.info(f"Using POSTGRES_DSN from libs.config")
             except ImportError:
                 raise ValueError(
                     "DATABASE_URL environment variable is required. "

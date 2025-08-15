@@ -154,9 +154,20 @@ class MigrationExecutor:
             if str(project_root) not in sys.path:
                 sys.path.insert(0, str(project_root))
             
-            # Execute the command
-            command_func = getattr(command, command_name)
-            return command_func(self.alembic_cfg, *args, **kwargs)
+            # Change working directory to migrations directory for Alembic
+            migrations_dir = Path(self.config.alembic_config_path).parent
+            original_cwd = os.getcwd()
+            os.chdir(migrations_dir)
+            logger.debug(f"Changed working directory to: {migrations_dir}")
+            
+            try:
+                # Execute the command
+                command_func = getattr(command, command_name)
+                return command_func(self.alembic_cfg, *args, **kwargs)
+            finally:
+                # Restore original working directory
+                os.chdir(original_cwd)
+                logger.debug(f"Restored working directory to: {original_cwd}")
             
         except Exception as e:
             logger.error(f"Alembic command '{command_name}' failed: {str(e)}")

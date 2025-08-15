@@ -4,7 +4,7 @@ Database connection management with retry logic for migrations.
 import time
 from typing import Optional, Any
 from contextlib import contextmanager
-from sqlalchemy import create_engine, Engine
+from sqlalchemy import create_engine, Engine, text
 from sqlalchemy.exc import OperationalError, DisconnectionError
 from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type
 import logging
@@ -107,7 +107,7 @@ class MigrationConnectionManager:
         try:
             with self.get_connection() as conn:
                 # Simple test query
-                result = conn.execute("SELECT 1")
+                result = conn.execute(text("SELECT 1"))
                 result.fetchone()
                 logger.info("Database connection test successful")
                 return True
