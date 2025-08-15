@@ -26,10 +26,11 @@ class VideoAPIFetcher:
         """
         logger.info("Searching YouTube videos", queries=queries, recency_days=recency_days)
         
-        # Mock video data for MVP
+        # Mock video data for MVP - reduced to 1-2 representative videos per query
         mock_videos = []
         for i, query in enumerate(queries):
-            for j in range(3):  # 3 videos per query
+            # Return 1-2 representative videos per query instead of 3
+            for j in range(min(2, len(queries))):  # Reduced from 3 to 2 videos per query
                 video = {
                     "platform": "youtube",
                     "url": f"https://youtube.com/watch?v=mock_{query}_{j}",
@@ -49,18 +50,18 @@ class VideoAPIFetcher:
         """
         logger.info("Searching Bilibili videos", queries=queries, recency_days=recency_days)
         
-        # Mock video data for MVP
+        # Mock video data for MVP - reduced to 1 representative video per query
         mock_videos = []
         for i, query in enumerate(queries):
-            for j in range(2):  # 2 videos per query
-                video = {
-                    "platform": "bilibili",
-                    "url": f"https://bilibili.com/video/mock_{query}_{j}",
-                    "title": f"Mock Bilibili Video: {query} #{j+1}",
-                    "duration_s": 180 + (j * 45),  # 3-6 minutes
-                    "published_at": datetime.utcnow() - timedelta(days=j+2)
-                }
-                mock_videos.append(video)
+            # Return 1 representative video per query instead of 2
+            video = {
+                "platform": "bilibili",
+                "url": f"https://bilibili.com/video/mock_{query}_0",
+                "title": f"Mock Bilibili Video: {query} #1",
+                "duration_s": 180,  # 3 minutes
+                "published_at": datetime.utcnow() - timedelta(days=2)
+            }
+            mock_videos.append(video)
         
         logger.info("Found Bilibili videos", count=len(mock_videos))
         return mock_videos

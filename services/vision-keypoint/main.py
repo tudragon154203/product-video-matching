@@ -32,21 +32,32 @@ async def main():
     try:
         async with service_context() as handler:
             # Subscribe to events
+            # Avoid competing with vision-embedding by setting queue_name
             await handler.broker.subscribe_to_topic(
                 "products.images.ready.batch",
                 handler.handle_products_images_ready_batch,
-                queue_name="q.vision-keypoint.images.batch" # Avoid competing with vision-embedding
+                queue_name="q.vision-keypoint.images.batch" 
+            )
+
+            await handler.broker.subscribe_to_topic(
+                "videos.keyframes.ready.batch",
+                handler.handle_videos_keyframes_ready_batch,
+                queue_name="q.vision_keypoint.keyframes.batch"
             )
             
             await handler.broker.subscribe_to_topic(
                 "products.images.ready",
-                handler.handle_products_images_ready
+                handler.handle_products_images_ready,
+                queue_name="q.vision-keypoint.images.ready" 
             )
             
             await handler.broker.subscribe_to_topic(
                 "videos.keyframes.ready",
-                handler.handle_videos_keyframes_ready
+                handler.handle_videos_keyframes_ready,
+                queue_name="q.vision_keypoint.keyframes.ready"
             )
+            
+           
             
             logger.info("Vision keypoint service started")
             

@@ -20,6 +20,9 @@ class VisionKeypointService:
         self.job_tracking: Dict[str, Dict] = {}  # Track job progress: {job_id: {expected: int, done: int, asset_type: str}}
         self.watermark_timers: Dict[str, asyncio.Task] = {}  # Watermark timers for jobs
         self.job_image_counts: Dict[str, Dict[str, int]] = {}  # Track job image counts: {job_id: {'total': int, 'processed': int}}
+        self.expected_total_frames: Dict[str, int] = {}  # Track expected total frames per job: {job_id: total_frames}
+        self.processed_batch_events: set = set()  # Track processed batch events to avoid duplicates
+        self._completion_events_sent: set = set()  # Track jobs that have sent completion events to prevent duplicates
     
     async def cleanup(self):
         """Clean up resources"""
@@ -59,7 +62,7 @@ class VisionKeypointService:
         # Calculate partial completion flag
         has_partial = (done < expected) or (expected == 0)
         
-        # Prepare event data
+        # Prepare event data with idempotent flag to prevent duplicate completions
         event_id = str(uuid.uuid4())
         event_data = {
             "job_id": job_id,
@@ -68,11 +71,21 @@ class VisionKeypointService:
             "processed_assets": done,
             "failed_assets": 0,  # Placeholder - actual failure tracking would be added separately
             "has_partial_completion": has_partial or is_timeout,
-            "watermark_ttl": 300
+            "watermark_ttl": 300,
+            "idempotent": True  # Flag to prevent duplicate completions
         }
         
-        # Publish appropriate event
+        # Publish appropriate event - ensure only one completion event per job
         event_type = "image.keypoints.completed" if asset_type == "image" else "video.keypoints.completed"
+        
+        # Check if this job has already emitted a completion event
+        if job_id in self._completion_events_sent:
+            logger.info("Completion event already sent for job, skipping duplicate", job_id=job_id)
+            return
+            
+        # Mark this job as having sent completion event
+        self._completion_events_sent.add(job_id)
+        
         await self.broker.publish_event(event_type, event_data)
         logger.info(f"Emitted {asset_type} keypoints completed event",
                    job_id=job_id, event_id=event_id,
@@ -84,6 +97,8 @@ class VisionKeypointService:
         if job_id in self.watermark_timers:
             self.watermark_timers[job_id].cancel()
             del self.watermark_timers[job_id]
+        if job_id in self.expected_total_frames:
+            del self.expected_total_frames[job_id]
     
     async def _update_job_progress(self, job_id: str, asset_type: str, expected_count: int, increment: int = 1):
         """Update job progress and check for completion"""
@@ -100,8 +115,19 @@ class VisionKeypointService:
         # Update done count
         self.job_tracking[job_id]["done"] += increment
         
-        # Check completion condition
+        # Check completion condition using expected_total_frames for video jobs
         job_data = self.job_tracking[job_id]
+        actual_expected = expected_count
+        
+        # For video jobs, use expected_total_frames if available
+        if asset_type == "video" and job_id in self.expected_total_frames:
+            actual_expected = self.expected_total_frames[job_id]
+            logger.debug("Using expected_total_frames for video job", job_id=job_id, expected=actual_expected)
+        
+        # Update expected count in tracking to match actual expected
+        job_data["expected"] = actual_expected
+        
+        # Check completion condition
         if job_data["done"] >= job_data["expected"]:
             await self._publish_completion_event(job_id)
     
@@ -126,12 +152,45 @@ class VisionKeypointService:
             logger.error("Failed to handle products images ready batch", job_id=job_id, error=str(e))
             raise
     
+    async def handle_videos_keyframes_ready_batch(self, event_data: Dict[str, Any]):
+        """Handle videos keyframes ready batch event to initialize job tracking"""
+        try:
+            job_id = event_data["job_id"]
+            event_id = event_data["event_id"]
+            total_keyframes = event_data["total_keyframes"]
+            
+            # Create a unique identifier for this batch event to detect duplicates
+            batch_event_key = f"{job_id}:{event_id}"
+            
+            # Check if we've already processed this batch event
+            if batch_event_key in self.processed_batch_events:
+                logger.info("Ignoring duplicate batch event", job_id=job_id, event_id=event_id)
+                return
+            
+            # Mark this batch event as processed
+            self.processed_batch_events.add(batch_event_key)
+            
+            logger.info("Videos keyframes ready batch received", job_id=job_id, event_id=event_id, total_keyframes=total_keyframes)
+            
+            # Store the total frame count for the job
+            self.expected_total_frames[job_id] = total_keyframes
+            logger.info("DUPLICATE DETECTION: Initialized expected total frames", job_id=job_id, total_frames=total_keyframes, current_jobs_with_frames=len(self.expected_total_frames))
+            
+            # If there are no keyframes, immediately publish completion event
+            if total_keyframes == 0:
+                logger.info("No keyframes found for job, publishing immediate completion", job_id=job_id)
+                await self._publish_completion_event_with_count(job_id, "video", 0, 0)
+            
+        except Exception as e:
+            logger.error("Failed to handle videos keyframes ready batch", job_id=job_id, event_id=event_data.get("event_id"), error=str(e))
+            raise
+    
     async def _publish_completion_event_with_count(self, job_id: str, asset_type: str, expected: int, done: int):
         """Publish completion event with specific counts"""
         # Calculate partial completion flag
         has_partial = (done < expected) or (expected == 0)
         
-        # Prepare event data
+        # Prepare event data with idempotent flag to prevent duplicate completions
         event_id = str(uuid.uuid4())
         event_data = {
             "job_id": job_id,
@@ -140,11 +199,22 @@ class VisionKeypointService:
             "processed_assets": done,
             "failed_assets": 0,  # Placeholder - actual failure tracking would be added separately
             "has_partial_completion": has_partial,
-            "watermark_ttl": 300
+            "watermark_ttl": 300,
+            "idempotent": True  # Flag to prevent duplicate completions
         }
         
-        # Publish appropriate event
+        # Publish appropriate event - ensure only one completion event per job
         event_type = "image.keypoints.completed" if asset_type == "image" else "video.keypoints.completed"
+        
+        # Check if this job has already emitted a completion event
+        if job_id in self._completion_events_sent:
+            logger.warning("DUPLICATE DETECTION: Completion event already sent for job, skipping", job_id=job_id, asset_type=asset_type)
+            return
+            
+        # Mark this job as having sent completion event
+        self._completion_events_sent.add(job_id)
+        logger.info(f"DUPLICATE DETECTION: Marking job as completed", job_id=job_id, asset_type=asset_type, completed_jobs_count=len(self._completion_events_sent))
+        
         await self.broker.publish_event(event_type, event_data)
         logger.info(f"Emitted {asset_type} keypoints completed event",
                    job_id=job_id, event_id=event_id,
@@ -158,6 +228,8 @@ class VisionKeypointService:
             del self.watermark_timers[job_id]
         if job_id in self.job_image_counts:
             del self.job_image_counts[job_id]
+        if job_id in self.expected_total_frames:
+            del self.expected_total_frames[job_id]
     
     
     async def handle_products_images_ready(self, event_data: Dict[str, Any]):
@@ -246,12 +318,14 @@ class VisionKeypointService:
             video_id = event_data["video_id"]
             frames = event_data["frames"]
             job_id = event_data["job_id"]  # job_id is now required
-            expected_count = event_data.get("expected_count", len(frames))  # Default to frame count if not provided
+            
+            # Use expected_total_frames from batch event if available, otherwise use frame count
+            expected_count = self.expected_total_frames.get(job_id, len(frames))
             
             logger.info("Processing video frame keypoints",
-                       video_id=video_id, frame_count=len(frames), job_id=job_id)
+                       video_id=video_id, frame_count=len(frames), job_id=job_id, expected_count=expected_count)
             
-            # Initialize job progress with expected frame count
+            # Initialize job progress with expected frame count from batch
             await self._update_job_progress(job_id, "video", expected_count, increment=0)
             
             # Process each frame
@@ -295,7 +369,7 @@ class VisionKeypointService:
                     
                     logger.info("Processed video frame keypoints",
                                frame_id=frame_id, kp_path=kp_blob_path)
-                    # Update job progress for successful processing
+                    # Update job progress for successful processing using expected_total_frames
                     await self._update_job_progress(job_id, "video", expected_count)
                 else:
                     logger.error("Failed to extract keypoints", frame_id=frame_id)

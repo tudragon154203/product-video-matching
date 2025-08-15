@@ -157,11 +157,11 @@ class DropshipProductFinderService:
         """Publish individual image ready events for all images in a job"""
         try:
             # Get all images for this job
-            images = await self.db.fetch(
+            images = await self.db.fetch_all(
                 """
                 SELECT pi.img_id, pi.product_id, pi.local_path
-                FROM product_images pi 
-                JOIN products p ON pi.product_id = p.product_id 
+                FROM product_images pi
+                JOIN products p ON pi.product_id = p.product_id
                 WHERE p.job_id = $1
                 ORDER BY pi.img_id
                 """,

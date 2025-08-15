@@ -90,7 +90,7 @@ class MockProductCollector(BaseProductCollector):
                 "url": f"https://{source}.com/mock-product-{i}",
                 "images": [
                     f"https://picsum.photos/400/400?random={i*10+j}"
-                    for j in range(3 if source == "amazon" else 2)  # 3 images for Amazon, 2 for eBay
+                    for j in range(5 + (i % 6))  # 5-10 representative images (5-10 based on product index)
                 ]
             }
             mock_products.append(product)

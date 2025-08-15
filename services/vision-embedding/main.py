@@ -37,15 +37,23 @@ async def main():
                 handler.handle_products_images_ready_batch,
                 queue_name="q.vision-embedding.images.batch" # Avoid competing with vision-keypoint
             )
+
+            await handler.broker.subscribe_to_topic(
+                "videos.keyframes.ready.batch",
+                handler.handle_videos_keyframes_ready_batch,
+                queue_name="q.vision_embedding.keyframes.batch"
+            )
             
             await handler.broker.subscribe_to_topic(
                 "products.images.ready",
-                handler.handle_products_images_ready
+                handler.handle_products_images_ready,
+                queue_name="q.vision_embedding.images.ready"
             )
             
             await handler.broker.subscribe_to_topic(
                 "videos.keyframes.ready",
-                handler.handle_videos_keyframes_ready
+                handler.handle_videos_keyframes_ready,
+                queue_name="q.vision_embedding.keyframes.ready"
             )
             
             logger.info("Vision embedding service started")

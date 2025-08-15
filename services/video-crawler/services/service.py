@@ -50,6 +50,30 @@ class VideoCrawlerService:
                         videos = await self.fetcher.search_bilibili_videos(platform_queries, recency_days)
                         all_videos.extend(videos)
             
+            # Calculate total frames across all candidate videos
+            total_frames = 0
+            for video_data in all_videos:
+                # Extract keyframes to count them without saving to DB
+                keyframes = await self.fetcher.extract_keyframes(video_data["url"], "temp_count")
+                total_frames += len(keyframes)
+            
+            # Emit batch keyframes ready event before processing individual videos
+            if total_frames > 0:
+                batch_event_id = str(uuid.uuid4())
+                await self.broker.publish_event(
+                    "videos.keyframes.ready.batch",
+                    {
+                        "job_id": job_id,
+                        "event_id": batch_event_id,
+                        "total_keyframes": total_frames
+                    },
+                    correlation_id=job_id
+                )
+                logger.info("DUPLICATE DETECTION: Published batch keyframes ready event",
+                           job_id=job_id,
+                           total_keyframes=total_frames,
+                           batch_event_id=batch_event_id)
+            
             # Process each video
             for video_data in all_videos:
                 await self.process_video(video_data, job_id)
@@ -65,8 +89,8 @@ class VideoCrawlerService:
                 correlation_id=job_id
             )
             
-            logger.info("Completed video search", 
-                       job_id=job_id, 
+            logger.info("Completed video search",
+                       job_id=job_id,
                        total_videos=len(all_videos))
             
         except Exception as e:
