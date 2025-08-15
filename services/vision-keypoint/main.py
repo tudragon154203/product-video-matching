@@ -33,6 +33,12 @@ async def main():
         async with service_context() as handler:
             # Subscribe to events
             await handler.broker.subscribe_to_topic(
+                "products.images.ready.batch",
+                handler.handle_products_images_ready_batch,
+                queue_name="q.vision-keypoint.images.batch" # Avoid competing with vision-embedding
+            )
+            
+            await handler.broker.subscribe_to_topic(
                 "products.images.ready",
                 handler.handle_products_images_ready
             )

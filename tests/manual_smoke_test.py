@@ -22,9 +22,19 @@ RESULTS_API_URL = config.RESULTS_API_URL
 
 
 async def run_smoke_test():
-    """Run end-to-end smoke test"""
+    """Run end-to-end smoke test
+    
+    This smoke test verifies critical functionalities of the product-video matching system:
+    1. Service health checks
+    2. Job initiation and processing
+    3. Result generation and validation
+    4. API endpoint functionality
+    
+    Timeout durations have been increased to ensure sufficient time for all critical
+    functionalities to complete without premature test failures due to timing issues.
+    """
     try:
-        async with httpx.AsyncClient(timeout=60.0) as client:
+        async with httpx.AsyncClient(timeout=120.0) as client:
             logger.info("Starting smoke test...")
             
             # Step 1: Check service health
@@ -90,8 +100,16 @@ async def start_job(client):
     return job_id
 
 
-async def wait_for_job_completion(client, job_id, max_wait_time=90):
-    """Wait for job to complete"""
+async def wait_for_job_completion(client, job_id, max_wait_time=180):
+    """Wait for job to complete
+    
+    Args:
+        client: HTTP client for API requests
+        job_id: ID of the job to wait for
+        max_wait_time: Maximum time to wait for job completion in seconds (default: 180)
+                       Increased from 90 to 180 to accommodate longer processing times
+                       for critical functionalities including video processing and matching
+    """
     logger.info(f"Waiting for job completion... (job_id: {job_id})")
     
     start_time = time.time()

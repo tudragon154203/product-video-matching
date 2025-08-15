@@ -77,6 +77,7 @@ class PhaseEventService:
         """Check if we need to transition to a new phase based on job-based completion events"""
         try:
             current_phase = await self.db_handler.get_job_phase(job_id)
+            logger.info(f"Checking phase transitions for job {job_id}: current_phase={current_phase}, event_type={event_type}")
             
             if current_phase == "collection":
                 # For now, assume collection phase transitions to feature_extraction automatically
@@ -141,17 +142,45 @@ class PhaseEventService:
                 # Check for evidence completion event
                 if event_type == "evidences.generation.completed":
                     logger.info(f"Evidence generation completed, transitioning to completed for job {job_id}")
-                    await self.db_handler.update_job_phase(job_id, "completed")
-                    
-                    # Publish job completion event
                     try:
+                        await self.db_handler.update_job_phase(job_id, "completed")
+                        logger.info(f"Successfully updated job {job_id} phase to completed")
+                        
+                        # Publish job completion event
                         await self.broker_handler.publish_job_completed(job_id)
                         logger.info(f"Published job completion event for job {job_id}")
                     except Exception as e:
-                        logger.error(f"Failed to publish job completion for job {job_id}: {str(e)}")
+                        logger.error(f"Failed to complete job {job_id}: {str(e)}")
+                        raise
                 else:
                     # Log when evidence phase receives other events
                     logger.info(f"Job {job_id} in evidence phase received {event_type} event (no action needed)")
+            
+            # Handle evidences.generation.completed regardless of current phase to avoid race conditions
+            if event_type == "evidences.generation.completed" and current_phase != "evidence":
+                logger.info(f"Evidence generation completed but job {job_id} is in {current_phase} phase, checking if we should transition")
+                
+                # Check if job should be in evidence phase (i.e., matching is complete)
+                if await self.db_handler.has_phase_event(job_id, "matchings.process.completed"):
+                    logger.info(f"Matching is complete, transitioning job {job_id} to evidence then completed")
+                    try:
+                        # First transition to evidence phase if not already there
+                        if current_phase != "evidence":
+                            await self.db_handler.update_job_phase(job_id, "evidence")
+                            logger.info(f"Updated job {job_id} phase to evidence")
+                        
+                        # Then transition to completed
+                        await self.db_handler.update_job_phase(job_id, "completed")
+                        logger.info(f"Successfully updated job {job_id} phase to completed")
+                        
+                        # Publish job completion event
+                        await self.broker_handler.publish_job_completed(job_id)
+                        logger.info(f"Published job completion event for job {job_id}")
+                    except Exception as e:
+                        logger.error(f"Failed to complete job {job_id}: {str(e)}")
+                        raise
+                else:
+                    logger.warning(f"Evidence generation completed for job {job_id} but matching is not complete yet")
                     
         except Exception as e:
             logger.error(f"Failed to check phase transitions for job {job_id}: {str(e)}")

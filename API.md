@@ -11,8 +11,8 @@ All API endpoints and functionality remain unchanged.
 
 ## Base URLs
 
-- **Main API**: `http://localhost:8888`
-- **Results API**: `http://localhost:8890`
+- **Main API**: `http://localhost:8000`
+- **Results API**: `http://localhost:8080`
 
 ## Authentication
 
@@ -323,9 +323,9 @@ Check Results API service health.
 ## Configuration Parameters
 
 ### Port Configuration
-- `PORT_MAIN`: Main API port (default: 8888)
-- `PORT_RESULTS`: Results API port (default: 8890)
-- `PORT_POSTGRES_UI`: PostgreSQL UI port (default: 8081)
+- Main API: `http://localhost:8000`
+- Results API: `http://localhost:8080`
+- PostgreSQL UI: `http://localhost:8081`
 
 ### Database Configuration
 - `POSTGRES_USER`: PostgreSQL username (default: postgres)
@@ -423,13 +423,13 @@ Results are sorted by:
 - Products: `created_at DESC`
 - Videos: `created_at DESC`
 
-## WebSocket API (Future)
+### WebSocket API (Future)
 
 For real-time job progress updates (not implemented in MVP):
 
 ```javascript
 // Connect to WebSocket
-const ws = new WebSocket('ws://localhost:8888/ws/job/{job_id}');
+const ws = new WebSocket('ws://localhost:8000/ws/job/{job_id}');
 
 // Receive progress updates
 ws.onmessage = function(event) {
@@ -447,9 +447,9 @@ import requests
 import json
 
 class ProductVideoMatchingClient:
-    def __init__(self, base_url="http://localhost:8888"):
-        self.base_url = base_url
-        self.results_url = base_url.replace("8888", "8890")
+    def __init__(self):
+        self.base_url = "http://localhost:8000"
+        self.results_url = "http://localhost:8080"
     
     def start_job(self, industry, top_amz=10, top_ebay=5):
         response = requests.post(f"{self.base_url}/start-job", json={
@@ -489,9 +489,9 @@ print(f"Found {len(results)} matches")
 
 ```javascript
 class ProductVideoMatchingClient {
-  constructor(baseUrl = 'http://localhost:8888') {
-    this.baseUrl = baseUrl;
-    this.resultsUrl = baseUrl.replace('8888', '8890');
+  constructor() {
+    this.baseUrl = 'http://localhost:8000';
+    this.resultsUrl = 'http://localhost:8080';
   }
 
   async startJob(industry, options = {}) {
@@ -548,7 +548,7 @@ async function runExample() {
 ## OpenAPI Specification
 
 The complete OpenAPI 3.0 specification is available at:
-- Main API: `http://localhost:8888/docs`
-- Results API: `http://localhost:8890/docs`
+- Main API: `http://localhost:8000/docs`
+- Results API: `http://localhost:8080/docs`
 
 This provides interactive API documentation and testing capabilities.

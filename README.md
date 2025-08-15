@@ -31,7 +31,7 @@ This system processes industry keywords to find visual matches between products 
    +-------------------+
    | RabbitMQ (events) |
    +-------------------+
-     /               \
+     /               
     v                 v
 +----------------+  +----------------+
 | Dropship       |  | Video           |
@@ -107,40 +107,12 @@ This system processes industry keywords to find visual matches between products 
 - Python 3.10+ (for development)
 - Make (optional, for convenience commands)
 
-### Windows Setup
-
-Windows users can use PowerShell scripts to run development commands:
-
-1. **Enable script execution** (run once in PowerShell as Administrator):
-   ```powershell
-   Set-ExecutionPolicy RemoteSigned
-   ```
-
-2. **Use helper script** to set up aliases for current session:
-   ```powershell
-   .\win-setup.ps1
-   ```
-   
-   This will create temporary aliases:
-   - `up-dev` → Start development environment
-   - `migrate` → Run database migrations
-   - `seed` → Seed sample data
-   - `smoke` → Run smoke tests
-
-3. For **permanent aliases**, add these to your PowerShell profile:
-   ```powershell
-   Set-Alias up-dev   "$PSScriptRoot\up-dev.ps1"
-   Set-Alias migrate  "$PSScriptRoot\migrate.ps1"
-   Set-Alias seed     "$PSScriptRoot\seed.ps1"
-   Set-Alias smoke    "$PSScriptRoot\smoke.ps1"
-   ```
 
 ### 1. Clone and Setup
 
 ```bash
 git clone <repository-url>
 cd product-video-matching
-cp .env.example .env
 ```
 
 ### 2. Start Development Environment
@@ -188,7 +160,7 @@ make smoke
 ### Starting a Matching Job
 
 ```bash
-curl -X POST http://localhost:$PORT_MAIN/start-job \\
+curl -X POST http://localhost:8000/start-job \\
   -H "Content-Type: application/json" \\
   -d '{
     "industry": "ergonomic pillows",
@@ -202,38 +174,38 @@ curl -X POST http://localhost:$PORT_MAIN/start-job \\
 ### Checking Job Status
 
 ```bash
-curl http://localhost:$PORT_MAIN/status/{job_id}
+curl http://localhost:8000/status/{job_id}
 ```
 
 ### Getting Results
 
 ```bash
 # All results
-curl http://localhost:$PORT_RESULTS/results
+curl http://localhost:8080/results
 
 # Filtered results
-curl "http://localhost:$PORT_RESULTS/results?min_score=0.8&industry=pillows"
+curl "http://localhost:8080/results?min_score=0.8&industry=pillows"
 
 # Specific match details
-curl http://localhost:$PORT_RESULTS/matches/{match_id}
+curl http://localhost:8080/matches/{match_id}
 ```
 
 ### Viewing Evidence
 
 Evidence images are available at:
 ```
-http://localhost:$PORT_RESULTS/evidence/{match_id}
+http://localhost:8080/evidence/{match_id}
 ```
 
 ## API Documentation
 
-### Main API (Port $PORT_MAIN)
+### Main API (Port 8000)
 
 - `POST /start-job` - Start a new matching job
 - `GET /status/{job_id}` - Get job status and progress
 - `GET /health` - Health check
 
-### Results API (Port $PORT_RESULTS)
+### Results API (Port 8080)
 
 - `GET /results` - List matching results (with filtering)
 - `GET /products/{id}` - Get product details
@@ -375,11 +347,11 @@ For information about event contracts and message schemas, see [CONTRACTS.md](CO
 
 ### Environment Variables
 
-Key configuration options in `.env`:
+Key configuration options (set in docker-compose.dev.yml):
 
 ```bash
 # Database
-POSTGRES_DSN=postgresql://postgres:dev@localhost:5432/product_video_matching
+POSTGRES_DSN=postgresql://postgres:dev@localhost:5435/postgres
 
 # Message Broker
 BUS_BROKER=amqp://guest:guest@localhost:5672/
@@ -417,8 +389,8 @@ The system uses configurable thresholds for matching:
 All services expose `/health` endpoints:
 
 ```bash
-curl http://localhost:8888/health  # Main API
-curl http://localhost:8890/health  # Results API
+curl http://localhost:8000/health  # Main API
+curl http://localhost:8080/health  # Results API
 ```
 
 ### Metrics
@@ -426,7 +398,7 @@ curl http://localhost:8890/health  # Results API
 Basic metrics are available through service endpoints:
 
 ```bash
-curl http://localhost:8890/stats      # System statistics
+curl http://localhost:8080/stats      # System statistics
 ```
 
 ### Logs
@@ -435,7 +407,7 @@ Structured JSON logs are available via Docker Compose:
 
 ```bash
 make logs                    # All services
-make logs-orchestrator      # Specific service
+make logs-main-api      # Specific service
 ```
 
 ## Troubleshooting
@@ -444,12 +416,12 @@ make logs-orchestrator      # Specific service
 
 1. **Services not starting**
    - Check Docker daemon is running
-   - Verify ports 5432, 5672, 8888, 8890 are available
+   - Verify ports 5435, 5672, 8000, 8080 are available
    - Run `make down` then `make up-dev`
 
 2. **Database connection errors**
    - Ensure PostgreSQL container is healthy
-   - Check `POSTGRES_DSN` in `.env`
+   - Check `POSTGRES_DSN` in docker-compose.dev.yml
    - Run `make migrate` after startup
 
 3. **No matches found**
@@ -466,16 +438,13 @@ make logs-orchestrator      # Specific service
 
 Enable debug logging:
 
-```bash
-# In .env file
-LOG_LEVEL=DEBUG
-```
+Set `LOG_LEVEL=DEBUG` in the service environment in docker-compose.dev.yml
 
 ### Service Dependencies
 
 Service startup order:
 1. PostgreSQL, RabbitMQ
-2. Orchestrator, Results API
+2. Main API, Results API
 3. All processing services
 
 ## Performance

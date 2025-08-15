@@ -49,7 +49,7 @@ docker compose -f infra/pvm/docker-compose.dev.yml ps
 docker compose -f infra/pvm/docker-compose.dev.yml logs -f
 
 # Specific service
-docker compose -f infra/pvm/docker-compose.dev.yml logs -f orchestrator
+docker compose -f infra/pvm/docker-compose.dev.yml logs -f main-api
 ```
 
 ### Start/Stop Individual Services:
@@ -113,17 +113,16 @@ sleep 30
 # 4. Check status
 docker compose -f infra/pvm/docker-compose.dev.yml ps
 
-# 5. Seed the database (with correct connection string)
+# 5. Run database migrations
 # On Windows PowerShell:
-$env:POSTGRES_DSN="postgresql://postgres:dev@localhost:5435/postgres"
-python scripts/seed.py
+.\migrate.ps1
 
 # On Linux/Mac:
-POSTGRES_DSN="postgresql://postgres:dev@localhost:5435/postgres" python scripts/seed.py
+./migrate.ps1
 
 # 6. Test the deployment
 curl http://localhost:8080/health  # Results API
-curl http://localhost:8000/health  # Orchestrator
+curl http://localhost:8000/health  # Main API
 ```
 
 ## 🐛 **Troubleshooting Commands**
@@ -131,11 +130,11 @@ curl http://localhost:8000/health  # Orchestrator
 ### If services are restarting:
 ```bash
 # Check logs for errors
-docker logs compose-orchestrator-1 --tail 20
+docker logs product-video-matching-main-api-1 --tail 20
 
 # Rebuild specific service
-docker compose -f infra/pvm/docker-compose.dev.yml build orchestrator
-docker compose -f infra/pvm/docker-compose.dev.yml up -d orchestrator
+docker compose -f infra/pvm/docker-compose.dev.yml build main-api
+docker compose -f infra/pvm/docker-compose.dev.yml up -d main-api
 ```
 
 ### Clean slate restart:
@@ -155,7 +154,7 @@ Once the system is running, you can access:
 - **RabbitMQ AMQP**: `localhost:5672`
 - **Main API**: http://localhost:8000 (when running)
 - **Results API**: http://localhost:8080 (when running)
-- **Vector Index API**: http://localhost:8081 (when running)
+- **PostgreSQL Web UI**: http://localhost:8081 (when running)
 
 ## 📝 **Key Points**
 
@@ -172,10 +171,10 @@ Test if core services are working:
 
 ```bash
 # Database connection test
-docker exec compose-postgres-1 psql -U postgres -d postgres -c "SELECT 1;"
+docker exec product-video-matching-postgres-1 psql -U postgres -d postgres -c "SELECT 1;"
 
 # RabbitMQ status
-docker exec compose-rabbitmq-1 rabbitmqctl status
+docker exec product-video-matching-rabbitmq-1 rabbitmqctl status
 
 # Check all container status
 docker compose -f infra/pvm/docker-compose.dev.yml ps

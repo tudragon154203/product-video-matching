@@ -22,6 +22,7 @@ class VisionEmbeddingService:
         self.processed_assets = set()  # Track processed assets to avoid duplicates
         self.job_tracking: Dict[str, Dict] = {}  # Track job progress: {job_id: {expected: int, done: int, asset_type: str}}
         self.watermark_timers: Dict[str, asyncio.Task] = {}  # Watermark timers for jobs
+        self.job_image_counts: Dict[str, Dict[str, int]] = {}  # Track job image counts: {job_id: {'total': int, 'processed': int}}
     
     async def initialize(self):
         """Initialize the embedding extractor"""
@@ -112,6 +113,60 @@ class VisionEmbeddingService:
         if job_data["done"] >= job_data["expected"]:
             await self._publish_completion_event(job_id)
     
+    async def handle_products_images_ready_batch(self, event_data: Dict[str, Any]):
+        """Handle products images ready batch event to initialize job tracking"""
+        try:
+            job_id = event_data["job_id"]
+            total_images = event_data["total_images"]
+            
+            logger.info("Products images ready batch received", job_id=job_id, total_images=total_images)
+            
+            # Store the total image count for the job
+            self.job_image_counts[job_id] = {'total': total_images, 'processed': 0}
+            logger.info("Initialized job image counters", job_id=job_id, total_images=total_images)
+            
+            # If there are no images, immediately publish completion event
+            if total_images == 0:
+                logger.info("No images found for job, publishing immediate completion", job_id=job_id)
+                await self._publish_completion_event_with_count(job_id, "image", 0, 0)
+            
+        except Exception as e:
+            logger.error("Failed to handle products images ready batch", job_id=job_id, error=str(e))
+            raise
+    
+    async def _publish_completion_event_with_count(self, job_id: str, asset_type: str, expected: int, done: int):
+        """Publish completion event with specific counts"""
+        # Calculate partial completion flag
+        has_partial = (done < expected) or (expected == 0)
+        
+        # Prepare event data
+        event_id = str(uuid.uuid4())
+        event_data = {
+            "job_id": job_id,
+            "event_id": event_id,
+            "total_assets": expected,
+            "processed_assets": done,
+            "failed_assets": 0,  # Placeholder - actual failure tracking would be added separately
+            "has_partial_completion": has_partial,
+            "watermark_ttl": 300
+        }
+        
+        # Publish appropriate event
+        event_type = "image.embeddings.completed" if asset_type == "image" else "video.embeddings.completed"
+        await self.broker.publish_event(event_type, event_data)
+        logger.info(f"Emitted {asset_type} embeddings completed event",
+                   job_id=job_id, event_id=event_id,
+                   total=expected, done=done, is_timeout=False)
+        
+        # Cleanup job tracking
+        if job_id in self.job_tracking:
+            del self.job_tracking[job_id]
+        if job_id in self.watermark_timers:
+            self.watermark_timers[job_id].cancel()
+            del self.watermark_timers[job_id]
+        if job_id in self.job_image_counts:
+            del self.job_image_counts[job_id]
+    
     
     async def handle_products_images_ready(self, event_data: Dict[str, Any]):
         """Handle product images ready event"""
@@ -120,7 +175,6 @@ class VisionEmbeddingService:
             image_id = event_data["image_id"]
             local_path = event_data["local_path"]
             job_id = event_data.get("job_id")
-            expected_count = event_data.get("expected_count", 1)  # Default to 1 if not provided
             
             # Create a unique key for this asset
             asset_key = f"{job_id}:{image_id}"
@@ -135,10 +189,7 @@ class VisionEmbeddingService:
             
             logger.info("Processing product image", image_id=image_id, job_id=job_id)
             
-            # Initialize or update job progress
-            await self._update_job_progress(job_id, "image", expected_count)
-            
-            # Extract embeddings
+            # Extract embeddings first
             emb_rgb, emb_gray = await self.extractor.extract_embeddings(local_path)
             
             if emb_rgb is not None and emb_gray is not None:
@@ -159,6 +210,35 @@ class VisionEmbeddingService:
                 logger.info("Processed product image embeddings", image_id=image_id)
             else:
                 logger.error("Failed to extract embeddings", image_id=image_id)
+                return
+            
+            # Update job progress tracking only if we have job counts initialized
+            job_counts = self.job_image_counts.get(job_id)
+            if not job_counts:
+                logger.warning("Job counts not initialized for job, skipping completion tracking", job_id=job_id)
+                return
+                
+            # Increment processed count
+            self.job_image_counts[job_id]['processed'] += 1
+            current_count = self.job_image_counts[job_id]['processed']
+            total_count = self.job_image_counts[job_id]['total']
+            
+            logger.debug("Updated job image counters", job_id=job_id,
+                       processed=current_count, total=total_count)
+            
+            # Check if all images are processed
+            if current_count >= total_count:
+                logger.info("All images processed for job", job_id=job_id,
+                           processed=current_count, total=total_count)
+                
+                # Publish completion event
+                await self._publish_completion_event_with_count(
+                    job_id, "image", total_count, current_count
+                )
+                
+                # Remove job from tracking
+                del self.job_image_counts[job_id]
+                logger.info("Removed job from tracking", job_id=job_id)
                 
         except Exception as e:
             logger.error("Failed to process product image", error=str(e))

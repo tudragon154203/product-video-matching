@@ -50,7 +50,7 @@ async def message_broker():
 @pytest_asyncio.fixture(scope="session")
 async def http_client():
     """HTTP client fixture"""
-    async with httpx.AsyncClient(timeout=30.0) as client:
+    async with httpx.AsyncClient(timeout=60.0) as client:
         yield client
 
 

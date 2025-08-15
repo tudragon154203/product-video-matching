@@ -1,8 +1,0 @@
-SOLUTION SUMMARY
-Problem: Jobs stuck in feature_extraction phase 
-
-Sotuion:
-Fix vision services to properly process video frames and publish events with correct job IDs
-Add subscription for matchings.process.completed events in main-api service
-Apply the same manual fix to the remaining 5 stuck jobs if needed
-Monitor new jobs to ensure they progress correctly after the service restart

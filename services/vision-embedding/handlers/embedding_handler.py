@@ -25,3 +25,8 @@ class VisionEmbeddingHandler:
     async def handle_videos_keyframes_ready(self, event_data):
         """Handle video keyframes ready event"""
         await self.service.handle_videos_keyframes_ready(event_data)
+    
+    @validate_event("products_images_ready_batch")
+    async def handle_products_images_ready_batch(self, event_data):
+        """Handle products images ready batch event"""
+        await self.service.handle_products_images_ready_batch(event_data)
