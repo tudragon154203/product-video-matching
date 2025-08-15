@@ -20,6 +20,7 @@ class VisionKeypointService:
         self.job_tracking: Dict[str, Dict] = {}  # Track job progress: {job_id: {expected: int, done: int, asset_type: str}}
         self.watermark_timers: Dict[str, asyncio.Task] = {}  # Watermark timers for jobs
         self.job_image_counts: Dict[str, Dict[str, int]] = {}  # Track job image counts: {job_id: {'total': int, 'processed': int}}
+        self.job_keyframe_counts: Dict[str, Dict[str, int]] = {}  # Track job keyframe counts: {job_id: {'total': int, 'processed': int}}
         self.expected_total_frames: Dict[str, int] = {}  # Track expected total frames per job: {job_id: total_frames}
         self.processed_batch_events: set = set()  # Track processed batch events to avoid duplicates
         self._completion_events_sent: set = set()  # Track jobs that have sent completion events to prevent duplicates
@@ -174,7 +175,10 @@ class VisionKeypointService:
             
             # Store the total frame count for the job
             self.expected_total_frames[job_id] = total_keyframes
+            # Store the total keyframe count for the job
+            self.job_keyframe_counts[job_id] = {'total': total_keyframes, 'processed': 0}
             logger.info("DUPLICATE DETECTION: Initialized expected total frames", job_id=job_id, total_frames=total_keyframes, current_jobs_with_frames=len(self.expected_total_frames))
+            logger.info("Initialized job keyframe counters", job_id=job_id, total_keyframes=total_keyframes)
             
             # If there are no keyframes, immediately publish completion event
             if total_keyframes == 0:
@@ -228,6 +232,8 @@ class VisionKeypointService:
             del self.watermark_timers[job_id]
         if job_id in self.job_image_counts:
             del self.job_image_counts[job_id]
+        if job_id in self.job_keyframe_counts:
+            del self.job_keyframe_counts[job_id]
         if job_id in self.expected_total_frames:
             del self.expected_total_frames[job_id]
     
@@ -371,6 +377,29 @@ class VisionKeypointService:
                                frame_id=frame_id, kp_path=kp_blob_path)
                     # Update job progress for successful processing using expected_total_frames
                     await self._update_job_progress(job_id, "video", expected_count)
+                    
+                    # Update job keyframe counts tracking
+                    if job_id in self.job_keyframe_counts:
+                        self.job_keyframe_counts[job_id]['processed'] += 1
+                        current_count = self.job_keyframe_counts[job_id]['processed']
+                        total_count = self.job_keyframe_counts[job_id]['total']
+                        
+                        logger.debug("Updated job keyframe counters", job_id=job_id,
+                                   processed=current_count, total=total_count)
+                        
+                        # Check if all keyframes are processed
+                        if current_count >= total_count:
+                            logger.info("All keyframes processed for job", job_id=job_id,
+                                       processed=current_count, total=total_count)
+                            
+                            # Publish completion event
+                            await self._publish_completion_event_with_count(
+                                job_id, "video", total_count, current_count
+                            )
+                            
+                            # Remove job from tracking
+                            del self.job_keyframe_counts[job_id]
+                            logger.info("Removed job from tracking", job_id=job_id)
                 else:
                     logger.error("Failed to extract keypoints", frame_id=frame_id)
         
