@@ -140,9 +140,9 @@ class DatabaseHandler:
                 job_id, event_name
             )
             count = result or 0
-            logger.info("Checking phase event", job_id=job_id, event_name=event_name, count=count)
+            logger.info(f"Checking phase event (job_id: {job_id}, event_name: {event_name}, count: {count})")
             if count > 1:
-                logger.warning("MULTIPLE phase events found for same job/event", job_id=job_id, event_name=event_name, count=count)
+                logger.warning(f"MULTIPLE phase events found for same job/event (job_id: {job_id}, event_name: {event_name}, count: {count})")
             return count > 0
         except Exception as e:
             logger.error(f"Failed to check phase event: {e}")
@@ -150,8 +150,23 @@ class DatabaseHandler:
 
     async def get_job_asset_types(self, job_id: str) -> Dict[str, bool]:
         """Get the asset types (images, videos) for a job."""
-        # For now, we return both as True. In a real implementation, we would query the database.
-        return {"images": True, "videos": True}
+        try:
+            # Get counts of products and videos for this job
+            product_count, video_count, _ = await self.get_job_counts(job_id)
+            
+            # Get counts of products and videos with features
+            products_with_features, videos_with_features = await self.get_features_counts(job_id)
+            
+            # A job has images if it has products, and has videos if it has videos
+            # We also check if there are features for a more accurate assessment
+            has_images = product_count > 0 or products_with_features > 0
+            has_videos = video_count > 0 or videos_with_features > 0
+            
+            return {"images": has_images, "videos": has_videos}
+        except Exception as e:
+            logger.error(f"Failed to determine job asset types for job {job_id}: {str(e)}")
+            # Fallback to both being True to maintain current behavior
+            return {"images": True, "videos": True}
     
     async def clear_phase_events(self, job_id: str):
         """Clear all phase events for a job (for testing/reset purposes)."""

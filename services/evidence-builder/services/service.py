@@ -99,6 +99,52 @@ class EvidenceBuilderService:
             logger.error("Failed to process match result", error=str(e))
             raise
     
+    async def handle_matchings_completed(self, event_data: Dict[str, Any]):
+        """Handle matchings process completed event - check if job has matches and complete if none"""
+        try:
+            job_id = event_data["job_id"]
+            
+            logger.info("Checking job for matches after matching completed", job_id=job_id)
+            
+            # Check if this job has any matches
+            match_count = await self.db.fetch_val(
+                "SELECT COUNT(*) FROM matches WHERE job_id = $1", job_id
+            ) or 0
+            
+            logger.info("Match count for job", job_id=job_id, match_count=match_count)
+            
+            if match_count == 0:
+                # No matches found, immediately complete evidence generation
+                logger.info("No matches found, completing evidence generation immediately", job_id=job_id)
+                
+                # Check if we've already processed this job
+                if job_id not in self.processed_jobs:
+                    # Mark job as processed
+                    self.processed_jobs.add(job_id)
+                    
+                    # Publish evidences.generation.completed event
+                    evidences_completed_event = {
+                        "job_id": job_id,
+                        "event_id": str(uuid.uuid4())
+                    }
+                    
+                    await self.broker.publish_event(
+                        "evidences.generation.completed",
+                        evidences_completed_event,
+                        correlation_id=job_id
+                    )
+                    
+                    logger.info("Published evidences.generation.completed for job with no matches", 
+                               job_id=job_id,
+                               event_id=evidences_completed_event["event_id"])
+            else:
+                logger.info("Job has matches, evidence will be generated via match.result events", 
+                           job_id=job_id, match_count=match_count)
+            
+        except Exception as e:
+            logger.error("Failed to handle matchings completed", error=str(e))
+            raise
+    
     async def get_image_info(self, img_id: str):
         """Get product image information"""
         query = "SELECT local_path, kp_blob_path FROM product_images WHERE img_id = $1"

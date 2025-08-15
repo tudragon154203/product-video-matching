@@ -13,3 +13,7 @@ class EvidenceHandler:
     @handle_errors
     async def handle_match_result(self, event_data):
         await self.service.handle_match_result(event_data)
+    
+    @handle_errors
+    async def handle_matchings_completed(self, event_data):
+        await self.service.handle_matchings_completed(event_data)

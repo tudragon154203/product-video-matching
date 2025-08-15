@@ -123,7 +123,8 @@ class VideoCrawlerService:
                     "videos.keyframes.ready",
                     {
                         "video_id": video.video_id,
-                        "frames": frame_data
+                        "frames": frame_data,
+                        "job_id": job_id  # Add job_id for tracking
                     },
                     correlation_id=job_id
                 )

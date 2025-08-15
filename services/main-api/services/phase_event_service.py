@@ -20,9 +20,12 @@ class PhaseEventService:
         
     async def handle_phase_event(self, event_type: str, event_data: Dict[str, Any]):
         """Handle a job-based completion event"""
+        std_logger.info(f"Received event: {event_type} for job {event_data.get('job_id')}")
+        
         # Validate event
         try:
             validator.validate_event(event_type, event_data)
+            std_logger.info(f"Event validation passed: {event_type}")
         except ValueError as e:
             if "Unknown event type" in str(e):
                 logger.error(f"Unknown event type received: {event_type}. Available schemas: {list(validator.schemas.keys())}")
@@ -52,14 +55,17 @@ class PhaseEventService:
             
         # Add to processed events
         self.processed_events.add(event_id)
+        std_logger.info(f"Added event to processed cache: {event_id}")
         
         # Store event in database
         try:
             await self.db_handler.store_phase_event(event_id, job_id, event_type)
+            std_logger.info(f"Stored phase event: {event_type} for job {job_id}")
         except Exception as e:
             logger.error(f"Failed to store phase event {event_id} for job {job_id}: {str(e)}")
             # Remove from cache if storage failed
             self.processed_events.discard(event_id)
+            std_logger.error(f"Removed event from cache due to storage failure: {event_id}")
             return
             
         std_logger.info(f"Stored phase event for job {job_id}: {event_type} (event_id={event_id})")
@@ -80,7 +86,12 @@ class PhaseEventService:
                     
             elif current_phase == "feature_extraction":
                 # Get job type to determine required events
-                job_type = await self.db_handler.get_job_asset_types(job_id)
+                try:
+                    job_type = await self.db_handler.get_job_asset_types(job_id)
+                    std_logger.info(f"Job {job_id} asset_types: {job_type}")
+                except Exception as e:
+                    logger.error(f"Failed to get asset types for job {job_id}: {str(e)}")
+                    return
                 
                 # Check required events based on job type
                 required_events = []
@@ -91,46 +102,70 @@ class PhaseEventService:
                     required_events.append("video.embeddings.completed")
                     required_events.append("video.keypoints.completed")
                 
+                std_logger.info(f"Job {job_id} requires events: {required_events}")
+                
                 # Verify all required events are completed
                 all_events_received = True
+                missing_events = []
                 for event in required_events:
-                    if not await self.db_handler.has_phase_event(job_id, event):
+                    try:
+                        if not await self.db_handler.has_phase_event(job_id, event):
+                            all_events_received = False
+                            missing_events.append(event)
+                    except Exception as e:
+                        logger.error(f"Database error checking event {event} for job {job_id}: {str(e)}")
                         all_events_received = False
-                        break
                 
                 if all_events_received:
                     logger.info(f"All feature extraction completed, transitioning to matching for job {job_id}")
                     await self.db_handler.update_job_phase(job_id, "matching")
                     
                     # Publish match request
-                    try:
-                        industry = await self.db_handler.get_job_industry(job_id)
-                        await self.broker_handler.publish_match_request(
-                            job_id,
-                            industry,
-                            job_id,  # product_set_id
-                            job_id   # video_set_id
-                        )
-                    except Exception as e:
-                        logger.error(f"Failed to publish match request for job {job_id}: {str(e)}")
+                    await self._publish_match_request_for_job(job_id)
+                else:
+                    std_logger.warning(f"Job {job_id} missing required events: {missing_events}")
                         
             elif current_phase == "matching":
-                # For now, assume matching phase transitions to evidence automatically
-                # In a real implementation, this would be triggered by matching completion events
-                logger.info(f"Transitioning from matching to evidence for job {job_id}")
-                await self.db_handler.update_job_phase(job_id, "evidence")
+                # Check for matching completion event
+                if event_type == "matchings.process.completed":
+                    logger.info(f"Matching completed, transitioning to evidence for job {job_id}")
+                    await self.db_handler.update_job_phase(job_id, "evidence")
+                else:
+                    # If job is in matching phase but we received a feature extraction event,
+                    # it might mean the job was manually moved to matching without publishing match request
+                    # This is a safety net to ensure match requests are published
+                    logger.info(f"Job {job_id} is in matching phase, ensuring match request is published")
+                    await self._publish_match_request_for_job(job_id)
                     
             elif current_phase == "evidence":
-                # For now, assume evidence phase transitions to completed automatically
-                # In a real implementation, this would be triggered by evidence completion events
-                logger.info(f"Transitioning from evidence to completed for job {job_id}")
-                await self.db_handler.update_job_phase(job_id, "completed")
-                
-                # Publish job completion event
-                try:
-                    await self.broker_handler.publish_job_completed(job_id)
-                except Exception as e:
-                    logger.error(f"Failed to publish job completion for job {job_id}: {str(e)}")
+                # Check for evidence completion event
+                if event_type == "evidences.generation.completed":
+                    logger.info(f"Evidence generation completed, transitioning to completed for job {job_id}")
+                    await self.db_handler.update_job_phase(job_id, "completed")
+                    
+                    # Publish job completion event
+                    try:
+                        await self.broker_handler.publish_job_completed(job_id)
+                        logger.info(f"Published job completion event for job {job_id}")
+                    except Exception as e:
+                        logger.error(f"Failed to publish job completion for job {job_id}: {str(e)}")
+                else:
+                    # Log when evidence phase receives other events
+                    logger.info(f"Job {job_id} in evidence phase received {event_type} event (no action needed)")
                     
         except Exception as e:
             logger.error(f"Failed to check phase transitions for job {job_id}: {str(e)}")
+    
+    async def _publish_match_request_for_job(self, job_id: str):
+        """Helper method to publish match request for a job"""
+        try:
+            industry = await self.db_handler.get_job_industry(job_id)
+            await self.broker_handler.publish_match_request(
+                job_id,
+                industry,
+                job_id,  # product_set_id
+                job_id   # video_set_id
+            )
+            logger.info(f"Published match request for job {job_id}")
+        except Exception as e:
+            logger.error(f"Failed to publish match request for job {job_id}: {str(e)}")

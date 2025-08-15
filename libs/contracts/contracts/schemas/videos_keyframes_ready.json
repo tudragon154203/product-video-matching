@@ -3,7 +3,7 @@
   "title": "VideosKeyframesReady",
   "type": "object",
   "additionalProperties": true,
-  "required": ["video_id", "frames"],
+  "required": ["video_id", "frames", "job_id"],
   "properties": {
     "video_id": {
       "type": "string",
@@ -29,6 +29,10 @@
           }
         }
       }
+    },
+    "job_id": {
+      "type": "string",
+      "description": "Unique identifier for the job"
     }
   }
 }

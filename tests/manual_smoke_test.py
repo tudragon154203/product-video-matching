@@ -45,7 +45,7 @@ async def run_smoke_test():
             logger.info("Smoke test completed successfully! ✅")
             
     except Exception as e:
-        logger.error("Smoke test failed", error=str(e))
+        logger.error(f"Smoke test failed: {str(e)}")
         raise
 
 
@@ -62,9 +62,9 @@ async def check_service_health(client):
         try:
             response = await client.get(health_url)
             response.raise_for_status()
-            logger.info(f"{service_name} is healthy", status=response.status_code)
+            logger.info(f"{service_name} is healthy (status: {response.status_code})")
         except Exception as e:
-            logger.error(f"{service_name} health check failed", error=str(e))
+            logger.error(f"{service_name} health check failed: {str(e)}")
             raise
 
 
@@ -86,13 +86,13 @@ async def start_job(client):
     job_data = response.json()
     job_id = job_data["job_id"]
     
-    logger.info("Job started successfully", job_id=job_id)
+    logger.info(f"Job started successfully (job_id: {job_id})")
     return job_id
 
 
 async def wait_for_job_completion(client, job_id, max_wait_time=90):
     """Wait for job to complete"""
-    logger.info("Waiting for job completion...", job_id=job_id)
+    logger.info(f"Waiting for job completion... (job_id: {job_id})")
     
     start_time = time.time()
     
@@ -105,13 +105,10 @@ async def wait_for_job_completion(client, job_id, max_wait_time=90):
             phase = status_data["phase"]
             percent = status_data["percent"]
             
-            logger.info("Job progress", 
-                       job_id=job_id, 
-                       phase=phase, 
-                       percent=percent)
+            logger.info(f"Job progress (job_id: {job_id}, phase: {phase}, percent: {percent})")
             
             if phase == "completed":
-                logger.info("Job completed successfully", job_id=job_id)
+                logger.info(f"Job completed successfully (job_id: {job_id})")
                 return
             elif phase == "failed":
                 raise Exception(f"Job failed: {job_id}")
@@ -121,10 +118,10 @@ async def wait_for_job_completion(client, job_id, max_wait_time=90):
             
         except httpx.HTTPStatusError as e:
             if e.response.status_code == 404:
-                logger.error("Job not found", job_id=job_id)
+                logger.error(f"Job not found (job_id: {job_id})")
                 raise
             else:
-                logger.warning("Status check failed, retrying...", error=str(e))
+                logger.warning(f"Status check failed, retrying... ({str(e)})")
                 await asyncio.sleep(2)
     
     raise Exception(f"Job did not complete within {max_wait_time} seconds")
@@ -132,7 +129,7 @@ async def wait_for_job_completion(client, job_id, max_wait_time=90):
 
 async def check_results(client, job_id):
     """Check that results were generated"""
-    logger.info("Checking results...", job_id=job_id)
+    logger.info(f"Checking results... (job_id: {job_id})")
     
     # Get results for the job
     response = await client.get(f"{RESULTS_API_URL}/results", params={"job_id": job_id})
@@ -140,20 +137,17 @@ async def check_results(client, job_id):
     
     results = response.json()
     
-    logger.info("Results retrieved", 
-               job_id=job_id, 
-               result_count=len(results))
+    logger.info(f"Results retrieved (job_id: {job_id}, result_count: {len(results)})")
     
     if len(results) == 0:
         logger.warning("No matches found - this might be expected for mock data")
     else:
         # Check first result
         first_result = results[0]
-        logger.info("Sample result", 
-                   match_id=first_result["match_id"],
-                   score=first_result["score"],
-                   product_title=first_result.get("product_title"),
-                   video_title=first_result.get("video_title"))
+        logger.info(f"Sample result (match_id: {first_result['match_id']}, "
+                   f"score: {first_result['score']}, "
+                   f"product_title: {first_result.get('product_title')}, "
+                   f"video_title: {first_result.get('video_title')})")
         
         # Verify result structure
         required_fields = ["match_id", "job_id", "product_id", "video_id", "score"]
@@ -174,7 +168,7 @@ async def check_results(client, job_id):
         response.raise_for_status()
         
         match_detail = response.json()
-        logger.info("Match detail retrieved", match_id=match_id)
+        logger.info(f"Match detail retrieved (match_id: {match_id})")
         
         # Verify match detail structure
         if "product" not in match_detail or "video" not in match_detail:
@@ -189,13 +183,13 @@ async def test_api_endpoints(http_client):
     response = await http_client.get(f"{RESULTS_API_URL}/stats")
     response.raise_for_status()
     stats = response.json()
-    logger.info("System stats", stats=stats)
+    logger.info(f"System stats: {stats}")
     
     # Test results with filters
     response = await http_client.get(f"{RESULTS_API_URL}/results", params={"min_score": 0.5})
     response.raise_for_status()
     filtered_results = response.json()
-    logger.info("Filtered results", count=len(filtered_results))
+    logger.info(f"Filtered results (count: {len(filtered_results)})")
 
 
 if __name__ == "__main__":

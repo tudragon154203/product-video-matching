@@ -1,137 +1,182 @@
 #!/usr/bin/env python3
 """
-Run database migrations
+Robust database migration runner using Alembic.
+Implements retry logic, error handling, and comprehensive logging.
 """
+import argparse
 import sys
 import os
-import asyncio
-sys.path.append('/tmp/libs')
+import traceback
+from pathlib import Path
 
-# Add the project root to the path so we can import infra.config
-sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
+# Add project root to Python path
+project_root = Path(__file__).parent.parent
+sys.path.insert(0, str(project_root))
 
-from common_py.database import DatabaseManager
-from infra.config import config
+from common_py.migration_service import (
+    MigrationService,
+    MigrationAction,
+    MigrationError,
+    create_migration_service
+)
+from common_py.logging_config import configure_logging
+import logging
 
-async def run_migrations():
-    """Run database migrations"""
-    dsn = config.POSTGRES_DSN
-    db = DatabaseManager(dsn)
-    await db.connect()
+logger = logging.getLogger(__name__)
+
+
+def setup_argument_parser() -> argparse.ArgumentParser:
+    """Setup command line argument parser"""
+    parser = argparse.ArgumentParser(
+        description="Run database migrations with robust error handling and retry logic"
+    )
+    
+    parser.add_argument(
+        "action",
+        choices=["upgrade", "downgrade", "status", "list", "validate", "generate"],
+        help="Migration action to perform"
+    )
+    
+    parser.add_argument(
+        "--message",
+        help="Message for new migration (required for generate action)"
+    )
+    
+    parser.add_argument(
+        "--autogenerate",
+        action="store_true",
+        default=True,
+        help="Autogenerate migration (default: True)"
+    )
+    
+    parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Perform dry run without actual changes"
+    )
+    
+    parser.add_argument(
+        "--verbose",
+        action="store_true",
+        help="Enable verbose logging"
+    )
+    
+    parser.add_argument(
+        "--service-name",
+        default="migration_runner",
+        help="Service name for logging (default: migration_runner)"
+    )
+    
+    parser.add_argument(
+        "--config",
+        help="Path to migration configuration file"
+    )
+    
+    return parser
+
+
+def handle_migration_result(result: dict, action: str) -> int:
+    """Handle migration result and return exit code"""
+    if result.get("success", False):
+        logger.info(f"Migration '{action}' completed successfully")
+        if "duration_seconds" in result:
+            logger.info(f"Duration: {result['duration_seconds']:.2f} seconds")
+        return 0
+    else:
+        logger.error(f"Migration '{action}' failed")
+        return 1
+
+
+def main() -> int:
+    """Main migration runner function"""
+    parser = setup_argument_parser()
+    args = parser.parse_args()
     
     try:
-        # Enable vector extension
-        await db.execute("CREATE EXTENSION IF NOT EXISTS vector;")
+        # Setup logging
+        log_level = "DEBUG" if args.verbose else "INFO"
+        configure_logging(args.service_name, log_level)
         
-        # Create products table
-        await db.execute("""
-            CREATE TABLE IF NOT EXISTS products (
-                product_id VARCHAR PRIMARY KEY,
-                src VARCHAR NOT NULL,
-                asin_or_itemid VARCHAR,
-                title TEXT,
-                brand VARCHAR,
-                url TEXT,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            );
-        """)
+        logger.info(f"Starting migration runner for action: {args.action}")
         
-        # Create product_images table
-        await db.execute("""
-            CREATE TABLE IF NOT EXISTS product_images (
-                img_id VARCHAR PRIMARY KEY,
-                product_id VARCHAR REFERENCES products(product_id),
-                local_path TEXT NOT NULL,
-                emb_rgb vector(512),
-                emb_gray vector(512),
-                kp_blob_path TEXT,
-                phash VARCHAR,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            );
-        """)
+        # Create migration service
+        service = MigrationService(args.service_name)
         
-        # Create videos table
-        await db.execute("""
-            CREATE TABLE IF NOT EXISTS videos (
-                video_id VARCHAR PRIMARY KEY,
-                platform VARCHAR NOT NULL,
-                url TEXT NOT NULL,
-                title TEXT,
-                duration_s INTEGER,
-                published_at TIMESTAMP,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            );
-        """)
+        # Override environment variables if provided
+        if args.dry_run:
+            os.environ["MIGRATION_DRY_RUN"] = "true"
+        if args.verbose:
+            os.environ["MIGRATION_VERBOSE"] = "true"
         
-        # Create video_frames table
-        await db.execute("""
-            CREATE TABLE IF NOT EXISTS video_frames (
-                frame_id VARCHAR PRIMARY KEY,
-                video_id VARCHAR REFERENCES videos(video_id),
-                ts FLOAT NOT NULL,
-                local_path TEXT NOT NULL,
-                emb_rgb vector(512),
-                emb_gray vector(512),
-                kp_blob_path TEXT,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            );
-        """)
+        # Initialize service
+        service.initialize()
         
-        # Create matches table
-        await db.execute("""
-            CREATE TABLE IF NOT EXISTS matches (
-                match_id VARCHAR PRIMARY KEY,
-                job_id VARCHAR NOT NULL,
-                product_id VARCHAR REFERENCES products(product_id),
-                video_id VARCHAR REFERENCES videos(video_id),
-                best_img_id VARCHAR,
-                best_frame_id VARCHAR,
-                ts FLOAT,
-                score FLOAT NOT NULL,
-                evidence_path TEXT,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            );
-        """)
+        # Handle different actions
+        if args.action == "upgrade":
+            result = service.run_migration(MigrationAction.UPGRADE)
+            
+        elif args.action == "downgrade":
+            result = service.run_migration(MigrationAction.DOWNGRADE)
+            
+        elif args.action == "status":
+            result = service.get_migration_status()
+            print("\n=== Migration Status ===")
+            for key, value in result.items():
+                print(f"{key}: {value}")
+            print("========================\n")
+            return 0
+            
+        elif args.action == "list":
+            result = service.list_migrations()
+            print("\n=== Migration List ===")
+            if "available_migrations" in result:
+                print("Available migrations:")
+                for migration in result["available_migrations"]:
+                    print(f"  - {migration}")
+            if "current_revision" in result:
+                print(f"Current revision: {result['current_revision']}")
+            print("=====================\n")
+            return 0
+            
+        elif args.action == "validate":
+            result = service.validate_environment()
+            print("\n=== Environment Validation ===")
+            for key, value in result.items():
+                print(f"{key}: {value}")
+            print("=============================\n")
+            return 0 if result.get("prerequisites_met", False) else 1
+            
+        elif args.action == "generate":
+            if not args.message:
+                logger.error("Message is required for generate action")
+                return 1
+            result = service.generate_migration(args.message, args.autogenerate)
+            
+        else:
+            logger.error(f"Unknown action: {args.action}")
+            return 1
         
-        # Create jobs table
-        await db.execute("""
-            CREATE TABLE IF NOT EXISTS jobs (
-                job_id VARCHAR PRIMARY KEY,
-                industry VARCHAR NOT NULL,
-                status VARCHAR DEFAULT 'pending',
-                progress FLOAT DEFAULT 0.0,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            );
-        """)
+        # Handle result
+        return handle_migration_result(result, args.action)
         
-        # Create indexes for better performance
-        await db.execute("CREATE INDEX IF NOT EXISTS idx_product_images_product_id ON product_images(product_id);")
-        await db.execute("CREATE INDEX IF NOT EXISTS idx_video_frames_video_id ON video_frames(video_id);")
-        await db.execute("CREATE INDEX IF NOT EXISTS idx_matches_job_id ON matches(job_id);")
-        await db.execute("CREATE INDEX IF NOT EXISTS idx_matches_score ON matches(score);")
+    except MigrationError as e:
+        logger.error(f"Migration error: {str(e)}")
+        return 1
         
-        # Phase-transition events
-        await db.execute("""
-            CREATE TABLE IF NOT EXISTS phase_events (
-                event_id VARCHAR(255) PRIMARY KEY,
-                job_id VARCHAR(255) NOT NULL,
-                name VARCHAR(100) NOT NULL,
-                received_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            );
-        """)
-        await db.execute("CREATE INDEX IF NOT EXISTS idx_phase_events_job_id ON phase_events(job_id);")
-        await db.execute("CREATE INDEX IF NOT EXISTS idx_phase_events_name ON phase_events(name);")
-
-        # Ensure jobs.phase exists (default 'collection')
-        await db.execute("""
-            ALTER TABLE jobs ADD COLUMN IF NOT EXISTS phase VARCHAR(50) NOT NULL;
-        """)
-
-        print("Database migrations completed successfully!")
+    except KeyboardInterrupt:
+        logger.info("Migration interrupted by user")
+        return 130
+        
+    except Exception as e:
+        logger.error(f"Unexpected error: {str(e)}")
+        logger.debug(traceback.format_exc())
+        return 1
         
     finally:
-        await db.disconnect()
+        # Cleanup
+        if 'service' in locals():
+            service.cleanup()
+
 
 if __name__ == "__main__":
-    asyncio.run(run_migrations())
+    sys.exit(main())

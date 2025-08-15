@@ -57,7 +57,22 @@ class BrokerHandler:
                 },
                 correlation_id=job_id
             )
-            logger.info("Published match request", job_id=job_id)
+            logger.info(f"Published match request for job {job_id}")
         except Exception as e:
-            logger.error("Failed to publish match request", job_id=job_id, error=str(e))
+            logger.error(f"Failed to publish match request for job {job_id}: {str(e)}")
+            raise
+
+    async def publish_job_completed(self, job_id: str):
+        """Publish a job completion event."""
+        try:
+            await self.broker.publish_event(
+                "job.completed",
+                {
+                    "job_id": job_id
+                },
+                correlation_id=job_id
+            )
+            logger.info(f"Published job completion for job {job_id}")
+        except Exception as e:
+            logger.error(f"Failed to publish job completion for job {job_id}: {str(e)}")
             raise

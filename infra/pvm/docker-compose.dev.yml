@@ -4,6 +4,8 @@ services:
     image: pgvector/pgvector:pg17
     env_file:
       - .env
+    ports:
+      - "${PORT_POSTGRES_DB}:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ../../infra/migrations:/docker-entrypoint-initdb.d:ro

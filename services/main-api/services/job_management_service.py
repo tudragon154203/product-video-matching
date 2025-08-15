@@ -34,7 +34,7 @@ class JobManagementService:
                 if industry not in config.INDUSTRY_LABELS:
                     industry = "other"
             finally:
-                logger.info("llm_classify_ms", llm_classify_ms=(time.time()-t0)*1000)
+                logger.info(f"llm_classify_ms: {(time.time()-t0)*1000}")
             
             # Generate queries using LLM with fallback
             gen_prompt = self.prompt_service.build_gen_prompt(query, industry)
@@ -50,7 +50,7 @@ class JobManagementService:
                         "video": {"vi": [query], "zh": [query]}
                     }
             finally:
-                logger.info("llm_generate_ms", llm_generate_ms=(time.time()-t0)*1000)
+                logger.info(f"llm_generate_ms: {(time.time()-t0)*1000}")
             
             # Store job in database
             try:
@@ -80,14 +80,14 @@ class JobManagementService:
             except Exception as e:
                 logger.warning(f"Failed to publish events: {e}")
             
-            logger.info("Started job", job_id=job_id, industry=industry)
+            logger.info(f"Started job (job_id: {job_id}, industry: {industry})")
             return StartJobResponse(job_id=job_id, status="started")
             
         except Exception as e:
             error_msg = f"{type(e).__name__}: {str(e) if str(e) else 'Unknown error'}"
-            logger.error("Failed to start job", error=error_msg, exception_type=type(e).__name__)
+            logger.error(f"Failed to start job: {error_msg} (exception_type: {type(e).__name__})")
             import traceback
-            logger.error("Exception traceback", traceback=traceback.format_exc())
+            logger.error(f"Exception traceback: {traceback.format_exc()}")
             raise HTTPException(status_code=500, detail=error_msg)
 
     async def get_job_status(self, job_id: str) -> JobStatusResponse:
@@ -135,5 +135,5 @@ class JobManagementService:
         except HTTPException:
             raise
         except Exception as e:
-            logger.error("Failed to get job status", job_id=job_id, error=str(e))
+            logger.error(f"Failed to get job status (job_id: {job_id}, error: {str(e)})")
             raise HTTPException(status_code=500, detail=str(e))

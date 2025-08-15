@@ -72,6 +72,18 @@ class LifecycleHandler:
                 "main_api_video_keypoints_completed"
             )
             
-            logger.info("Subscribed to job-based completion events")
+            await self.broker.subscribe_to_topic(
+                "matchings.process.completed",
+                lambda event_data: self.job_service.handle_phase_event("matchings.process.completed", event_data),
+                "main_api_matchings_process_completed"
+            )
+            
+            await self.broker.subscribe_to_topic(
+                "evidences.generation.completed",
+                lambda event_data: self.job_service.handle_phase_event("evidences.generation.completed", event_data),
+                "main_api_evidences_generation_completed"
+            )
+            
+            logger.info("Subscribed to all phase completion events")
         except Exception as e:
             logger.error("Failed to subscribe to job-based completion events", error=str(e))

@@ -36,6 +36,12 @@ async def main():
                 handler.handle_match_result
             )
             
+            # Subscribe to matchings.process.completed to handle jobs with no matches
+            await handler.broker.subscribe_to_topic(
+                "matchings.process.completed",
+                handler.handle_matchings_completed
+            )
+            
             logger.info("Evidence builder service started")
             
             # Keep service running

@@ -119,7 +119,7 @@ class VisionEmbeddingService:
             product_id = event_data["product_id"]
             image_id = event_data["image_id"]
             local_path = event_data["local_path"]
-            job_id = event_data.get("job_id", "unknown")
+            job_id = event_data.get("job_id")
             expected_count = event_data.get("expected_count", 1)  # Default to 1 if not provided
             
             # Create a unique key for this asset
@@ -169,7 +169,7 @@ class VisionEmbeddingService:
         try:
             video_id = event_data["video_id"]
             frames = event_data["frames"]
-            job_id = event_data.get("job_id", "unknown")
+            job_id = event_data["job_id"]  # job_id is now required
             expected_count = event_data.get("expected_count", len(frames))  # Default to frame count if not provided
             
             logger.info("Processing video frames", video_id=video_id, frame_count=len(frames), job_id=job_id)
