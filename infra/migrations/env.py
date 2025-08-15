@@ -8,7 +8,7 @@ from pathlib import Path
 # Add the project root to the Python path
 sys.path.append(str(Path(__file__).parent.parent.parent))
 
-from infra.config import config
+from libs.config import config
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
@@ -17,7 +17,11 @@ config = context.config
 # Interpret the config file for Python logging.
 # This line sets up loggers basically.
 if config.config_file_name is not None:
-    fileConfig(config.config_file_name)
+    try:
+        fileConfig(config.config_file_name)
+    except KeyError:
+        # If logging configuration is missing, continue without it
+        pass
 
 # add your model's MetaData object here
 # for 'autogenerate' support
@@ -32,7 +36,8 @@ target_metadata = None
 
 def get_url():
     """Get database URL from centralized config"""
-    return config.POSTGRES_DSN
+    from libs.config import config as app_config
+    return app_config.POSTGRES_DSN
 
 def run_migrations_offline() -> None:
     """Run migrations in 'offline' mode.
