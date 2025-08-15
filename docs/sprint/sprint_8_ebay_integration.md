@@ -98,7 +98,7 @@ EBAY_MARKETPLACES=EBAY_US,EBAY_DE,EBAY_AU
 
 ## 5) TODO – Implementation Checklist
 
-1. **Env & Config** – Add env vars and read via `config_loader`.
+1. **Env & Config** – Add env vars and read via `config_loader`. .env and .env.example should be in the service's folder
 2. **DB Migration (Breaking Change)** – Drop old `products` table, re-init schema; add new columns to `products` and `product_images`.
 3. **Auth** – Implement OAuth client‑credentials; fetch and refresh token.
 4. **Browse Search Integration** – Implement search call with required filters and params.

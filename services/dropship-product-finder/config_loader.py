@@ -20,6 +20,11 @@ except ImportError:
 class DropshipProductFinderConfig:
     """Configuration for the catalog collector service"""
     
+    # eBay API configuration
+    EBAY_CLIENT_ID: str = os.getenv("EBAY_CLIENT_ID", "")
+    EBAY_CLIENT_SECRET: str = os.getenv("EBAY_CLIENT_SECRET", "")
+    EBAY_MARKETPLACES: str = os.getenv("EBAY_MARKETPLACES", "EBAY_US")
+    
     # Database configuration (from global config)
     POSTGRES_DSN: str = global_config.POSTGRES_DSN
     POSTGRES_USER: str = global_config.POSTGRES_USER
