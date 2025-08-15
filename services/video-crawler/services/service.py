@@ -50,6 +50,42 @@ class VideoCrawlerService:
                         videos = await self.fetcher.search_bilibili_videos(platform_queries, recency_days)
                         all_videos.extend(videos)
             
+            # Handle zero-asset case (no videos found)
+            if not all_videos:
+                logger.info("No videos found for job {job_id}", job_id=job_id)
+                
+                # Publish batch event with zero keyframes
+                batch_event_id = str(uuid.uuid4())
+                await self.broker.publish_event(
+                    "videos.keyframes.ready.batch",
+                    {
+                        "job_id": job_id,
+                        "event_id": batch_event_id,
+                        "total_keyframes": 0
+                    },
+                    correlation_id=job_id
+                )
+                logger.info("Published batch keyframes ready event with zero keyframes",
+                           job_id=job_id,
+                           total_keyframes=0,
+                           batch_event_id=batch_event_id)
+                
+                # Publish collections completed event
+                event_id = str(uuid.uuid4())
+                await self.broker.publish_event(
+                    "videos.collections.completed",
+                    {
+                        "job_id": job_id,
+                        "event_id": event_id
+                    },
+                    correlation_id=job_id
+                )
+                
+                logger.info("Completed video search with zero videos",
+                           job_id=job_id,
+                           total_videos=0)
+                return
+            
             # Calculate total frames across all candidate videos
             total_frames = 0
             for video_data in all_videos:
@@ -58,21 +94,20 @@ class VideoCrawlerService:
                 total_frames += len(keyframes)
             
             # Emit batch keyframes ready event before processing individual videos
-            if total_frames > 0:
-                batch_event_id = str(uuid.uuid4())
-                await self.broker.publish_event(
-                    "videos.keyframes.ready.batch",
-                    {
-                        "job_id": job_id,
-                        "event_id": batch_event_id,
-                        "total_keyframes": total_frames
-                    },
-                    correlation_id=job_id
-                )
-                logger.info("DUPLICATE DETECTION: Published batch keyframes ready event",
-                           job_id=job_id,
-                           total_keyframes=total_frames,
-                           batch_event_id=batch_event_id)
+            batch_event_id = str(uuid.uuid4())
+            await self.broker.publish_event(
+                "videos.keyframes.ready.batch",
+                {
+                    "job_id": job_id,
+                    "event_id": batch_event_id,
+                    "total_keyframes": total_frames
+                },
+                correlation_id=job_id
+            )
+            logger.info("DUPLICATE DETECTION: Published batch keyframes ready event",
+                       job_id=job_id,
+                       total_keyframes=total_frames,
+                       batch_event_id=batch_event_id)
             
             # Process each video
             for video_data in all_videos:

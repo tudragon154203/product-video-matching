@@ -66,9 +66,10 @@ class VisionEmbeddingService:
         if expected == 0:
             done = 0
             logger.info("Immediate completion for zero-asset job", job_id=job_id)
-        
-        # Calculate partial completion flag
-        has_partial = (done < expected) or (expected == 0)
+            has_partial = False  # For zero assets, there's no partial completion
+        else:
+            # Calculate partial completion flag
+            has_partial = (done < expected)
         
         # Prepare event data with idempotent flag to prevent duplicate completions
         event_id = str(uuid.uuid4())
@@ -86,15 +87,18 @@ class VisionEmbeddingService:
         # Publish appropriate event - ensure only one completion event per job
         event_type = "image.embeddings.completed" if asset_type == "image" else "video.embeddings.completed"
         
-        # Check if this job has already emitted a completion event
-        if hasattr(self, '_completion_events_sent') and job_id in self._completion_events_sent:
-            logger.info("Completion event already sent for job, skipping duplicate", job_id=job_id)
+        # Check if this job has already emitted a completion event for this specific asset_type
+        # We need to track completion per asset_type (image/video) to allow separate events for embedding vs keypoint
+        completion_key = f"{job_id}:{asset_type}"
+        if hasattr(self, '_completion_events_sent') and completion_key in self._completion_events_sent:
+            logger.info("Completion event already sent for this job and asset type, skipping duplicate",
+                       job_id=job_id, asset_type=asset_type)
             return
             
-        # Mark this job as having sent completion event
+        # Mark this job and asset_type as having sent completion event
         if not hasattr(self, '_completion_events_sent'):
             self._completion_events_sent = set()
-        self._completion_events_sent.add(job_id)
+        self._completion_events_sent.add(completion_key)
         
         await self.broker.publish_event(event_type, event_data)
         logger.info(f"Emitted {asset_type} embeddings completed event",
@@ -186,7 +190,6 @@ class VisionEmbeddingService:
             self.expected_total_frames[job_id] = total_keyframes
             # Store the total frame count for the job
             self.job_frame_counts[job_id] = {'total': total_keyframes, 'processed': 0}
-            logger.info("DUPLICATE DETECTION: Initialized expected total frames", job_id=job_id, total_frames=total_keyframes, current_jobs_with_frames=len(self.expected_total_frames))
             logger.info("Initialized job frame counters", job_id=job_id, total_frames=total_keyframes)
             
             # If there are no keyframes, immediately publish completion event
@@ -200,8 +203,12 @@ class VisionEmbeddingService:
     
     async def _publish_completion_event_with_count(self, job_id: str, asset_type: str, expected: int, done: int):
         """Publish completion event with specific counts"""
-        # Calculate partial completion flag
-        has_partial = (done < expected) or (expected == 0)
+        # Handle zero assets scenario
+        if expected == 0:
+            has_partial = False  # For zero assets, there's no partial completion
+        else:
+            # Calculate partial completion flag
+            has_partial = (done < expected)
         
         # Prepare event data with idempotent flag to prevent duplicate completions
         event_id = str(uuid.uuid4())
@@ -219,18 +226,17 @@ class VisionEmbeddingService:
         # Publish appropriate event - ensure only one completion event per job
         event_type = "image.embeddings.completed" if asset_type == "image" else "video.embeddings.completed"
         
-        # Check if this job has already emitted a completion event
-        if hasattr(self, '_completion_events_sent'):
-            if job_id in self._completion_events_sent:
-                logger.warning("DUPLICATE DETECTION: Completion event already sent for job, skipping", job_id=job_id, asset_type=asset_type)
-                return
-        else:
-            logger.debug("DUPLICATE DETECTION: _completion_events_sent set does not exist, creating it")
-            self._completion_events_sent = set()
+        # Check if this job has already emitted a completion event for this specific asset_type
+        completion_key = f"{job_id}:{asset_type}"
+        if hasattr(self, '_completion_events_sent') and completion_key in self._completion_events_sent:
+            logger.info("Completion event already sent for this job and asset type, skipping duplicate",
+                       job_id=job_id, asset_type=asset_type)
+            return
             
-        # Mark this job as having sent completion event
-        self._completion_events_sent.add(job_id)
-        logger.info(f"DUPLICATE DETECTION: Marking job as completed", job_id=job_id, asset_type=asset_type, completed_jobs_count=len(self._completion_events_sent))
+        # Mark this job and asset_type as having sent completion event
+        if not hasattr(self, '_completion_events_sent'):
+            self._completion_events_sent = set()
+        self._completion_events_sent.add(completion_key)
         
         await self.broker.publish_event(event_type, event_data)
         logger.info(f"Emitted {asset_type} embeddings completed event",

@@ -71,42 +71,78 @@ class DropshipProductFinderService:
                        ebay_count=ebay_count,
                        total_images=total_images)
             
-            # Emit products collections completed event
-            event_id = str(uuid.uuid4())
-            await self.broker.publish_event(
-                "products.collections.completed",
-                {
-                    "job_id": job_id,
-                    "event_id": event_id
-                },
-                correlation_id=job_id
-            )
-            
-            # Emit products images ready batch event FIRST (before individual events)
-            vision_event_id = str(uuid.uuid4())
-            await self.broker.publish_event(
-                "products.images.ready.batch",
-                {
-                    "job_id": job_id,
-                    "event_id": vision_event_id,
-                    "total_images": total_images
-                },
-                correlation_id=job_id
-            )
-            
-            logger.info("Published products.images.ready.batch",
-                       job_id=job_id,
-                       event_id=vision_event_id,
-                       total_images=total_images)
-            
-            # Now publish individual image ready events
-            await self.publish_individual_image_events(job_id)
-            
-            logger.info("Completed product collection",
-                       job_id=job_id,
-                       amazon_count=amazon_count,
-                       ebay_count=ebay_count,
-                       total_images=total_images)
+            # Handle zero products case
+            if total_images == 0:
+                logger.info("No products found for job {job_id}", job_id=job_id)
+                
+                # Emit products collections completed event
+                event_id = str(uuid.uuid4())
+                await self.broker.publish_event(
+                    "products.collections.completed",
+                    {
+                        "job_id": job_id,
+                        "event_id": event_id
+                    },
+                    correlation_id=job_id
+                )
+                
+                # Emit products images ready batch event with total_images: 0
+                vision_event_id = str(uuid.uuid4())
+                await self.broker.publish_event(
+                    "products.images.ready.batch",
+                    {
+                        "job_id": job_id,
+                        "event_id": vision_event_id,
+                        "total_images": 0
+                    },
+                    correlation_id=job_id
+                )
+                
+                logger.info("Published products.images.ready.batch with zero images",
+                           job_id=job_id,
+                           event_id=vision_event_id,
+                           total_images=0)
+                
+                # Skip individual image events when no products found
+                logger.info("Skipping individual image events for job with no products", job_id=job_id)
+                
+            else:
+                # Emit products collections completed event
+                event_id = str(uuid.uuid4())
+                await self.broker.publish_event(
+                    "products.collections.completed",
+                    {
+                        "job_id": job_id,
+                        "event_id": event_id
+                    },
+                    correlation_id=job_id
+                )
+                
+                # Emit products images ready batch event FIRST (before individual events)
+                vision_event_id = str(uuid.uuid4())
+                await self.broker.publish_event(
+                    "products.images.ready.batch",
+                    {
+                        "job_id": job_id,
+                        "event_id": vision_event_id,
+                        "total_images": total_images
+                    },
+                    correlation_id=job_id
+                )
+                
+                logger.info("Published products.images.ready.batch",
+                           job_id=job_id,
+                           event_id=vision_event_id,
+                           total_images=total_images)
+                
+                # Now publish individual image ready events
+                await self.publish_individual_image_events(job_id)
+                
+                logger.info("Completed product collection",
+                           job_id=job_id,
+                           amazon_count=amazon_count,
+                           ebay_count=ebay_count,
+                           total_images=total_images)
             
         except Exception as e:
             logger.error("Failed to process product collection request", error=str(e))

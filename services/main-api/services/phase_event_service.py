@@ -105,6 +105,13 @@ class PhaseEventService:
                 
                 std_logger.info(f"Job {job_id} requires events: {required_events}")
                 
+                # Handle zero-asset jobs - if no asset types are present, transition immediately
+                if not required_events:
+                    logger.info(f"Zero-asset job {job_id} detected, transitioning directly from feature_extraction to matching")
+                    await self.db_handler.update_job_phase(job_id, "matching")
+                    await self._publish_match_request_for_job(job_id)
+                    return
+                
                 # Verify all required events are completed
                 all_events_received = True
                 missing_events = []
@@ -118,13 +125,13 @@ class PhaseEventService:
                         all_events_received = False
                 
                 if all_events_received:
-                    logger.info(f"All feature extraction completed, transitioning to matching for job {job_id}")
+                    logger.info(f"All required feature extraction completed, transitioning to matching for job {job_id}")
                     await self.db_handler.update_job_phase(job_id, "matching")
                     
                     # Publish match request
                     await self._publish_match_request_for_job(job_id)
                 else:
-                    std_logger.warning(f"Job {job_id} missing required events: {missing_events}")
+                    std_logger.info(f"Job {job_id} waiting for required events: {missing_events}")
                         
             elif current_phase == "matching":
                 # Check for matching completion event

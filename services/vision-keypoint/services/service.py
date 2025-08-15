@@ -59,33 +59,31 @@ class VisionKeypointService:
         if expected == 0:
             done = 0
             logger.info("Immediate completion for zero-asset job", job_id=job_id)
+            has_partial = False  # For zero assets, there's no partial completion
+        else:
+            # Calculate partial completion flag
+            has_partial = (done < expected)
         
-        # Calculate partial completion flag
-        has_partial = (done < expected) or (expected == 0)
-        
-        # Prepare event data with idempotent flag to prevent duplicate completions
+        # Prepare event data - only required fields for keypoints schemas
         event_id = str(uuid.uuid4())
         event_data = {
             "job_id": job_id,
-            "event_id": event_id,
-            "total_assets": expected,
-            "processed_assets": done,
-            "failed_assets": 0,  # Placeholder - actual failure tracking would be added separately
-            "has_partial_completion": has_partial or is_timeout,
-            "watermark_ttl": 300,
-            "idempotent": True  # Flag to prevent duplicate completions
+            "event_id": event_id
         }
         
         # Publish appropriate event - ensure only one completion event per job
         event_type = "image.keypoints.completed" if asset_type == "image" else "video.keypoints.completed"
         
-        # Check if this job has already emitted a completion event
-        if job_id in self._completion_events_sent:
-            logger.info("Completion event already sent for job, skipping duplicate", job_id=job_id)
+        # Check if this job has already emitted a completion event for this specific asset_type
+        # We need to track completion per asset_type (image/video) to allow separate events for embedding vs keypoint
+        completion_key = f"{job_id}:{asset_type}"
+        if completion_key in self._completion_events_sent:
+            logger.info("Completion event already sent for this job and asset type, skipping duplicate",
+                       job_id=job_id, asset_type=asset_type)
             return
             
-        # Mark this job as having sent completion event
-        self._completion_events_sent.add(job_id)
+        # Mark this job and asset_type as having sent completion event
+        self._completion_events_sent.add(completion_key)
         
         await self.broker.publish_event(event_type, event_data)
         logger.info(f"Emitted {asset_type} keypoints completed event",
@@ -177,7 +175,6 @@ class VisionKeypointService:
             self.expected_total_frames[job_id] = total_keyframes
             # Store the total keyframe count for the job
             self.job_keyframe_counts[job_id] = {'total': total_keyframes, 'processed': 0}
-            logger.info("DUPLICATE DETECTION: Initialized expected total frames", job_id=job_id, total_frames=total_keyframes, current_jobs_with_frames=len(self.expected_total_frames))
             logger.info("Initialized job keyframe counters", job_id=job_id, total_keyframes=total_keyframes)
             
             # If there are no keyframes, immediately publish completion event
@@ -191,33 +188,32 @@ class VisionKeypointService:
     
     async def _publish_completion_event_with_count(self, job_id: str, asset_type: str, expected: int, done: int):
         """Publish completion event with specific counts"""
-        # Calculate partial completion flag
-        has_partial = (done < expected) or (expected == 0)
+        # Handle zero assets scenario
+        if expected == 0:
+            has_partial = False  # For zero assets, there's no partial completion
+        else:
+            # Calculate partial completion flag
+            has_partial = (done < expected)
         
-        # Prepare event data with idempotent flag to prevent duplicate completions
+        # Prepare event data - only required fields for keypoints schemas
         event_id = str(uuid.uuid4())
         event_data = {
             "job_id": job_id,
-            "event_id": event_id,
-            "total_assets": expected,
-            "processed_assets": done,
-            "failed_assets": 0,  # Placeholder - actual failure tracking would be added separately
-            "has_partial_completion": has_partial,
-            "watermark_ttl": 300,
-            "idempotent": True  # Flag to prevent duplicate completions
+            "event_id": event_id
         }
         
         # Publish appropriate event - ensure only one completion event per job
         event_type = "image.keypoints.completed" if asset_type == "image" else "video.keypoints.completed"
         
-        # Check if this job has already emitted a completion event
-        if job_id in self._completion_events_sent:
-            logger.warning("DUPLICATE DETECTION: Completion event already sent for job, skipping", job_id=job_id, asset_type=asset_type)
+        # Check if this job has already emitted a completion event for this specific asset_type
+        completion_key = f"{job_id}:{asset_type}"
+        if completion_key in self._completion_events_sent:
+            logger.info("Completion event already sent for this job and asset type, skipping duplicate",
+                       job_id=job_id, asset_type=asset_type)
             return
             
-        # Mark this job as having sent completion event
-        self._completion_events_sent.add(job_id)
-        logger.info(f"DUPLICATE DETECTION: Marking job as completed", job_id=job_id, asset_type=asset_type, completed_jobs_count=len(self._completion_events_sent))
+        # Mark this job and asset_type as having sent completion event
+        self._completion_events_sent.add(completion_key)
         
         await self.broker.publish_event(event_type, event_data)
         logger.info(f"Emitted {asset_type} keypoints completed event",

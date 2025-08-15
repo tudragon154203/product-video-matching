@@ -149,7 +149,14 @@ class DatabaseHandler:
             return False
 
     async def get_job_asset_types(self, job_id: str) -> Dict[str, bool]:
-        """Get the asset types (images, videos) for a job."""
+        """Get the asset types (images, videos) for a job.
+        
+        Returns a dictionary indicating which asset types are present:
+        - {"images": True, "videos": True} for mixed jobs
+        - {"images": True, "videos": False} for product-only jobs
+        - {"images": False, "videos": True} for video-only jobs
+        - {"images": False, "videos": False} for zero-asset jobs
+        """
         try:
             # Get counts of products and videos for this job
             product_count, video_count, _ = await self.get_job_counts(job_id)
@@ -157,10 +164,12 @@ class DatabaseHandler:
             # Get counts of products and videos with features
             products_with_features, videos_with_features = await self.get_features_counts(job_id)
             
-            # A job has images if it has products, and has videos if it has videos
-            # We also check if there are features for a more accurate assessment
+            # Determine asset types based on presence of products/videos
+            # According to sprint 7 requirements, we need to handle zero-asset cases
             has_images = product_count > 0 or products_with_features > 0
             has_videos = video_count > 0 or videos_with_features > 0
+            
+            logger.info(f"Job {job_id} asset types determined: images={has_images} (products={product_count}, with_features={products_with_features}), videos={has_videos} (videos={video_count}, with_features={videos_with_features})")
             
             return {"images": has_images, "videos": has_videos}
         except Exception as e:

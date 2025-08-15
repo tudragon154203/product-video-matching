@@ -52,7 +52,7 @@ class BaseProductCollector(ABC):
                 image = image.convert('RGB')
             
             # Resize to standard size (keeping aspect ratio)
-            image.thumbnail((512, 512), Image.Resampling.LANCZOS)
+            image.thumbnail((400, 400), Image.Resampling.LANCZOS)
             
             # Save processed image
             image.save(image_path, "JPEG", quality=90)
@@ -90,7 +90,7 @@ class MockProductCollector(BaseProductCollector):
                 "url": f"https://{source}.com/mock-product-{i}",
                 "images": [
                     f"https://picsum.photos/400/400?random={i*10+j}"
-                    for j in range(5 + (i % 6))  # 5-10 representative images (5-10 based on product index)
+                    for j in range(1 + (i % 3))  # 1-4 representative images 
                 ]
             }
             mock_products.append(product)
