@@ -1,2 +1,2 @@
 # Run database migrations
-python scripts/run_migrations.py
+python scripts/run_migrations.py upgrade
