@@ -147,6 +147,7 @@ services:
       - ../../libs:/app/libs
       - ../../data:/app/data:ro
       - ../../services/vision-embedding:/app/app
+      - ../../${MODEL_CACHE}:/root/.cache/huggingface
     depends_on:
       postgres:
         condition: service_healthy
@@ -173,6 +174,7 @@ services:
       - ../../libs:/app/libs
       - ../../data:/app/data
       - ../../services/vision-keypoint:/app/app
+      - ../../${MODEL_CACHE}:/root/.cache/huggingface
     depends_on:
       postgres:
         condition: service_healthy
