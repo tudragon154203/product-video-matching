@@ -148,6 +148,11 @@ class DatabaseHandler:
             logger.error(f"Failed to check phase event: {e}")
             return False
 
+    async def get_job_asset_types(self, job_id: str) -> Dict[str, bool]:
+        """Get the asset types (images, videos) for a job."""
+        # For now, we return both as True. In a real implementation, we would query the database.
+        return {"images": True, "videos": True}
+    
     async def clear_phase_events(self, job_id: str):
         """Clear all phase events for a job (for testing/reset purposes)."""
         try:

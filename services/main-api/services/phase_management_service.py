@@ -19,10 +19,7 @@ class PhaseManagementService:
         pass
 
     async def phase_update_task(self):
-        """Background task - no longer needed as we're using event-driven phase transitions"""
-        logger.info("Phase update task is deprecated in Sprint 6. Using event-driven phase transitions instead.")
-        logger.info("The system now listens for job-based completion events: image.embeddings.completed, video.embeddings.completed,")
-        logger.info("image.keypoints.completed, and video.keypoints.completed to determine phase transitions.")
-        # We keep this task running but it does nothing since we're using event-driven phase transitions
-        while True:
-            await asyncio.sleep(60)  # Sleep indefinitely
+        """Periodically check and update job phases - DEPRECATED in Sprint 6"""
+        logger.warning("Phase update task is deprecated in Sprint 6")
+        logger.warning("Using event-driven phase transitions instead")
+        # Do nothing since this is now deprecated
