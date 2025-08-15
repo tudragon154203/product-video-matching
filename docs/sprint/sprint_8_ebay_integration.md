@@ -2,7 +2,7 @@
 
 > Goal: Integrate eBay **Browse API** into the `dropship-product-finder` service according to the agreed business constraints. Maintain the image‑first pipeline (download images → emit `products.images.ready`) without requiring changes to downstream services.
 
-> **Note:** This implementation will initially run in the **eBay Sandbox** environment. The `.env` file for the `dropship-product-finder` service will include `EBAY_CLIENT_ID` and `EBAY_CLIENT_SECRET`. These will be read via `config_loader` and used within the application. The service should obtain a fresh `access_token` at startup by calling **Step 1 – Get access token**: send a POST request to `/identity/v1/oauth2/token` with Basic Auth `<CLIENT_ID>:<CLIENT_SECRET>` and receive an `access_token` (usually valid for \~2 hours).
+> **Note:** This implementation will initially run in the **eBay Sandbox** environment. The `.env` file for the `dropship-product-finder` service will include `EBAY_CLIENT_ID` and `EBAY_CLIENT_SECRET`. These will be read via `config_loader` and used within the application. The service should obtain a fresh `access_token` at startup by calling **Step 1 – Get access token**: send a POST request to `/identity/v1/oauth2/token` with Basic Auth `<CLIENT_ID>:<CLIENT_SECRET>` and receive an `access_token` (usually valid for \~2 hours). The `fieldgroups=EXTENDED` parameter should be included in Browse API requests to retrieve extended data. **Caution:** If the API is overused or exceeds the burst rate limit (e.g., 5–10 requests/second depending on account), eBay may temporarily suspend the API key.
 
 ---
 
@@ -20,13 +20,16 @@
 - **Variants:** do not group; each `itemId` is a separate product.
 - **Images:** retrieve **all** (primary + additional). If one image fails, continue downloading others.
 - **Image resize:** longest side ≈ **400px** (keep aspect ratio) before saving locally & emitting event.
+- **Image storage:** in `product_images` table, store both **local image path** and **original image URL** (`image_url_remote`). Delete any images older than **7 days**; they can be re-fetched from the remote URL if needed.
 - **top\_ebay:** value comes from the `main-api` service request payload.
 - **Retry:** 3 times on HTTP errors; skip item if still failing.
 - **Affiliate/EPN:** not used.
 - **Enrich:** do not call `getItem` if search already provides price/shipping info.
-- **Database:** **Breaking change** – drop the existing `products` table and re‑initialize. Add two new columns:
-  - `marketplace` – enum (`us`, `de`, `au`).
-  - `price` – string including currency (e.g., `$20`, `€3`, `5 AUD`).
+- **Database:** **Breaking change**
+  - Drop the existing `products` table and re‑initialize. Add new columns:
+    - `marketplace` – enum (`us`, `de`, `au`).
+    - `price` – string including currency (e.g., `$20`, `€3`, `5 AUD`).
+  - In `product_images` table: `image_url_remote` – string storing the original image URL.
 
 ---
 
@@ -45,6 +48,7 @@
 
 - [eBay Buy APIs Overview](https://developer.ebay.com/api-docs/buy/overview.html)
 - [Browse API v1](https://developer.ebay.com/api-docs/buy/browse/overview.html)
+- [Browse API – item\_summary/search](https://developer.ebay.com/api-docs/buy/browse/resources/item_summary/methods/search)
 - [Identity (OAuth) API](https://developer.ebay.com/api-docs/commerce/identity/overview.html)
 
 ### 3.1 Access Token Retrieval
@@ -56,7 +60,7 @@
 
 ### 3.2 Browse Search
 
-- **GET** `/buy/browse/v1/item_summary/search`.
+- **GET** `/buy/browse/v1/item_summary/search` with `fieldgroups=EXTENDED`.
 - Headers: Bearer token, `X-EBAY-C-MARKETPLACE-ID`.
 - Filters:
 
@@ -68,6 +72,7 @@ buyingOptions:{FIXED_PRICE},returnsAccepted:true,deliveryCountry:US,maxDeliveryC
 
 - Deduplicate by `epid` (fallback `itemId`).
 - Download all images, resize to \~400px, retry failed downloads ×3.
+- Store both local and remote image URLs in `product_images`; schedule cleanup for images older than 7 days.
 
 ---
 
@@ -93,25 +98,38 @@ EBAY_MARKETPLACES=EBAY_US,EBAY_DE,EBAY_AU
 
 ## 5) TODO – Implementation Checklist
 
-- Add env vars & read via `config_loader`.
-- DB migration: **drop old **``** table** (breaking change) and re‑initialize with `marketplace` enum and `price` string columns.
-- Implement OAuth token retrieval on service startup.
-- Implement Browse Search call with fixed filters and dynamic params.
-- Deduplicate results and normalize fields.
-- Download & resize images; emit `products.images.ready`.
-- Add retries & error handling.
-- Test in sandbox environment.
-- Update README and logs.
-- Perform smoke run.
+1. **Env & Config** – Add env vars and read via `config_loader`.
+2. **DB Migration (Breaking Change)** – Drop old `products` table, re-init schema; add new columns to `products` and `product_images`.
+3. **Auth** – Implement OAuth client‑credentials; fetch and refresh token.
+4. **Browse Search Integration** – Implement search call with required filters and params.
+5. **Dedup & Normalization** – Deduplicate and normalize results.
+6. **Image Pipeline** – Download, resize, and store local & remote URLs; implement cleanup.
+7. **Events** – Emit `products.images.ready` per saved image.
+8. **Reliability & Limits** – Implement retry, backoff, and rate‑limit handling.
+9. **Docs & Tests** – Update README; create unit/integration tests.
+10. **Smoke Run** – End‑to‑end test in Sandbox.
+
+---
+
+### 5.1 Phased Execution Plan
+
+- **Phase 0 – Prep:** Env & config setup.
+- **Phase 1 – Schema:** DB migration with breaking changes.
+- **Phase 2 – Auth:** OAuth implementation.
+- **Phase 3 – Search & Merge:** Browse API integration.
+- **Phase 4 – Images & Events:** Image handling and event emission.
+- **Phase 5 – Reliability & Tests:** Stability improvements and tests.
+- **Phase 6 – Sandbox Smoke:** Final validation.
 
 ---
 
 ## 6) Minimal Unit Tests
 
-- **Filter Builder Test:** verify correct filter string for API call.
-- **Deduplication Test:** ensure EPID dedup picks lowest total cost.
-- **Price Formatting Test:** check correct currency symbol/code usage.
-- **Image Resize Test:** verify aspect ratio preserved, longest side \~400px.
-- **Retry Logic Test:** mock transient 5xx and ensure retries happen.
-- **Event Emission Test:** confirm correct payload structure for `products.images.ready`.
+- Verify filter string includes `fieldgroups=EXTENDED`.
+- EPID deduplication picks lowest total cost.
+- Correct currency formatting.
+- Image resize keeps aspect ratio.
+- Image storage includes both local & remote URLs; cleanup works.
+- Retry logic triggers on transient failures.
+- Correct event payload for `products.images.ready`.
 
