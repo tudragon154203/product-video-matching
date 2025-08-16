@@ -47,7 +47,7 @@ async def main():
             await handler.broker.subscribe_to_topic(
                 "products.image.masked",
                 handler.handle_products_image_masked,
-                queue_name="q.vision-keypoint.images.masked"
+                queue_name="q.vision-keypoint.image.masked"
             )
             
             await handler.broker.subscribe_to_topic(

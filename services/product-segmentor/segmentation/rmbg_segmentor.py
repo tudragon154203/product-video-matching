@@ -14,6 +14,8 @@ from .interface import SegmentationInterface
 
 logger = configure_logging("rmbg-segmentor")
 
+from config_loader import config
+
 
 class RMBGSegmentor(SegmentationInterface):
     """RMBG segmentation model implementation."""
@@ -53,7 +55,8 @@ class RMBGSegmentor(SegmentationInterface):
                 None,
                 lambda: AutoModelForImageSegmentation.from_pretrained(
                     self._model_name,
-                    trust_remote_code=True  # Allow custom code execution
+                    trust_remote_code=True,  # Allow custom code execution
+                    token=config.HF_TOKEN
                 )
             )
             

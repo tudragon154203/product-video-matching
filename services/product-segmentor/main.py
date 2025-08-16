@@ -39,26 +39,22 @@ async def main():
             await handler.broker.subscribe_to_topic(
                 "products.images.ready.batch",
                 handler.handle_products_images_ready_batch,
-                queue_name="q.product-segmentor.images.batch"
             )
             
             await handler.broker.subscribe_to_topic(
                 "products.images.ready",
                 handler.handle_products_images_ready,
-                queue_name="q.product-segmentor.images.ready"
             )
             
             # Subscribe to video keyframe events
             await handler.broker.subscribe_to_topic(
                 "videos.keyframes.ready.batch",
                 handler.handle_videos_keyframes_ready_batch,
-                queue_name="q.product-segmentor.keyframes.batch"
             )
             
             await handler.broker.subscribe_to_topic(
                 "videos.keyframes.ready",
                 handler.handle_videos_keyframes_ready,
-                queue_name="q.product-segmentor.keyframes.ready"
             )
             
             logger.info("Product Segmentor Service started")

@@ -31,7 +31,8 @@ class ProductSegmentorConfig:
     
     # Segmentation model configuration
     SEGMENTATION_MODEL_NAME: str = os.getenv("SEGMENTATION_MODEL_NAME", "briaai/RMBG-1.4")
-    
+    HF_TOKEN = os.getenv("HF_TOKEN")
+
     # Processing configuration
     MAX_CONCURRENT_IMAGES: int = int(os.getenv("MAX_CONCURRENT_IMAGES", "4"))
     BATCH_TIMEOUT_SECONDS: int = int(os.getenv("BATCH_TIMEOUT_SECONDS", "300"))
