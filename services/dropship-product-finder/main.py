@@ -9,6 +9,7 @@ sys.path.append("/app/app")
 from common_py.logging_config import configure_logging
 from handlers.dropship_product_handler import DropshipProductHandler
 from config_loader import config
+import aioredis
 
 logger = configure_logging("dropship-product-finder")
 
@@ -16,13 +17,31 @@ logger = configure_logging("dropship-product-finder")
 async def service_context():
     """Context manager for service resources"""
     handler = DropshipProductHandler()
+    redis_client = None
+    
     try:
         # Initialize connections
         await handler.db.connect()
         await handler.broker.connect()
+        
+        # Initialize Redis client
+        redis_client = aioredis.from_url(config.REDIS_URL, decode_responses=True)
+        await redis_client.ping()  # Test connection
+        logger.info("Redis connection established")
+        
+        # Update handler with Redis client
+        handler.redis = redis_client
+        
         yield handler
+        
+    except Exception as e:
+        logger.error("Failed to initialize service resources", error=str(e))
+        raise
     finally:
         # Cleanup resources
+        if redis_client:
+            await redis_client.close()
+            logger.info("Redis connection closed")
         await handler.db.disconnect()
         await handler.broker.disconnect()
 

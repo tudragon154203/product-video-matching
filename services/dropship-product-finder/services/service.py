@@ -1,11 +1,12 @@
 import uuid
 import structlog
-from typing import Dict, Any, List
+from typing import Dict, Any, List, Optional
 from common_py.database import DatabaseManager
 from common_py.messaging import MessageBroker
 from common_py.crud import ProductCRUD, ProductImageCRUD
 from common_py.models import Product, ProductImage
 from collectors.collectors import BaseProductCollector, AmazonProductCollector, EbayProductCollector
+from .auth import eBayAuthService
 
 logger = structlog.get_logger()
 
@@ -13,16 +14,23 @@ logger = structlog.get_logger()
 class DropshipProductFinderService:
     """Main service class for product collection"""
     
-    def __init__(self, db: DatabaseManager, broker: MessageBroker, data_root: str):
+    def __init__(self, db: DatabaseManager, broker: MessageBroker, data_root: str, redis_client: Optional = None):
         self.db = db
         self.broker = broker
+        self.redis = redis_client
         self.product_crud = ProductCRUD(db)
         self.image_crud = ProductImageCRUD(db)
+        
+        # Initialize eBay auth service if Redis is available
+        self.ebay_auth = None
+        if self.redis:
+            from config_loader import config
+            self.ebay_auth = eBayAuthService(config, self.redis)
         
         # Initialize collectors
         self.collectors: Dict[str, BaseProductCollector] = {
             "amazon": AmazonProductCollector(data_root),
-            "ebay": EbayProductCollector(data_root)
+            "ebay": EbayProductCollector(data_root, self.ebay_auth)
         }
     
     async def handle_products_collect_request(self, event_data: Dict[str, Any]):
