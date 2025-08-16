@@ -15,6 +15,8 @@ from file_manager import FileManager
 from config_loader import config
 from handlers.event_emitter import EventEmitter
 from utils.batch_tracker import BatchTracker
+from .image_processor import ImageProcessor
+from .db_updater import DatabaseUpdater
 
 logger = configure_logging("product-segmentor-service", config.LOG_LEVEL)
 
@@ -49,6 +51,10 @@ class ProductSegmentorService:
         
         # Initialize event emitter
         self.event_emitter = EventEmitter(broker)
+        
+        # Initialize processing helpers
+        self.image_processor = ImageProcessor(self.segmentor, logger)
+        self.db_updater = DatabaseUpdater(self.db, logger)
         
         # Batch tracking
         self._batch_trackers: Dict[str, BatchTracker] = {}
@@ -175,33 +181,38 @@ class ProductSegmentorService:
             "idempotent": True  # Flag to prevent duplicate completions
         }
         
-        # Publish appropriate event
-        event_type = "products.images.masked.completed" if asset_type == "image" else "video.keyframes.masked.completed"
-        
         # Check if this job has already emitted a completion event for this specific asset_type
         completion_key = f"{job_id}:{asset_type}"
         if hasattr(self, '_completion_events_sent') and completion_key in self._completion_events_sent:
             logger.warning("Completion event already sent for this job and asset type, skipping duplicate",
                           job_id=job_id, asset_type=asset_type, completion_key=completion_key)
             return
-            
+             
         # Mark this job and asset_type as having sent completion event
         if not hasattr(self, '_completion_events_sent'):
             self._completion_events_sent = set()
         self._completion_events_sent.add(completion_key)
         
-        logger.info("Publishing completion event", job_id=job_id, event_type=event_type, event_id=event_id)
+        logger.info("Publishing completion event", job_id=job_id, asset_type=asset_type)
         
         try:
-            await self.broker.publish_event(event_type, event_data)
-            logger.info("Successfully emitted completion event",
-                       job_id=job_id, event_type=event_type, event_id=event_id,
-                       total_assets=expected, processed_assets=done,
-                       has_partial_completion=has_partial, is_timeout=is_timeout)
+            if asset_type == "image":
+                await self.event_emitter.emit_products_images_masked_completed(
+                    job_id=job_id,
+                    total_assets=expected,
+                    processed_assets=done,
+                    has_partial_completion=has_partial
+                )
+            else:  # video
+                await self.event_emitter.emit_video_keyframes_masked_completed(
+                    job_id=job_id,
+                    total_assets=expected,
+                    processed_assets=done,
+                    has_partial_completion=has_partial
+                )
         except Exception as e:
-            logger.error("Failed to publish completion event",
-                        job_id=job_id, event_type=event_type, event_id=event_id,
-                        error=str(e), expected=expected, done=done)
+            logger.error("Failed to publish completion event via event emitter",
+                        job_id=job_id, error=str(e), expected=expected, done=done)
             raise
         
         # Cleanup job tracking
@@ -433,31 +444,12 @@ class ProductSegmentorService:
             Path to generated mask or None if processing failed
         """
         try:
-            # Start timing for segmentation
-            start_time = time.perf_counter()
-            
-            # Generate mask using segmentation model
-            mask = await self.segmentor.segment_image(local_path)
-            
-            # Calculate segmentation time
-            segmentation_time = time.perf_counter() - start_time
-            
-            if mask is None:
-                logger.warning("Segmentation failed", image_id=image_id, path=local_path)
-                return None
-            
-            # Log segmentation time
-            logger.info("Image segmented", image_id=image_id, image_type=image_type,
-                      segmentation_time_seconds=segmentation_time, local_path=local_path)
-            
-            # Save mask to filesystem
-            if image_type == "product":
-                mask_path = await self.file_manager.save_product_mask(image_id, mask)
-            else:  # frame
-                mask_path = await self.file_manager.save_frame_mask(image_id, mask)
-            
-            return mask_path
-            
+            return await self.image_processor.process_image(
+                image_id=image_id,
+                local_path=local_path,
+                image_type=image_type,
+                file_manager=self.file_manager,
+            )
         except Exception as e:
             logger.error("Error processing image", image_id=image_id, error=str(e))
             return None
@@ -465,26 +457,14 @@ class ProductSegmentorService:
     async def _update_product_image_mask(self, image_id: str, mask_path: str) -> None:
         """Update product image record with mask path."""
         try:
-            query = """
-                UPDATE product_images 
-                SET masked_local_path = $1 
-                WHERE img_id = $2
-            """
-            await self.db.execute(query, mask_path, image_id)
-            
+            await self.db_updater.update_product_image_mask(image_id, mask_path)
         except Exception as e:
             logger.error("Failed to update product image mask", image_id=image_id, error=str(e))
     
     async def _update_video_frame_mask(self, frame_id: str, mask_path: str) -> None:
         """Update video frame record with mask path."""
         try:
-            query = """
-                UPDATE video_frames 
-                SET masked_local_path = $1 
-                WHERE frame_id = $2
-            """
-            await self.db.execute(query, mask_path, frame_id)
-            
+            await self.db_updater.update_video_frame_mask(frame_id, mask_path)
         except Exception as e:
             logger.error("Failed to update video frame mask", frame_id=frame_id, error=str(e))
     

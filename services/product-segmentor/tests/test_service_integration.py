@@ -130,15 +130,11 @@ class TestProductSegmentorServiceIntegration:
         # Verify database was updated
         service.db.execute.assert_called_once()
         
-        # Verify event was published
-        service.broker.publish_event.assert_called_once_with(
-            "products.image.masked",
-            {
-                "event_id": any(str),
-                "job_id": "job_123",
-                "image_id": "img_123",
-                "mask_path": "/mask/path.png"
-            }
+        # Verify event was published via event_emitter
+        service.event_emitter.emit_product_image_masked.assert_called_once_with(
+            job_id="job_123",
+            image_id="img_123",
+            mask_path="/mask/path.png"
         )
     
     @pytest.mark.asyncio
@@ -153,14 +149,12 @@ class TestProductSegmentorServiceIntegration:
         
         await service.handle_products_images_ready_batch(event_data)
         
-        # Verify immediate completion event was published
-        service.broker.publish_event.assert_called_once_with(
-            "products.images.masked.batch",
-            {
-                "event_id": any(str),
-                "job_id": "job_123",
-                "total_images": 0
-            }
+        # Verify immediate completion event was published via event_emitter
+        service.event_emitter.emit_products_images_masked_completed.assert_called_once_with(
+            job_id="job_123",
+            total_assets=0,
+            processed_assets=0,
+            has_partial_completion=False
         )
     
     @pytest.mark.asyncio
@@ -202,26 +196,22 @@ class TestProductSegmentorServiceIntegration:
         # Verify database was updated for both frames
         assert service.db.execute.call_count == 2
         
-        # Verify event was published with both frames
-        service.broker.publish_event.assert_called_once_with(
-            "video.keyframes.masked",
-            {
-                "event_id": any(str),
-                "job_id": "job_123",
-                "video_id": "video_123",
-                "frames": [
-                    {
-                        "frame_id": "frame_1",
-                        "ts": 1.0,
-                        "mask_path": "/mask1.png"
-                    },
-                    {
-                        "frame_id": "frame_2",
-                        "ts": 2.0,
-                        "mask_path": "/mask2.png"
-                    }
-                ]
-            }
+        # Verify event was published via event_emitter
+        service.event_emitter.emit_video_keyframes_masked.assert_called_once_with(
+            job_id="job_123",
+            video_id="video_123",
+            frames=[
+                {
+                    "frame_id": "frame_1",
+                    "ts": 1.0,
+                    "mask_path": "/mask1.png"
+                },
+                {
+                    "frame_id": "frame_2",
+                    "ts": 2.0,
+                    "mask_path": "/mask2.png"
+                }
+            ]
         )
     
     @pytest.mark.asyncio
@@ -236,14 +226,12 @@ class TestProductSegmentorServiceIntegration:
         
         await service.handle_videos_keyframes_ready_batch(event_data)
         
-        # Verify immediate completion event was published
-        service.broker.publish_event.assert_called_once_with(
-            "video.keyframes.masked.batch",
-            {
-                "event_id": any(str),
-                "job_id": "job_123",
-                "total_keyframes": 0
-            }
+        # Verify immediate completion event was published via event_emitter
+        service.event_emitter.emit_video_keyframes_masked_completed.assert_called_once_with(
+            job_id="job_123",
+            total_assets=0,
+            processed_assets=0,
+            has_partial_completion=False
         )
     
     @pytest.mark.asyncio
