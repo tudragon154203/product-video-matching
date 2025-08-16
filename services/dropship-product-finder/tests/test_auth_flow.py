@@ -10,8 +10,8 @@ from pathlib import Path
 # Add current directory to Python path
 sys.path.insert(0, str(Path(__file__).parent))
 
-from dropship_product_finder.config_loader import config
-from dropship_product_finder.services.auth import eBayAuthService
+from config_loader import config
+from services.auth import eBayAuthService
 import aioredis
 import structlog
 import httpx

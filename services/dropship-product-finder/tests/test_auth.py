@@ -7,8 +7,8 @@ from unittest.mock import patch, MagicMock, AsyncMock
 from datetime import datetime, timedelta
 import asyncio
 
-from dropship_product_finder.services.auth import eBayAuthService
-from dropship_product_finder.config_loader import DropshipProductFinderConfig
+from services.auth import eBayAuthService
+from config_loader import DropshipProductFinderConfig
 
 
 @pytest.fixture
@@ -72,7 +72,8 @@ class TesteBayAuthService:
         with patch.object(auth_service, '_refresh_token') as mock_refresh:
             mock_refresh.return_value = None
             with patch.object(auth_service, '_retrieve_token') as mock_retrieve:
-                mock_retrieve.return_value = new_token
+                # First call returns None (no cached token), second call returns new token
+                mock_retrieve.side_effect = [None, new_token]
                 
                 token = await auth_service.get_access_token()
                 
@@ -206,9 +207,13 @@ class TesteBayAuthService:
     @pytest.mark.asyncio
     async def test_rate_limiting(self, auth_service, mock_redis):
         """Test rate limiting functionality"""
-        # Mock current time to simulate fast consecutive calls
+        # Mock asyncio.get_event_loop().time() directly
         with patch('asyncio.get_event_loop') as mock_loop:
-            mock_loop.return_value.time.side_effect = [1000.0, 1000.5]  # 0.5 second apart
+            mock_time = MagicMock()
+            mock_loop.return_value.time = mock_time
+            
+            # First call returns 1000.0, second call returns 1000.5 (0.5 second apart)
+            mock_time.side_effect = [1000.0, 1000.5]
             
             # First call should not sleep
             await auth_service._enforce_rate_limit()

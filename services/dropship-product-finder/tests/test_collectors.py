@@ -4,7 +4,7 @@ Unit tests for eBay collectors with authentication integration.
 import pytest
 from unittest.mock import patch, MagicMock, AsyncMock
 
-from dropship_product_finder.collectors.collectors import EbayProductCollector
+from collectors.collectors import EbayProductCollector
 
 
 @pytest.fixture
@@ -30,6 +30,7 @@ class TestEbayProductCollector:
         """Test product collection with authentication"""
         # Mock eBay API response
         mock_response = AsyncMock()
+        # Make json() return the data directly instead of a coroutine
         mock_response.json.return_value = {
             "itemSummaries": [
                 {

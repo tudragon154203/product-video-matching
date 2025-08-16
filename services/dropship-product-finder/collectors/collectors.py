@@ -193,3 +193,15 @@ class EbayProductCollector(BaseProductCollector):
     def get_source_name(self) -> str:
         """Return the source name"""
         return "ebay"
+    
+    async def _enforce_rate_limit(self) -> None:
+        """Enforce rate limiting to avoid hitting eBay API limits"""
+        current_time = asyncio.get_event_loop().time()
+        time_since_last = current_time - self.last_request_time
+        
+        if time_since_last < self.min_request_interval:
+            sleep_time = self.min_request_interval - time_since_last
+            logger.debug("Rate limiting, sleeping", sleep_time=sleep_time)
+            await asyncio.sleep(sleep_time)
+        
+        self.last_request_time = asyncio.get_event_loop().time()
