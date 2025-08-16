@@ -71,17 +71,28 @@ class TestProductSegmentorServiceIntegration:
     @pytest.fixture
     def service(self, mock_db, mock_broker, temp_dir):
         """Create service with mocked dependencies."""
-        service = ProductSegmentorService(
-            db=mock_db,
-            broker=mock_broker,
-            mask_base_path=temp_dir,
-            max_concurrent=2
-        )
+        # Create mock segmentor first
+        mock_segmentor = MockSegmentor()
+        mock_segmentor._initialized = True  # Pre-initialize the mock
         
-        # Replace segmentor with mock
-        service.segmentor = MockSegmentor()
-        
-        return service
+        # Patch the factory to return our mock
+        with patch('services.service.create_segmentor', return_value=mock_segmentor):
+            service = ProductSegmentorService(
+                db=mock_db,
+                broker=mock_broker,
+                mask_base_path=temp_dir,
+                max_concurrent=2
+            )
+            
+            # Mock EventEmitter methods
+            service.event_emitter.emit_product_image_masked = AsyncMock()
+            service.event_emitter.emit_products_images_masked_batch = AsyncMock()
+            service.event_emitter.emit_video_keyframes_masked = AsyncMock()
+            service.event_emitter.emit_videos_keyframes_masked_batch = AsyncMock()
+            service.event_emitter.emit_products_images_masked_completed = AsyncMock()
+            service.event_emitter.emit_video_keyframes_masked_completed = AsyncMock()
+            
+            return service
     
     @pytest.mark.asyncio
     async def test_service_initialization(self, service):
@@ -240,7 +251,9 @@ class TestProductSegmentorServiceIntegration:
         await service.initialize()
         
         # Use failing segmentor
-        service.segmentor = MockSegmentor(should_fail=True)
+        failing_segmentor = MockSegmentor(should_fail=True)
+        service.segmentor = failing_segmentor
+        service.image_processor.segmentor = failing_segmentor
         
         # Create test image
         test_image_path = f"{temp_dir}/test_image.jpg"
@@ -264,6 +277,11 @@ class TestProductSegmentorServiceIntegration:
     async def test_missing_image_file_handling(self, service):
         """Test handling of missing image files."""
         await service.initialize()
+        
+        # Create a mock segmentor that will fail due to missing file
+        failing_segmentor = MockSegmentor(should_fail=True)
+        service.segmentor = failing_segmentor
+        service.image_processor.segmentor = failing_segmentor
         
         event_data = {
             "product_id": "prod_123",
