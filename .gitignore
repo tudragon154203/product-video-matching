@@ -6,6 +6,7 @@ model_cache/
 data/
 .crush/
 *.ps1
+mcp.json
 
 # Environment variables
 .env
