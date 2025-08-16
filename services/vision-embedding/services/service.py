@@ -18,6 +18,11 @@ class VisionEmbeddingService:
         self.broker = broker
         self.image_crud = ProductImageCRUD(db)
         self.frame_crud = VideoFrameCRUD(db)
+        logger.info("VideoFrameCRUD initialized", frame_crud=self.frame_crud)
+        if hasattr(self.frame_crud, 'get_by_id'):
+            logger.info("VideoFrameCRUD has get_by_id method")
+        else:
+            logger.error("VideoFrameCRUD does not have get_by_id method")
         self.extractor = EmbeddingExtractor(embed_model)
         self.processed_assets = set()  # Track processed assets to avoid duplicates
         self.job_tracking: Dict[str, Dict] = {}  # Track job progress: {job_id: {expected: int, done: int, asset_type: str}}
@@ -534,7 +539,7 @@ class VisionEmbeddingService:
                 logger.info("Processing masked video frame", frame_id=frame_id, job_id=job_id, mask_path=mask_path)
                 
                 # Get the original frame path from database
-                frame_record = await self.frame_crud.get_by_id(frame_id)
+                frame_record = await self.frame_crud.get_video_frame(frame_id)
                 if not frame_record:
                     logger.error("Frame record not found", frame_id=frame_id)
                     continue

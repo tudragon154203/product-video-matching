@@ -51,7 +51,8 @@ class ProductSegmentorConfig:
     DATA_ROOT: str = global_config.DATA_ROOT
     
     # Logging
-    LOG_LEVEL: str = global_config.LOG_LEVEL
+    LOG_LEVEL: str = os.getenv("LOG_LEVEL", global_config.LOG_LEVEL)
+
 
 
 # Create config instance
