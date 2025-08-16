@@ -6,7 +6,8 @@ from typing import Optional
 import numpy as np
 from PIL import Image
 import torch
-from transformers import AutoModelForImageSegmentation, AutoProcessor
+from torchvision import transforms
+from transformers import AutoModelForImageSegmentation
 from common_py.logging_config import configure_logging
 
 from .interface import SegmentationInterface
@@ -17,19 +18,18 @@ logger = configure_logging("rmbg-segmentor")
 class RMBGSegmentor(SegmentationInterface):
     """RMBG segmentation model implementation."""
     
-    def __init__(self, model_name: str = "briaai/RMBG-1.4", cache_dir: Optional[str] = None):
+    def __init__(self, model_name: str = "briaai/RMBG-2.0"):
         """Initialize RMBG segmentor.
         
         Args:
             model_name: Hugging Face model name
-            cache_dir: Directory to cache model files
         """
         self._model_name = model_name
-        self._cache_dir = cache_dir
         self._model = None
-        self._processor = None
+        self._transform = None
         self._device = None
         self._initialized = False
+        self._image_size = (512, 512)
         
     async def initialize(self) -> None:
         """Initialize the RMBG model."""
@@ -40,43 +40,40 @@ class RMBGSegmentor(SegmentationInterface):
             self._device = "cuda" if torch.cuda.is_available() else "cpu"
             logger.info("Using device for segmentation", device=self._device)
             
-            # Load model and processor in executor to avoid blocking
+            # Set matmul precision for better performance
+            if self._device == "cuda":
+                torch.set_float32_matmul_precision('high')
+            
+            # Load model in executor to avoid blocking
             loop = asyncio.get_event_loop()
             
-            logger.info("Loading processor with trust_remote_code=True", model_name=self._model_name)
-            # Load processor
-            self._processor = await loop.run_in_executor(
-                None, 
-                lambda: AutoProcessor.from_pretrained(
-                    self._model_name,
-                    cache_dir=self._cache_dir,
-                    trust_remote_code=True  # Allow custom code execution
-                )
-            )
-            
-            logger.info("Loading model with trust_remote_code=True", model_name=self._model_name)
+            logger.info("Loading RMBG-2.0 model with trust_remote_code=True", model_name=self._model_name)
             # Load model
             self._model = await loop.run_in_executor(
                 None,
                 lambda: AutoModelForImageSegmentation.from_pretrained(
                     self._model_name,
-                    cache_dir=self._cache_dir,
-                    torch_dtype=torch.float32,
                     trust_remote_code=True  # Allow custom code execution
                 )
             )
             
-            # Move model to device
+            # Move model to device and set to eval mode
             self._model = self._model.to(self._device)
             self._model.eval()
             
+            # Setup image transforms
+            self._transform = transforms.Compose([
+                transforms.Resize(self._image_size),
+                transforms.ToTensor(),
+                transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
+            ])
+            
             self._initialized = True
-            logger.info("RMBG model initialized successfully")
+            logger.info("RMBG-2.0 model initialized successfully")
             
         except Exception as e:
             logger.error("Failed to initialize RMBG model", error=str(e))
-            logger.error("If you see 'custom code' error, the model requires trust_remote_code=True")
-            logger.error("This is now enabled. If you prefer, you can use an alternative model like 'Xenova/modnet'")
+            logger.error("Make sure you have the latest transformers and torchvision installed")
             self._initialized = False
             raise
     
@@ -103,33 +100,25 @@ class RMBGSegmentor(SegmentationInterface):
             # Load and process image in executor
             loop = asyncio.get_event_loop()
             
-            # Load image
-            image = await loop.run_in_executor(
+            # Load and transform image
+            image, input_tensor = await loop.run_in_executor(
                 None,
-                lambda: Image.open(image_path).convert("RGB")
+                self._prepare_image,
+                image_path
             )
-            
-            # Process image
-            inputs = await loop.run_in_executor(
-                None,
-                lambda: self._processor(image, return_tensors="pt")
-            )
-            
-            # Move inputs to device
-            inputs = {k: v.to(self._device) for k, v in inputs.items()}
             
             # Run inference
             with torch.no_grad():
-                outputs = await loop.run_in_executor(
+                preds = await loop.run_in_executor(
                     None,
-                    lambda: self._model(**inputs)
+                    lambda: self._model(input_tensor)[-1].sigmoid().cpu()
                 )
             
             # Process output to binary mask
             mask = await loop.run_in_executor(
                 None,
                 self._process_output,
-                outputs,
+                preds,
                 image.size
             )
             
@@ -140,24 +129,35 @@ class RMBGSegmentor(SegmentationInterface):
             logger.error("Segmentation failed", path=image_path, error=str(e))
             return None
     
-    def _process_output(self, outputs, original_size):
+    def _prepare_image(self, image_path: str):
+        """Prepare image for inference."""
+        # Load image
+        image = Image.open(image_path).convert("RGB")
+        
+        # Transform image
+        input_tensor = self._transform(image).unsqueeze(0).to(self._device)
+        
+        return image, input_tensor
+    
+    def _process_output(self, preds, original_size):
         """Process model output to binary mask."""
-        # Get the segmentation logits
-        logits = outputs.logits
+        # Get the prediction
+        pred = preds[0].squeeze()
         
-        # Apply sigmoid and threshold
-        probs = torch.sigmoid(logits)
-        mask = (probs > 0.5).float()
-        
-        # Convert to numpy and resize to original image size
-        mask_np = mask.squeeze().cpu().numpy()
+        # Convert to PIL image
+        pred_pil = transforms.ToPILImage()(pred)
         
         # Resize mask to original image size
-        mask_pil = Image.fromarray((mask_np * 255).astype(np.uint8))
-        mask_resized = mask_pil.resize(original_size, Image.NEAREST)
+        mask_resized = pred_pil.resize(original_size, Image.NEAREST)
         
-        # Convert back to numpy array
-        return np.array(mask_resized)
+        # Convert to numpy array (0-255 range)
+        mask_np = np.array(mask_resized)
+        
+        # Ensure it's in the right format (0-255 uint8)
+        if mask_np.dtype != np.uint8:
+            mask_np = (mask_np * 255).astype(np.uint8)
+        
+        return mask_np
     
     def cleanup(self) -> None:
         """Cleanup RMBG model resources."""
@@ -166,9 +166,8 @@ class RMBGSegmentor(SegmentationInterface):
                 del self._model
                 self._model = None
                 
-            if self._processor is not None:
-                del self._processor
-                self._processor = None
+            if self._transform is not None:
+                self._transform = None
                 
             # Clear GPU cache if using CUDA
             if self._device == "cuda" and torch.cuda.is_available():

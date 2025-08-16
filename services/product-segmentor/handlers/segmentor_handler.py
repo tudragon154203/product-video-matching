@@ -20,7 +20,6 @@ class ProductSegmentorHandler:
         self.service = ProductSegmentorService(
             db=self.db,
             broker=self.broker,
-            segmentation_model=config.SEGMENTATION_MODEL,
             model_name=config.SEGMENTATION_MODEL_NAME,
             mask_base_path=config.MASK_BASE_PATH,
             max_concurrent=config.MAX_CONCURRENT_IMAGES

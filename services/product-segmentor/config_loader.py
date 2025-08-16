@@ -30,7 +30,6 @@ class ProductSegmentorConfig:
     """Configuration for Product Segmentor Service."""
     
     # Segmentation model configuration
-    SEGMENTATION_MODEL: str = os.getenv("SEGMENTATION_MODEL", "rmbg")
     SEGMENTATION_MODEL_NAME: str = os.getenv("SEGMENTATION_MODEL_NAME", "briaai/RMBG-1.4")
     
     # Processing configuration

@@ -22,10 +22,8 @@ class ProductSegmentorService:
         self, 
         db: DatabaseManager, 
         broker: MessageBroker, 
-        segmentation_model: str = "rmbg",
         model_name: str = "briaai/RMBG-1.4",
         mask_base_path: str = "data/masks",
-        model_cache: Optional[str] = None,
         max_concurrent: int = 4
     ):
         """Initialize segmentation service.
@@ -33,7 +31,6 @@ class ProductSegmentorService:
         Args:
             db: Database manager instance
             broker: Message broker instance
-            segmentation_model: Type of segmentation model to use
             model_name: Hugging Face model name
             mask_base_path: Base path for mask storage
             model_cache: Model cache directory
@@ -45,7 +42,7 @@ class ProductSegmentorService:
         self.max_concurrent = max_concurrent
         
         # Initialize segmentation engine
-        self.segmentor = self._create_segmentor(segmentation_model, model_name, model_cache)
+        self.segmentor = self._create_segmentor(model_name)
         
         # Batch tracking
         self._batch_trackers: Dict[str, BatchTracker] = {}
@@ -53,12 +50,11 @@ class ProductSegmentorService:
         
         self.initialized = False
     
-    def _create_segmentor(self, model_type: str, model_name: str, cache_dir: Optional[str]) -> SegmentationInterface:
-        """Create segmentation engine based on configuration."""
-        if model_type.lower() == "rmbg":
-            return RMBGSegmentor(model_name=model_name, cache_dir=cache_dir)
-        else:
-            raise ValueError(f"Unsupported segmentation model: {model_type}")
+    def _create_segmentor(self, model_name: str) -> SegmentationInterface:
+        """Create segmentation engine based on model name."""
+        # For now, we only support RMBG models
+        # In the future, we can detect model type from model_name or add a separate parameter
+        return RMBGSegmentor(model_name=model_name)
     
     async def initialize(self) -> None:
         """Initialize the service."""
