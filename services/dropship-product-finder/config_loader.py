@@ -47,7 +47,7 @@ class DropshipProductFinderConfig:
     EBAY_SCOPES: str = os.getenv("EBAY_SCOPES", "https://api.ebay.com/oauth/api_scope")
     
     # Redis configuration for token storage
-    REDIS_HOST: str = os.getenv("REDIS_HOST", "localhost")
+    REDIS_HOST: str = os.getenv("REDIS_HOST", "redis")
     REDIS_PORT: int = os.getenv("REDIS_PORT", 6379)
     REDIS_PASSWORD: str = os.getenv("REDIS_PASSWORD", "")
     REDIS_DB: int = int(os.getenv("REDIS_DB", "0"))
