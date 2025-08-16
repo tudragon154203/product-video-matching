@@ -113,10 +113,10 @@ EBAY_MARKETPLACES=EBAY_US,EBAY_DE,EBAY_AU
 
 ### 5.1 Phased Execution Plan
 
-- **Phase 0 – Prep:** Env & config setup.
-- **Phase 1 – Schema:** DB migration with breaking changes.
-- **Phase 2 – Auth:** OAuth implementation.
-- **Phase 3 – Search & Merge:** Browse API integration.
+- **Phase 0 – Prep:** Env & config setup. (done)
+- **Phase 1 – Schema:** DB migration with breaking changes. (done)
+- **Phase 2 – Auth:** OAuth implementation. (next - do web search on the eBay docs before doing it)
+- **Phase 3 – Search & Merge:** Browse API integration. (do web search on the eBay docs before doing it)
 - **Phase 4 – Images & Events:** Image handling and event emission.
 - **Phase 5 – Reliability & Tests:** Stability improvements and tests.
 - **Phase 6 – Sandbox Smoke:** Final validation.
