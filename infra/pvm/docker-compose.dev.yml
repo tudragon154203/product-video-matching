@@ -45,6 +45,28 @@ services:
       timeout: 5s
       retries: 5
 
+  redis:
+    image: redis:7.2
+    env_file: .env
+    ports:
+      - "${PORT_REDIS}:6379"
+    restart: unless-stopped
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes
+  
+  redis-insight:
+    image: redis/redisinsight:latest
+    env_file: .env
+    ports:
+      - "${PORT_REDIS_UI}:5540"
+    depends_on:
+      - redis
+    volumes:
+      - redis_insight_data:/data
+    restart: unless-stopped
+
+
   # Application Services
   main-api:
     build:
@@ -249,6 +271,8 @@ services:
 volumes:
   postgres_data:
   rabbitmq_data:
+  redis_data:
+  redis_insight_data:
 
 networks:
   default:
