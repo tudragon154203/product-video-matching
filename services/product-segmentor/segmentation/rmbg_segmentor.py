@@ -43,22 +43,26 @@ class RMBGSegmentor(SegmentationInterface):
             # Load model and processor in executor to avoid blocking
             loop = asyncio.get_event_loop()
             
+            logger.info("Loading processor with trust_remote_code=True", model_name=self._model_name)
             # Load processor
             self._processor = await loop.run_in_executor(
                 None, 
                 lambda: AutoProcessor.from_pretrained(
                     self._model_name,
-                    cache_dir=self._cache_dir
+                    cache_dir=self._cache_dir,
+                    trust_remote_code=True  # Allow custom code execution
                 )
             )
             
+            logger.info("Loading model with trust_remote_code=True", model_name=self._model_name)
             # Load model
             self._model = await loop.run_in_executor(
                 None,
                 lambda: AutoModelForImageSegmentation.from_pretrained(
                     self._model_name,
                     cache_dir=self._cache_dir,
-                    torch_dtype=torch.float32
+                    torch_dtype=torch.float32,
+                    trust_remote_code=True  # Allow custom code execution
                 )
             )
             
@@ -71,6 +75,8 @@ class RMBGSegmentor(SegmentationInterface):
             
         except Exception as e:
             logger.error("Failed to initialize RMBG model", error=str(e))
+            logger.error("If you see 'custom code' error, the model requires trust_remote_code=True")
+            logger.error("This is now enabled. If you prefer, you can use an alternative model like 'Xenova/modnet'")
             self._initialized = False
             raise
     
