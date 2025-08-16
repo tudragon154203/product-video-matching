@@ -7,8 +7,8 @@ from unittest.mock import patch, MagicMock, AsyncMock
 from datetime import datetime, timedelta
 import asyncio
 
-from services.auth import eBayAuthService
-from config_loader import DropshipProductFinderConfig
+from dropship_product_finder.services.auth import eBayAuthService
+from dropship_product_finder.config_loader import DropshipProductFinderConfig
 
 
 @pytest.fixture

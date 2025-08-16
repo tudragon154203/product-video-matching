@@ -13,9 +13,9 @@ from datetime import datetime
 # Add current directory to Python path
 sys.path.insert(0, str(Path(__file__).parent))
 
-from config_loader import config
-from services.auth import eBayAuthService
-from collectors.collectors import EbayProductCollector
+from dropship_product_finder.config_loader import config
+from dropship_product_finder.services.auth import eBayAuthService
+from dropship_product_finder.collectors.collectors import EbayProductCollector
 import aioredis
 import structlog
 

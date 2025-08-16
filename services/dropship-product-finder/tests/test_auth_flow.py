@@ -10,10 +10,11 @@ from pathlib import Path
 # Add current directory to Python path
 sys.path.insert(0, str(Path(__file__).parent))
 
-from config_loader import config
-from services.auth import eBayAuthService
+from dropship_product_finder.config_loader import config
+from dropship_product_finder.services.auth import eBayAuthService
 import aioredis
 import structlog
+import httpx
 
 # Configure logging
 structlog.configure(
@@ -48,11 +49,17 @@ async def test_ebay_auth_flow():
     print(f"   EBAY_TOKEN_URL: {config.EBAY_TOKEN_URL}")
     print(f"   EBAY_SCOPES: {config.EBAY_SCOPES}")
     
+    # Verify full scope configuration
+    expected_scopes = "https://api.ebay.com/oauth/api_scope"
+    if config.EBAY_SCOPES != expected_scopes:
+        print(f"   ❌ ERROR: Expected full scopes '{expected_scopes}', got '{config.EBAY_SCOPES}'")
+        return False
+    
     if not config.EBAY_CLIENT_ID or not config.EBAY_CLIENT_SECRET:
         print("   ❌ ERROR: eBay credentials not properly configured")
         return False
     
-    print("   ✅ Configuration loaded successfully")
+    print("   ✅ Configuration loaded successfully with full scopes")
     
     # Test 2: Redis connection
     print("\n2. Testing Redis connection...")
@@ -70,6 +77,13 @@ async def test_ebay_auth_flow():
     try:
         auth_service = eBayAuthService(config, redis_client)
         print("   ✅ Authentication service initialized successfully")
+        
+        # Verify that the auth service has the correct scopes
+        expected_scopes = "https://api.ebay.com/oauth/api_scope"
+        if auth_service.scopes != expected_scopes:
+            print(f"   ❌ ERROR: Auth service has incorrect scopes: '{auth_service.scopes}'")
+            return False
+        print("   ✅ Authentication service has correct full scopes")
     except Exception as e:
         print(f"   ❌ Authentication service initialization failed: {e}")
         return False
@@ -106,8 +120,56 @@ async def test_ebay_auth_flow():
         print(f"   ❌ Token storage validation failed: {e}")
         return False
     
-    # Test 6: Token refresh
-    print("\n6. Testing token refresh...")
+    # Test 6: Verify OAuth request data contains correct scopes
+    print("\n6. Testing OAuth request data...")
+    try:
+        # Mock the HTTP client to capture the request data
+        original_post = httpx.AsyncClient.post
+        captured_data = {}
+        
+        async def mock_post(*args, **kwargs):
+            captured_data.update(kwargs.get('data', {}))
+            # Create a mock response
+            class MockResponse:
+                def __init__(self):
+                    self.status_code = 200
+                    self._json_data = {"access_token": "mock_token", "expires_in": 7200}
+                
+                def json(self):
+                    return self._json_data
+                
+                def raise_for_status(self):
+                    pass
+            
+            return MockResponse()
+        
+        # Patch the post method
+        httpx.AsyncClient.post = mock_post
+        
+        # Trigger a token refresh to capture the request data
+        await auth_service._refresh_token()
+        
+        # Restore original method
+        httpx.AsyncClient.post = original_post
+        
+        # Verify the scopes in the request data
+        expected_scopes = "https://api.ebay.com/oauth/api_scope"
+        if captured_data.get('scope') == expected_scopes:
+            print("   ✅ OAuth request contains correct full scopes")
+            print(f"   Request scopes: {captured_data.get('scope')}")
+        else:
+            print(f"   ❌ OAuth request has incorrect scopes: '{captured_data.get('scope')}'")
+            print(f"   Expected: {expected_scopes}")
+            return False
+            
+    except Exception as e:
+        print(f"   ❌ OAuth request data test failed: {e}")
+        # Restore original method in case of error
+        httpx.AsyncClient.post = original_post
+        return False
+    
+    # Test 7: Token refresh
+    print("\n7. Testing token refresh...")
     try:
         start_time = asyncio.get_event_loop().time()
         await auth_service._refresh_token()
@@ -128,8 +190,8 @@ async def test_ebay_auth_flow():
         print(f"   ❌ Token refresh failed: {e}")
         return False
     
-    # Test 7: API call with authentication (skipped due to scope limitations)
-    print("\n7. Testing API call with authentication...")
+    # Test 8: API call with authentication (skipped due to scope limitations)
+    print("\n8. Testing API call with authentication...")
     print("   ⚠️  Skipping API call test - requires additional scopes not available for this application")
     print("   ✅ Authentication flow test completed successfully")
     

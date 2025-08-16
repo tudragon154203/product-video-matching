@@ -4,7 +4,7 @@ Unit tests for eBay collectors with authentication integration.
 import pytest
 from unittest.mock import patch, MagicMock, AsyncMock
 
-from collectors.collectors import EbayProductCollector
+from dropship_product_finder.collectors.collectors import EbayProductCollector
 
 
 @pytest.fixture
