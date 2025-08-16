@@ -232,7 +232,7 @@ class TestConcurrentProcessing:
         service.broker.publish_event.assert_called_with(
             "products.images.masked.batch",
             {
-                "event_id": pytest.any(str),
+                "event_id": any(str),
                 "job_id": "empty_job",
                 "total_images": 0
             }

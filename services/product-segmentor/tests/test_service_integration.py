@@ -134,7 +134,7 @@ class TestProductSegmentorServiceIntegration:
         service.broker.publish_event.assert_called_once_with(
             "products.image.masked",
             {
-                "event_id": pytest.any(str),
+                "event_id": any(str),
                 "job_id": "job_123",
                 "image_id": "img_123",
                 "mask_path": "/mask/path.png"
@@ -157,7 +157,7 @@ class TestProductSegmentorServiceIntegration:
         service.broker.publish_event.assert_called_once_with(
             "products.images.masked.batch",
             {
-                "event_id": pytest.any(str),
+                "event_id": any(str),
                 "job_id": "job_123",
                 "total_images": 0
             }
@@ -206,7 +206,7 @@ class TestProductSegmentorServiceIntegration:
         service.broker.publish_event.assert_called_once_with(
             "video.keyframes.masked",
             {
-                "event_id": pytest.any(str),
+                "event_id": any(str),
                 "job_id": "job_123",
                 "video_id": "video_123",
                 "frames": [
@@ -240,7 +240,7 @@ class TestProductSegmentorServiceIntegration:
         service.broker.publish_event.assert_called_once_with(
             "video.keyframes.masked.batch",
             {
-                "event_id": pytest.any(str),
+                "event_id": any(str),
                 "job_id": "job_123",
                 "total_keyframes": 0
             }

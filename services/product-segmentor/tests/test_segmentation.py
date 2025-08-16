@@ -88,7 +88,7 @@ class TestRMBGSegmentor:
     def test_rmbg_segmentor_creation(self):
         """Test RMBG segmentor creation."""
         segmentor = RMBGSegmentor()
-        assert segmentor.model_name == "briaai/RMBG-1.4"
+        assert segmentor.model_name == "briaai/RMBG-2.0"
         assert not segmentor.is_initialized
     
     def test_rmbg_segmentor_custom_model(self):

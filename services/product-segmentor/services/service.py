@@ -13,9 +13,10 @@ from segmentation.interface import SegmentationInterface
 from segmentation.rmbg_segmentor import RMBGSegmentor
 from file_manager import FileManager
 from config_loader import config
+from handlers.event_emitter import EventEmitter
+from utils.batch_tracker import BatchTracker
 
 logger = configure_logging("product-segmentor-service", config.LOG_LEVEL)
-
 
 class ProductSegmentorService:
     """Core business logic for product segmentation."""
@@ -46,9 +47,12 @@ class ProductSegmentorService:
         # Initialize segmentation engine
         self.segmentor = self._create_segmentor(model_name)
         
+        # Initialize event emitter
+        self.event_emitter = EventEmitter(broker)
+        
         # Batch tracking
         self._batch_trackers: Dict[str, BatchTracker] = {}
-        self._processing_semaphore = asyncio.Semaphore(max_concurrent)
+        self._processing_semaphore = asyncio.Semaphore(int(max_concurrent))
         
         # Progress tracking
         self.job_image_counts: Dict[str, Dict[str, int]] = {}
@@ -249,7 +253,7 @@ class ProductSegmentorService:
                 await self._update_product_image_mask(image_id, mask_path)
                 
                 # Emit masked event
-                await self._emit_product_image_masked(job_id, image_id, mask_path)
+                await self.event_emitter.emit_product_image_masked(job_id, image_id, mask_path)
                 
                 logger.info("Product image processed successfully", image_id=image_id)
                 
@@ -382,7 +386,7 @@ class ProductSegmentorService:
             
             # Emit masked event if any frames were processed
             if processed_frames:
-                await self._emit_video_keyframes_masked(job_id, video_id, processed_frames)
+                await self.event_emitter.emit_video_keyframes_masked(job_id, video_id, processed_frames)
                 logger.info("Video keyframes processed", video_id=video_id, processed=len(processed_frames))
             
         except Exception as e:
@@ -484,102 +488,3 @@ class ProductSegmentorService:
         except Exception as e:
             logger.error("Failed to update video frame mask", frame_id=frame_id, error=str(e))
     
-    async def _emit_product_image_masked(self, job_id: str, image_id: str, mask_path: str) -> None:
-        """Emit product image masked event."""
-        event_id = str(uuid.uuid4())
-        event_data = {
-            "event_id": event_id,
-            "job_id": job_id,
-            "image_id": image_id,
-            "mask_path": mask_path
-        }
-        
-        logger.info("Emitting product image masked event", job_id=job_id, image_id=image_id, event_id=event_id, mask_path=mask_path)
-        
-        try:
-            await self.broker.publish_event("products.image.masked", event_data)
-            logger.info("Successfully emitted product image masked event", job_id=job_id, image_id=image_id, event_id=event_id)
-        except Exception as e:
-            logger.error("Failed to emit product image masked event", job_id=job_id, image_id=image_id, event_id=event_id, error=str(e))
-            raise
-    
-    async def _emit_products_images_masked_batch(self, job_id: str, total_images: int) -> None:
-        """Emit products images masked batch event."""
-        event_id = str(uuid.uuid4())
-        event_data = {
-            "event_id": event_id,
-            "job_id": job_id,
-            "total_images": total_images
-        }
-        
-        logger.info("Emitting products images masked batch event", job_id=job_id, total_images=total_images, event_id=event_id)
-        
-        try:
-            await self.broker.publish_event("products.images.masked.batch", event_data)
-            logger.info("Successfully emitted products images masked batch event", job_id=job_id, total_images=total_images, event_id=event_id)
-        except Exception as e:
-            logger.error("Failed to emit products images masked batch event", job_id=job_id, total_images=total_images, event_id=event_id, error=str(e))
-            raise
-    
-    async def _emit_video_keyframes_masked(self, job_id: str, video_id: str, frames: List[dict]) -> None:
-        """Emit video keyframes masked event."""
-        event_id = str(uuid.uuid4())
-        event_data = {
-            "event_id": event_id,
-            "job_id": job_id,
-            "video_id": video_id,
-            "frames": frames
-        }
-        
-        logger.info("Emitting video keyframes masked event", job_id=job_id, video_id=video_id, frame_count=len(frames), event_id=event_id)
-        
-        try:
-            await self.broker.publish_event("video.keyframes.masked", event_data)
-            logger.info("Successfully emitted video keyframes masked event", job_id=job_id, video_id=video_id, frame_count=len(frames), event_id=event_id)
-        except Exception as e:
-            logger.error("Failed to emit video keyframes masked event", job_id=job_id, video_id=video_id, frame_count=len(frames), event_id=event_id, error=str(e))
-            raise
-    
-    async def _emit_videos_keyframes_masked_batch(self, job_id: str, total_keyframes: int) -> None:
-        """Emit videos keyframes masked batch event."""
-        event_id = str(uuid.uuid4())
-        event_data = {
-            "event_id": event_id,
-            "job_id": job_id,
-            "total_keyframes": total_keyframes
-        }
-        
-        logger.info("Emitting videos keyframes masked batch event", job_id=job_id, total_keyframes=total_keyframes, event_id=event_id)
-        
-        try:
-            await self.broker.publish_event("video.keyframes.masked.batch", event_data)
-            logger.info("Successfully emitted videos keyframes masked batch event", job_id=job_id, total_keyframes=total_keyframes, event_id=event_id)
-        except Exception as e:
-            logger.error("Failed to emit videos keyframes masked batch event", job_id=job_id, total_keyframes=total_keyframes, event_id=event_id, error=str(e))
-            raise
-
-
-class BatchTracker:
-    """Tracks batch processing completion."""
-    
-    def __init__(self, job_id: str, batch_type: str, total_count: int):
-        """Initialize batch tracker.
-        
-        Args:
-            job_id: Job identifier
-            batch_type: Type of batch ("products" or "keyframes")
-            total_count: Total number of items in batch
-        """
-        self.job_id = job_id
-        self.batch_type = batch_type
-        self.total_count = total_count
-        self.processed_count = 0
-        self.created_at = datetime.utcnow()
-    
-    def increment_processed(self) -> None:
-        """Increment processed count."""
-        self.processed_count += 1
-    
-    def is_complete(self) -> bool:
-        """Check if batch processing is complete."""
-        return self.processed_count >= self.total_count
