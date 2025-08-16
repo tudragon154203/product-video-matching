@@ -1,0 +1,42 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "VideoKeyframesMasked",
+  "type": "object",
+  "additionalProperties": true,
+  "required": ["event_id", "job_id", "video_id", "frames"],
+  "properties": {
+    "event_id": {
+      "type": "string",
+      "description": "Unique identifier for this event"
+    },
+    "job_id": {
+      "type": "string",
+      "description": "Unique identifier for the job"
+    },
+    "video_id": {
+      "type": "string",
+      "description": "Unique identifier for the video"
+    },
+    "frames": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["frame_id", "ts", "mask_path"],
+        "properties": {
+          "frame_id": {
+            "type": "string",
+            "description": "Unique identifier for the frame"
+          },
+          "ts": {
+            "type": "number",
+            "description": "Timestamp in video (seconds)"
+          },
+          "mask_path": {
+            "type": "string",
+            "description": "Local file system path to the generated mask"
+          }
+        }
+      }
+    }
+  }
+}

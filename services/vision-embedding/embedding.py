@@ -122,4 +122,53 @@ class EmbeddingExtractor:
         if torch.cuda.is_available():
             torch.cuda.empty_cache()
         
-        logger.info("Cleaned up embedding extractor")
+        logger.info("Cleaned up embedding extractor")    
+    
+    async def extract_embeddings_with_mask(self, image_path: str, mask_path: str) -> Tuple[Optional[np.ndarray], Optional[np.ndarray]]:
+        """Extract RGB and grayscale embeddings from an image with mask applied"""
+        try:
+            # Load and preprocess image
+            image = Image.open(image_path).convert('RGB')
+            
+            # Load mask
+            mask = Image.open(mask_path).convert('L')
+            
+            # Resize mask to match image size if needed
+            if mask.size != image.size:
+                mask = mask.resize(image.size, Image.NEAREST)
+            
+            # Apply mask to image
+            masked_image = self._apply_mask_to_image(image, mask)
+            
+            if self.initialized:
+                # Real CLIP embeddings with mask
+                return await self._extract_clip_embeddings(masked_image)
+            else:
+                # Mock embeddings for MVP with mask
+                return await self._extract_mock_embeddings(masked_image)
+                
+        except Exception as e:
+            logger.error("Failed to extract embeddings with mask", 
+                        image_path=image_path, mask_path=mask_path, error=str(e))
+            return None, None
+    
+    def _apply_mask_to_image(self, image: Image.Image, mask: Image.Image) -> Image.Image:
+        """Apply mask to image, setting background to black"""
+        # Convert mask to numpy array
+        mask_array = np.array(mask)
+        
+        # Normalize mask to 0-1 range
+        mask_normalized = mask_array.astype(np.float32) / 255.0
+        
+        # Convert image to numpy array
+        image_array = np.array(image)
+        
+        # Apply mask to each channel
+        masked_array = image_array.copy()
+        for channel in range(3):  # RGB channels
+            masked_array[:, :, channel] = masked_array[:, :, channel] * mask_normalized
+        
+        # Convert back to PIL Image
+        masked_image = Image.fromarray(masked_array.astype(np.uint8))
+        
+        return masked_image

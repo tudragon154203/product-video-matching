@@ -31,30 +31,29 @@ async def main():
     """Main service loop"""
     try:
         async with service_context() as handler:
-            # Subscribe to events
-            # Avoid competing with vision-embedding by setting queue_name
+            # Subscribe to masked events (new segmentation pipeline)
             await handler.broker.subscribe_to_topic(
-                "products.images.ready.batch",
-                handler.handle_products_images_ready_batch,
-                queue_name="q.vision-keypoint.images.batch" 
+                "products.images.masked.batch",
+                handler.handle_products_images_masked_batch,
+                queue_name="q.vision-keypoint.images.masked.batch"
             )
 
             await handler.broker.subscribe_to_topic(
-                "videos.keyframes.ready.batch",
-                handler.handle_videos_keyframes_ready_batch,
-                queue_name="q.vision_keypoint.keyframes.batch"
+                "video.keyframes.masked.batch",
+                handler.handle_videos_keyframes_masked_batch,
+                queue_name="q.vision_keypoint.keyframes.masked.batch"
             )
             
             await handler.broker.subscribe_to_topic(
-                "products.images.ready",
-                handler.handle_products_images_ready,
-                queue_name="q.vision-keypoint.images.ready" 
+                "products.image.masked",
+                handler.handle_products_image_masked,
+                queue_name="q.vision-keypoint.images.masked"
             )
             
             await handler.broker.subscribe_to_topic(
-                "videos.keyframes.ready",
-                handler.handle_videos_keyframes_ready,
-                queue_name="q.vision_keypoint.keyframes.ready"
+                "video.keyframes.masked",
+                handler.handle_video_keyframes_masked,
+                queue_name="q.vision_keypoint.keyframes.masked"
             )
             
            

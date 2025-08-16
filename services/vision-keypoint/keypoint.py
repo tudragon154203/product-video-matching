@@ -167,4 +167,75 @@ class KeypointExtractor:
             
         except Exception as e:
             logger.error("Failed to load keypoints", kp_blob_path=kp_blob_path, error=str(e))
-            return [], np.array([])
+            return [], np.array([]) 
+    
+    async def extract_keypoints_with_mask(self, image_path: str, mask_path: str, entity_id: str) -> Optional[str]:
+        """Extract keypoints and descriptors from an image with mask applied"""
+        try:
+            # Load image
+            image = cv2.imread(image_path, cv2.IMREAD_GRAYSCALE)
+            if image is None:
+                logger.error("Failed to load image", image_path=image_path)
+                return None
+            
+            # Load mask
+            mask = cv2.imread(mask_path, cv2.IMREAD_GRAYSCALE)
+            if mask is None:
+                logger.error("Failed to load mask", mask_path=mask_path)
+                return None
+            
+            # Resize mask to match image size if needed
+            if mask.shape != image.shape:
+                mask = cv2.resize(mask, (image.shape[1], image.shape[0]), interpolation=cv2.INTER_NEAREST)
+            
+            # Apply mask to image (set background to black)
+            masked_image = cv2.bitwise_and(image, mask)
+            
+            # Try AKAZE first (faster and more robust) with mask
+            keypoints, descriptors = await self._extract_akaze_keypoints_with_mask(masked_image, mask)
+            
+            # Fallback to SIFT if AKAZE fails or finds too few keypoints
+            if descriptors is None or len(keypoints) < 10:
+                logger.info("AKAZE found insufficient keypoints with mask, trying SIFT", 
+                           entity_id=entity_id, akaze_count=len(keypoints) if keypoints else 0)
+                keypoints, descriptors = await self._extract_sift_keypoints_with_mask(masked_image, mask)
+            
+            if descriptors is None or len(keypoints) < 5:
+                logger.warning("Insufficient keypoints found with mask", 
+                              entity_id=entity_id, 
+                              final_count=len(keypoints) if keypoints else 0)
+                # Create mock keypoints for MVP
+                return await self._create_mock_keypoints(entity_id)
+            
+            # Save keypoints and descriptors
+            kp_blob_path = await self._save_keypoints(entity_id, keypoints, descriptors)
+            
+            logger.info("Extracted keypoints with mask", 
+                       entity_id=entity_id, 
+                       count=len(keypoints),
+                       descriptor_shape=descriptors.shape)
+            
+            return kp_blob_path
+            
+        except Exception as e:
+            logger.error("Failed to extract keypoints with mask", 
+                        image_path=image_path, mask_path=mask_path, entity_id=entity_id, error=str(e))
+            return None
+    
+    async def _extract_akaze_keypoints_with_mask(self, image: np.ndarray, mask: np.ndarray) -> Tuple[list, Optional[np.ndarray]]:
+        """Extract AKAZE keypoints and descriptors with mask"""
+        try:
+            keypoints, descriptors = self.akaze.detectAndCompute(image, mask)
+            return keypoints, descriptors
+        except Exception as e:
+            logger.error("AKAZE extraction with mask failed", error=str(e))
+            return [], None
+    
+    async def _extract_sift_keypoints_with_mask(self, image: np.ndarray, mask: np.ndarray) -> Tuple[list, Optional[np.ndarray]]:
+        """Extract SIFT keypoints and descriptors with mask"""
+        try:
+            keypoints, descriptors = self.sift.detectAndCompute(image, mask)
+            return keypoints, descriptors
+        except Exception as e:
+            logger.error("SIFT extraction with mask failed", error=str(e))
+            return [], None

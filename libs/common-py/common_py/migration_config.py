@@ -33,18 +33,20 @@ class MigrationConfig:
     def from_env(cls) -> 'MigrationConfig':
         """Create configuration from environment variables"""
         # Get database URL with validation
-        database_url = os.getenv('DATABASE_URL')
-        if not database_url:
+        database_url = "postgresql://postgres:dev@localhost:5444/product_video_matching"
+
+        # database_url = os.getenv('DATABASE_URL')
+        # if not database_url:
             # Fallback to existing config if DATABASE_URL not set
-            try:
-                from libs.config import config
-                database_url = config.POSTGRES_DSN
-                logger.info(f"Using POSTGRES_DSN from libs.config")
-            except ImportError:
-                raise ValueError(
-                    "DATABASE_URL environment variable is required. "
-                    "Set it to your database connection string."
-                )
+            # try:
+            #     from libs.config import config
+            #     database_url = config.POSTGRES_DSN
+            #     logger.info(f"Using POSTGRES_DSN from libs.config")
+            # except ImportError:
+            #     raise ValueError(
+            #         "DATABASE_URL environment variable is required. "
+            #         "Set it to your database connection string."
+            #     )
         
         # Get alembic config path with default
         alembic_config_path = os.getenv('ALEMBIC_CONFIG', 'infra/migrations/alembic.ini')

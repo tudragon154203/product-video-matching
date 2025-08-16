@@ -415,4 +415,235 @@ class VisionEmbeddingService:
         
         except Exception as e:
             logger.error("Failed to process video frames", error=str(e))
+            raise    # New masked event handle
+        
+    async def handle_products_image_masked(self, event_data: Dict[str, Any]):
+        """Handle product image masked event"""
+        try:
+            job_id = event_data["job_id"]
+            image_id = event_data["image_id"]
+            mask_path = event_data["mask_path"]
+            
+            # Create a unique key for this asset
+            asset_key = f"{job_id}:{image_id}"
+            
+            # Skip if we've already processed this asset
+            if asset_key in self.processed_assets:
+                logger.info("Skipping duplicate masked asset", image_id=image_id, job_id=job_id)
+                return
+                
+            # Add to processed assets
+            self.processed_assets.add(asset_key)
+            
+            logger.info("Processing masked product image", image_id=image_id, job_id=job_id, mask_path=mask_path)
+            
+            # Get the original image path from database
+            image_record = await self.image_crud.get_by_id(image_id)
+            if not image_record:
+                logger.error("Image record not found", image_id=image_id)
+                return
+            
+            local_path = image_record.local_path
+            
+            # Extract embeddings with mask applied
+            emb_rgb, emb_gray = await self.extractor.extract_embeddings_with_mask(local_path, mask_path)
+            
+            if emb_rgb is not None and emb_gray is not None:
+                # Update database with embeddings
+                await self.image_crud.update_embeddings(image_id, emb_rgb.tolist(), emb_gray.tolist())
+                
+                # Emit image embedding ready event (per asset)
+                event_id = str(uuid.uuid4())
+                await self.broker.publish_event(
+                    "image.embedding.ready",
+                    {
+                        "job_id": job_id,
+                        "asset_id": image_id,
+                        "event_id": event_id
+                    }
+                )
+                
+                logger.info("Processed masked product image embeddings", image_id=image_id)
+            else:
+                logger.error("Failed to extract embeddings from masked image", image_id=image_id)
+                return
+            
+            # Update job progress tracking only if we have job counts initialized
+            job_counts = self.job_image_counts.get(job_id)
+            if not job_counts:
+                logger.warning("Job counts not initialized for job, skipping completion tracking", job_id=job_id)
+                return
+                
+            # Increment processed count
+            self.job_image_counts[job_id]['processed'] += 1
+            current_count = self.job_image_counts[job_id]['processed']
+            total_count = self.job_image_counts[job_id]['total']
+            
+            logger.debug("Updated job image counters", job_id=job_id,
+                       processed=current_count, total=total_count)
+            
+            # Check if all images are processed
+            if current_count >= total_count:
+                logger.info("All masked images processed for job", job_id=job_id,
+                           processed=current_count, total=total_count)
+                
+                # Publish completion event
+                await self._publish_completion_event_with_count(
+                    job_id, "image", total_count, current_count
+                )
+                
+                # Remove job from tracking
+                del self.job_image_counts[job_id]
+                logger.info("Removed job from tracking", job_id=job_id)
+                
+        except Exception as e:
+            logger.error("Failed to process masked product image", error=str(e))
+            raise
+
+    async def handle_video_keyframes_masked(self, event_data: Dict[str, Any]):
+        """Handle video keyframes masked event"""
+        try:
+            job_id = event_data["job_id"]
+            video_id = event_data["video_id"]
+            frames = event_data["frames"]
+            
+            # Use expected_total_frames from batch event if available, otherwise use frame count
+            expected_count = self.expected_total_frames.get(job_id, len(frames))
+            
+            logger.info("Processing masked video frames", video_id=video_id, frame_count=len(frames), job_id=job_id, expected_count=expected_count)
+            
+            # Initialize job progress with expected frame count from batch
+            await self._update_job_progress(job_id, "video", expected_count, increment=0)
+            
+            # Process each frame
+            for frame_data in frames:
+                frame_id = frame_data["frame_id"]
+                mask_path = frame_data["mask_path"]
+                
+                # Create a unique key for this asset
+                asset_key = f"{job_id}:{frame_id}"
+                
+                # Skip if we've already processed this asset
+                if asset_key in self.processed_assets:
+                    logger.info("Skipping duplicate masked asset", frame_id=frame_id, job_id=job_id)
+                    continue
+                    
+                # Add to processed assets
+                self.processed_assets.add(asset_key)
+                
+                logger.info("Processing masked video frame", frame_id=frame_id, job_id=job_id, mask_path=mask_path)
+                
+                # Get the original frame path from database
+                frame_record = await self.frame_crud.get_by_id(frame_id)
+                if not frame_record:
+                    logger.error("Frame record not found", frame_id=frame_id)
+                    continue
+                
+                local_path = frame_record.local_path
+                
+                # Extract embeddings with mask applied
+                emb_rgb, emb_gray = await self.extractor.extract_embeddings_with_mask(local_path, mask_path)
+                
+                if emb_rgb is not None and emb_gray is not None:
+                    # Update database with embeddings
+                    await self.frame_crud.update_embeddings(frame_id, emb_rgb.tolist(), emb_gray.tolist())
+                    
+                    # Emit video embedding ready event (per asset)
+                    event_id = str(uuid.uuid4())
+                    await self.broker.publish_event(
+                        "video.embedding.ready",
+                        {
+                            "job_id": job_id,
+                            "asset_id": frame_id,
+                            "event_id": event_id
+                        }
+                    )
+                    
+                    logger.info("Processed masked video frame embeddings", frame_id=frame_id)
+                    # Update job progress for successful processing using expected_total_frames
+                    await self._update_job_progress(job_id, "video", expected_count)
+                    
+                    # Update job frame counts tracking
+                    if job_id in self.job_frame_counts:
+                        self.job_frame_counts[job_id]['processed'] += 1
+                        current_count = self.job_frame_counts[job_id]['processed']
+                        total_count = self.job_frame_counts[job_id]['total']
+                        
+                        logger.debug("Updated job frame counters", job_id=job_id,
+                                   processed=current_count, total=total_count)
+                        
+                        # Check if all frames are processed
+                        if current_count >= total_count:
+                            logger.info("All masked frames processed for job", job_id=job_id,
+                                       processed=current_count, total=total_count)
+                            
+                            # Publish completion event
+                            await self._publish_completion_event_with_count(
+                                job_id, "video", total_count, current_count
+                            )
+                            
+                            # Remove job from tracking
+                            del self.job_frame_counts[job_id]
+                            logger.info("Removed job from tracking", job_id=job_id)
+                else:
+                    logger.error("Failed to extract embeddings from masked frame", frame_id=frame_id)
+        
+        except Exception as e:
+            logger.error("Failed to process masked video frames", error=str(e))
+            raise
+
+    async def handle_products_images_masked_batch(self, event_data: Dict[str, Any]):
+        """Handle products images masked batch event to initialize job tracking"""
+        try:
+            job_id = event_data["job_id"]
+            total_images = event_data["total_images"]
+            
+            logger.info("Products images masked batch received", job_id=job_id, total_images=total_images)
+            
+            # Store the total image count for the job
+            self.job_image_counts[job_id] = {'total': total_images, 'processed': 0}
+            logger.info("Initialized job image counters for masked batch", job_id=job_id, total_images=total_images)
+            
+            # If there are no images, immediately publish completion event
+            if total_images == 0:
+                logger.info("No masked images found for job, publishing immediate completion", job_id=job_id)
+                await self._publish_completion_event_with_count(job_id, "image", 0, 0)
+            
+        except Exception as e:
+            logger.error("Failed to handle products images masked batch", job_id=job_id, error=str(e))
+            raise
+
+    async def handle_videos_keyframes_masked_batch(self, event_data: Dict[str, Any]):
+        """Handle videos keyframes masked batch event to initialize job tracking"""
+        try:
+            job_id = event_data["job_id"]
+            event_id = event_data["event_id"]
+            total_keyframes = event_data["total_keyframes"]
+            
+            # Create a unique identifier for this batch event to detect duplicates
+            batch_event_key = f"{job_id}:{event_id}"
+            
+            # Check if we've already processed this batch event
+            if batch_event_key in self.processed_batch_events:
+                logger.info("Ignoring duplicate masked batch event", job_id=job_id, event_id=event_id)
+                return
+            
+            # Mark this batch event as processed
+            self.processed_batch_events.add(batch_event_key)
+            
+            logger.info("Videos keyframes masked batch received", job_id=job_id, event_id=event_id, total_keyframes=total_keyframes)
+            
+            # Store the total frame count for the job
+            self.expected_total_frames[job_id] = total_keyframes
+            # Store the total frame count for the job
+            self.job_frame_counts[job_id] = {'total': total_keyframes, 'processed': 0}
+            logger.info("Initialized job frame counters for masked batch", job_id=job_id, total_frames=total_keyframes)
+            
+            # If there are no keyframes, immediately publish completion event
+            if total_keyframes == 0:
+                logger.info("No masked keyframes found for job, publishing immediate completion", job_id=job_id)
+                await self._publish_completion_event_with_count(job_id, "video", 0, 0)
+            
+        except Exception as e:
+            logger.error("Failed to handle videos keyframes masked batch", job_id=job_id, event_id=event_data.get("event_id"), error=str(e))
             raise

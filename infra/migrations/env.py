@@ -36,8 +36,9 @@ target_metadata = None
 
 def get_url():
     """Get database URL from centralized config"""
-    from libs.config import config as app_config
-    return app_config.POSTGRES_DSN
+    return "postgresql://postgres:dev@localhost:5444/product_video_matching"
+    # from libs.config import config as app_config
+    # return app_config.POSTGRES_DSN
 
 def run_migrations_offline() -> None:
     """Run migrations in 'offline' mode.

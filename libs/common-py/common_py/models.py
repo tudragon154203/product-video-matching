@@ -17,6 +17,7 @@ class ProductImage(BaseModel):
     img_id: str
     product_id: str
     local_path: str
+    masked_local_path: Optional[str] = None
     emb_rgb: Optional[List[float]] = None
     emb_gray: Optional[List[float]] = None
     kp_blob_path: Optional[str] = None
@@ -39,6 +40,7 @@ class VideoFrame(BaseModel):
     video_id: str
     ts: float  # Timestamp in video
     local_path: str
+    masked_local_path: Optional[str] = None
     emb_rgb: Optional[List[float]] = None
     emb_gray: Optional[List[float]] = None
     kp_blob_path: Optional[str] = None

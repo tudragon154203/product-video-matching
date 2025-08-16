@@ -165,6 +165,34 @@ services:
     restart: unless-stopped
     command: ["python", "app/main.py"]
 
+  product-segmentor:
+    build:
+      context: ../../
+      dockerfile: services/product-segmentor/Dockerfile
+    env_file:
+      - .env
+    environment:
+      PYTHONPATH: /app/libs:/app/libs/common-py:/app/libs/contracts
+      DATA_ROOT: /app/data
+    volumes:
+      - ../../libs:/app/libs
+      - ../../data:/app/data
+      - ../../services/product-segmentor:/app/app
+      - ../../${MODEL_CACHE}:/root/.cache/huggingface
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    restart: unless-stopped
+    command: ["python", "app/main.py"]
+    # Uncomment for GPU support
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - capabilities: [gpu]
+
   vision-embedding:
     build:
       context: ../../
@@ -183,6 +211,8 @@ services:
         condition: service_healthy
       rabbitmq:
         condition: service_healthy
+      product-segmentor:
+        condition: service_started
     restart: unless-stopped
     command: ["python", "app/main.py"]
     # Uncomment for GPU support
@@ -210,6 +240,8 @@ services:
         condition: service_healthy
       rabbitmq:
         condition: service_healthy
+      product-segmentor:
+        condition: service_started
     restart: unless-stopped
     command: ["python", "app/main.py"]
 

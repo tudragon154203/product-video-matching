@@ -16,22 +16,23 @@ class VisionKeypointHandler:
             # No initialization needed for keypoint service
             self.initialized = True
         
-    @validate_event("products_images_ready")
-    async def handle_products_images_ready(self, event_data):
-        """Handle product images ready event"""
-        await self.service.handle_products_images_ready(event_data)
+    # New masked event handlers
+    @validate_event("products_image_masked")
+    async def handle_products_image_masked(self, event_data):
+        """Handle product image masked event"""
+        await self.service.handle_products_image_masked(event_data)
         
-    @validate_event("videos_keyframes_ready")
-    async def handle_videos_keyframes_ready(self, event_data):
-        """Handle video keyframes ready event"""
-        await self.service.handle_videos_keyframes_ready(event_data)
+    @validate_event("video_keyframes_masked")
+    async def handle_video_keyframes_masked(self, event_data):
+        """Handle video keyframes masked event"""
+        await self.service.handle_video_keyframes_masked(event_data)
     
-    @validate_event("products_images_ready_batch")
-    async def handle_products_images_ready_batch(self, event_data):
-        """Handle products images ready batch event"""
-        await self.service.handle_products_images_ready_batch(event_data)
+    @validate_event("products_images_masked_batch")
+    async def handle_products_images_masked_batch(self, event_data):
+        """Handle products images masked batch event"""
+        await self.service.handle_products_images_masked_batch(event_data)
     
-    @validate_event("videos_keyframes_ready_batch")
-    async def handle_videos_keyframes_ready_batch(self, event_data):
-        """Handle videos keyframes ready batch event"""
-        await self.service.handle_videos_keyframes_ready_batch(event_data)
+    @validate_event("video_keyframes_masked_batch")
+    async def handle_videos_keyframes_masked_batch(self, event_data):
+        """Handle videos keyframes masked batch event"""
+        await self.service.handle_videos_keyframes_masked_batch(event_data)
