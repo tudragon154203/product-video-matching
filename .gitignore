@@ -7,6 +7,7 @@ data/
 .crush/
 *.ps1
 mcp.json
+infra/qdrant/data
 
 # Environment variables
 .env
