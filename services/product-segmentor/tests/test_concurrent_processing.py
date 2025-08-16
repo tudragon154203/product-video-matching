@@ -86,6 +86,7 @@ class TestConcurrentProcessing:
         # Replace segmentor with mock
         mock_segmentor = MockSegmentor(processing_delay=0.2)
         service.segmentor = mock_segmentor
+        service.image_processor.segmentor = mock_segmentor
         
         return service, mock_segmentor
     
@@ -206,11 +207,11 @@ class TestConcurrentProcessing:
         
         await service.handle_products_images_ready_batch(batch_event)
         
-        # Verify batch tracker was created
-        assert job_id in service._batch_trackers
-        tracker = service._batch_trackers[job_id]
-        assert tracker.total_count == total_images
-        assert tracker.processed_count == 0
+        # Verify progress tracker was initialized
+        progress = service.progress_tracker.get(job_id, 'image')
+        assert progress is not None
+        assert progress.total == total_images
+        assert progress.processed == 0
     
     @pytest.mark.asyncio
     async def test_empty_batch_handling(self, service_with_mock_segmentor):
@@ -229,14 +230,13 @@ class TestConcurrentProcessing:
         await service.handle_products_images_ready_batch(batch_event)
         
         # Verify that batch completion event was emitted immediately
-        service.broker.publish_event.assert_called_with(
-            "products.images.masked.batch",
-            {
-                "event_id": any(str),
-                "job_id": "empty_job",
-                "total_images": 0
-            }
-        )
+        service.broker.publish_event.assert_called_once()
+        call_args = service.broker.publish_event.call_args
+        assert call_args[0][0] == "products.images.masked.batch"
+        assert call_args[0][1]["job_id"] == "empty_job"
+        assert call_args[0][1]["total_images"] == 0
+        assert "event_id" in call_args[0][1]
+        assert isinstance(call_args[0][1]["event_id"], str)
 
 
 if __name__ == "__main__":

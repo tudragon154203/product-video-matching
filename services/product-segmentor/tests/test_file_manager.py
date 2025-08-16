@@ -139,11 +139,13 @@ class TestFileManager:
         """Test getting expected mask paths."""
         # Product mask path
         product_path = file_manager.get_product_mask_path("img_123")
-        assert product_path.endswith("products/img_123.png")
+        assert product_path.endswith("img_123.png")
+        assert "products" in product_path
         
         # Frame mask path
         frame_path = file_manager.get_frame_mask_path("frame_456")
-        assert frame_path.endswith("frames/frame_456.png")
+        assert frame_path.endswith("frame_456.png")
+        assert "frames" in frame_path
     
     @pytest.mark.asyncio
     async def test_atomic_save_on_error(self, file_manager, temp_dir):

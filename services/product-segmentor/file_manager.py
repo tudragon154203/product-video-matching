@@ -157,12 +157,15 @@ class FileManager:
             mask: Binary mask as numpy array
             file_path: Path to save the mask
         """
+        # Ensure values are clipped to 0-255 range first
+        mask = np.clip(mask, 0, 255)
+        
         # Ensure mask is in correct format (0-255 uint8)
         if mask.dtype != np.uint8:
             mask = mask.astype(np.uint8)
         
-        # Ensure values are 0 or 255
-        mask = np.where(mask > 127, 255, 0).astype(np.uint8)
+        # Ensure values are 0 or 255 (values >= 128 become 255)
+        mask = np.where(mask >= 128, 255, 0).astype(np.uint8)
         
         # Save as PNG
         mask_image = Image.fromarray(mask, mode='L')

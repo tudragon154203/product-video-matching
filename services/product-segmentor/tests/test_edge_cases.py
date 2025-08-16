@@ -8,7 +8,7 @@ import tempfile
 import shutil
 from PIL import Image
 
-from services.service import ProductSegmentorService, BatchTracker
+from services.service import ProductSegmentorService
 from segmentation.rmbg_segmentor import RMBGSegmentor
 
 
@@ -52,16 +52,15 @@ class TestEdgeCases:
             "job_id": "empty_job",
             "total_images": 0
         })
-        
+
         # Verify immediate completion event
-        mock_broker.publish_event.assert_called_with(
-            "products.images.masked.batch",
-            {
-                "event_id": any(str),
-                "job_id": "empty_job",
-                "total_images": 0
-            }
-        )
+        mock_broker.publish_event.assert_called_once()
+        call_args = mock_broker.publish_event.call_args
+        assert call_args[0][0] == "products.images.masked.batch"
+        assert call_args[0][1]["job_id"] == "empty_job"
+        assert call_args[0][1]["total_images"] == 0
+        assert "event_id" in call_args[0][1]
+        assert isinstance(call_args[0][1]["event_id"], str)
         
         mock_broker.reset_mock()
         
@@ -72,14 +71,12 @@ class TestEdgeCases:
         })
         
         # Verify immediate completion event
-        mock_broker.publish_event.assert_called_with(
-            "video.keyframes.masked.batch",
-            {
-                "event_id": pytest.any(str),
-                "job_id": "empty_video_job",
-                "total_keyframes": 0
-            }
-        )
+        call_args = mock_broker.publish_event.call_args
+        assert call_args[0][0] == "video.keyframes.masked.batch"
+        assert call_args[0][1]["job_id"] == "empty_video_job"
+        assert call_args[0][1]["total_keyframes"] == 0
+        assert "event_id" in call_args[0][1]
+        assert isinstance(call_args[0][1]["event_id"], str)
     
     @pytest.mark.asyncio
     async def test_missing_files_handling(self, mock_db, mock_broker, temp_dir):
@@ -94,6 +91,7 @@ class TestEdgeCases:
         mock_segmentor = AsyncMock()
         mock_segmentor.segment_image.side_effect = FileNotFoundError("File not found")
         service.segmentor = mock_segmentor
+        service.image_processor.segmentor = mock_segmentor
         
         await service.initialize()
         
@@ -122,6 +120,7 @@ class TestEdgeCases:
         mock_segmentor = AsyncMock()
         mock_segmentor.segment_image.return_value = None
         service.segmentor = mock_segmentor
+        service.image_processor.segmentor = mock_segmentor
         
         await service.initialize()
         
@@ -155,6 +154,7 @@ class TestEdgeCases:
         mock_segmentor = AsyncMock()
         mock_segmentor.segment_image.return_value = np.ones((100, 100), dtype=np.uint8) * 255
         service.segmentor = mock_segmentor
+        service.image_processor.segmentor = mock_segmentor
         
         # Mock database error
         mock_db.execute.side_effect = Exception("Database connection failed")
@@ -181,7 +181,19 @@ class TestEdgeCases:
         mock_db.execute.assert_called_once()
         
         # Event should still be published despite database error
-        mock_broker.publish_event.assert_called_once()
+        # Both single asset event and batch completion event should be called
+        assert mock_broker.publish_event.call_count == 2
+        
+        # Check that single asset event was called
+        single_call_args = mock_broker.publish_event.call_args_list[0]
+        assert single_call_args[0][0] == "products.image.masked"
+        assert single_call_args[0][1]["job_id"] == "job_123"
+        assert single_call_args[0][1]["image_id"] == "img_123"
+        
+        # Check that batch completion event was called
+        batch_call_args = mock_broker.publish_event.call_args_list[1]
+        assert batch_call_args[0][0] == "products.images.masked.completed"
+        assert batch_call_args[0][1]["job_id"] == "job_123"
     
     @pytest.mark.asyncio
     async def test_file_save_error_handling(self, mock_db, mock_broker, temp_dir):
@@ -196,6 +208,7 @@ class TestEdgeCases:
         mock_segmentor = AsyncMock()
         mock_segmentor.segment_image.return_value = np.ones((100, 100), dtype=np.uint8) * 255
         service.segmentor = mock_segmentor
+        service.image_processor.segmentor = mock_segmentor
         
         await service.initialize()
         
@@ -220,33 +233,6 @@ class TestEdgeCases:
         mock_db.execute.assert_not_called()
         mock_broker.publish_event.assert_not_called()
     
-    def test_batch_tracker_functionality(self):
-        """Test batch tracker edge cases."""
-        # Test normal operation
-        tracker = BatchTracker("job_123", "products", 5)
-        assert not tracker.is_complete()
-        assert tracker.processed_count == 0
-        
-        # Test increment
-        tracker.increment_processed()
-        assert tracker.processed_count == 1
-        assert not tracker.is_complete()
-        
-        # Test completion
-        for _ in range(4):
-            tracker.increment_processed()
-        
-        assert tracker.processed_count == 5
-        assert tracker.is_complete()
-        
-        # Test over-completion
-        tracker.increment_processed()
-        assert tracker.processed_count == 6
-        assert tracker.is_complete()  # Still complete
-        
-        # Test zero batch
-        zero_tracker = BatchTracker("job_456", "keyframes", 0)
-        assert zero_tracker.is_complete()  # Zero items means immediately complete
     
     @pytest.mark.asyncio
     async def test_concurrent_processing_limits(self, mock_db, mock_broker, temp_dir):
@@ -266,6 +252,7 @@ class TestEdgeCases:
         mock_segmentor = AsyncMock()
         mock_segmentor.segment_image.side_effect = slow_segment
         service.segmentor = mock_segmentor
+        service.image_processor.segmentor = mock_segmentor
         
         await service.initialize()
         
@@ -316,6 +303,7 @@ class TestEdgeCases:
         mock_segmentor.segment_image.side_effect = very_slow_segment
         mock_segmentor.cleanup = Mock()
         service.segmentor = mock_segmentor
+        service.image_processor.segmentor = mock_segmentor
         
         await service.initialize()
         

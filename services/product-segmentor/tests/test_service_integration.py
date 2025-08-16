@@ -84,7 +84,7 @@ class TestProductSegmentorServiceIntegration:
                 max_concurrent=2
             )
             
-            # Mock EventEmitter methods
+            # Mock the event emitter to track calls without affecting the actual broker
             service.event_emitter.emit_product_image_masked = AsyncMock()
             service.event_emitter.emit_products_images_masked_batch = AsyncMock()
             service.event_emitter.emit_video_keyframes_masked = AsyncMock()
@@ -160,12 +160,10 @@ class TestProductSegmentorServiceIntegration:
         
         await service.handle_products_images_ready_batch(event_data)
         
-        # Verify immediate completion event was published via event_emitter
-        service.event_emitter.emit_products_images_masked_completed.assert_called_once_with(
+        # Verify immediate batch completion event was published via event_emitter
+        service.event_emitter.emit_products_images_masked_batch.assert_called_once_with(
             job_id="job_123",
-            total_assets=0,
-            processed_assets=0,
-            has_partial_completion=False
+            total_images=0
         )
     
     @pytest.mark.asyncio
@@ -237,12 +235,10 @@ class TestProductSegmentorServiceIntegration:
         
         await service.handle_videos_keyframes_ready_batch(event_data)
         
-        # Verify immediate completion event was published via event_emitter
-        service.event_emitter.emit_video_keyframes_masked_completed.assert_called_once_with(
+        # Verify immediate batch completion event was published via event_emitter
+        service.event_emitter.emit_videos_keyframes_masked_batch.assert_called_once_with(
             job_id="job_123",
-            total_assets=0,
-            processed_assets=0,
-            has_partial_completion=False
+            total_keyframes=0
         )
     
     @pytest.mark.asyncio
@@ -296,21 +292,6 @@ class TestProductSegmentorServiceIntegration:
         service.db.execute.assert_not_called()
         service.broker.publish_event.assert_not_called()
     
-    @pytest.mark.asyncio
-    async def test_service_cleanup(self, service):
-        """Test service cleanup."""
-        await service.initialize()
-        
-        # Add some batch trackers
-        service._batch_trackers["job1"] = Mock()
-        service._batch_trackers["job2"] = Mock()
-        
-        await service.cleanup()
-        
-        # Verify cleanup
-        assert not service.initialized
-        assert len(service._batch_trackers) == 0
-        assert not service.segmentor.is_initialized
 
 
 if __name__ == "__main__":

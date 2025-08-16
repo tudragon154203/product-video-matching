@@ -1,4 +1,15 @@
-"""Image processing for segmentation."""
+"""Image processing operations for product segmentation.
+
+This module handles the core image segmentation operations, including:
+- Loading and preprocessing images
+- Applying segmentation models to generate masks
+- Saving mask files to the filesystem
+- Error handling for image processing failures
+
+It serves as a specialized component that focuses solely on the image processing
+aspect of product segmentation, delegating file management and database operations
+to other modules.
+"""
 import time
 from typing import Optional
 from common_py.logging_config import configure_logging
@@ -7,25 +18,43 @@ from segmentation.interface import SegmentationInterface
 logger = configure_logging("product-segmentor")
 
 class ImageProcessor:
+    """Handles core image segmentation operations.
+    
+    This class focuses solely on the image processing aspect of product segmentation,
+    applying segmentation models and generating masks while delegating file management
+    and database operations to other modules.
+    """
     def __init__(self, segmentor: SegmentationInterface):
+        """Initialize image processor with segmentation engine.
+        
+        Args:
+            segmentor: Segmentation interface for mask generation
+        """
         self.segmentor = segmentor
 
     async def process_image(
-        self, 
-        image_id: str, 
-        local_path: str, 
+        self,
+        image_id: str,
+        local_path: str,
         image_type: str,
         file_manager  # FileManager dependency will be injected
     ) -> Optional[str]:
         """Process a single image to generate mask.
         
+        This method handles the complete image segmentation pipeline:
+        1. Applies segmentation model to extract product region
+        2. Measures and logs segmentation performance
+        3. Saves generated mask to filesystem via FileManager
+        4. Handles errors gracefully
+        
         Args:
             image_id: Unique identifier for the image
-            local_path: Path to the source image
+            local_path: Path to the source image file
             image_type: Type of image ("product" or "frame")
+            file_manager: FileManager instance for mask storage
             
         Returns:
-            Path to generated mask or None if processing failed
+            Path to generated mask file or None if processing failed
         """
         try:
             # Start timing for segmentation
