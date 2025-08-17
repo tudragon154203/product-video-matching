@@ -5,8 +5,9 @@ from common_py.database import DatabaseManager
 from common_py.messaging import MessageBroker
 from common_py.crud import ProductCRUD, ProductImageCRUD
 from common_py.models import Product, ProductImage
-from collectors.collectors import BaseProductCollector, AmazonProductCollector, EbayProductCollector
+from collectors.collectors import BaseProductCollector, MockProductCollector, AmazonProductCollector, EbayProductCollector
 from .auth import eBayAuthService
+from config_loader import config
 
 logger = structlog.get_logger()
 
@@ -27,11 +28,22 @@ class DropshipProductFinderService:
             from config_loader import config
             self.ebay_auth = eBayAuthService(config, self.redis)
         
-        # Initialize collectors
-        self.collectors: Dict[str, BaseProductCollector] = {
-            "amazon": AmazonProductCollector(data_root),
-            "ebay": EbayProductCollector(data_root, self.ebay_auth)
-        }
+        # Initialize collectors based on configuration
+        if config.USE_MOCK_FINDERS:
+            logger.info("Using mock product finders for development")
+            self.collectors: Dict[str, BaseProductCollector] = {
+                "amazon": MockProductCollector(data_root),
+                "ebay": MockProductCollector(data_root)
+            }
+            # Disable eBay authentication service when using mock
+            if self.ebay_auth:
+                self.ebay_auth = None
+        else:
+            logger.info("Using real product finders (Amazon and eBay APIs)")
+            self.collectors: Dict[str, BaseProductCollector] = {
+                "amazon": AmazonProductCollector(data_root),
+                "ebay": EbayProductCollector(data_root, self.ebay_auth)
+            }
     
     async def handle_products_collect_request(self, event_data: Dict[str, Any]):
         """Handle products collection request"""

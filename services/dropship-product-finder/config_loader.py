@@ -22,6 +22,9 @@ def load_service_env():
                     key, value = line.split('=', 1)
                     key = key.strip()
                     value = value.strip().strip('"\'')  # Remove quotes
+                    # Remove comments after the value
+                    if '#' in value:
+                        value = value.split('#')[0].strip()
                     os.environ[key] = value
                     print(f"Loaded environment variable: {key}")
 
@@ -45,6 +48,9 @@ class DropshipProductFinderConfig:
     EBAY_MARKETPLACES: str = os.getenv("EBAY_MARKETPLACES", "EBAY_US")
     EBAY_ENVIRONMENT: str = os.getenv("EBAY_ENVIRONMENT", "sandbox")
     EBAY_SCOPES: str = os.getenv("EBAY_SCOPES", "https://api.ebay.com/oauth/api_scope")
+    
+    # Mock configuration - set to True to use mock product finders instead of real APIs
+    USE_MOCK_FINDERS: bool = os.getenv("USE_MOCK_FINDERS", "true").lower() == "true"
     
     # Redis configuration for token storage
     REDIS_HOST: str = os.getenv("REDIS_HOST", "redis")
