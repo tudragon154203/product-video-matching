@@ -9,7 +9,7 @@ import shutil
 from PIL import Image
 
 from services.service import ProductSegmentorService
-from segmentation.rmbg_segmentor import RMBGSegmentor
+from segmentation.rmbg20_segmentor import RMBG20Segmentor
 
 
 class TestEdgeCases:

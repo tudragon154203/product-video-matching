@@ -160,9 +160,9 @@ repo-root/
 │  ├─ kp/<entity_id>.npz
 │  └─ evidence/<match_id>.jpg
 │
-├─ scripts/                       # make, seed, smoke tests
+├─ scripts/                       # seed, smoke tests
 ├─ .env.example                   # biến môi trường mẫu
-├─ Makefile                       # lệnh dev nhanh
+
 └─ README.md
 ```
 
@@ -224,27 +224,9 @@ services:
     volumes: ["./data:/app/data"]
 ```
 
-**Makefile (dev nhanh):**
 
-```makefile
-.PHONY: up-dev down logs seed smoke
-up-dev:
-	docker compose -f infra/pvm/docker-compose.dev.yml up -d --build
-	sleep 2
-	docker compose -f infra/pvm/docker-compose.dev.yml ps
 
-down:
-	docker compose -f infra/pvm/docker-compose.dev.yml down -v
 
-logs:
-	docker compose -f infra/pvm/docker-compose.dev.yml logs -f --tail=200
-
-seed:
-	python scripts/seed.py
-
-smoke:
-	python scripts/smoke_e2e.py
-```
 
 **.env.example**
 

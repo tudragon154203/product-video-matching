@@ -8,7 +8,7 @@ import tempfile
 import os
 
 from segmentation.interface import SegmentationInterface
-from segmentation.rmbg_segmentor import RMBGSegmentor
+from segmentation.rmbg20_segmentor import RMBG20Segmentor
 
 
 class MockSegmentor(SegmentationInterface):
@@ -82,25 +82,25 @@ class TestSegmentationInterface:
             segmentor.cleanup()
 
 
-class TestRMBGSegmentor:
-    """Test RMBG segmentor implementation."""
+class TestRMBG20Segmentor:
+    """Test RMBG-2.0 segmentor implementation."""
     
     def test_rmbg_segmentor_creation(self):
         """Test RMBG segmentor creation."""
-        segmentor = RMBGSegmentor()
+        segmentor = RMBG20Segmentor()
         assert segmentor.model_name == "briaai/RMBG-2.0"
         assert not segmentor.is_initialized
     
     def test_rmbg_segmentor_custom_model(self):
         """Test RMBG segmentor with custom model name."""
         custom_model = "custom/model"
-        segmentor = RMBGSegmentor(model_name=custom_model)
+        segmentor = RMBG20Segmentor(model_name=custom_model)
         assert segmentor.model_name == custom_model
     
     @pytest.mark.asyncio
     async def test_rmbg_segmentor_file_not_found(self):
         """Test RMBG segmentor with non-existent file."""
-        segmentor = RMBGSegmentor()
+        segmentor = RMBG20Segmentor()
         
         # Mock initialization
         segmentor._initialized = True
@@ -111,7 +111,7 @@ class TestRMBGSegmentor:
     @pytest.mark.asyncio
     async def test_rmbg_segmentor_not_initialized(self):
         """Test RMBG segmentor when not initialized."""
-        segmentor = RMBGSegmentor()
+        segmentor = RMBG20Segmentor()
         
         # Create temporary image file
         with tempfile.NamedTemporaryFile(suffix='.jpg', delete=False) as tmp:
@@ -125,6 +125,74 @@ class TestRMBGSegmentor:
             assert mask is None
         finally:
             os.unlink(tmp_path)
+
+
+class TestSegmentorFactory:
+    """Test segmentor factory with both RMBG versions."""
+    
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize("model_name,expected_class", [
+        ("briaai/RMBG-2.0", "RMBG20Segmentor"),
+        ("briaai/RMBG-1.4", "RMBG14Segmentor"),
+        ("BriaAI/RMBG-2.0", "RMBG20Segmentor"),
+        ("BriaAI/RMBG-1.4", "RMBG14Segmentor"),
+        ("rmbg-2.0", "RMBG20Segmentor"),
+        ("rmbg-1.4", "RMBG14Segmentor"),
+        ("unknown/model", "RMBG20Segmentor"),  # Should default to RMBG-2.0
+    ])
+    async def test_factory_model_selection(self, model_name, expected_class):
+        """Test factory creates correct segmentor based on model name."""
+        from services.segmentor_factory import create_segmentor
+        
+        segmentor = create_segmentor(model_name)
+        
+        if expected_class == "RMBG20Segmentor":
+            from segmentation.rmbg20_segmentor import RMBG20Segmentor
+            assert isinstance(segmentor, RMBG20Segmentor)
+        elif expected_class == "RMBG14Segmentor":
+            from segmentation.rmbg14_segmentor import RMBG14Segmentor
+            assert isinstance(segmentor, RMBG14Segmentor)
+        
+        # Verify the model name is set correctly
+        assert segmentor.model_name == model_name
+    
+    @pytest.mark.asyncio
+    async def test_factory_uses_config_default(self):
+        """Test that factory uses config default when no model name provided."""
+        from services.segmentor_factory import create_segmentor
+        from config_loader import config
+        
+        # Mock the config to use RMBG-2.0
+        original_model = config.SEGMENTATION_MODEL_NAME
+        config.SEGMENTATION_MODEL_NAME = "briaai/RMBG-2.0"
+        
+        try:
+            segmentor = create_segmentor()  # No model name provided
+            from segmentation.rmbg20_segmentor import RMBG20Segmentor
+            assert isinstance(segmentor, RMBG20Segmentor)
+            assert segmentor.model_name == "briaai/RMBG-2.0"
+        finally:
+            # Restore original config
+            config.SEGMENTATION_MODEL_NAME = original_model
+    
+    @pytest.mark.asyncio
+    async def test_factory_config_rmbg14_default(self):
+        """Test that factory creates RMBG-1.4 when config uses RMBG-1.4."""
+        from services.segmentor_factory import create_segmentor
+        from config_loader import config
+        
+        # Mock the config to use RMBG-1.4
+        original_model = config.SEGMENTATION_MODEL_NAME
+        config.SEGMENTATION_MODEL_NAME = "briaai/RMBG-1.4"
+        
+        try:
+            segmentor = create_segmentor()  # No model name provided
+            from segmentation.rmbg14_segmentor import RMBG14Segmentor
+            assert isinstance(segmentor, RMBG14Segmentor)
+            assert segmentor.model_name == "briaai/RMBG-1.4"
+        finally:
+            # Restore original config
+            config.SEGMENTATION_MODEL_NAME = original_model
 
 
 if __name__ == "__main__":

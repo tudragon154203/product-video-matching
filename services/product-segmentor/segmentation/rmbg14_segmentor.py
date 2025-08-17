@@ -1,4 +1,4 @@
-"""RMBG (Remove Background) segmentation implementation using Hugging Face transformers."""
+"""RMBG (Remove Background) segmentation implementation using Hugging Face transformers for version 1.4."""
 
 import os
 import asyncio
@@ -12,16 +12,16 @@ from common_py.logging_config import configure_logging
 
 from .interface import SegmentationInterface
 
-logger = configure_logging("rmbg-segmentor")
+logger = configure_logging("rmbg14-segmentor")
 
 from config_loader import config
 
 
-class RMBGSegmentor(SegmentationInterface):
-    """RMBG segmentation model implementation."""
+class RMBG14Segmentor(SegmentationInterface):
+    """RMBG-1.4 segmentation model implementation."""
     
-    def __init__(self, model_name: str = "briaai/RMBG-2.0"):
-        """Initialize RMBG segmentor.
+    def __init__(self, model_name: str = "briaai/RMBG-1.4"):
+        """Initialize RMBG-1.4 segmentor.
         
         Args:
             model_name: Hugging Face model name
@@ -34,9 +34,9 @@ class RMBGSegmentor(SegmentationInterface):
         self._image_size = (512, 512)
         
     async def initialize(self) -> None:
-        """Initialize the RMBG model."""
+        """Initialize the RMBG-1.4 model."""
         try:
-            logger.info("Initializing RMBG segmentation model", model_name=self._model_name)
+            logger.info("Initializing RMBG-1.4 segmentation model", model_name=self._model_name)
             
             # Determine device (GPU if available, otherwise CPU)
             self._device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -49,8 +49,8 @@ class RMBGSegmentor(SegmentationInterface):
             # Load model in executor to avoid blocking
             loop = asyncio.get_event_loop()
             
-            logger.info("Loading RMBG-2.0 model with trust_remote_code=True", model_name=self._model_name)
-            # Load model
+            logger.info("Loading RMBG-1.4 model", model_name=self._model_name)
+            # Load model 
             self._model = await loop.run_in_executor(
                 None,
                 lambda: AutoModelForImageSegmentation.from_pretrained(
@@ -64,24 +64,24 @@ class RMBGSegmentor(SegmentationInterface):
             self._model = self._model.to(self._device)
             self._model.eval()
             
-            # Setup image transforms
+            # Setup image transforms with RMBG-1.4 specific normalization
             self._transform = transforms.Compose([
                 transforms.Resize(self._image_size),
                 transforms.ToTensor(),
-                transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
+                transforms.Normalize([0.5, 0.5, 0.5], [0.5, 0.5, 0.5])  # RMBG-1.4 specific normalization
             ])
             
             self._initialized = True
-            logger.info("RMBG-2.0 model initialized successfully")
+            logger.info("RMBG-1.4 model initialized successfully")
             
         except Exception as e:
-            logger.error("Failed to initialize RMBG model", error=str(e))
+            logger.error("Failed to initialize RMBG-1.4 model", error=str(e))
             logger.error("Make sure you have the latest transformers and torchvision installed")
             self._initialized = False
             raise
     
     async def segment_image(self, image_path: str) -> Optional[np.ndarray]:
-        """Generate product mask using RMBG model.
+        """Generate product mask using RMBG-1.4 model.
         
         Args:
             image_path: Path to input image
@@ -112,10 +112,32 @@ class RMBGSegmentor(SegmentationInterface):
             
             # Run inference
             with torch.no_grad():
-                preds = await loop.run_in_executor(
+                # RMBG-1.4 outputs raw logits, need to apply sigmoid
+                logits = await loop.run_in_executor(
                     None,
-                    lambda: self._model(input_tensor)[-1].sigmoid().cpu()
+                    lambda: self._model(input_tensor)
                 )
+                
+                # Debug: Log the structure of logits
+                logger.debug(f"Model output type: {type(logits)}")
+                if isinstance(logits, (list, tuple)):
+                    logger.debug(f"Model output length: {len(logits)}")
+                    for i, item in enumerate(logits):
+                        logger.debug(f"logits[{i}] type: {type(item)}, shape: {getattr(item, 'shape', 'N/A')}")
+                    # If logits is a list/tuple, get the last element
+                    last_output = logits[-1]
+                    if isinstance(last_output, torch.Tensor):
+                        preds = torch.sigmoid(last_output).cpu()
+                    else:
+                        logger.error(f"Unexpected type in logits[-1]: {type(last_output)}")
+                        raise TypeError(f"Expected Tensor, got {type(last_output)}")
+                elif isinstance(logits, torch.Tensor):
+                    # If logits is a single tensor
+                    logger.debug(f"Model output shape: {logits.shape}")
+                    preds = torch.sigmoid(logits).cpu()
+                else:
+                    logger.error(f"Unexpected model output type: {type(logits)}")
+                    raise TypeError(f"Expected Tensor or list/tuple, got {type(logits)}")
             
             # Process output to binary mask
             mask = await loop.run_in_executor(
@@ -163,7 +185,7 @@ class RMBGSegmentor(SegmentationInterface):
         return mask_np
     
     def cleanup(self) -> None:
-        """Cleanup RMBG model resources."""
+        """Cleanup RMBG-1.4 model resources."""
         try:
             if self._model is not None:
                 del self._model
@@ -177,7 +199,7 @@ class RMBGSegmentor(SegmentationInterface):
                 torch.cuda.empty_cache()
                 
             self._initialized = False
-            logger.info("RMBG model resources cleaned up")
+            logger.info("RMBG-1.4 model resources cleaned up")
             
         except Exception as e:
             logger.error("Error during cleanup", error=str(e))

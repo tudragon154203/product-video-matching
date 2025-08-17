@@ -1,15 +1,19 @@
 """Factory for creating segmentation engines."""
 
 from typing import Optional
+import logging
 from segmentation.interface import SegmentationInterface
-from segmentation.rmbg_segmentor import RMBGSegmentor
+from segmentation.rmbg20_segmentor import RMBG20Segmentor
+from segmentation.rmbg14_segmentor import RMBG14Segmentor
+
+logger = logging.getLogger(__name__)
 
 
-def create_segmentor(model_name: str, hf_token: Optional[str] = None) -> SegmentationInterface:
-    """Create segmentation engine based on model name.
+def create_segmentor(model_name: Optional[str] = None, hf_token: Optional[str] = None) -> SegmentationInterface:
+    """Create segmentation engine based on model name or configuration.
     
     Args:
-        model_name: Hugging Face model name
+        model_name: Optional Hugging Face model name. If None, uses config default.
         hf_token: Optional Hugging Face token for private models
         
     Returns:
@@ -18,6 +22,19 @@ def create_segmentor(model_name: str, hf_token: Optional[str] = None) -> Segment
     Raises:
         ValueError: If model type is not supported
     """
-    # For now, we only support RMBG models
-    # In the future, we can detect model type from model_name or add a separate parameter
-    return RMBGSegmentor(model_name=model_name)
+    # Import config here to avoid circular imports
+    from config_loader import config
+    
+    # Use provided model_name or fall back to config
+    if model_name is None:
+        model_name = config.SEGMENTATION_MODEL_NAME
+    
+    # Detect RMBG version and create appropriate segmentor
+    if "RMBG-1.4" in model_name or "rmbg-1.4" in model_name:
+        return RMBG14Segmentor(model_name=model_name)
+    elif "RMBG-2.0" in model_name or "rmbg-2.0" in model_name:
+        return RMBG20Segmentor(model_name=model_name)
+    else:
+        # Default to RMBG-2.0 for backward compatibility
+        logger.warning(f"Unknown RMBG model version, defaulting to RMBG-2.0: {model_name}")
+        return RMBG20Segmentor(model_name=model_name)

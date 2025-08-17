@@ -25,11 +25,12 @@ This system processes industry keywords to find visual matches between products 
    +-------------------+
    |   Main API        |
    |  (State Machine)  |
-   +-------------------+
+   +-------------------+ 
         |
         v
    +-------------------+
    | RabbitMQ (events) |
+   | (See CONTRACTS.md)|
    +-------------------+
      /               
     v                 v
@@ -47,16 +48,27 @@ This system processes industry keywords to find visual matches between products 
     +--------+--------+
              |
              v
+   +-------------------+ 
+   | Product Segmentor |
+   +-------------------+
+             |
+             v
+ (products.image.   (videos.keyframes.
+     masked)             masked)
+    |                 |
+    +--------+--------+
+             |
+             v
    +-------------------------------------+
    |   Vision Embedding   || Vision Keypoint   |
    |  (chạy song song)    ||  (chạy song song) |
    +-------------------------------------+
+       |
+       |
+       | (emit image/video       |
+       | embeddings)             |
        |                         |
-       |                         |
-       | (emit image/video       | (emit image/video
-       | embeddings)             | keypoints)
-       |                         |
-       +-----------+-------------+
+       +-----------+-------------
                    |
                    v
            +-------------------+
@@ -65,7 +77,7 @@ This system processes industry keywords to find visual matches between products 
            +-------------------+
                    |
                    v
-   +-------------------------------+
+   +-------------------------------+ 
    |  BARRIER (in Main API)        |
    |  Wait for ALL:               |
    |   - image.embeddings.completed|
@@ -89,7 +101,7 @@ This system processes industry keywords to find visual matches between products 
                    v
    +-------------------+
    | Evidence Builder  |
-   +-------------------+
+   +-------------------+ 
                    |
                    v
    +-------------------+
@@ -98,6 +110,7 @@ This system processes industry keywords to find visual matches between products 
                    |
                    v
               [Client]
+
 
 ## Quick Start
 

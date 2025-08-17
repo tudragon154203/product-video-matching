@@ -75,26 +75,7 @@ docker compose -f infra/pvm/docker-compose.dev.yml build <service_name>
 docker compose -f infra/pvm/docker-compose.dev.yml up -d --no-deps <service_name>
 ```
 
-## 🎯 **Quick Commands (if you have the Makefile)**
 
-If you're using the Makefile, you can use these shorter commands:
-
-```bash
-# Start system
-make up-dev
-
-# Stop system
-make down
-
-# View logs
-make logs
-
-# Restart specific service
-make restart-main-api
-
-# Check health
-make health
-```
 
 ## 🔧 **Complete Deployment Workflow**
 
