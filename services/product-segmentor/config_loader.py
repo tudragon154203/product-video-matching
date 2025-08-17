@@ -33,11 +33,13 @@ class ProductSegmentorConfig:
     FOREGROUND_SEG_MODEL_NAME: str = os.getenv("FOREGROUND_SEG_MODEL_NAME", "briaai/RMBG-1.4")
     PEOPLE_SEG_MODEL_NAME: str = os.getenv("PEOPLE_SEG_MODEL_NAME", "yolo11l-seg")
     HF_TOKEN = os.getenv("HF_TOKEN")
+    PEOPLE_SEG_MODEL_CACHE: str = os.getenv("PEOPLE_SEG_MODEL_CACHE", "./model_cache")
 
     # Processing configuration
     MAX_CONCURRENT_IMAGES: int = int(os.getenv("MAX_CONCURRENT_IMAGES", "4"))
     BATCH_TIMEOUT_SECONDS: int = int(os.getenv("BATCH_TIMEOUT_SECONDS", "300"))
     MASK_QUALITY: float = float(os.getenv("MASK_QUALITY", "0.8"))
+    IMG_SIZE: tuple[int, int] = global_config.IMG_SIZE
     
     # File paths
     FOREGROUND_MASK_DIR_PATH: str = os.getenv("FOREGROUND_MASK_DIR_PATH", "data/masks_foreground")
@@ -52,7 +54,7 @@ class ProductSegmentorConfig:
     
     # Data root (from global config)
     DATA_ROOT: str = global_config.DATA_ROOT
-    MODEL_CACHE: str = global_config.MODEL_CACHE
+    FOREGROUND_SEG_MODEL_CACHE: str = global_config.MODEL_CACHE
     
     # Logging
     LOG_LEVEL: str = os.getenv("LOG_LEVEL", global_config.LOG_LEVEL)

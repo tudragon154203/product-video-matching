@@ -1,7 +1,7 @@
 # Repository Guidelines
 
 ## Project Structure & Module Organization
-- `services/`: Python microservices. Key services: `main-api` (orchestration), `results-api` (read API), `vector-index` (pgvector), `vision-embedding`, `vision-keypoint`, `video-crawler`, `matcher`, `evidence-builder`, `dropship-product-finder`.
+- `services/`: Python microservices. Key services: `main-api` (orchestration), `results-api` (read API), `vision-embedding`, `vision-keypoint`, `video-crawler`, `matcher`, `evidence-builder`, `dropship-product-finder`.
 - `libs/`: shared code. Use `libs/common-py/common_py/*` via `PYTHONPATH` in Compose.
 - `infra/pvm/`: Docker Compose env (`docker-compose.dev.yml`) and `.env` files.
 - `tests/`: integration/system tests (requires infra up). Fixtures in `tests/conftest.py`.

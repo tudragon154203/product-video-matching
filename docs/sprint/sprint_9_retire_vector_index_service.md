@@ -1,6 +1,6 @@
 # Sprint 9 — Retire `vector-index` Service
 
-**Status:** Proposal → Implementation → Verification → Cleanup\
+**Status:** Proposal → Implementation → Verification → Cleanup ✅ **COMPLETED**\
 **Owner:** Platform / Matching\
 **Goal:** Remove the standalone **vector-index** microservice. Zero user-facing behavior change.
 

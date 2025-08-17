@@ -39,7 +39,6 @@
 5. **Media Ingestion** – tìm & tải video (YouTube, Bilibili), trích **keyframe**.
 6. **Vision Embedding (GPU)** – sinh **emb\_rgb**/**emb\_gray** từ ảnh SP & keyframe.
 7. **Vision Keypoint (CPU)** – trích **keypoint descriptors** (AKAZE/SIFT) → lưu **kp\_blob**.
-8. **Vector Index** – upsert/search ANN (pgvector HNSW) cho **product\_images**.
 9. **Matcher** – retrieval (embeddings) → rerank (AKAZE/SIFT + **RANSAC**) → aggregate SP↔video.
 10. **Evidence Builder** – render ảnh bằng chứng (side-by-side + overlay inliers).
 11. **Rules/Config** *(optional)* – quản lý ngưỡng/trọng số theo ngành (hot-reload).
@@ -85,8 +84,7 @@ Contracts đặt trong `libs/contracts/`, validate ở producer & consumer.
 2. **Catalog Collector** tải gallery → `` → publish `products.image.ready`.
 3. **Media Ingestion** tải video → trích **3–8 keyframe** (lọc blur) → `` → publish `videos.keyframes.ready`.
 4. **Vision Embedding** & **Vision Keypoint** subscribe các sự kiện ready → tạo `` (thêm `kp_blob_path: data/kp/{entity_id}.npz`).
-5. **Vector Index** upsert embeddings **product\_images** (ANN).
-6. **Orchestrator** publish `match.request` → **Matcher**: retrieval ANN top-K → rerank **AKAZE/SIFT + RANSAC** → aggregate SP↔video → publish `match.result`.
+5. **Orchestrator** publish `match.request` → **Matcher**: retrieval ANN top-K → rerank **AKAZE/SIFT + RANSAC** → aggregate SP↔video → publish `match.result`.
 7. **Evidence Builder** render ảnh bằng chứng → `` → publish `match.result.enriched`.
 8. **Results API** phục vụ n8n/UI (filter theo `min_score`).
 
@@ -134,7 +132,6 @@ repo-root/
 │  ├─ media-ingestion/            # search + download + keyframes (YouTube/Bilibili)
 │  ├─ vision-embedding/           # (GPU) CLIP/DINOv2: emb_rgb/emb_gray
 │  ├─ vision-keypoint/            # (CPU) AKAZE/SIFT → kp_blob
-│  ├─ vector-index/               # pgvector HNSW + REST /search
 │  ├─ matcher/                    # retrieval→RANSAC→aggregate→emit match.result
 │  ├─ evidence-builder/           # render side-by-side + overlay inliers
 │  └─ rules-config/               # (optional) ngưỡng, trọng số theo ngành
@@ -211,9 +208,6 @@ services:
     build: ./services/vision-keypoint
     env_file: .env
     volumes: ["./data:/app/data"]
-  vector-index:
-    build: ./services/vector-index
-    env_file: .env
   matcher:
     build: ./services/matcher
     env_file: .env

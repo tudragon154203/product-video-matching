@@ -27,7 +27,7 @@ class RMBG20Segmentor(SegmentationInterface):
         self._transform = None
         self._device = None
         self._initialized = False
-        self._image_size = (512, 512)
+        self._image_size = config.IMG_SIZE
         
     async def initialize(self) -> None:
         """Initialize the RMBG model."""

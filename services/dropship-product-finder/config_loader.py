@@ -4,32 +4,10 @@ Uses environment variables directly since Docker Compose loads both shared and s
 """
 import os
 import sys
-from pathlib import Path
 from dataclasses import dataclass
 
 # Add libs directory to PYTHONPATH for imports
 sys.path.insert(0, '/app/libs')
-
-def load_service_env():
-    """Load service-specific environment variables"""
-    # Try to load service-specific .env file
-    service_env_path = Path(__file__).parent / '.env'
-    if service_env_path.exists():
-        with open(service_env_path, 'r') as f:
-            for line in f:
-                line = line.strip()
-                if line and not line.startswith('#') and '=' in line:
-                    key, value = line.split('=', 1)
-                    key = key.strip()
-                    value = value.strip().strip('"\'')  # Remove quotes
-                    # Remove comments after the value
-                    if '#' in value:
-                        value = value.split('#')[0].strip()
-                    os.environ[key] = value
-                    print(f"Loaded environment variable: {key}")
-
-# Load service-specific environment variables
-load_service_env()
 
 try:
     from config import config as global_config
@@ -40,7 +18,7 @@ except ImportError:
 
 @dataclass
 class DropshipProductFinderConfig:
-    """Configuration for the catalog collector service"""
+    """Configuration for the catalog collector service."""
     
     # eBay API configuration
     EBAY_CLIENT_ID: str = os.getenv("EBAY_CLIENT_ID", "")

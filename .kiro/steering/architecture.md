@@ -23,7 +23,6 @@ services/
 ├── video-crawler/         # Video processing (YouTube)
 ├── vision-embedding/      # CLIP embeddings generation
 ├── vision-keypoint/       # AKAZE/SIFT keypoint extraction
-├── vector-index/          # Vector storage & search
 ├── matcher/               # Core matching logic
 └── evidence-builder/      # Visual evidence generation
 ```

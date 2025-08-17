@@ -4,7 +4,7 @@ Loads environment variables from .env file and provides type-safe accessors.
 """
 import os
 from pathlib import Path
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, Tuple
 from dataclasses import dataclass, field
 
 # Load environment variables from .env file
@@ -55,6 +55,14 @@ def get_env_float(key: str, default: float = 0.0) -> float:
     except ValueError:
         return default
 
+def get_env_tuple_int(key: str, default: Tuple[int, int]) -> Tuple[int, int]:
+    """Get tuple of integers environment variable with fallback to default"""
+    value = get_env_var(key, str(default))
+    try:
+        return tuple(map(int, value.strip("()").split(",")))
+    except Exception:
+        return default
+
 @dataclass
 class Config:
     """Centralized configuration class"""
@@ -82,6 +90,7 @@ class Config:
     # Vision Models
     EMBED_MODEL: str = field(default_factory=lambda: get_env_var("EMBED_MODEL", "clip-vit-b32"))
     MODEL_CACHE: str = field(default_factory=lambda: get_env_var("MODEL_CACHE", "./model_cache"))
+    IMG_SIZE: Tuple[int, int] = field(default_factory=lambda: get_env_tuple_int("IMG_SIZE", (512, 512)))
 
     # Vector Search Configuration
     RETRIEVAL_TOPK: int = field(default_factory=lambda: get_env_int("RETRIEVAL_TOPK", 20))

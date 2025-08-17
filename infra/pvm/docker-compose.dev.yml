@@ -247,25 +247,6 @@ services:
     restart: unless-stopped
     command: ["python", "app/main.py"]
 
-  vector-index:
-    build:
-      context: ../../
-      dockerfile: services/vector-index/Dockerfile
-    env_file:
-      - .env
-    environment:
-      PYTHONPATH: /app/libs:/app/libs/common-py:/app/libs/contracts
-    volumes:
-      - ../../libs:/app/libs
-      - ../../services/vector-index:/app/app
-    depends_on:
-      postgres:
-        condition: service_healthy
-      rabbitmq:
-        condition: service_healthy
-    restart: unless-stopped
-    command: ["python", "app/main.py"]
-
   matcher:
     build:
       context: ../../
@@ -284,8 +265,6 @@ services:
         condition: service_healthy
       rabbitmq:
         condition: service_healthy
-      vector-index:
-        condition: service_started
     restart: unless-stopped
     command: ["python", "app/main.py"]
 

@@ -343,7 +343,7 @@ Check Results API service health.
 - `EMBED_MODEL`: Vision embedding model (default: clip-vit-b32)
 
 ### Vector Search Configuration
-- `RETRIEVAL_TOPK`: Number of results to return in vector search (default: 20)
+- `RETRIEVAL_TOPK`: Number of results to return in vector search via PostgreSQL + pgvector (default: 20)
 
 ### Matching Thresholds
 - `SIM_DEEP_MIN`: Minimum similarity threshold for deep matching (default: 0.82)

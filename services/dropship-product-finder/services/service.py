@@ -16,6 +16,8 @@ class DropshipProductFinderService:
     """Main service class for product collection"""
     
     def __init__(self, db: DatabaseManager, broker: MessageBroker, data_root: str, redis_client: Optional = None):
+        from config_loader import config # Import config at the method level to ensure it's available
+        
         self.db = db
         self.broker = broker
         self.redis = redis_client
@@ -25,7 +27,6 @@ class DropshipProductFinderService:
         # Initialize eBay auth service if Redis is available
         self.ebay_auth = None
         if self.redis:
-            from config_loader import config
             self.ebay_auth = eBayAuthService(config, self.redis)
         
         # Initialize collectors based on configuration

@@ -71,13 +71,7 @@ This system processes industry keywords to find visual matches between products 
        +-----------+-------------
                    |
                    v
-           +-------------------+
-           |  Vector Index     |
-           |   (pgvector)      |
-           +-------------------+
-                   |
-                   v
-   +-------------------------------+ 
+   +-------------------------------+
    |  BARRIER (in Main API)        |
    |  Wait for ALL:               |
    |   - image.embeddings.completed|
@@ -89,7 +83,7 @@ This system processes industry keywords to find visual matches between products 
                    v
    +---------------------------------------------------------+
    |                        Matcher                          |
-   |  - Lấy embedding ảnh & video từ Vector Index            |
+   |  - Lấy embedding ảnh & video từ PostgreSQL + pgvector   |
    |  - Dùng cosine similarity để tìm top‑K frame gần nhất   |
    |  - Kết hợp với so khớp keypoint (SIFT/ORB + RANSAC) để  |
    |    xác minh hình học                                    |
@@ -298,6 +292,7 @@ This allows developers to modify shared library code and see changes take effect
 │   ├── video-crawler/    # Video processing
 │   ├── vision-embedding/   # Deep learning features
 │   ├── vision-keypoint/    # Traditional CV features
+│   ├── product-segmentor/  # Image segmentation
 │   ├── matcher/           # Core matching logic
 │   └── evidence-builder/  # Visual evidence
 ├── libs/              # Shared libraries

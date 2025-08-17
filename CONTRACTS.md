@@ -285,10 +285,6 @@ Note: Some internal completion events like `products.images.masked.completed` an
 - Publishes: `evidences.generation.completed`
 - Subscribes: `match.result`, `matchings.process.completed`
 
-### vector-index
-
-- Publishes: —
-- Subscribes: `features.ready` (indexes product_image embeddings only)
 
 ### results-api
 

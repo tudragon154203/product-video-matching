@@ -33,6 +33,7 @@ class VisionEmbeddingConfig:
     
     # Vision model (from global config)
     EMBED_MODEL: str = global_config.EMBED_MODEL
+    IMG_SIZE: tuple[int, int] = global_config.IMG_SIZE
     
     # Logging (from global config)
     LOG_LEVEL: str = global_config.LOG_LEVEL

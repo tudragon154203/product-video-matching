@@ -3,6 +3,7 @@ import numpy as np
 from pathlib import Path
 from typing import Optional, Tuple
 import structlog
+from config_loader import config
 
 logger = structlog.get_logger()
 
@@ -27,6 +28,9 @@ class KeypointExtractor:
             if image is None:
                 logger.error("Failed to load image", image_path=image_path)
                 return None
+            
+            # Resize image to IMG_SIZE
+            image = cv2.resize(image, config.IMG_SIZE, interpolation=cv2.INTER_LINEAR)
             
             # Try AKAZE first (faster and more robust)
             keypoints, descriptors = await self._extract_akaze_keypoints(image)
@@ -178,15 +182,17 @@ class KeypointExtractor:
                 logger.error("Failed to load image", image_path=image_path)
                 return None
             
+            # Resize image to IMG_SIZE
+            image = cv2.resize(image, config.IMG_SIZE, interpolation=cv2.INTER_LINEAR)
+            
             # Load mask
             mask = cv2.imread(mask_path, cv2.IMREAD_GRAYSCALE)
             if mask is None:
                 logger.error("Failed to load mask", mask_path=mask_path)
                 return None
             
-            # Resize mask to match image size if needed
-            if mask.shape != image.shape:
-                mask = cv2.resize(mask, (image.shape[1], image.shape[0]), interpolation=cv2.INTER_NEAREST)
+            # Resize mask to IMG_SIZE
+            mask = cv2.resize(mask, config.IMG_SIZE, interpolation=cv2.INTER_NEAREST)
             
             # Apply mask to image (set background to black)
             masked_image = cv2.bitwise_and(image, mask)

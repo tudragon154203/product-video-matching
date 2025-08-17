@@ -33,6 +33,7 @@ class VisionKeypointConfig:
     
     # Data storage (from global config)
     DATA_ROOT: str = global_config.DATA_ROOT
+    IMG_SIZE: tuple[int, int] = global_config.IMG_SIZE
     
     # Logging (from global config)
     LOG_LEVEL: str = global_config.LOG_LEVEL

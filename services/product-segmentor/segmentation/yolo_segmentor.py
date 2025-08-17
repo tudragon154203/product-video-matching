@@ -11,11 +11,11 @@ class YOLOSegmentor(SegmentationInterface):
     """YOLOv8 segmentation model for people segmentation."""
 
     def __init__(self, model_name: str = 'yolo11l-seg.pt'):
-        self._model_path = os.path.join(config.MODEL_CACHE, model_name)
+        self._model_path = os.path.join(config.PEOPLE_SEG_MODEL_CACHE, model_name)
         self._model: Optional[YOLO] = None
         self._initialized = False
-        # Set the YOLO_MODEL_DIR environment variable to point to your model_cache directory
-        os.environ['YOLO_MODEL_DIR'] = config.MODEL_CACHE
+        # Set the YOLO_MODEL_DIR environment variable for ultralytics library
+        os.environ['YOLO_MODEL_DIR'] = config.PEOPLE_SEG_MODEL_CACHE
 
     async def initialize(self) -> None:
         """Initialize the YOLO segmentation model."""
@@ -59,7 +59,7 @@ class YOLOSegmentor(SegmentationInterface):
                         if mask_np.ndim == 3:
                             mask_np = mask_np.squeeze()
 
-                        resized_mask = cv2.resize(mask_np, (r.masks.orig_shape[1], r.masks.orig_shape[0]), interpolation=cv2.INTER_LINEAR)
+                        resized_mask = cv2.resize(mask_np, (config.IMG_SIZE[1], config.IMG_SIZE[0]), interpolation=cv2.INTER_LINEAR)
                         binary_mask = (resized_mask > 0.5).astype(np.uint8) * 255
                         combined_mask = cv2.bitwise_or(combined_mask, binary_mask)
 

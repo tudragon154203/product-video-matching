@@ -134,8 +134,8 @@ class EmbeddingExtractor:
             mask = Image.open(mask_path).convert('L')
             
             # Resize mask to match image size if needed
-            if mask.size != image.size:
-                mask = mask.resize(image.size, Image.NEAREST)
+            if mask.size != config.IMG_SIZE:
+                mask = mask.resize(config.IMG_SIZE, Image.NEAREST)
             
             # Apply mask to image
             masked_image = self._apply_mask_to_image(image, mask)
