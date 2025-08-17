@@ -131,6 +131,10 @@ class EmbeddingExtractor:
             # Load and preprocess image
             image = Image.open(image_path).convert('RGB')
             
+            # Resize image to config.IMG_SIZE
+            if image.size != config.IMG_SIZE:
+                image = image.resize(config.IMG_SIZE, Image.LANCZOS) # Using LANCZOS for better quality resizing
+            
             # Load mask
             mask = Image.open(mask_path).convert('L')
             
