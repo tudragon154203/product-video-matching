@@ -180,7 +180,6 @@ class TestProductSegmentorServiceIntegration:
 
         # Expected final mask: foreground_mask with the people_mask area blacked out
         expected_final_mask = cv2.bitwise_and(foreground_mask, cv2.bitwise_not(people_mask))
-        expected_final_mask = expected_final_mask.reshape(image_size[0], image_size[1], 1)
 
         # Mock segmentors to return our predefined masks
         service.foreground_segmentor.segment_image = AsyncMock(return_value=foreground_mask)

@@ -199,6 +199,10 @@ class FileManager:
         # Ensure values are 0 or 255 (values >= 128 become 255)
         mask = np.where(mask >= 128, 255, 0).astype(np.uint8)
         
+        # Squeeze the mask to remove single-dimensional entries (e.g., (H, W, 1) -> (H, W))
+        if mask.ndim == 3 and mask.shape[2] == 1:
+            mask = mask.squeeze(axis=2)
+
         # Save as PNG
         mask_image = Image.fromarray(mask, mode='L')
         mask_image.save(file_path, 'PNG', optimize=True)

@@ -451,11 +451,21 @@ class ProductSegmentorService:
             if foreground_mask is None:
                 logger.error(f"Failed to load foreground mask from {foreground_mask_path}")
                 return None
+            
+            # Ensure foreground mask is (H, W)
+            if foreground_mask.ndim == 3 and foreground_mask.shape[2] == 1:
+                foreground_mask = foreground_mask.squeeze(axis=2)
 
+            logger.info(f"Loading foreground mask from: {foreground_mask_path}")
             # Generate people mask
             people_mask = await self.people_segmentor.segment_image(local_path)
 
-            final_mask = foreground_mask
+            logger.info(f"Foreground mask shape: {foreground_mask.shape}")
+            if people_mask is not None:
+                logger.info(f"People mask shape: {people_mask.shape}")
+
+            final_mask = foreground_mask # to be substracted later
+            
             if people_mask is not None:
                 # Save people mask
                 await self.file_manager.save_people_mask(image_id, people_mask, image_type)
