@@ -9,6 +9,7 @@ import shutil
 import uuid
 import os
 from PIL import Image
+import cv2
 
 from services.service import ProductSegmentorService
 from segmentation.interface import SegmentationInterface
@@ -32,7 +33,7 @@ class MockSegmentor(SegmentationInterface):
         self.call_count += 1
         if self.should_fail:
             return None
-        return np.ones((100, 100), dtype=np.uint8) * 255
+        return np.ones((100, 100, 1), dtype=np.uint8) * 255
     
     def cleanup(self) -> None:
         self._initialized = False
@@ -164,6 +165,50 @@ class TestProductSegmentorServiceIntegration:
             image_id="img_123",
             mask_path=expected_mask_path
         )
+    
+    @pytest.mark.asyncio
+    async def test_product_mask_subtraction(self, service, temp_dir):
+        """Test that people mask is correctly subtracted from foreground mask."""
+        await service.initialize()
+
+        # Define mock masks
+        image_size = (100, 100)
+        foreground_mask = np.ones(image_size, dtype=np.uint8) * 255  # All white
+        people_mask = np.zeros(image_size, dtype=np.uint8)  # All black
+        # Draw a black square in the middle of the people mask
+        people_mask[25:75, 25:75] = 255
+
+        # Expected final mask: foreground_mask with the people_mask area blacked out
+        expected_final_mask = cv2.bitwise_and(foreground_mask, cv2.bitwise_not(people_mask))
+        expected_final_mask = expected_final_mask.reshape(image_size[0], image_size[1], 1)
+
+        # Mock segmentors to return our predefined masks
+        service.foreground_segmentor.segment_image = AsyncMock(return_value=foreground_mask)
+        service.people_segmentor.segment_image = AsyncMock(return_value=people_mask)
+
+        # Mock save_product_final_mask to capture the mask it receives
+        captured_final_mask = None
+        async def mock_save_product_final_mask(image_id, mask, image_type):
+            nonlocal captured_final_mask
+            captured_final_mask = mask
+            return os.path.join(temp_dir, f"final_mask_{image_id}.png") # Return a dummy path
+
+        with patch.object(service.file_manager, 'save_product_final_mask', side_effect=mock_save_product_final_mask):
+            event_data = {
+                "product_id": "prod_subtraction_test",
+                "image_id": "img_subtraction_test",
+                "local_path": os.path.join(os.path.dirname(__file__), 'test_image.webp'),
+                "job_id": "job_subtraction_test"
+            }
+            await service.handle_products_image_ready(event_data)
+
+        # Assert that the captured final mask matches the expected result
+        assert captured_final_mask is not None
+        np.testing.assert_array_equal(captured_final_mask, expected_final_mask)
+
+        # Verify segmentors were called
+        service.foreground_segmentor.segment_image.assert_called_once()
+        service.people_segmentor.segment_image.assert_called_once()
     
     @pytest.mark.asyncio
     async def test_handle_products_images_ready_batch_empty(self, service):
