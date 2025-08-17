@@ -5,7 +5,7 @@ This service orchestrates product segmentation operations by delegating to speci
 - ProgressTracker: Tracks job progress and asset counts
 - CompletionManager: Handles batch completion and watermark emission
 - Deduper: Prevents duplicate processing
-- ImageProcessor: Handles image segmentation operations
+- ForegroundProcessor: Handles image segmentation operations
 - DatabaseUpdater: Manages database operations
 
 The service maintains a stable public API while internal responsibilities are modularized.
@@ -16,6 +16,8 @@ import time
 import uuid
 from typing import Dict, List, Optional, Set
 from datetime import datetime
+import numpy as np
+import cv2
 from common_py.database import DatabaseManager
 from common_py.messaging import MessageBroker
 from common_py.logging_config import configure_logging
@@ -23,9 +25,10 @@ from common_py.logging_config import configure_logging
 from utils.file_manager import FileManager
 from config_loader import config
 from handlers.event_emitter import EventEmitter
-from .image_processor import ImageProcessor
+from .foreground_processor import ForegroundProcessor
 from utils.db_updater import DatabaseUpdater
-from .segmentor_factory import create_segmentor
+from .foreground_segmentor_factory import create_segmentor
+from segmentation.yolo_segmentor import YOLOSegmentor
 from utils.progress_tracker import ProgressTracker
 from utils.completion_manager import CompletionManager
 from utils.deduper import Deduper
@@ -40,7 +43,7 @@ class ProductSegmentorService:
     - ProgressTracker: Tracks job progress and asset counts
     - CompletionManager: Handles batch completion and watermark emission
     - Deduper: Prevents duplicate processing
-    - ImageProcessor: Handles image segmentation operations
+    - ForegroundProcessor: Handles image segmentation operations
     - DatabaseUpdater: Manages database operations
     
     The service maintains a stable public API while internal responsibilities are modularized.
@@ -50,8 +53,7 @@ class ProductSegmentorService:
         self,
         db: DatabaseManager,
         broker: MessageBroker,
-        model_name: str = "briaai/RMBG-2.0",
-        foreground_mask_dir_path: str = "data/masks",
+        foreground_model_name: str = config.FOREGROUND_SEG_MODEL_NAME,
         max_concurrent: int = 4
     ):
         """Initialize segmentation service.
@@ -60,7 +62,6 @@ class ProductSegmentorService:
             db: Database manager instance
             broker: Message broker instance
             model_name: Hugging Face model name
-            foreground_mask_dir_path: Base path for mask storage
             max_concurrent: Maximum concurrent image processing
             
         Initializes specialized modules:
@@ -73,17 +74,22 @@ class ProductSegmentorService:
         """
         self.db = db
         self.broker = broker
-        self.file_manager = FileManager(foreground_mask_dir_path)
+        self.file_manager = FileManager(
+            foreground_mask_dir_path=config.FOREGROUND_MASK_DIR_PATH,
+            people_mask_dir_path=config.PEOPLE_MASK_DIR_PATH,
+            product_mask_dir_path=config.PRODUCT_MASK_DIR_PATH
+        )
         self.max_concurrent = max_concurrent
         
         # Initialize segmentation engine using factory
-        self.segmentor = create_segmentor(model_name, config.HF_TOKEN)
+        self.foreground_segmentor = create_segmentor(foreground_model_name, config.HF_TOKEN)
+        self.people_segmentor = YOLOSegmentor(config.PEOPLE_SEG_MODEL_NAME)
         
         # Initialize event emitter
         self.event_emitter = EventEmitter(broker)
         
         # Initialize processing helpers
-        self.image_processor = ImageProcessor(self.segmentor)
+        self.image_processor = ForegroundProcessor(self.foreground_segmentor)
         self.db_updater = DatabaseUpdater(self.db)
         
         # Initialize new modules
@@ -132,7 +138,8 @@ class ProductSegmentorService:
             await self.file_manager.initialize()
             
             # Initialize segmentation model
-            await self.segmentor.initialize()
+            await self.foreground_segmentor.initialize()
+            await self.people_segmentor.initialize()
             
             self.initialized = True
             logger.info("Product Segmentor Service initialized successfully")
@@ -157,8 +164,10 @@ class ProductSegmentorService:
                 logger.warning("Timeout waiting for processing to complete")
             
             # Cleanup segmentation model
-            if self.segmentor:
-                self.segmentor.cleanup()
+            if self.foreground_segmentor:
+                self.foreground_segmentor.cleanup()
+            if self.people_segmentor:
+                self.people_segmentor.cleanup()
             
             # Clear batch trackers (legacy - kept for backward compatibility)
             self._batch_trackers.clear()
@@ -425,14 +434,48 @@ class ProductSegmentorService:
             Path to generated mask or None if processing failed
         """
         try:
-            return await self.image_processor.process_image(
+            # Generate foreground mask and get its path
+            foreground_mask_path = await self.image_processor.process_image(
                 image_id=image_id,
                 local_path=local_path,
                 image_type=image_type,
                 file_manager=self.file_manager,
             )
+
+            if foreground_mask_path is None:
+                logger.warning(f"Failed to generate foreground mask for {image_id}")
+                return None
+
+            # Load the foreground mask
+            foreground_mask = cv2.imread(foreground_mask_path, cv2.IMREAD_GRAYSCALE)
+            if foreground_mask is None:
+                logger.error(f"Failed to load foreground mask from {foreground_mask_path}")
+                return None
+
+            # Generate people mask
+            people_mask = await self.people_segmentor.segment_image(local_path)
+
+            final_mask = foreground_mask
+            if people_mask is not None:
+                # Save people mask
+                await self.file_manager.save_people_mask(image_id, people_mask, image_type)
+
+                # Ensure both masks are binary (0 or 255) and of the same size
+                if foreground_mask.shape == people_mask.shape:
+                    final_mask = cv2.bitwise_and(foreground_mask, cv2.bitwise_not(people_mask))
+                    logger.info(f"Subtracted people mask from foreground mask for {image_id}")
+                else:
+                    logger.warning(f"Foreground and people mask shapes do not match for {image_id}. Skipping subtraction.")
+            else:
+                logger.info(f"No people mask generated for {image_id}. Using foreground mask as final mask.")
+
+            # Save the final mask (product mask) to the product mask directory
+            mask_path = await self.file_manager.save_product_final_mask(image_id, final_mask, image_type)
+            
+            return mask_path
+
         except Exception as e:
-            logger.error("Error processing image", image_id=image_id, error=str(e))
+            logger.error(f"Error processing image {image_id}: {e}")
             return None
     
     async def _update_product_image_mask(self, image_id: str, mask_path: str) -> None:

@@ -16,20 +16,31 @@ logger = configure_logging("file-manager")
 class FileManager:
     """Manages file operations for mask storage."""
     
-    def __init__(self, base_path: str = "data/masks"):
+    def __init__(self, foreground_mask_dir_path: str, people_mask_dir_path: str, product_mask_dir_path: str):
         """Initialize file manager.
         
         Args:
-            base_path: Base directory for mask storage
+            foreground_mask_dir_path: Base directory for foreground mask storage
+            people_mask_dir_path: Base directory for people mask storage
+            product_mask_dir_path: Base directory for product mask storage
         """
-        self.base_path = Path(base_path)
-        self.products_dir = self.base_path / "products"
-        self.frames_dir = self.base_path / "frames"
+        self.foreground_mask_base_path = Path(foreground_mask_dir_path)
+        self.people_mask_base_path = Path(people_mask_dir_path)
+        self.product_mask_base_path = Path(product_mask_dir_path)
+
+        self.foreground_products_dir = self.foreground_mask_base_path / "products"
+        self.foreground_frames_dir = self.foreground_mask_base_path / "frames"
+
+        self.people_products_dir = self.people_mask_base_path / "products"
+        self.people_frames_dir = self.people_mask_base_path / "frames"
+
+        self.product_products_dir = self.product_mask_base_path / "products"
+        self.product_frames_dir = self.product_mask_base_path / "frames"
         
     async def initialize(self) -> None:
         """Initialize directory structure."""
         try:
-            logger.info("Initializing mask directory structure", base_path=str(self.base_path))
+            logger.info("Initializing mask directory structure", foreground_base_path=str(self.foreground_mask_base_path))
             
             # Create directories in executor to avoid blocking
             loop = asyncio.get_event_loop()
@@ -43,25 +54,22 @@ class FileManager:
     
     def _create_directories(self) -> None:
         """Create mask directory structure."""
-        self.base_path.mkdir(parents=True, exist_ok=True)
-        self.products_dir.mkdir(parents=True, exist_ok=True)
-        self.frames_dir.mkdir(parents=True, exist_ok=True)
+        self.foreground_mask_base_path.mkdir(parents=True, exist_ok=True)
+        self.foreground_products_dir.mkdir(parents=True, exist_ok=True)
+        self.foreground_frames_dir.mkdir(parents=True, exist_ok=True)
+
+        self.people_mask_base_path.mkdir(parents=True, exist_ok=True)
+        self.people_products_dir.mkdir(parents=True, exist_ok=True)
+        self.people_frames_dir.mkdir(parents=True, exist_ok=True)
+
+        self.product_mask_base_path.mkdir(parents=True, exist_ok=True)
+        self.product_products_dir.mkdir(parents=True, exist_ok=True)
+        self.product_frames_dir.mkdir(parents=True, exist_ok=True)
     
     async def save_product_mask(self, image_id: str, mask: np.ndarray) -> str:
-        """Save product image mask.
-        
-        Args:
-            image_id: Unique identifier for the image
-            mask: Binary mask as numpy array
-            
-        Returns:
-            Path to saved mask file
-            
-        Raises:
-            Exception: If mask saving fails
-        """
+        """Save product image foreground mask."""
         mask_filename = f"{image_id}.png"
-        mask_path = self.products_dir / mask_filename
+        mask_path = self.foreground_products_dir / mask_filename
         
         try:
             logger.debug("Saving product mask", image_id=image_id, path=str(mask_path))
@@ -77,20 +85,9 @@ class FileManager:
             raise
     
     async def save_frame_mask(self, frame_id: str, mask: np.ndarray) -> str:
-        """Save video frame mask.
-        
-        Args:
-            frame_id: Unique identifier for the frame
-            mask: Binary mask as numpy array
-            
-        Returns:
-            Path to saved mask file
-            
-        Raises:
-            Exception: If mask saving fails
-        """
+        """Save video frame foreground mask."""
         mask_filename = f"{frame_id}.png"
-        mask_path = self.frames_dir / mask_filename
+        mask_path = self.foreground_frames_dir / mask_filename
         
         try:
             logger.debug("Saving frame mask", frame_id=frame_id, path=str(mask_path))
@@ -102,7 +99,42 @@ class FileManager:
             return str(mask_path)
             
         except Exception as e:
-            logger.error("Failed to save frame mask", frame_id=frame_id, error=str(e))
+            logger.error("Failed to save frame foreground mask", frame_id=frame_id, error=str(e))
+            raise
+
+    async def save_people_mask(self, image_id: str, mask: np.ndarray, image_type: str) -> str:
+        """Save people mask."""
+        
+        mask_filename = f"{image_id}.png"
+        if image_type == "product":
+            mask_path = self.people_products_dir / mask_filename
+        else: # frame
+            mask_path = self.people_frames_dir / mask_filename
+        
+        try:
+            logger.debug("Saving people mask", image_id=image_id, path=str(mask_path))
+            await self._save_mask_atomic(mask, mask_path)
+            logger.debug("People mask saved successfully", image_id=image_id)
+            return str(mask_path)
+        except Exception as e:
+            logger.error("Failed to save people mask", image_id=image_id, error=str(e))
+            raise
+
+    async def save_product_final_mask(self, image_id: str, mask: np.ndarray, image_type: str) -> str:
+        """Save final product mask (foreground - people)."""
+        mask_filename = f"{image_id}.png"
+        if image_type == "product":
+            mask_path = self.product_products_dir / mask_filename
+        else: # frame
+            mask_path = self.product_frames_dir / mask_filename
+        
+        try:
+            logger.debug("Saving final product mask", image_id=image_id, path=str(mask_path))
+            await self._save_mask_atomic(mask, mask_path)
+            logger.debug("Final product mask saved successfully", image_id=image_id)
+            return str(mask_path)
+        except Exception as e:
+            logger.error("Failed to save final product mask", image_id=image_id, error=str(e))
             raise
     
     async def _save_mask_atomic(self, mask: np.ndarray, target_path: Path) -> None:
@@ -223,7 +255,7 @@ class FileManager:
         Returns:
             Expected mask file path
         """
-        return str(self.products_dir / f"{image_id}.png")
+        return str(self.product_products_dir / f"{image_id}.png")
     
     def get_frame_mask_path(self, frame_id: str) -> str:
         """Get expected path for frame mask.
@@ -234,4 +266,4 @@ class FileManager:
         Returns:
             Expected mask file path
         """
-        return str(self.frames_dir / f"{frame_id}.png")
+        return str(self.product_frames_dir / f"{frame_id}.png")

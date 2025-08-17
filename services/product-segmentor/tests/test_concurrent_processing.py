@@ -79,7 +79,6 @@ class TestConcurrentProcessing:
         service = ProductSegmentorService(
             db=mock_db,
             broker=mock_broker,
-            foreground_mask_dir_path=temp_dir,
             max_concurrent=2  # Limit to 2 concurrent operations
         )
         

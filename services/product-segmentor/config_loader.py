@@ -30,7 +30,8 @@ class ProductSegmentorConfig:
     """Configuration for Product Segmentor Service."""
     
     # Segmentation model configuration
-    SEGMENTATION_MODEL_NAME: str = os.getenv("SEGMENTATION_MODEL_NAME", "briaai/RMBG-1.4")
+    FOREGROUND_SEG_MODEL_NAME: str = os.getenv("FOREGROUND_SEG_MODEL_NAME", "briaai/RMBG-1.4")
+    PEOPLE_SEG_MODEL_NAME: str = os.getenv("PEOPLE_SEG_MODEL_NAME", "yolo11l-seg")
     HF_TOKEN = os.getenv("HF_TOKEN")
 
     # Processing configuration
@@ -39,7 +40,9 @@ class ProductSegmentorConfig:
     MASK_QUALITY: float = float(os.getenv("MASK_QUALITY", "0.8"))
     
     # File paths
-    FOREGROUND_MASK_DIR_PATH: str = os.getenv("FOREGROUND_MASK_DIR_PATH", "data/masks")
+    FOREGROUND_MASK_DIR_PATH: str = os.getenv("FOREGROUND_MASK_DIR_PATH", "data/masks_foreground")
+    PEOPLE_MASK_DIR_PATH: str = os.getenv("PEOPLE_MASK_DIR_PATH", "data/masks_people")
+    PRODUCT_MASK_DIR_PATH: str = os.getenv("PRODUCT_MASK_DIR_PATH", "data/masks_product")
     
     # Database configuration (from global config)
     POSTGRES_DSN: str = global_config.POSTGRES_DSN
@@ -49,6 +52,7 @@ class ProductSegmentorConfig:
     
     # Data root (from global config)
     DATA_ROOT: str = global_config.DATA_ROOT
+    MODEL_CACHE: str = global_config.MODEL_CACHE
     
     # Logging
     LOG_LEVEL: str = os.getenv("LOG_LEVEL", global_config.LOG_LEVEL)

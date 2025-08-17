@@ -15,7 +15,8 @@ class TestProductSegmentorHandler:
         with patch('handlers.segmentor_handler.config') as mock_config:
             mock_config.postgres_dsn = "postgresql://test"
             mock_config.bus_broker = "amqp://test"
-            mock_config.segmentation_model_name = "test/model"
+            mock_config.foreground_seg_model_name = "test/model"
+            mock_config.people_seg_model_name = "test/yolo-model"
             mock_config.foreground_mask_dir_path = "/tmp/masks"
             mock_config.max_concurrent_images = 2
             mock_config.LOG_LEVEL = "INFO"

@@ -9,6 +9,7 @@ from pathlib import Path
 from PIL import Image
 
 from utils.file_manager import FileManager
+from config_loader import config
 
 
 class TestFileManager:
@@ -24,16 +25,35 @@ class TestFileManager:
     @pytest.fixture
     def file_manager(self, temp_dir):
         """Create file manager with temporary directory."""
-        return FileManager(base_path=temp_dir)
+        # Use temporary directories for each mask type
+        foreground_path = Path(temp_dir) / "foreground"
+        people_path = Path(temp_dir) / "people"
+        product_path = Path(temp_dir) / "product"
+
+        # Mock config values to point to these temporary directories
+        with patch('config_loader.config') as mock_config:
+            mock_config.FOREGROUND_MASK_DIR_PATH = str(foreground_path)
+            mock_config.PEOPLE_MASK_DIR_PATH = str(people_path)
+            mock_config.PRODUCT_MASK_DIR_PATH = str(product_path)
+
+            # Initialize FileManager with mocked config paths
+            return FileManager(
+                foreground_mask_dir_path=mock_config.FOREGROUND_MASK_DIR_PATH,
+                people_mask_dir_path=mock_config.PEOPLE_MASK_DIR_PATH,
+                product_mask_dir_path=mock_config.PRODUCT_MASK_DIR_PATH
+            )
     
     @pytest.mark.asyncio
     async def test_initialize_creates_directories(self, file_manager, temp_dir):
         """Test that initialization creates required directories."""
         await file_manager.initialize()
         
-        base_path = Path(temp_dir)
-        assert (base_path / "products").exists()
-        assert (base_path / "frames").exists()
+        assert file_manager.foreground_products_dir.exists()
+        assert file_manager.foreground_frames_dir.exists()
+        assert file_manager.people_products_dir.exists()
+        assert file_manager.people_frames_dir.exists()
+        assert file_manager.product_products_dir.exists()
+        assert file_manager.product_frames_dir.exists()
     
     @pytest.mark.asyncio
     async def test_save_product_mask(self, file_manager, temp_dir):

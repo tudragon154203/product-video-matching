@@ -20,8 +20,7 @@ class ProductSegmentorHandler:
         self.service = ProductSegmentorService(
             db=self.db,
             broker=self.broker,
-            model_name=config.SEGMENTATION_MODEL_NAME,
-            foreground_mask_dir_path=config.FOREGROUND_MASK_DIR_PATH,
+            foreground_model_name=config.FOREGROUND_SEG_MODEL_NAME,
             max_concurrent=config.MAX_CONCURRENT_IMAGES
         )
         self.initialized = False

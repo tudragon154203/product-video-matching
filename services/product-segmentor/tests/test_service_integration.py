@@ -1,4 +1,4 @@
-"""Integration tests for Product Segmentor Service."""
+"Integration tests for Product Segmentor Service."
 
 import pytest
 import asyncio
@@ -7,10 +7,12 @@ from unittest.mock import AsyncMock, Mock, patch
 import tempfile
 import shutil
 import uuid
+import os
 from PIL import Image
 
 from services.service import ProductSegmentorService
 from segmentation.interface import SegmentationInterface
+from config_loader import config
 
 
 class MockSegmentor(SegmentationInterface):
@@ -75,24 +77,28 @@ class TestProductSegmentorServiceIntegration:
         mock_segmentor = MockSegmentor()
         mock_segmentor._initialized = True  # Pre-initialize the mock
         
-        # Patch the factory to return our mock
+        # Create mock for YOLOSegmentor
+        mock_yolo_segmentor = MockSegmentor()
+        mock_yolo_segmentor._initialized = True
+        
         with patch('services.service.create_segmentor', return_value=mock_segmentor):
-            service = ProductSegmentorService(
-                db=mock_db,
-                broker=mock_broker,
-                foreground_mask_dir_path=temp_dir,
-                max_concurrent=2
-            )
-            
-            # Mock the event emitter to track calls without affecting the actual broker
-            service.event_emitter.emit_product_image_masked = AsyncMock()
-            service.event_emitter.emit_products_images_masked_batch = AsyncMock()
-            service.event_emitter.emit_video_keyframes_masked = AsyncMock()
-            service.event_emitter.emit_videos_keyframes_masked_batch = AsyncMock()
-            service.event_emitter.emit_products_images_masked_completed = AsyncMock()
-            service.event_emitter.emit_video_keyframes_masked_completed = AsyncMock()
-            
-            return service
+            with patch('services.service.YOLOSegmentor', return_value=mock_yolo_segmentor):
+                service = ProductSegmentorService(
+                    db=mock_db,
+                    broker=mock_broker,
+                    foreground_model_name="test/model", # Mock model name
+                    max_concurrent=2
+                )
+                
+                # Mock the event emitter to track calls without affecting the actual broker
+                service.event_emitter.emit_product_image_masked = AsyncMock()
+                service.event_emitter.emit_products_images_masked_batch = AsyncMock()
+                service.event_emitter.emit_video_keyframes_masked = AsyncMock()
+                service.event_emitter.emit_videos_keyframes_masked_batch = AsyncMock()
+                service.event_emitter.emit_products_images_masked_completed = AsyncMock()
+                service.event_emitter.emit_video_keyframes_masked_completed = AsyncMock()
+                
+                return service
     
     @pytest.mark.asyncio
     async def test_service_initialization(self, service):
@@ -100,12 +106,12 @@ class TestProductSegmentorServiceIntegration:
         await service.initialize()
         
         assert service.initialized
-        assert service.segmentor.is_initialized
+        assert service.foreground_segmentor.is_initialized
     
     @pytest.mark.asyncio
     async def test_service_initialization_failure(self, service):
         """Test service initialization failure."""
-        service.segmentor = MockSegmentor(should_fail=True)
+        service.foreground_segmentor = MockSegmentor(should_fail=True)
         
         with pytest.raises(Exception):
             await service.initialize()
@@ -118,9 +124,9 @@ class TestProductSegmentorServiceIntegration:
         await service.initialize()
         
         # Create test image
-        test_image_path = f"{temp_dir}/test_image.jpg"
-        img = Image.new('RGB', (100, 100), color='red')
-        img.save(test_image_path)
+        source_image_path = os.path.join(os.path.dirname(__file__), 'test_image.webp')
+        test_image_path = os.path.join(temp_dir, f"test_image_{uuid.uuid4()}.webp")
+        shutil.copy(source_image_path, test_image_path)
         
         event_data = {
             "product_id": "prod_123",
@@ -129,11 +135,16 @@ class TestProductSegmentorServiceIntegration:
             "job_id": "job_123"
         }
         
-        with patch.object(service.file_manager, 'save_product_mask', return_value="/mask/path.png") as mock_save:
+        # Mock save_product_mask to return a valid path and create a dummy file
+        mock_mask_path = os.path.join(temp_dir, f"product_mask_img_123.png")
+        with patch.object(service.file_manager, 'save_product_mask', return_value=mock_mask_path) as mock_save, \
+             patch('cv2.imread', return_value=np.ones((100, 100), dtype=np.uint8) * 255):
+            # Create a dummy mask file for cv2.imread to find
+            Image.fromarray(np.ones((100, 100), dtype=np.uint8) * 255, mode='L').save(mock_mask_path)
             await service.handle_products_image_ready(event_data)
         
         # Verify segmentation was called
-        assert service.segmentor.call_count == 1
+        assert service.foreground_segmentor.call_count == 1
         
         # Verify mask was saved
         mock_save.assert_called_once()
@@ -142,10 +153,16 @@ class TestProductSegmentorServiceIntegration:
         service.db.execute.assert_called_once()
         
         # Verify event was published via event_emitter
+        # Calculate the expected final mask path based on FileManager's logic
+        from config_loader import config
+        from pathlib import Path
+        expected_mask_path_obj = Path(config.PRODUCT_MASK_DIR_PATH) / "products" / f"{event_data['image_id']}.png"
+        expected_mask_path = str(expected_mask_path_obj)
+
         service.event_emitter.emit_product_image_masked.assert_called_once_with(
             job_id="job_123",
             image_id="img_123",
-            mask_path="/mask/path.png"
+            mask_path=expected_mask_path
         )
     
     @pytest.mark.asyncio
@@ -172,12 +189,12 @@ class TestProductSegmentorServiceIntegration:
         await service.initialize()
         
         # Create test images for frames
-        frame1_path = f"{temp_dir}/frame1.jpg"
-        frame2_path = f"{temp_dir}/frame2.jpg"
+        source_image_path = os.path.join(os.path.dirname(__file__), 'test_image.webp')
+        frame1_path = os.path.join(temp_dir, f"frame1_{uuid.uuid4()}.webp")
+        frame2_path = os.path.join(temp_dir, f"frame2_{uuid.uuid4()}.webp")
         
         for path in [frame1_path, frame2_path]:
-            img = Image.new('RGB', (100, 100), color='blue')
-            img.save(path)
+            shutil.copy(source_image_path, path)
         
         event_data = {
             "video_id": "video_123",
@@ -196,16 +213,33 @@ class TestProductSegmentorServiceIntegration:
             ]
         }
         
-        with patch.object(service.file_manager, 'save_frame_mask', side_effect=["/mask1.png", "/mask2.png"]):
-            await service.handle_videos_keyframes_ready(event_data)
+        # Mock save_frame_mask to return valid paths and create dummy files
+        mock_mask_path_1 = os.path.join(temp_dir, "video_mask_frame_1.png")
+        mock_mask_path_2 = os.path.join(temp_dir, "video_mask_frame_2.png")
+        
+        with patch.object(service.file_manager, 'save_frame_mask', side_effect=[mock_mask_path_1, mock_mask_path_2]) as mock_save:
+            with patch('services.service.cv2.imread', return_value=np.ones((100, 100), dtype=np.uint8) * 255):
+                # Create dummy mask files for cv2.imread to find
+                Image.fromarray(np.ones((100, 100), dtype=np.uint8) * 255, mode='L').save(mock_mask_path_1)
+                Image.fromarray(np.ones((100, 100), dtype=np.uint8) * 255, mode='L').save(mock_mask_path_2)
+                
+                await service.handle_videos_keyframes_ready(event_data)
         
         # Verify segmentation was called for both frames
-        assert service.segmentor.call_count == 2
+        assert service.foreground_segmentor.call_count == 2
         
         # Verify database was updated for both frames
         assert service.db.execute.call_count == 2
         
         # Verify event was published via event_emitter
+        # Calculate the expected final mask paths based on FileManager's logic
+        from config_loader import config
+        from pathlib import Path
+        expected_mask_path_1_obj = Path(config.PRODUCT_MASK_DIR_PATH) / "frames" / f"{event_data['frames'][0]['frame_id']}.png"
+        expected_mask_path_1 = str(expected_mask_path_1_obj)
+        expected_mask_path_2_obj = Path(config.PRODUCT_MASK_DIR_PATH) / "frames" / f"{event_data['frames'][1]['frame_id']}.png"
+        expected_mask_path_2 = str(expected_mask_path_2_obj)
+
         service.event_emitter.emit_video_keyframes_masked.assert_called_once_with(
             job_id="job_123",
             video_id="video_123",
@@ -213,12 +247,12 @@ class TestProductSegmentorServiceIntegration:
                 {
                     "frame_id": "frame_1",
                     "ts": 1.0,
-                    "mask_path": "/mask1.png"
+                    "mask_path": expected_mask_path_1
                 },
                 {
                     "frame_id": "frame_2",
                     "ts": 2.0,
-                    "mask_path": "/mask2.png"
+                    "mask_path": expected_mask_path_2
                 }
             ]
         )
@@ -248,13 +282,13 @@ class TestProductSegmentorServiceIntegration:
         
         # Use failing segmentor
         failing_segmentor = MockSegmentor(should_fail=True)
-        service.segmentor = failing_segmentor
+        service.foreground_segmentor = failing_segmentor
         service.image_processor.segmentor = failing_segmentor
         
         # Create test image
-        test_image_path = f"{temp_dir}/test_image.jpg"
-        img = Image.new('RGB', (100, 100), color='red')
-        img.save(test_image_path)
+        source_image_path = os.path.join(os.path.dirname(__file__), 'test_image.webp')
+        test_image_path = os.path.join(temp_dir, f"test_image_{uuid.uuid4()}.webp")
+        shutil.copy(source_image_path, test_image_path)
         
         event_data = {
             "product_id": "prod_123",
@@ -276,7 +310,7 @@ class TestProductSegmentorServiceIntegration:
         
         # Create a mock segmentor that will fail due to missing file
         failing_segmentor = MockSegmentor(should_fail=True)
-        service.segmentor = failing_segmentor
+        service.foreground_segmentor = failing_segmentor
         service.image_processor.segmentor = failing_segmentor
         
         event_data = {

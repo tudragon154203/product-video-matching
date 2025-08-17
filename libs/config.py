@@ -81,7 +81,8 @@ class Config:
     
     # Vision Models
     EMBED_MODEL: str = field(default_factory=lambda: get_env_var("EMBED_MODEL", "clip-vit-b32"))
-    
+    MODEL_CACHE: str = field(default_factory=lambda: get_env_var("MODEL_CACHE", "./model_cache"))
+
     # Vector Search Configuration
     RETRIEVAL_TOPK: int = field(default_factory=lambda: get_env_int("RETRIEVAL_TOPK", 20))
     

@@ -64,10 +64,13 @@ class TestSegmentationInterface:
         await segmentor.initialize()
         
         # Create temporary image file
-        with tempfile.NamedTemporaryFile(suffix='.jpg', delete=False) as tmp:
-            # Create a simple test image
-            img = Image.new('RGB', (100, 100), color='red')
-            img.save(tmp.name)
+        # Use the provided test image
+        test_image_path = os.path.join(os.path.dirname(__file__), 'test_image.webp')
+        
+        # Create a temporary copy of the image to simulate a file being passed
+        with tempfile.NamedTemporaryFile(suffix='.webp', delete=False) as tmp:
+            with Image.open(test_image_path) as img:
+                img.save(tmp.name)
             tmp_path = tmp.name
         
         try:
@@ -91,11 +94,7 @@ class TestRMBG20Segmentor:
         assert segmentor.model_name == "briaai/RMBG-2.0"
         assert not segmentor.is_initialized
     
-    def test_rmbg_segmentor_custom_model(self):
-        """Test RMBG segmentor with custom model name."""
-        custom_model = "custom/model"
-        segmentor = RMBG20Segmentor(model_name=custom_model)
-        assert segmentor.model_name == custom_model
+    
     
     @pytest.mark.asyncio
     async def test_rmbg_segmentor_file_not_found(self):
@@ -114,9 +113,13 @@ class TestRMBG20Segmentor:
         segmentor = RMBG20Segmentor()
         
         # Create temporary image file
-        with tempfile.NamedTemporaryFile(suffix='.jpg', delete=False) as tmp:
-            img = Image.new('RGB', (100, 100), color='red')
-            img.save(tmp.name)
+        # Use the provided test image
+        test_image_path = os.path.join(os.path.dirname(__file__), 'test_image.webp')
+        
+        # Create a temporary copy of the image to simulate a file being passed
+        with tempfile.NamedTemporaryFile(suffix='.webp', delete=False) as tmp:
+            with Image.open(test_image_path) as img:
+                img.save(tmp.name)
             tmp_path = tmp.name
         
         try:
@@ -142,7 +145,7 @@ class TestSegmentorFactory:
     ])
     async def test_factory_model_selection(self, model_name, expected_class):
         """Test factory creates correct segmentor based on model name."""
-        from services.segmentor_factory import create_segmentor
+        from services.foreground_segmentor_factory import create_segmentor
         
         segmentor = create_segmentor(model_name)
         
@@ -154,17 +157,20 @@ class TestSegmentorFactory:
             assert isinstance(segmentor, RMBG14Segmentor)
         
         # Verify the model name is set correctly
-        assert segmentor.model_name == model_name
+        if expected_class == "RMBG20Segmentor":
+            assert segmentor.model_name == "briaai/RMBG-2.0"
+        elif expected_class == "RMBG14Segmentor":
+            assert segmentor.model_name == "briaai/RMBG-1.4"
     
     @pytest.mark.asyncio
     async def test_factory_uses_config_default(self):
         """Test that factory uses config default when no model name provided."""
-        from services.segmentor_factory import create_segmentor
+        from services.foreground_segmentor_factory import create_segmentor
         from config_loader import config
         
         # Mock the config to use RMBG-2.0
-        original_model = config.SEGMENTATION_MODEL_NAME
-        config.SEGMENTATION_MODEL_NAME = "briaai/RMBG-2.0"
+        original_model = config.FOREGROUND_SEG_MODEL_NAME
+        config.FOREGROUND_SEG_MODEL_NAME = "briaai/RMBG-2.0"
         
         try:
             segmentor = create_segmentor()  # No model name provided
@@ -173,17 +179,17 @@ class TestSegmentorFactory:
             assert segmentor.model_name == "briaai/RMBG-2.0"
         finally:
             # Restore original config
-            config.SEGMENTATION_MODEL_NAME = original_model
+            config.FOREGROUND_SEG_MODEL_NAME = original_model
     
     @pytest.mark.asyncio
     async def test_factory_config_rmbg14_default(self):
         """Test that factory creates RMBG-1.4 when config uses RMBG-1.4."""
-        from services.segmentor_factory import create_segmentor
+        from services.foreground_segmentor_factory import create_segmentor
         from config_loader import config
         
         # Mock the config to use RMBG-1.4
-        original_model = config.SEGMENTATION_MODEL_NAME
-        config.SEGMENTATION_MODEL_NAME = "briaai/RMBG-1.4"
+        original_model = config.FOREGROUND_SEG_MODEL_NAME
+        config.FOREGROUND_SEG_MODEL_NAME = "briaai/RMBG-1.4"
         
         try:
             segmentor = create_segmentor()  # No model name provided
@@ -192,7 +198,7 @@ class TestSegmentorFactory:
             assert segmentor.model_name == "briaai/RMBG-1.4"
         finally:
             # Restore original config
-            config.SEGMENTATION_MODEL_NAME = original_model
+            config.FOREGROUND_SEG_MODEL_NAME = original_model
 
 
 if __name__ == "__main__":

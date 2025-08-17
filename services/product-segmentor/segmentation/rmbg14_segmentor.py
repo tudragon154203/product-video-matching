@@ -20,13 +20,9 @@ from config_loader import config
 class RMBG14Segmentor(SegmentationInterface):
     """RMBG-1.4 segmentation model implementation."""
     
-    def __init__(self, model_name: str = "briaai/RMBG-1.4"):
-        """Initialize RMBG-1.4 segmentor.
-        
-        Args:
-            model_name: Hugging Face model name
-        """
-        self._model_name = model_name
+    def __init__(self):
+        """Initialize RMBG-1.4 segmentor."""
+        self._model_name = "briaai/RMBG-1.4"
         self._model = None
         self._transform = None
         self._device = None

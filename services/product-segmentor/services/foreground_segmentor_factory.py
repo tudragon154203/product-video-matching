@@ -27,14 +27,14 @@ def create_segmentor(model_name: Optional[str] = None, hf_token: Optional[str] =
     
     # Use provided model_name or fall back to config
     if model_name is None:
-        model_name = config.SEGMENTATION_MODEL_NAME
+        model_name = config.FOREGROUND_SEG_MODEL_NAME
     
     # Detect RMBG version and create appropriate segmentor
     if "RMBG-1.4" in model_name or "rmbg-1.4" in model_name:
-        return RMBG14Segmentor(model_name=model_name)
+        return RMBG14Segmentor()
     elif "RMBG-2.0" in model_name or "rmbg-2.0" in model_name:
-        return RMBG20Segmentor(model_name=model_name)
+        return RMBG20Segmentor()
     else:
         # Default to RMBG-2.0 for backward compatibility
         logger.warning(f"Unknown RMBG model version, defaulting to RMBG-2.0: {model_name}")
-        return RMBG20Segmentor(model_name=model_name)
+        return RMBG20Segmentor()
