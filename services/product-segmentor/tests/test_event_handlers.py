@@ -45,7 +45,7 @@ class TestProductSegmentorHandler:
         handler.service.cleanup.assert_called_once()
     
     @pytest.mark.asyncio
-    async def test_handle_products_images_ready(self, handler):
+    async def test_handle_products_image_ready(self, handler):
         """Test product images ready event handling."""
         await handler.initialize()
         
@@ -56,9 +56,9 @@ class TestProductSegmentorHandler:
             "job_id": "job_123"
         }
         
-        await handler.handle_products_images_ready(event_data)
+        await handler.handle_products_image_ready(event_data)
         
-        handler.service.handle_products_images_ready.assert_called_once_with(event_data)
+        handler.service.handle_products_image_ready.assert_called_once_with(event_data)
     
     @pytest.mark.asyncio
     async def test_handle_products_images_ready_batch(self, handler):
@@ -117,7 +117,7 @@ class TestProductSegmentorHandler:
         await handler.initialize()
         
         # Make service method raise an exception
-        handler.service.handle_products_images_ready.side_effect = Exception("Test error")
+        handler.service.handle_products_image_ready.side_effect = Exception("Test error")
         
         event_data = {
             "product_id": "prod_123",
@@ -128,7 +128,7 @@ class TestProductSegmentorHandler:
         
         # Handler should propagate the exception
         with pytest.raises(Exception, match="Test error"):
-            await handler.handle_products_images_ready(event_data)
+            await handler.handle_products_image_ready(event_data)
 
 
 if __name__ == "__main__":

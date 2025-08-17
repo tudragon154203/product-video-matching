@@ -7,7 +7,7 @@
 ## 1. Position in Pipeline
 
 ```
-(1) Dropship Product Finder ──► products.images.ready(.batch)
+(1) Dropship Product Finder ──► products.image.ready(.batch)
 (2) Video Crawler         ───► video.keyframes.ready(.batch)
 (3) Product Segmentor
       ├─► (4) products.images.masked(.batch)
@@ -78,7 +78,7 @@
 
 ### 3.1 Upstream producers (no schema change)
 
-- `products.images.ready` and `video.keyframes.ready` remain unchanged but now feed **Product Segmentor**.
+- `products.image.ready` and `video.keyframes.ready` remain unchanged but now feed **Product Segmentor**.
 
 ### 3.2 Downstream consumers behavior change
 

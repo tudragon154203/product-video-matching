@@ -66,7 +66,7 @@ This is a **breaking** sprint: all old names are removed from code, configs, CI/
 
 7. **Verification (smoke/E2E)**:
 
-   - Gửi `products.collect.request` → được **Dropship Product Finder** tiêu thụ và phát `products.images.ready`.
+   - Gửi `products.collect.request` → được **Dropship Product Finder** tiêu thụ và phát `products.image.ready`.
    - Gửi `videos.search.request` → được **Video Crawler** tiêu thụ và phát `videos.keyframes.ready`.
    - Nhận `image.embeddings.completed` + `video.embeddings.completed` → Matching chạy OK.
 

@@ -53,7 +53,7 @@ Contracts đặt trong `libs/contracts/`, validate ở producer & consumer.
 **Topics chính:**
 
 - `products.collect.request` → `{ job_id, industry, top_amz, top_ebay }`
-- `products.images.ready` → `{ product_id, image_id, local_path }`
+- `products.image.ready` → `{ product_id, image_id, local_path }`
 - `videos.search.request` → `{ job_id, industry, queries[], platforms[], recency_days }`
 - `videos.keyframes.ready` → `{ video_id, frames:[{ frame_id, ts, local_path }] }`
 - `features.ready` → `{ entity_type:"product_image|video_frame", id, emb_rgb, emb_gray, kp_blob_path }`
@@ -82,7 +82,7 @@ Contracts đặt trong `libs/contracts/`, validate ở producer & consumer.
 ## 5) Pipeline E2E
 
 1. **Orchestrator** nhận `POST /start-job` → publish `products.collect.request`, `videos.search.request`.
-2. **Catalog Collector** tải gallery → `` → publish `products.images.ready`.
+2. **Catalog Collector** tải gallery → `` → publish `products.image.ready`.
 3. **Media Ingestion** tải video → trích **3–8 keyframe** (lọc blur) → `` → publish `videos.keyframes.ready`.
 4. **Vision Embedding** & **Vision Keypoint** subscribe các sự kiện ready → tạo `` (thêm `kp_blob_path: data/kp/{entity_id}.npz`).
 5. **Vector Index** upsert embeddings **product\_images** (ANN).

@@ -42,8 +42,8 @@ async def main():
             )
             
             await handler.broker.subscribe_to_topic(
-                "products.images.ready",
-                handler.handle_products_images_ready,
+                "products.image.ready",
+                handler.handle_products_image_ready,
             )
             
             # Subscribe to video keyframe events

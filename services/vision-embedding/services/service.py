@@ -262,7 +262,7 @@ class VisionEmbeddingService:
             del self.expected_total_frames[job_id]
     
     
-    async def handle_products_images_ready(self, event_data: Dict[str, Any]):
+    async def handle_products_image_ready(self, event_data: Dict[str, Any]):
         """Handle product images ready event"""
         try:
             product_id = event_data["product_id"]

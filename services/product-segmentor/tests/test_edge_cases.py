@@ -96,7 +96,7 @@ class TestEdgeCases:
         await service.initialize()
         
         # Test with missing product image
-        await service.handle_products_images_ready({
+        await service.handle_products_image_ready({
             "product_id": "prod_123",
             "image_id": "img_123",
             "local_path": "/nonexistent/image.jpg",
@@ -129,7 +129,7 @@ class TestEdgeCases:
         with open(corrupted_path, 'w') as f:
             f.write("This is not an image")
         
-        await service.handle_products_images_ready({
+        await service.handle_products_image_ready({
             "product_id": "prod_123",
             "image_id": "img_123",
             "local_path": corrupted_path,
@@ -167,7 +167,7 @@ class TestEdgeCases:
         img.save(test_image_path)
         
         with patch.object(service.file_manager, 'save_product_mask', return_value="/mask/path.png"):
-            await service.handle_products_images_ready({
+            await service.handle_products_image_ready({
                 "product_id": "prod_123",
                 "image_id": "img_123",
                 "local_path": test_image_path,
@@ -219,7 +219,7 @@ class TestEdgeCases:
         
         # Mock file save error
         with patch.object(service.file_manager, 'save_product_mask', side_effect=Exception("Disk full")):
-            await service.handle_products_images_ready({
+            await service.handle_products_image_ready({
                 "product_id": "prod_123",
                 "image_id": "img_123",
                 "local_path": test_image_path,

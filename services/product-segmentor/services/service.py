@@ -184,7 +184,7 @@ class ProductSegmentorService:
     # - Asset deduplication: deduper.py
     
     
-    async def handle_products_images_ready(self, event_data: dict) -> None:
+    async def handle_products_image_ready(self, event_data: dict) -> None:
         """Handle single product image ready event.
         
         Args:

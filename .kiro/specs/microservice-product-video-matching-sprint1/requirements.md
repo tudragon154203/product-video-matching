@@ -42,7 +42,7 @@ The system follows an event-driven microservices architecture using RabbitMQ for
 2. WHEN products are found THEN the system SHALL collect top-K products (configurable, default 10 each platform)
 3. WHEN product images are downloaded THEN they SHALL be stored locally in data/products/{product_id}/ directory
 4. WHEN images are processed THEN they SHALL be normalized and standardized to consistent format
-5. WHEN collection is complete THEN the system SHALL publish products.images.ready events for each image
+5. WHEN collection is complete THEN the system SHALL publish products.image.ready events for each image
 6. IF product collection fails THEN the system SHALL retry up to 3 times before moving to DLQ
 
 ### Requirement 4: Video Content Ingestion
@@ -64,7 +64,7 @@ The system follows an event-driven microservices architecture using RabbitMQ for
 
 #### Acceptance Criteria
 
-1. WHEN products.images.ready or videos.keyframes.ready events are received THEN the system SHALL extract visual embeddings using CLIP model
+1. WHEN products.image.ready or videos.keyframes.ready events are received THEN the system SHALL extract visual embeddings using CLIP model
 2. WHEN images are processed THEN the system SHALL generate both RGB and grayscale embeddings
 3. WHEN keypoint extraction is performed THEN the system SHALL use AKAZE/SIFT algorithms and store results as kp_blob files
 4. WHEN feature extraction is complete THEN the system SHALL publish features.ready events with embedding data

@@ -110,7 +110,7 @@ class TestConcurrentProcessing:
             # Mock the segmentor to avoid file system operations
             with patch.object(service.segmentor, 'segment_image', mock_segmentor.segment_image):
                 with patch.object(service.file_manager, 'save_product_mask', return_value=f"/mask_{i}.png"):
-                    task = asyncio.create_task(service.handle_products_images_ready(event_data))
+                    task = asyncio.create_task(service.handle_products_image_ready(event_data))
                     tasks.append(task)
         
         # Wait for all tasks to complete
@@ -139,7 +139,7 @@ class TestConcurrentProcessing:
             
             with patch.object(service.segmentor, 'segment_image', mock_segmentor.segment_image):
                 with patch.object(service.file_manager, 'save_product_mask', return_value=f"/mask_{i}.png"):
-                    task = asyncio.create_task(service.handle_products_images_ready(event_data))
+                    task = asyncio.create_task(service.handle_products_image_ready(event_data))
                     tasks.append(task)
         
         # Start tasks and check that they don't all run at once
@@ -178,7 +178,7 @@ class TestConcurrentProcessing:
             
             with patch.object(service.segmentor, 'segment_image', failing_segment_image):
                 with patch.object(service.file_manager, 'save_product_mask', return_value=f"/mask_{i}.png"):
-                    task = asyncio.create_task(service.handle_products_images_ready(event_data))
+                    task = asyncio.create_task(service.handle_products_image_ready(event_data))
                     tasks.append(task)
         
         # All tasks should complete without raising exceptions

@@ -1,6 +1,6 @@
 # Sprint 8 – eBay Integration for Dropship Product Finder
 
-> Goal: Integrate eBay **Browse API** into the `dropship-product-finder` service according to the agreed business constraints. Maintain the image‑first pipeline (download images → emit `products.images.ready`) without requiring changes to downstream services.
+> Goal: Integrate eBay **Browse API** into the `dropship-product-finder` service according to the agreed business constraints. Maintain the image‑first pipeline (download images → emit `products.image.ready`) without requiring changes to downstream services.
 
 > **Note:** This implementation will initially run in the **eBay Sandbox** environment. The `.env` file for the `dropship-product-finder` service will include `EBAY_CLIENT_ID` and `EBAY_CLIENT_SECRET`. These will be read via `config_loader` and used within the application. The service should obtain a fresh `access_token` at startup by calling **Step 1 – Get access token**: send a POST request to `/identity/v1/oauth2/token` with Basic Auth `<CLIENT_ID>:<CLIENT_SECRET>` and receive an `access_token` (usually valid for \~2 hours). The `fieldgroups=EXTENDED` parameter should be included in Browse API requests to retrieve extended data. **Caution:** If the API is overused or exceeds the burst rate limit (e.g., 5–10 requests/second depending on account), eBay may temporarily suspend the API key.
 
@@ -37,7 +37,7 @@
 
 - **Consumer input:** listens to `products.collect.request`. Takes `queries.en` and `top_ebay` from payload.
 - **eBay Collector:** calls Browse Search with filters in §3, merges results from configured marketplaces, deduplicates by EPID, downloads & resizes images.
-- **Producer output:** emits `products.images.ready` for each image.
+- **Producer output:** emits `products.image.ready` for each image.
 - **Downstream:** No changes to other services.
 
 ---
@@ -104,7 +104,7 @@ EBAY_MARKETPLACES=EBAY_US,EBAY_DE,EBAY_AU
 4. **Browse Search Integration** – Implement search call with required filters and params.
 5. **Dedup & Normalization** – Deduplicate and normalize results.
 6. **Image Pipeline** – Download, resize, and store local & remote URLs; implement cleanup.
-7. **Events** – Emit `products.images.ready` per saved image.
+7. **Events** – Emit `products.image.ready` per saved image.
 8. **Reliability & Limits** – Implement retry, backoff, and rate‑limit handling.
 9. **Docs & Tests** – Update README; create unit/integration tests.
 10. **Smoke Run** – End‑to‑end test in Sandbox.
@@ -131,5 +131,5 @@ EBAY_MARKETPLACES=EBAY_US,EBAY_DE,EBAY_AU
 - Image resize keeps aspect ratio.
 - Image storage includes both local & remote URLs; cleanup works.
 - Retry logic triggers on transient failures.
-- Correct event payload for `products.images.ready`.
+- Correct event payload for `products.image.ready`.
 

@@ -42,7 +42,7 @@
   - Create service structure with event consumer for products.collect.request
   - Add placeholder product search logic (return mock product data)
   - Implement image download and local storage structure
-  - Create products.images.ready event publishing
+  - Create products.image.ready event publishing
   - Add basic retry logic and error handling
   - _Requirements: 3.1, 3.2, 3.3, 3.4, 3.5_
 

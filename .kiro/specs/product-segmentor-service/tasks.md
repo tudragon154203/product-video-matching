@@ -60,7 +60,7 @@
 - [x] 7. Implement event handlers for product images
 
   - Create ProductSegmentorHandler class
-  - Implement handle_products_images_ready method with event validation
+  - Implement handle_products_image_ready method with event validation
   - Implement handle_products_images_ready_batch method
   - Add proper error handling and logging for segmentation failures
   - _Requirements: 1.1, 1.2, 1.3, 4.2, 4.3_

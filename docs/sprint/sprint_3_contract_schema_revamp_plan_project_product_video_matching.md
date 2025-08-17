@@ -105,7 +105,7 @@ This section **fully specifies** the event shapes we accept after Sprint 3. All 
 **Consumer obligations (catalog‑collector)**
 
 - Read `queries.en` → choose 1..N queries to execute; log which queries were used
-- Produce downstream: `products.images.ready` **per image** with valid local path
+- Produce downstream: `products.image.ready` **per image** with valid local path
 
 ---
 
@@ -178,7 +178,7 @@ This section **fully specifies** the event shapes we accept after Sprint 3. All 
 
 The following contracts are **unchanged** but enforced strictly with `additionalProperties: false`. Producers/consumers must validate and reject malformed payloads.
 
-#### 2.4.1 `products.images.ready`
+#### 2.4.1 `products.image.ready`
 
 - Emitted per product image with `product_id`, `image_id`, `local_path` (+ optional basic metadata)
 - Triggers `vision-embedding` to compute `emb_rgb`, `emb_gray`

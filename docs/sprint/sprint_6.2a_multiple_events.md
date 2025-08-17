@@ -6,7 +6,7 @@ Dozens of duplicate events in logs
 Database warnings about multiple phase events
 Inefficient event processing
 Root Cause
-Each individual products.images.ready event triggers a completion event with total=1 and done=1, treating each image as a separate "job" instead of aggregating all images for the actual job.
+Each individual products.image.ready event triggers a completion event with total=1 and done=1, treating each image as a separate "job" instead of aggregating all images for the actual job.
 
 Solution Approach
 Create a job-level coordination mechanism where vision services wait to receive all images for a job before publishing completion events.

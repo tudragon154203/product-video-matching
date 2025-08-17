@@ -12,7 +12,7 @@ The Product Segmentor Service is a new microservice that will be inserted into t
 
 #### Acceptance Criteria
 
-1. WHEN a `products.images.ready` event is received THEN the system SHALL process the product image to generate a product mask
+1. WHEN a `products.image.ready` event is received THEN the system SHALL process the product image to generate a product mask
 2. WHEN product segmentation is complete THEN the system SHALL publish a `products.image.masked` event with the mask path
 3. WHEN all product images for a job are processed THEN the system SHALL publish a `products.images.masked.batch` event with total count
 4. IF segmentation fails for an image THEN the system SHALL log the error and continue processing other images

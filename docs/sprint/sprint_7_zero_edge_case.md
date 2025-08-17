@@ -27,7 +27,7 @@
         "total_images": 0
       }
       ```
-    - Skip per-image `products.images.ready` events.
+    - Skip per-image `products.image.ready` events.
   - Still publish **`products.collections.completed`**.
 - **Contracts**: `products_images_ready_batch.json`, `products_collections_completed.json`.
 

@@ -58,16 +58,16 @@ sequenceDiagram
     ORC->>RMQ: videos.search.request
     
     RMQ->>CC: products.collect.request
-    CC->>RMQ: products.images.ready
+    CC->>RMQ: products.image.ready
     
     RMQ->>MI: videos.search.request
     MI->>RMQ: videos.keyframes.ready
     
-    RMQ->>VE: products.images.ready
+    RMQ->>VE: products.image.ready
     RMQ->>VE: videos.keyframes.ready
     VE->>RMQ: features.ready
     
-    RMQ->>VK: products.images.ready
+    RMQ->>VK: products.image.ready
     RMQ->>VK: videos.keyframes.ready
     VK->>RMQ: features.ready
     
@@ -115,7 +115,7 @@ The system uses Docker Compose for local development with the following containe
 
 **Key Interfaces**:
 - Event Consumer: `products.collect.request`
-- Event Publisher: `products.images.ready`
+- Event Publisher: `products.image.ready`
 - External APIs: Amazon Product API, eBay API
 
 **Implementation Details**:
@@ -146,7 +146,7 @@ The system uses Docker Compose for local development with the following containe
 **Responsibility**: Deep learning feature extraction from images
 
 **Key Interfaces**:
-- Event Consumer: `products.images.ready`, `videos.keyframes.ready`
+- Event Consumer: `products.image.ready`, `videos.keyframes.ready`
 - Event Publisher: `features.ready`
 - ML Models: CLIP ViT-B/32
 
@@ -162,7 +162,7 @@ The system uses Docker Compose for local development with the following containe
 **Responsibility**: Traditional computer vision feature extraction
 
 **Key Interfaces**:
-- Event Consumer: `products.images.ready`, `videos.keyframes.ready`
+- Event Consumer: `products.image.ready`, `videos.keyframes.ready`
 - Event Publisher: `features.ready`
 - CV Algorithms: AKAZE, SIFT
 

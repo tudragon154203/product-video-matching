@@ -41,21 +41,21 @@ class ProductSegmentorHandler:
         except Exception as e:
             logger.error("Error during handler cleanup", error=str(e))
     
-    @validate_event("products_images_ready")
+    @validate_event("products_image_ready")
     @handle_errors
-    async def handle_products_images_ready(self, event_data: dict) -> None:
+    async def handle_products_image_ready(self, event_data: dict) -> None:
         """Handle product images ready event.
         
         Args:
             event_data: Event payload containing product image information
         """
         logger.info(
-            "Received product images ready event", 
+            "Received product image ready event", 
             product_id=event_data.get("product_id"),
             image_id=event_data.get("image_id")
         )
         
-        await self.service.handle_products_images_ready(event_data)
+        await self.service.handle_products_image_ready(event_data)
     
     @validate_event("products_images_ready_batch")
     @handle_errors

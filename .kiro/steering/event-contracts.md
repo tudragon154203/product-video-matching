@@ -24,7 +24,7 @@ All events must follow the standard envelope format:
 
 ## Key Event Types
 - `products.collect.request` → Trigger product collection
-- `products.images.ready` → Product images available
+- `products.image.ready` → Product images available
 - `videos.search.request` → Trigger video search
 - `videos.keyframes.ready` → Video frames extracted
 - `features.ready` → Embeddings/keypoints computed

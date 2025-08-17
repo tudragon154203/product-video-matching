@@ -12,11 +12,11 @@ The service follows the established event-driven architecture pattern, consuming
 
 ```
 Collection Phase:
-├── Dropship Product Finder → products.images.ready(.batch)
+├── Dropship Product Finder → products.image.ready(.batch)
 └── Video Crawler → video.keyframes.ready(.batch)
                     ↓
 Product Segmentor Service:
-├── Consumes: products.images.ready, products.images.ready.batch
+├── Consumes: products.image.ready, products.images.ready.batch
 ├── Consumes: video.keyframes.ready, video.keyframes.ready.batch  
 ├── Produces: products.image.masked, products.images.masked.batch
 └── Produces: video.keyframes.masked, video.keyframes.masked.batch

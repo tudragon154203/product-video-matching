@@ -53,7 +53,7 @@ Notes: `top_amz` and `top_ebay` are integers in [1, 100].
 { "job_id": "string", "event_id": "uuid", "total_images": 0 }
 ```
 
-### products.images.ready (`products_images_ready.json`)
+### products.image.ready (`products_image_ready.json`)
 
 ```json
 {
@@ -250,7 +250,7 @@ Note: `additionalProperties` are allowed; publishers may include `job_id` for tr
 
 ### dropship-product-finder
 
-- Publishes: `products.collections.completed`, `products.images.ready.batch`, `products.images.ready`
+- Publishes: `products.collections.completed`, `products.images.ready.batch`, `products.image.ready`
 - Subscribes: `products.collect.request`
 
 ### video-crawler
@@ -261,7 +261,7 @@ Note: `additionalProperties` are allowed; publishers may include `job_id` for tr
 ### product-segmentor
 
 - Publishes: `products.image.masked`, `products.images.masked.batch`, `video.keyframes.masked`, `video.keyframes.masked.batch`
-- Subscribes: `products.images.ready.batch`, `products.images.ready`, `videos.keyframes.ready.batch`, `videos.keyframes.ready`
+- Subscribes: `products.images.ready.batch`, `products.image.ready`, `videos.keyframes.ready.batch`, `videos.keyframes.ready`
 
 Note: Some internal completion events like `products.images.masked.completed` and `video.keyframes.masked.completed` may be emitted for observability; no JSON Schemas are defined for these in `libs/contracts`.
 

@@ -113,7 +113,7 @@ class TestProductSegmentorServiceIntegration:
         assert not service.initialized
     
     @pytest.mark.asyncio
-    async def test_handle_products_images_ready(self, service, temp_dir):
+    async def test_handle_products_image_ready(self, service, temp_dir):
         """Test handling product images ready event."""
         await service.initialize()
         
@@ -130,7 +130,7 @@ class TestProductSegmentorServiceIntegration:
         }
         
         with patch.object(service.file_manager, 'save_product_mask', return_value="/mask/path.png") as mock_save:
-            await service.handle_products_images_ready(event_data)
+            await service.handle_products_image_ready(event_data)
         
         # Verify segmentation was called
         assert service.segmentor.call_count == 1
@@ -263,7 +263,7 @@ class TestProductSegmentorServiceIntegration:
             "job_id": "job_123"
         }
         
-        await service.handle_products_images_ready(event_data)
+        await service.handle_products_image_ready(event_data)
         
         # Verify no database update or event publication occurred
         service.db.execute.assert_not_called()
@@ -286,7 +286,7 @@ class TestProductSegmentorServiceIntegration:
             "job_id": "job_123"
         }
         
-        await service.handle_products_images_ready(event_data)
+        await service.handle_products_image_ready(event_data)
         
         # Verify no database update or event publication occurred
         service.db.execute.assert_not_called()

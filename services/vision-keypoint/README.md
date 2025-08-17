@@ -24,7 +24,7 @@ The service follows a modular architecture with the following components:
 ## Event Handling
 
 The service subscribes to:
-- `products.images.ready` events for product image keypoint extraction
+- `products.image.ready` events for product image keypoint extraction
 - `videos.keyframes.ready` events for video frame keypoint extraction
 
 For each event, it:

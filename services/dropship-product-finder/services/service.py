@@ -217,7 +217,7 @@ class DropshipProductFinderService:
             # Publish individual image ready events
             for image in images:
                 await self.broker.publish_event(
-                    "products.images.ready",
+                    "products.image.ready",
                     {
                         "product_id": image["product_id"],
                         "image_id": image["img_id"],
@@ -269,7 +269,7 @@ class DropshipProductFinderService:
                     
                     # Emit image ready event
                     await self.broker.publish_event(
-                        "products.images.ready",
+                        "products.image.ready",
                         {
                             "product_id": product.product_id,
                             "image_id": image_id,

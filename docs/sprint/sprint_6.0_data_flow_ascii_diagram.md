@@ -112,7 +112,7 @@ matchings.process.completed → Evidence Builder → evidences.generation.comple
 - [ ] Tests tương tự Vision Embedding.
 
 ### 5) Dropship Product Finder
-- [ ] Giữ `products.collect.request` & `products.images.ready` như cũ.
+- [ ] Giữ `products.collect.request` & `products.image.ready` như cũ.
 - [ ] Khi xong job: publish `products.collections.completed`.
 - [ ] Test end-to-end nhánh products.
 
