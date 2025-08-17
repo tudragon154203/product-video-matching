@@ -342,7 +342,7 @@ BATCH_TIMEOUT_SECONDS=300
 MASK_QUALITY=0.8
 
 # File paths
-MASK_BASE_PATH=data/masks
+FOREGROUND_MASK_DIR_PATH=data/masks
 MODEL_CACHE=/path/to/model/cache  # From common config
 
 # Database and messaging (inherited from common config)
@@ -358,7 +358,7 @@ class ProductSegmentorConfig:
     segmentation_model_name: str = "briaai/RMBG-1.4"  # Hugging Face model name
     max_concurrent_images: int = 4
     batch_timeout_seconds: int = 300
-    mask_base_path: str = "data/masks"
+    foreground_mask_dir_path: str = "data/masks"
     model_cache: str  # From common config
     
     # Database and messaging

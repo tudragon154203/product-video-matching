@@ -80,7 +80,7 @@ class TestProductSegmentorServiceIntegration:
             service = ProductSegmentorService(
                 db=mock_db,
                 broker=mock_broker,
-                mask_base_path=temp_dir,
+                foreground_mask_dir_path=temp_dir,
                 max_concurrent=2
             )
             

@@ -21,7 +21,7 @@ class ProductSegmentorHandler:
             db=self.db,
             broker=self.broker,
             model_name=config.SEGMENTATION_MODEL_NAME,
-            mask_base_path=config.MASK_BASE_PATH,
+            foreground_mask_dir_path=config.FOREGROUND_MASK_DIR_PATH,
             max_concurrent=config.MAX_CONCURRENT_IMAGES
         )
         self.initialized = False

@@ -42,7 +42,7 @@ class TestEdgeCases:
         service = ProductSegmentorService(
             db=mock_db,
             broker=mock_broker,
-            mask_base_path=temp_dir
+            foreground_mask_dir_path=temp_dir
         )
         
         await service.initialize()
@@ -84,7 +84,7 @@ class TestEdgeCases:
         service = ProductSegmentorService(
             db=mock_db,
             broker=mock_broker,
-            mask_base_path=temp_dir
+            foreground_mask_dir_path=temp_dir
         )
         
         # Mock segmentor that will fail on missing files
@@ -113,7 +113,7 @@ class TestEdgeCases:
         service = ProductSegmentorService(
             db=mock_db,
             broker=mock_broker,
-            mask_base_path=temp_dir
+            foreground_mask_dir_path=temp_dir
         )
         
         # Mock segmentor that returns None for corrupted images
@@ -147,7 +147,7 @@ class TestEdgeCases:
         service = ProductSegmentorService(
             db=mock_db,
             broker=mock_broker,
-            mask_base_path=temp_dir
+            foreground_mask_dir_path=temp_dir
         )
         
         # Mock successful segmentation
@@ -201,7 +201,7 @@ class TestEdgeCases:
         service = ProductSegmentorService(
             db=mock_db,
             broker=mock_broker,
-            mask_base_path=temp_dir
+            foreground_mask_dir_path=temp_dir
         )
         
         # Mock successful segmentation
@@ -240,7 +240,7 @@ class TestEdgeCases:
         service = ProductSegmentorService(
             db=mock_db,
             broker=mock_broker,
-            mask_base_path=temp_dir,
+            foreground_mask_dir_path=temp_dir,
             max_concurrent=1  # Limit to 1 for testing
         )
         
@@ -290,7 +290,7 @@ class TestEdgeCases:
         service = ProductSegmentorService(
             db=mock_db,
             broker=mock_broker,
-            mask_base_path=temp_dir,
+            foreground_mask_dir_path=temp_dir,
             max_concurrent=2
         )
         

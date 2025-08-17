@@ -39,7 +39,7 @@ class ProductSegmentorConfig:
     MASK_QUALITY: float = float(os.getenv("MASK_QUALITY", "0.8"))
     
     # File paths
-    MASK_BASE_PATH: str = os.getenv("MASK_BASE_PATH", "data/masks")
+    FOREGROUND_MASK_DIR_PATH: str = os.getenv("FOREGROUND_MASK_DIR_PATH", "data/masks")
     
     # Database configuration (from global config)
     POSTGRES_DSN: str = global_config.POSTGRES_DSN

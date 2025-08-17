@@ -51,7 +51,7 @@ class ProductSegmentorService:
         db: DatabaseManager,
         broker: MessageBroker,
         model_name: str = "briaai/RMBG-2.0",
-        mask_base_path: str = "data/masks",
+        foreground_mask_dir_path: str = "data/masks",
         max_concurrent: int = 4
     ):
         """Initialize segmentation service.
@@ -60,7 +60,7 @@ class ProductSegmentorService:
             db: Database manager instance
             broker: Message broker instance
             model_name: Hugging Face model name
-            mask_base_path: Base path for mask storage
+            foreground_mask_dir_path: Base path for mask storage
             max_concurrent: Maximum concurrent image processing
             
         Initializes specialized modules:
@@ -73,7 +73,7 @@ class ProductSegmentorService:
         """
         self.db = db
         self.broker = broker
-        self.file_manager = FileManager(mask_base_path)
+        self.file_manager = FileManager(foreground_mask_dir_path)
         self.max_concurrent = max_concurrent
         
         # Initialize segmentation engine using factory

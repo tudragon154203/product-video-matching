@@ -16,7 +16,7 @@ class TestProductSegmentorHandler:
             mock_config.postgres_dsn = "postgresql://test"
             mock_config.bus_broker = "amqp://test"
             mock_config.segmentation_model_name = "test/model"
-            mock_config.mask_base_path = "/tmp/masks"
+            mock_config.foreground_mask_dir_path = "/tmp/masks"
             mock_config.max_concurrent_images = 2
             mock_config.LOG_LEVEL = "INFO"
             
