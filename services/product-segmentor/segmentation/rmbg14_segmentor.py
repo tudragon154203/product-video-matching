@@ -129,8 +129,19 @@ class RMBG14Segmentor(SegmentationInterface):
                     if isinstance(last_output, torch.Tensor):
                         preds = torch.sigmoid(last_output).cpu()
                     else:
-                        logger.error(f"Unexpected type in logits[-1]: {type(last_output)}")
-                        raise TypeError(f"Expected Tensor, got {type(last_output)}")
+                        # Handle case where last_output is still a list/tuple
+                        logger.debug(f"last_output type: {type(last_output)}")
+                        if isinstance(last_output, (list, tuple)) and len(last_output) > 0:
+                            # Try to get the first tensor from the nested structure
+                            inner_item = last_output[0]
+                            if isinstance(inner_item, torch.Tensor):
+                                preds = torch.sigmoid(inner_item).cpu()
+                            else:
+                                logger.error(f"Unexpected type in logits[-1][0]: {type(inner_item)}")
+                                raise TypeError(f"Expected Tensor, got {type(inner_item)}")
+                        else:
+                            logger.error(f"Unexpected type in logits[-1]: {type(last_output)}")
+                            raise TypeError(f"Expected Tensor, got {type(last_output)}")
                 elif isinstance(logits, torch.Tensor):
                     # If logits is a single tensor
                     logger.debug(f"Model output shape: {logits.shape}")
@@ -138,6 +149,19 @@ class RMBG14Segmentor(SegmentationInterface):
                 else:
                     logger.error(f"Unexpected model output type: {type(logits)}")
                     raise TypeError(f"Expected Tensor or list/tuple, got {type(logits)}")
+            
+            # Debug: Log detailed information about preds tensor
+            logger.debug(f"Preds type: {type(preds)}")
+            if isinstance(preds, torch.Tensor):
+                logger.debug(f"Preds shape: {preds.shape}")
+                logger.debug(f"Preds dtype: {preds.dtype}")
+            elif isinstance(preds, (list, tuple)):
+                logger.debug(f"Preds length: {len(preds)}")
+                for i, item in enumerate(preds):
+                    logger.debug(f"Preds[{i}] type: {type(item)}")
+                    if isinstance(item, torch.Tensor):
+                        logger.debug(f"Preds[{i}] shape: {item.shape}")
+                        logger.debug(f"Preds[{i}] dtype: {item.dtype}")
             
             # Process output to binary mask
             mask = await loop.run_in_executor(
@@ -157,32 +181,77 @@ class RMBG14Segmentor(SegmentationInterface):
     def _prepare_image(self, image_path: str):
         """Prepare image for inference."""
         # Load image
-        image = Image.open(image_path).convert("RGB")
-        
+        image = Image.open(image_path)
+
+        # Convert to RGBA first to handle potential alpha channels, then to RGB
+        # This can sometimes resolve issues with images having unusual modes
+        if image.mode != 'RGBA':
+            image = image.convert('RGBA')
+        image = image.convert('RGB')
+
         # Transform image
         input_tensor = self._transform(image).unsqueeze(0).to(self._device)
-        
+
         return image, input_tensor
     
     def _process_output(self, preds, original_size):
         """Process model output to binary mask."""
-        # Get the prediction
-        pred = preds[0].squeeze()
-        
-        # Convert to PIL image
-        pred_pil = transforms.ToPILImage()(pred)
-        
-        # Resize mask to original image size
-        mask_resized = pred_pil.resize(original_size, Image.NEAREST)
-        
-        # Convert to numpy array (0-255 range)
-        mask_np = np.array(mask_resized)
-        
-        # Ensure it's in the right format (0-255 uint8)
-        if mask_np.dtype != np.uint8:
-            mask_np = (mask_np * 255).astype(np.uint8)
-        
-        return mask_np
+        try:
+            # Debug: Log information about preds before processing
+            logger.debug(f"_process_output - preds type: {type(preds)}")
+            if isinstance(preds, torch.Tensor):
+                logger.debug(f"_process_output - preds shape: {preds.shape}")
+                logger.debug(f"_process_output - preds dtype: {preds.dtype}")
+            elif isinstance(preds, (list, tuple)):
+                logger.debug(f"_process_output - preds length: {len(preds)}")
+                for i, item in enumerate(preds):
+                    logger.debug(f"_process_output - preds[{i}] type: {type(item)}")
+                    if isinstance(item, torch.Tensor):
+                        logger.debug(f"_process_output - preds[{i}] shape: {item.shape}")
+                        logger.debug(f"_process_output - preds[{i}] dtype: {item.dtype}")
+            
+            # Get the prediction
+            # Handle different possible structures of preds
+            if isinstance(preds, (list, tuple)):
+                # If preds is a list/tuple, get the first element
+                pred = preds[0]
+            else:
+                # If preds is already a tensor, use it directly
+                pred = preds
+            
+            # Squeeze to remove unnecessary dimensions
+            pred = pred.squeeze()
+            
+            # Ensure we have the right number of channels for ToPILImage
+            # If we still have multiple channels, take the first one (mask channel)
+            if isinstance(pred, torch.Tensor) and pred.dim() > 2:
+                # For segmentation masks, we typically want the first channel
+                pred = pred[0] if pred.shape[0] <= pred.shape[1] and pred.shape[0] <= pred.shape[2] else pred[:, :, 0]
+            
+            # Debug: Log information about pred after squeezing
+            logger.debug(f"_process_output - pred type: {type(pred)}")
+            if isinstance(pred, torch.Tensor):
+                logger.debug(f"_process_output - pred shape: {pred.shape}")
+                logger.debug(f"_process_output - pred dtype: {pred.dtype}")
+                logger.debug(f"_process_output - pred min: {pred.min()}, max: {pred.max()}")
+            
+            # Convert to PIL image
+            pred_pil = transforms.ToPILImage()(pred)
+            
+            # Resize mask to original image size
+            mask_resized = pred_pil.resize(original_size, Image.NEAREST)
+            
+            # Convert to numpy array (0-255 range)
+            mask_np = np.array(mask_resized)
+            
+            # Ensure it's in the right format (0-255 uint8)
+            if mask_np.dtype != np.uint8:
+                mask_np = (mask_np * 255).astype(np.uint8)
+            
+            return mask_np
+        except Exception as e:
+            logger.error(f"Error processing model output: {e}")
+            raise
     
     def cleanup(self) -> None:
         """Cleanup RMBG-1.4 model resources."""

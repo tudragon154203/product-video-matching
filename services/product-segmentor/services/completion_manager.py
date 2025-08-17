@@ -40,7 +40,9 @@ class CompletionManager:
             try:
                 await asyncio.sleep(timeout_seconds)
                 logger.info(f"Watermark timer expired for job {job_id}, publishing completion event")
-                await self.finalize(job_id, is_timeout=True)
+                # Create empty counts for timeout case
+                empty_counts = {'image': {'total': 0, 'processed': 0}, 'frame': {'total': 0, 'processed': 0}}
+                await self.finalize(job_id, empty_counts, is_timeout=True)
             except asyncio.CancelledError:
                 logger.debug(f"Watermark timer cancelled for job {job_id}")
             except Exception as e:

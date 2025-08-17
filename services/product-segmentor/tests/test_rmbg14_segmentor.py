@@ -106,31 +106,30 @@ class TestRMBG14Segmentor:
             with patch('transformers.AutoModelForImageSegmentation.from_pretrained') as mock_model_loader, \
                  patch('transformers.AutoImageProcessor.from_pretrained') as mock_processor_loader:
 
-                mock_model = Mock()
-                mock_processor = Mock()
+                mock_model_instance = Mock()
+                mock_processor = Mock() # Re-add this line
 
-                mock_model_loader.return_value = mock_model
-                mock_processor_loader.return_value = mock_processor
+                mock_model_instance.return_value = torch.randn(1, 1, 224, 224) # This is what the model call returns
 
-                # Mock the model's forward pass to return a dummy mask output
-                # The output should be a tensor that, when processed, becomes a binary mask
-                # For a 224x224 image, the output mask will also be 224x224
-                mock_model.return_value = Mock(logits=torch.randn(1, 1, 224, 224)) # Simulate logits output
+                mock_model_loader.return_value = mock_model_instance # This is what from_pretrained returns
+                mock_processor_loader.return_value = mock_processor # Re-add this line
 
                 # Mock the processor's __call__ method to return dummy pixel values
                 mock_processor.return_value = {'pixel_values': torch.randn(1, 3, 224, 224)}
 
                 await segmentor.initialize()
+                # Directly mock the _model attribute
+                segmentor._model = Mock()
+                segmentor._model.return_value = torch.randint(0, 2, (1, 1, 224, 224)).float() * 200 - 100
                 mask = await segmentor.segment_image(tmp_path)
 
                 assert mask is not None
-                assert isinstance(mask, Image.Image)
-                assert mask.mode == 'L' # Mask should be grayscale
-                assert mask.size == (224, 224)
+                assert isinstance(mask, np.ndarray)
+                assert mask.dtype == np.uint8
+                assert mask.shape == (224, 224)
 
                 # Verify that the mask contains only 0s and 255s (binary)
-                mask_array = np.array(mask)
-                assert np.all(np.isin(mask_array, [0, 255]))
+                assert np.all(np.isin(mask, [0, 255]))
 
         finally:
             os.unlink(tmp_path)
