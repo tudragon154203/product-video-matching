@@ -67,6 +67,10 @@ class YOLOSegmentor(SegmentationInterface):
                 else:
                     print(f"No persons detected or no masks generated for {image_path}.")
 
+            # If no people mask was generated, return None
+            if people_mask is None:
+                return None
+                
             return people_mask.reshape(people_mask.shape[0], people_mask.shape[1], 1)
 
         except Exception as e:

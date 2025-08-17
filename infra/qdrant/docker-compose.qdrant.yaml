@@ -1,13 +1,23 @@
 services:
-  qdrant:
+  qdrant-kilo:
     image: qdrant/qdrant:latest
     restart: unless-stopped
     ports:
       - "6333:6333"   # HTTP
-      - "6334:6334"   # gRPC
     environment:
       QDRANT__TELEMETRY__DISABLE: "true"
     volumes:
-      - qdrant_data:/qdrant/storage
+      - qdrant_data_kilo:/qdrant/storage
+  
+  qdrant-roo:
+    image: qdrant/qdrant:latest
+    restart: unless-stopped
+    ports:
+      - "6334:6333"   # HTTP
+    environment:
+      QDRANT__TELEMETRY__DISABLE: "true"
+    volumes:
+      - qdrant_data_roo:/qdrant/storage
 volumes:
-  qdrant_data:
+  qdrant_data_kilo:
+  qdrant_data_roo:
