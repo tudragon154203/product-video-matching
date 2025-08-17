@@ -20,15 +20,15 @@ from common_py.database import DatabaseManager
 from common_py.messaging import MessageBroker
 from common_py.logging_config import configure_logging
 
-from file_manager import FileManager
+from utils.file_manager import FileManager
 from config_loader import config
 from handlers.event_emitter import EventEmitter
 from .image_processor import ImageProcessor
-from .db_updater import DatabaseUpdater
+from utils.db_updater import DatabaseUpdater
 from .segmentor_factory import create_segmentor
-from .progress_tracker import ProgressTracker
-from .completion_manager import CompletionManager
-from .deduper import Deduper
+from utils.progress_tracker import ProgressTracker
+from utils.completion_manager import CompletionManager
+from utils.deduper import Deduper
 
 logger = configure_logging("product-segmentor-service", config.LOG_LEVEL)
 

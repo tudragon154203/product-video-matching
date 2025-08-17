@@ -269,7 +269,7 @@ class TestEdgeCases:
         with patch.object(service.file_manager, 'save_product_mask', return_value="/mask/path.png"):
             for i, path in enumerate(image_paths):
                 task = asyncio.create_task(
-                    service.handle_products_images_ready({
+                    service.handle_products_image_ready({
                         "product_id": f"prod_{i}",
                         "image_id": f"img_{i}",
                         "local_path": path,
@@ -314,7 +314,7 @@ class TestEdgeCases:
         
         with patch.object(service.file_manager, 'save_product_mask', return_value="/mask/path.png"):
             task = asyncio.create_task(
-                service.handle_products_images_ready({
+                service.handle_products_image_ready({
                     "product_id": "prod_123",
                     "image_id": "img_123",
                     "local_path": test_image_path,

@@ -10,7 +10,7 @@ delegating file management to the FileManager and image processing to other modu
 """
 from common_py.database import DatabaseManager
 from common_py.logging_config import configure_logging
-from file_manager import FileManager
+from utils.file_manager import FileManager
 
 logger = configure_logging("product-segmentor")
 
@@ -79,40 +79,3 @@ class DatabaseUpdater:
             
         except Exception as e:
             logger.error("Failed to update video frame mask", frame_id=frame_id, error=str(e))
-
-class FileProcessor:
-    """Handles file operations for segmentation results.
-    
-    This class focuses solely on file management operations for storing mask files,
-    delegating database operations to DatabaseUpdater and image processing to other modules.
-    """
-    def __init__(self, file_manager: FileManager):
-        """Initialize file processor with file manager.
-        
-        Args:
-            file_manager: FileManager instance for file operations
-        """
-        self.file_manager = file_manager
-
-    async def save_mask(self, image_id: str, mask: bytes, image_type: str) -> str:
-        """Save mask to filesystem based on image type.
-        
-        Routes the mask to the appropriate file storage location based on whether
-        it's a product image or video frame mask.
-        
-        Args:
-            image_id: Unique identifier for the image/frame
-            mask: Generated mask data as bytes
-            image_type: Type of image ("product" or "frame")
-            
-        Returns:
-            Path where the mask file was saved
-            
-        Note:
-            This method simply routes to the FileManager's save methods.
-            Actual file handling is implemented in the FileManager class.
-        """
-        if image_type == "product":
-            return await self.file_manager.save_product_mask(image_id, mask)
-        else:  # frame
-            return await self.file_manager.save_frame_mask(image_id, mask)

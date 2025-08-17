@@ -8,7 +8,7 @@ import shutil
 from pathlib import Path
 from PIL import Image
 
-from file_manager import FileManager
+from utils.file_manager import FileManager
 
 
 class TestFileManager:
