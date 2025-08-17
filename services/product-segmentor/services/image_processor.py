@@ -71,10 +71,12 @@ class ImageProcessor:
                 return None
             
             # Log segmentation time
-            logger.info("Image segmented", image_id=image_id, image_type=image_type,
-                      segmentation_time_seconds=segmentation_time, local_path=local_path)
-            
-            # Save mask to filesystem
+            logger.info(
+                "Image segmented",
+                segmentation_time_seconds=f"{segmentation_time:.2f}",
+                local_path=local_path
+            )            
+                        # Save mask to filesystem
             if image_type == "product":
                 mask_path = await file_manager.save_product_mask(image_id, mask)
             else:  # frame
