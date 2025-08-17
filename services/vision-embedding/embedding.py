@@ -8,6 +8,7 @@ import structlog
 
 logger = structlog.get_logger()
 
+from config_loader import config
 
 class EmbeddingExtractor:
     """Extracts visual embeddings using CLIP model"""
