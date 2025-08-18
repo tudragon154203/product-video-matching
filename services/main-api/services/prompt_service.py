@@ -74,6 +74,10 @@ Rules:
         }
         if "youtube" in platforms and "vi" in queries["video"]:
             video_queries["vi"] = queries["video"]["vi"]
+        if "douyin" in platforms and "vi" in queries["video"]:
+            video_queries["vi"] = queries["video"]["vi"]
+        if "tiktok" in platforms and "vi" in queries["video"]:
+            video_queries["vi"] = queries["video"]["vi"]
         if "bilibili" in platforms and "zh" in queries["video"]:
             video_queries["zh"] = queries["video"]["zh"]
         return video_queries

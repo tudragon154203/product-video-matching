@@ -1,8 +1,9 @@
 import logging
 from typing import List, Dict, Any, Optional
 from platform_crawler.interface import PlatformCrawlerInterface
+from common_py.logging_config import configure_logging
 
-logger = logging.getLogger("video-crawler")
+logger = configure_logging("video-crawler")
 
 
 class VideoFetcher:

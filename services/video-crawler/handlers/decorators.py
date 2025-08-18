@@ -1,8 +1,9 @@
 import functools
 import logging
 from contracts.validator import validator
+from common_py.logging_config import configure_logging
 
-logger = logging.getLogger("video-crawler")
+logger = configure_logging("video-crawler")
 
 def validate_event(schema_name):
     """Decorator to validate event data against a schema"""

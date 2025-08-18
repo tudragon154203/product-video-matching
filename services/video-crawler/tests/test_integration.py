@@ -108,16 +108,16 @@ class TestVideoCrawlerIntegration:
         # Call the method
         await video_crawler_service.handle_videos_search_request(event_data)
         
-        # Verify that the broker was called (indicating the flow completed)
-        assert video_crawler_service.broker.publish_event.called
+        # Verify that the event emitter was called (indicating the flow completed)
+        assert video_crawler_service.event_emitter.broker.publish_event.called
         
         # Check that batch keyframes ready event was published
-        batch_calls = [call for call in video_crawler_service.broker.publish_event.call_args_list 
+        batch_calls = [call for call in video_crawler_service.event_emitter.broker.publish_event.call_args_list
                       if call[0][0] == "videos.keyframes.ready.batch"]
         assert len(batch_calls) > 0, "Batch keyframes ready event should be published"
         
         # Check that videos collections completed event was published
-        collection_calls = [call for call in video_crawler_service.broker.publish_event.call_args_list 
+        collection_calls = [call for call in video_crawler_service.event_emitter.broker.publish_event.call_args_list
                            if call[0][0] == "videos.collections.completed"]
         assert len(collection_calls) > 0, "Videos collections completed event should be published"
     

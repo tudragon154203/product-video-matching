@@ -36,7 +36,7 @@
       "type": "array",
       "items": {
         "type": "string",
-        "enum": ["youtube", "bilibili"]
+        "enum": ["youtube", "bilibili", "douyin", "tiktok"]
       },
       "description": "Video platforms to search"
     },

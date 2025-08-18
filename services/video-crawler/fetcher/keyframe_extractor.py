@@ -5,8 +5,9 @@ from typing import List, Tuple
 import cv2
 import numpy as np
 import logging
+from common_py.logging_config import configure_logging
 
-logger = logging.getLogger("video-crawler")
+logger = configure_logging("video-crawler")
 
 
 class KeyframeExtractor:

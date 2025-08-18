@@ -9,8 +9,10 @@ from fetcher.video_fetcher import VideoFetcher
 from fetcher.keyframe_extractor import KeyframeExtractor
 from platform_crawler.interface import PlatformCrawlerInterface
 from platform_crawler.mock_crawler import MockPlatformCrawler
+from handlers.event_emitter import EventEmitter
+from common_py.logging_config import configure_logging
 
-logger = logging.getLogger("video-crawler")
+logger = configure_logging("video-crawler")
 
 
 class VideoCrawlerService:
@@ -24,6 +26,7 @@ class VideoCrawlerService:
         self.platform_crawlers = self._initialize_platform_crawlers(data_root)
         self.video_fetcher = VideoFetcher(platform_crawlers=self.platform_crawlers)
         self.keyframe_extractor = KeyframeExtractor(data_root)
+        self.event_emitter = EventEmitter(broker)
     
     async def handle_videos_search_request(self, event_data: Dict[str, Any]):
         """Handle video search request"""
@@ -54,32 +57,11 @@ class VideoCrawlerService:
             if not all_videos:
                 logger.info("No videos found for job {job_id}", job_id=job_id)
                 
-                # Publish batch event with zero keyframes
-                batch_event_id = str(uuid.uuid4())
-                await self.broker.publish_event(
-                    "videos.keyframes.ready.batch",
-                    {
-                        "job_id": job_id,
-                        "event_id": batch_event_id,
-                        "total_keyframes": 0
-                    },
-                    correlation_id=job_id
-                )
-                logger.info("Published batch keyframes ready event with zero keyframes",
-                           job_id=job_id,
-                           total_keyframes=0,
-                           batch_event_id=batch_event_id)
+                # Publish zero asset event
+                await self.event_emitter.publish_zero_asset_event(job_id)
                 
                 # Publish collections completed event
-                event_id = str(uuid.uuid4())
-                await self.broker.publish_event(
-                    "videos.collections.completed",
-                    {
-                        "job_id": job_id,
-                        "event_id": event_id
-                    },
-                    correlation_id=job_id
-                )
+                await self.event_emitter.publish_videos_collections_completed(job_id)
                 
                 logger.info("Completed video search with zero videos",
                            job_id=job_id,
@@ -94,35 +76,14 @@ class VideoCrawlerService:
                 total_frames += len(keyframes)
             
             # Emit batch keyframes ready event before processing individual videos
-            batch_event_id = str(uuid.uuid4())
-            await self.broker.publish_event(
-                "videos.keyframes.ready.batch",
-                {
-                    "job_id": job_id,
-                    "event_id": batch_event_id,
-                    "total_keyframes": total_frames
-                },
-                correlation_id=job_id
-            )
-            logger.info("DUPLICATE DETECTION: Published batch keyframes ready event",
-                       job_id=job_id,
-                       total_keyframes=total_frames,
-                       batch_event_id=batch_event_id)
+            await self.event_emitter.publish_videos_keyframes_ready_batch(job_id, total_frames)
             
             # Process each video
             for video_data in all_videos:
                 await self.process_video(video_data, job_id)
             
             # Emit videos collections completed event
-            event_id = str(uuid.uuid4())
-            await self.broker.publish_event(
-                "videos.collections.completed",
-                {
-                    "job_id": job_id,
-                    "event_id": event_id
-                },
-                correlation_id=job_id
-            )
+            await self.event_emitter.publish_videos_collections_completed(job_id)
             
             logger.info("Completed video search",
                        job_id=job_id,
@@ -178,14 +139,8 @@ class VideoCrawlerService:
             
             # Emit keyframes ready event
             if frame_data:
-                await self.broker.publish_event(
-                    "videos.keyframes.ready",
-                    {
-                        "video_id": video.video_id,
-                        "frames": frame_data,
-                        "job_id": job_id  # Add job_id for tracking
-                    },
-                    correlation_id=job_id
+                await self.event_emitter.publish_videos_keyframes_ready(
+                    video.video_id, frame_data, job_id
                 )
             
             logger.info("Processed video", video_id=video.video_id, 
