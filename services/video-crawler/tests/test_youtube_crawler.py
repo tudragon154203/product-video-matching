@@ -102,14 +102,12 @@ class TestYoutubeCrawler:
         mock_videos = [
             {
                 'video_id': 'old_video',
-                'published_at': old_date.strftime('%Y-%m-%d'),
                 'title': 'Old Video',
                 'duration_s': 60,
                 'uploader': 'test_user'
             },
             {
                 'video_id': 'recent_video',
-                'published_at': recent_date.strftime('%Y-%m-%d'),
                 'title': 'Recent Video',
                 'duration_s': 120,
                 'uploader': 'test_user'
@@ -142,7 +140,6 @@ class TestYoutubeCrawler:
         # Duplicate video across queries
         duplicate_video = {
             'video_id': 'same_video',
-            'published_at': datetime.utcnow().strftime('%Y-%m-%d'),
             'title': 'Same Video',
             'duration_s': 60,
             'uploader': 'test_user'
@@ -219,8 +216,8 @@ class TestYoutubeCrawler:
     def test_required_output_fields(self):
         """Test that output contains all required fields"""
         required_fields = [
-            'platform', 'video_id', 'url', 'title', 
-            'duration_s', 'published_at', 'local_path'
+            'platform', 'video_id', 'url', 'title',
+            'duration_s', 'local_path'
         ]
         
         # Create a mock video with all required fields
@@ -230,7 +227,6 @@ class TestYoutubeCrawler:
             'url': 'https://youtube.com/watch?v=test123',
             'title': 'Test Video',
             'duration_s': 60,
-            'published_at': '2023-01-01',
             'local_path': '/path/to/video.mp4'
         }
         
@@ -273,7 +269,7 @@ async def test_real_video_download_integration():
             # Verify each result has all required fields
             required_fields = [
                 'platform', 'video_id', 'url', 'title',
-                'duration_s', 'published_at', 'local_path'
+                'duration_s', 'local_path'
             ]
             
             for video in results:
@@ -302,8 +298,6 @@ async def test_real_video_download_integration():
                 assert isinstance(video['duration_s'], int), "Duration should be an integer"
                 assert video['duration_s'] > 0, "Duration should be positive"
                 
-                # Verify published_at format (should be YYYY-MM-DD)
-                assert re.match(r'\d{4}-\d{2}-\d{2}', video['published_at']), f"Invalid date format: {video['published_at']}"
             
             logging.info(f"Successfully downloaded and verified {len(results)} real YouTube videos")
             

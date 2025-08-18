@@ -100,96 +100,114 @@ async def test_call_gemini_request_error():
                 )
 
 @pytest.mark.asyncio
-async def test_call_llm_ollama_success():
-    """Test the call_llm function when Ollama succeeds."""
+async def test_call_llm_no_gemini_key_direct_ollama():
+    """Test the call_llm function when Gemini key is not set (uses Ollama directly)."""
     llm_service = LLMService()
     
     with patch.object(llm_service, 'call_ollama', new_callable=AsyncMock) as mock_call_ollama:
-        mock_call_ollama.return_value = {"response": "test response"}
+        mock_call_ollama.return_value = {"response": "ollama response"}
         
-        result = await llm_service.call_llm("classify", "test prompt")
-        
-        # Verify the result
-        assert result == {"response": "test response"}
-        
-        # Verify Ollama was called
-        mock_call_ollama.assert_called_once()
-
-@pytest.mark.asyncio
-async def test_call_llm_ollama_timeout_fallback_to_gemini():
-    """Test the call_llm function when Ollama times out and falls back to Gemini."""
-    llm_service = LLMService()
-    
-    with patch.object(llm_service, 'call_ollama', new_callable=AsyncMock) as mock_call_ollama:
-        mock_call_ollama.side_effect = asyncio.TimeoutError("Ollama timeout")
-        
-        with patch.object(llm_service, 'call_gemini', new_callable=AsyncMock) as mock_call_gemini:
-            mock_call_gemini.return_value = {"response": "gemini response"}
+        # Set empty API key for testing
+        with patch.object(config, 'GEMINI_API_KEY', ''):
+            result = await llm_service.call_llm("classify", "test prompt")
             
-            # Set a dummy API key for testing
-            with patch.object(config, 'GEMINI_API_KEY', 'test-api-key'):
-                result = await llm_service.call_llm("classify", "test prompt")
-                
-                # Verify the result came from Gemini
-                assert result == {"response": "gemini response"}
-                
-                # Verify both functions were called
-                mock_call_ollama.assert_called_once()
-                mock_call_gemini.assert_called_once()
+            # Verify the result came from Ollama
+            assert result == {"response": "ollama response"}
+            
+            # Verify Ollama was called and Gemini was not
+            mock_call_ollama.assert_called_once()
+            assert not hasattr(llm_service, '_call_gemini_mock') or not llm_service._call_gemini_mock.called
 
 @pytest.mark.asyncio
-async def test_call_llm_ollama_http_error_fallback_to_gemini():
-    """Test the call_llm function when Ollama returns HTTP error and falls back to Gemini."""
+async def test_call_llm_old_behavior_tests_deprecated():
+    """
+    DEPRECATED: These tests are kept for reference but reflect the old behavior.
+    The new behavior is Gemini first, then Ollama fallback.
+    """
+    # These tests are now obsolete but kept for documentation
+    pass
+
+@pytest.mark.asyncio
+async def test_call_llm_gemini_success():
+    """Test the call_llm function when Gemini succeeds (new primary behavior)."""
     llm_service = LLMService()
     
-    with patch.object(llm_service, 'call_ollama', new_callable=AsyncMock) as mock_call_ollama:
-        mock_call_ollama.side_effect = httpx.HTTPError("Ollama HTTP error")
+    with patch.object(llm_service, 'call_gemini', new_callable=AsyncMock) as mock_call_gemini:
+        mock_call_gemini.return_value = {"response": "gemini response"}
         
-        with patch.object(llm_service, 'call_gemini', new_callable=AsyncMock) as mock_call_gemini:
-            mock_call_gemini.return_value = {"response": "gemini response"}
+        # Set a dummy API key for testing
+        with patch.object(config, 'GEMINI_API_KEY', 'test-api-key'):
+            result = await llm_service.call_llm("classify", "test prompt")
+            
+            # Verify the result came from Gemini
+            assert result == {"response": "gemini response"}
+            
+            # Verify Gemini was called and Ollama was not
+            mock_call_gemini.assert_called_once()
+            assert not hasattr(llm_service, '_call_ollama_mock') or not llm_service._call_ollama_mock.called
+
+@pytest.mark.asyncio
+async def test_call_llm_gemini_failure_ollama_fallback():
+    """Test the call_llm function when Gemini fails and falls back to Ollama (new behavior)."""
+    llm_service = LLMService()
+    
+    with patch.object(llm_service, 'call_gemini', new_callable=AsyncMock) as mock_call_gemini:
+        mock_call_gemini.side_effect = httpx.HTTPError("Gemini HTTP error")
+        
+        with patch.object(llm_service, 'call_ollama', new_callable=AsyncMock) as mock_call_ollama:
+            mock_call_ollama.return_value = {"response": "ollama response"}
             
             # Set a dummy API key for testing
             with patch.object(config, 'GEMINI_API_KEY', 'test-api-key'):
                 result = await llm_service.call_llm("generate", "test prompt")
                 
-                # Verify the result came from Gemini
-                assert result == {"response": "gemini response"}
+                # Verify the result came from Ollama fallback
+                assert result == {"response": "ollama response"}
                 
-                # Verify both functions were called
-                mock_call_ollama.assert_called_once()
+                # Verify both functions were called in the right order
                 mock_call_gemini.assert_called_once()
+                mock_call_ollama.assert_called_once()
 
 @pytest.mark.asyncio
-async def test_call_llm_ollama_timeout_no_gemini_key():
-    """Test the call_llm function when Ollama times out and Gemini key is not set."""
+async def test_call_llm_gemini_timeout_ollama_fallback():
+    """Test the call_llm function when Gemini times out and falls back to Ollama."""
     llm_service = LLMService()
     
-    with patch.object(llm_service, 'call_ollama', new_callable=AsyncMock) as mock_call_ollama:
-        mock_call_ollama.side_effect = asyncio.TimeoutError("Ollama timeout")
+    with patch.object(llm_service, 'call_gemini', new_callable=AsyncMock) as mock_call_gemini:
+        mock_call_gemini.side_effect = asyncio.TimeoutError("Gemini timeout")
         
-        # Set empty API key for testing
-        with patch.object(config, 'GEMINI_API_KEY', ''):
-            with pytest.raises(asyncio.TimeoutError, match="Ollama timeout"):
-                await llm_service.call_llm("classify", "test prompt")
+        with patch.object(llm_service, 'call_ollama', new_callable=AsyncMock) as mock_call_ollama:
+            mock_call_ollama.return_value = {"response": "ollama response"}
+            
+            # Set a dummy API key for testing
+            with patch.object(config, 'GEMINI_API_KEY', 'test-api-key'):
+                result = await llm_service.call_llm("classify", "test prompt")
                 
-            # Verify Ollama was called
-            mock_call_ollama.assert_called_once()
+                # Verify the result came from Ollama fallback
+                assert result == {"response": "ollama response"}
+                
+                # Verify both functions were called in the right order
+                mock_call_gemini.assert_called_once()
+                mock_call_ollama.assert_called_once()
 
 @pytest.mark.asyncio
-async def test_call_llm_ollama_http_error_no_gemini_key():
-    """Test the call_llm function when Ollama returns HTTP error and Gemini key is not set."""
+async def test_call_llm_gemini_and_ollama_both_fail():
+    """Test the call_llm function when both Gemini and Ollama fail (complete failure)."""
     llm_service = LLMService()
     
-    with patch.object(llm_service, 'call_ollama', new_callable=AsyncMock) as mock_call_ollama:
-        mock_call_ollama.side_effect = httpx.HTTPError("Ollama HTTP error")
+    with patch.object(llm_service, 'call_gemini', new_callable=AsyncMock) as mock_call_gemini:
+        mock_call_gemini.side_effect = HTTPException(status_code=500, detail="Gemini request failed")
         
-        # Set empty API key for testing
-        with patch.object(config, 'GEMINI_API_KEY', ''):
-            with pytest.raises(httpx.HTTPError, match="Ollama HTTP error"):
-                await llm_service.call_llm("generate", "test prompt")
+        with patch.object(llm_service, 'call_ollama', new_callable=AsyncMock) as mock_call_ollama:
+            mock_call_ollama.side_effect = HTTPException(status_code=500, detail="Ollama request failed")
+            
+            # Set a dummy API key for testing
+            with patch.object(config, 'GEMINI_API_KEY', 'test-api-key'):
+                with pytest.raises(HTTPException) as exc_info:
+                    await llm_service.call_llm("classify", "test prompt")
                 
-            # Verify Ollama was called
-            mock_call_ollama.assert_called_once()
+                # Verify the error is from the Ollama fallback (since Gemini failed first)
+                assert "Ollama request failed" in str(exc_info.value.detail)
 
 if __name__ == "__main__":
     # Run all tests

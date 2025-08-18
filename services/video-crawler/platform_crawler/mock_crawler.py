@@ -42,7 +42,6 @@ class MockPlatformCrawler(PlatformCrawlerInterface):
                     "url": f"https://{self.platform_name}.com/watch?v={video_id}",
                     "title": f"Mock {self.platform_name.capitalize()} Video: {query} #{j+1}",
                     "duration_s": 60 + (j * 30),  # 1-3 minutes
-                    "published_at": datetime.utcnow() - timedelta(days=j+1),
                     "video_id": video_id,
                     "local_path": local_path
                 }

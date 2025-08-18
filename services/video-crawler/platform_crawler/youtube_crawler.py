@@ -10,7 +10,6 @@ from .interface import PlatformCrawlerInterface
 from utils.filter_chain import FilterChain
 from utils.youtube_filters import (
     filter_valid_entry,
-    filter_upload_date,
     filter_duration
 )
 
@@ -85,7 +84,7 @@ class YoutubeCrawler(PlatformCrawlerInterface):
                 
                 # Search for videos using yt-dlp
                 search_results = await self._search_youtube(query, recency_days, num_ytb_videos)
-                
+
                 logger.info(f"Found {len(search_results)} videos for query '{query}'")
                 
                 # Add to our results
@@ -136,58 +135,55 @@ class YoutubeCrawler(PlatformCrawlerInterface):
         Returns:
             List of video metadata dictionaries
         """
+        initial_search_limit = num_ytb_videos * 3  # Fetch more initially to account for filtering
         ydl_opts = {
             'quiet': True,
             'no_warnings': True,
             'extract_flat': 'discard_in_playlist',
-            'playlistend': num_ytb_videos,  # Limit search results
+            'playlistend': initial_search_limit,  # Increased limit
         }
         
-        search_query = f"ytsearch{num_ytb_videos}:{query}"
+        search_query = f"ytsearch{initial_search_limit}:{query}"
         
-        logger.info(f"Starting YouTube search for query: '{query}' with recency_days: {recency_days}, num_ytb_videos: {num_ytb_videos}")
+        logger.info(f"Starting YouTube search for query: '{query}' with recency_days: {recency_days}, num_ytb_videos: {num_ytb_videos} (initial search limit: {initial_search_limit})")
         
         try:
             with yt_dlp.YoutubeDL(ydl_opts) as ydl:
                 info = ydl.extract_info(search_query, download=False)
+                entries = info.get('entries', [])
                 
-                total_entries = len(info.get('entries', []))
-                logger.info(f"Retrieved {total_entries} raw search results for query: '{query}'")
-                
+                logger.info(f"Retrieved {len(entries)} raw search results for query: '{query}'")
+                logger.debug(f"Entries: {entries}")
+
                 videos = []
                 cutoff_date = datetime.utcnow() - timedelta(days=recency_days)
                 
                 # Create and configure filter chain
                 filter_chain = FilterChain()
-                filter_chain.add_filter(filter_valid_entry)
-                filter_chain.add_filter(filter_upload_date)
-                filter_chain.add_filter(filter_duration)
+                filter_chain.add_filter("valid_entry", filter_valid_entry)
+                filter_chain.add_filter("duration", filter_duration)
                 
                 # Apply filters to entries
-                filtered_entries, skipped_count = filter_chain.apply(info.get('entries', []), cutoff_date)
+                filtered_entries, skipped_count = filter_chain.apply(entries, cutoff_date)
                 
                 # Convert filtered entries to video metadata
                 for entry in filtered_entries:
-                    # Parse upload date (we know it's valid because filters passed)
-                    upload_date_str = entry.get('upload_date')
-                    upload_date = datetime.strptime(upload_date_str, '%Y%m%d')
-                    upload_date = upload_date.replace(tzinfo=None)
-                    
                     video = {
                         'platform': self.platform_name,
                         'video_id': entry['id'],
                         'url': f"https://www.youtube.com/watch?v={entry['id']}",
                         'title': entry.get('title', ''),
                         'duration_s': entry['duration'],
-                        'published_at': upload_date.strftime('%Y-%m-%d'),
                         'uploader': entry.get('uploader', 'unknown'),
                     }
                     
                     videos.append(video)
                 
-                logger.info(f"Found {len(videos)} videos for query '{query}' (skipped {skipped_count} entries)")
-                logger.debug(f"Video details: {[{'id': v['video_id'], 'title': v['title'], 'date': v['published_at']} for v in videos]}")
-                return videos
+                # Take up to num_ytb_videos from the filtered results
+                final_videos = videos[:num_ytb_videos]
+                
+                logger.info(f"Found {len(final_videos)} videos for query '{query}' after filtering (skipped {skipped_count} entries)")
+                return final_videos
                 
         except Exception as e:
             logger.error(f"Failed to search YouTube for '{query}': {str(e)}")

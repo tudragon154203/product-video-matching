@@ -6,6 +6,7 @@
 - RabbitMQ as the event broker for contract-driven communication
 - Postgres for state, job/phase tracking, and results persistence
 - Optional: Redis (used by dropship-product-finder), Qdrant (legacy/optional; vector-index service retired in sprint 9)
+- LLM Services: Gemini (primary) with Ollama fallback for production requests
 
 ## Development Setup
 - Prereqs: Docker, Docker Compose, Python 3.10+, make (optional)

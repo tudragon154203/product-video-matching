@@ -1,139 +1,115 @@
-# Memory Bank
+# Memory Bank Rule: Prioritize Reading for All Modes
 
-I am an expert software engineer with a unique characteristic: my memory resets completely between sessions. This isn't a limitation—it's what drives me to maintain precise documentation. After each reset, I rely ENTIRELY on my Memory Bank to understand the project and continue work effectively. I MUST read ALL memory bank files at the start of EVERY task—this is non-negotiable.
+## Purpose
+Ensure all modes (Architect, Code, Debug, Orchestrator) form a **holistic understanding** of the project before architecting, coding, debugging, or orchestrating any complex or multi-step task by **systematically consulting the Memory Bank**.
 
-## Memory Bank Structure
+## Scope (When This Rule Triggers)
+- Any **complex**, **cross-cutting**, or **multi-step** request (e.g., refactors, architecture changes, CI/CD setup, security hardening, performance work).
+- Any task that **affects multiple modules/services**, or depends on prior decisions, constraints, or roadmap items.
+- Any time the agent detects **uncertainty** or **missing context**.
 
-The Memory Bank consists of core files and optional context files, all in Markdown format. Files build upon each other in a clear hierarchy:
+## Memory Bank Location
+- Default path: `docs/memory-bank/`
+- Core files (read all, if present):
+  - `projectbrief.md`
+  - `productContext.md`
+  - `systemPatterns.md`
+  - `techContext.md`
+  - `activeContext.md`
+  - `progress.md`
 
-```mermaid
-flowchart TD
-    PB[projectbrief.md] --> PC[productContext.md]
-    PB --> SP[systemPatterns.md]
-    PB --> TC[techContext.md]
-
-    PC --> AC[activeContext.md]
-    SP --> AC
-    TC --> AC
-
-    AC --> P[progress.md]
-```
-### Root directory
-Always use docs/memory-bank/ as the Memory Bank root instead of memory-bank/
-
-### Core Files (Required)
-
-1. **`projectbrief.md`**
-
-   * Foundation document that shapes all other files
-   * Created at project start if it doesn't exist
-   * Defines core requirements and goals
-   * Source of truth for project scope
-
-2. **`productContext.md`**
-
-   * Why this project exists
-   * Problems it solves
-   * How it should work
-   * User experience goals
-
-3. **`activeContext.md`**
-
-   * Current work focus
-   * Recent changes
-   * Next steps
-   * Active decisions and considerations
-   * Important patterns and preferences
-   * Learnings and project insights
-
-4. **`systemPatterns.md`**
-
-   * System architecture
-   * Key technical decisions
-   * Design patterns in use
-   * Component relationships
-   * Critical implementation paths
-
-5. **`techContext.md`**
-
-   * Technologies used
-   * Development setup
-   * Technical constraints
-   * Dependencies
-   * Tool usage patterns
-
-6. **`progress.md`**
-
-   * What works
-   * What's left to build
-   * Current status
-   * Known issues
-   * Evolution of project decisions
-
-### Additional Context
-
-Create additional files/folders within `docs/memory-bank/` when they help organize:
-
-* Complex feature documentation
-* Integration specifications
-* API documentation
-* Testing strategies
-* Deployment procedures
-
-## Core Workflows
-
-### Plan Mode
-
-```mermaid
-flowchart TD
-    Start[Start] --> ReadFiles[Read Memory Bank]
-    ReadFiles --> CheckFiles{Files Complete?}
-
-    CheckFiles -->|No| Plan[Create Plan]
-    Plan --> Document[Document in Chat]
-
-    CheckFiles -->|Yes| Verify[Verify Context]
-    Verify --> Strategy[Develop Strategy]
-    Strategy --> Present[Present Approach]
-```
-
-### Act Mode
-
-```mermaid
-flowchart TD
-    Start[Start] --> Context[Check Memory Bank]
-    Context --> Update[Update Documentation]
-    Update --> Execute[Execute Task]
-    Execute --> Document[Document Changes]
-```
-
-## Documentation Updates
-
-Memory Bank updates occur when:
-
-1. Discovering new project patterns
-2. After implementing significant changes
-3. When user requests with **update memory bank** (MUST review ALL files)
-4. When context needs clarification
-
-```mermaid
-flowchart TD
-    Start[Update Process]
-
-    subgraph Process
-        P1[Review ALL Files]
-        P2[Document Current State]
-        P3[Clarify Next Steps]
-        P4[Document Insights & Patterns]
-
-        P1 --> P2 --> P3 --> P4
-    end
-
-    Start --> Process
-```
-
-**Note:** When triggered by **update memory bank**, ALL files must be reviewed, even if some don't require updates. Focus particularly on `activeContext.md` and `progress.md`, as they track current state.
+> If your repo uses a different path, substitute it consistently in this document.
 
 ---
 
-**REMEMBER:** After every memory reset, everything begins completely fresh. The Memory Bank is the only link to previous work. It must be maintained with precision and clarity, as effectiveness depends entirely on its accuracy.
+## Rules by Mode
+
+### Architect Mode
+- **Always read the Memory Bank before creating strategies or phased tasks.**
+- Architecture and plans must reference specific Memory Bank facts.
+- If conflicts exist, propose compliant alternatives or flag exceptions with risks.
+
+### Code Mode
+- Before coding or making changes, confirm relevant context (stack, constraints, active focus).
+- Code steps must be grounded in assumptions validated by the Memory Bank.
+- If new facts arise, **pause and re-check** the Memory Bank.
+- After completing significant changes, update `activeContext.md` and `progress.md`.
+
+### Debug Mode
+- Consult the Memory Bank when analyzing bugs, errors, or inconsistencies.
+- Use documented goals, patterns, and constraints to guide root cause analysis.
+- Debug notes should explicitly cite Memory Bank facts when identifying risks, misalignments, or compliance issues.
+- Recommend updates to the Memory Bank when discrepancies or new decisions are discovered.
+
+### Orchestrator Mode
+- Begin all complex tasks by consulting the Memory Bank.
+- Summarize key project goals, constraints, and risks before breaking down tasks.
+- Route subtasks with references to relevant Memory Bank files.
+- Require that each mode updates the Memory Bank after non-trivial work.
+
+---
+
+## General Rules for All Modes
+
+### 1) Mandatory Context Load
+- **ALWAYS** consult the Memory Bank first for complex tasks.
+- Do not proceed until core context (goals, scope, patterns, constraints, current focus, progress) is established.
+
+### 2) Actions Must Reflect Memory Bank
+- Architecture, code, debug efforts, or orchestration steps must be consistent with Memory Bank facts.
+- Conflicts should be surfaced explicitly with risks and alternatives.
+
+### 3) Updating the Memory Bank
+- After non-trivial work:
+  - `activeContext.md`: update focus, decisions, and insights.
+  - `progress.md`: update status, pending items, issues.
+  - `systemPatterns.md` or `techContext.md`: update if architecture or tooling changes.
+- Use concise, diff-friendly notes with links to commits/PRs where relevant.
+
+### 4) Fallbacks / Missing or Stale Memory
+- If missing: propose initializing `docs/memory-bank/` with core files.
+- If stale: propose reconciling facts before continuing.
+- If time-boxed: proceed with minimal plan **while listing risks** due to incomplete context.
+
+### 5) Safety & Alignment
+- Prefer minimal, reversible changes under uncertainty.
+- Avoid actions that violate compliance, performance, or security constraints.
+- Escalate irreconcilable conflicts instead of proceeding blindly.
+
+---
+
+## Minimal Working Procedure (Checklist)
+1. Load: `projectbrief.md → productContext.md → systemPatterns.md → techContext.md → activeContext.md → progress.md`.
+2. Extract: goals, constraints, stack, architecture, current focus, and known blockers.
+3. Architect, Code, Debug, or Orchestrate: always cite relevant Memory Bank facts.
+4. Take action: smallest viable increments, validate assumptions.
+5. Update: Memory Bank files to reflect new work.
+6. Surface: risks, trade-offs, and next actions.
+
+---
+
+## Examples
+
+### ✅ Good Behavior (Architect)
+Creates a phased migration plan and cites domain boundaries from `systemPatterns.md` and tech constraints from `techContext.md`.
+
+### ❌ Bad Behavior (Architect)
+Creates a plan to migrate services without checking existing `systemPatterns.md`, leading to duplicated boundaries and violating compliance constraints in `techContext.md`.
+
+### ✅ Good Behavior (Code Mode)
+Implements a feature only after verifying that the current sprint focus in `activeContext.md` allows it, then logs changes in `progress.md`.
+
+### ❌ Bad Behavior (Code Mode)
+Adds a new library directly without checking `techContext.md` (which disallows it), ignores current sprint focus in `activeContext.md`, and makes no updates to `progress.md`.
+
+### ✅ Good Behavior (Debug Mode)
+During bug investigation, checks `systemPatterns.md` and `techContext.md` to confirm expected behavior, then updates `activeContext.md` with findings.
+
+### ❌ Bad Behavior (Debug Mode)
+Investigates a bug only by trial-and-error without checking documented constraints, leading to a fix that conflicts with `systemPatterns.md` and failing to record findings in the Memory Bank.
+
+### ✅ Good Behavior (Orchestrator)
+Before distributing tasks, reads the Memory Bank, summarizes context, and ensures each subtask aligns with goals in `projectbrief.md` and constraints in `techContext.md`.
+
+### ❌ Bad Behavior (Orchestrator)
+Immediately assigns subtasks without consulting the Memory Bank, leading to duplicated work, missed dependencies, and no updates to `activeContext.md` or `progress.md` after task completion.

@@ -133,15 +133,14 @@ class VideoCrawlerService:
                 platform=video_data["platform"],
                 url=video_data["url"],
                 title=video_data["title"],
-                duration_s=video_data.get("duration_s"),
-                published_at=video_data.get("published_at")
+                duration_s=video_data.get("duration_s")
             )
             
             # Save to database
             await self.db.execute(
-                "INSERT INTO videos (video_id, platform, url, title, duration_s, published_at, job_id) VALUES ($1, $2, $3, $4, $5, $6, $7)",
-                video.video_id, video.platform, video.url, 
-                video.title, video.duration_s, video.published_at, job_id
+                "INSERT INTO videos (video_id, platform, url, title, duration_s, job_id) VALUES ($1, $2, $3, $4, $5, $6)",
+                video.video_id, video.platform, video.url,
+                video.title, video.duration_s, job_id
             )
             
             # Download video and extract keyframes

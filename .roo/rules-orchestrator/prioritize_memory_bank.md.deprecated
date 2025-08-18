@@ -65,6 +65,10 @@ Ensure the orchestrator forms a **holistic understanding** of the project before
 - Avoid changes that violate **documented constraints** (security, compliance, performance budgets).
 - Ask for explicit confirmation only when **irreconcilable conflicts** exist.
 
+### 7) Mandatory Update After Task Completion
+- **ALWAYS** add an "Update Memory Bank" task at the end of every task list
+- This task must update relevant files based on work performed
+
 ---
 
 ## Minimal Working Procedure (Checklist)
@@ -75,6 +79,7 @@ Ensure the orchestrator forms a **holistic understanding** of the project before
 4. Execute: smallest viable increments; validate assumptions each step.
 5. Update: `activeContext.md` and `progress.md` (and others if needed).
 6. Surface: risks, trade-offs, and next actions.
+7. Update: Add "Update Memory Bank" task to todo list
 
 ---
 
@@ -104,3 +109,12 @@ Ensure the orchestrator forms a **holistic understanding** of the project before
 - Reads Memory Bank: `techContext.md` shows compliance constraints requiring certified providers.
 - Responds: proposes compliant alternatives (e.g., provider config), or requests an explicit exception with risks.
 - If proceeding, logs a **decision record** in `activeContext.md`.
+
+### ✅ Good Behavior (Task Completion)
+**After completing any task:**
+<update_todo_list>
+<todos>
+...
+[ ] Update Memory Bank
+</todos>
+</update_todo_list>

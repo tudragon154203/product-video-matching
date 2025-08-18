@@ -22,7 +22,6 @@ class PlatformCrawlerInterface(ABC):
                 - url: Video URL
                 - title: Video title
                 - duration_s: Video duration in seconds
-                - published_at: Publication timestamp
                 - video_id: Unique identifier for the video (platform-specific)
                 - local_path: Full path to the downloaded video file
         """

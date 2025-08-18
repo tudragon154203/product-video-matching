@@ -1,4 +1,4 @@
-from typing import List, Callable, Any, Tuple
+from typing import List, Callable, Any, Tuple, Dict
 from datetime import datetime
 from common_py.logging_config import configure_logging
 
@@ -15,17 +15,19 @@ class FilterChain:
     
     def __init__(self):
         """Initialize an empty filter chain."""
-        self.filters: List[Callable[[Any, datetime], bool]] = []
+        # Store filters as a list of (name, function) tuples
+        self.filters: List[Tuple[str, Callable[[Any, datetime], Tuple[bool, str]]]] = []
     
-    def add_filter(self, filter_func: Callable[[Any, datetime], bool]) -> None:
+    def add_filter(self, name: str, filter_func: Callable[[Any, datetime], Tuple[bool, str]]) -> None:
         """
-        Add a filter function to the chain.
+        Add a filter function to the chain with a given name.
         
         Args:
+            name: A descriptive name for the filter.
             filter_func: A function that takes an item and cutoff_date,
-                        returns a boolean indicating whether to keep the item
+                        returns a tuple of (boolean indicating whether to keep the item, reason string if skipped).
         """
-        self.filters.append(filter_func)
+        self.filters.append((name, filter_func))
     
     def apply(self, items: List[Any], cutoff_date: datetime) -> Tuple[List[Any], int]:
         """
@@ -47,11 +49,15 @@ class FilterChain:
         for item in items:
             should_keep = True
             skip_reason = ""
+            skipped_by_filter = ""
             
             # Apply all filters
-            for filter_func in self.filters:
-                if not filter_func(item, cutoff_date):
+            for name, filter_func in self.filters:
+                keep, reason = filter_func(item, cutoff_date)
+                if not keep:
                     should_keep = False
+                    skip_reason = reason
+                    skipped_by_filter = name
                     break
             
             if should_keep:
@@ -59,6 +65,7 @@ class FilterChain:
             else:
                 skipped_count += 1
                 # Log the skip reason at debug level
-                logger.debug(f"Skipping item {getattr(item, 'id', 'unknown')} - {skip_reason}")
+                item_id = item.get('id', 'unknown') if isinstance(item, dict) else getattr(item, 'id', 'unknown')
+                logger.debug(f"Skipping item {item_id} by filter '{skipped_by_filter}': {skip_reason}")
         
         return filtered_items, skipped_count

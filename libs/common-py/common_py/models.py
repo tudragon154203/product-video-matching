@@ -31,7 +31,6 @@ class Video(BaseModel):
     url: str
     title: Optional[str] = None
     duration_s: Optional[int] = None
-    published_at: Optional[datetime] = None
     created_at: Optional[datetime] = None
 
 

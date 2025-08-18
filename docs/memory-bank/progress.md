@@ -12,6 +12,9 @@
 - Sprint 6.2b: Added videos batch pre-announce to reduce tail latency and coordinate consumers
 - Sprint 7: Addressed zero/edge-case handling in the pipeline and contracts
 - Sprint 8: Designed Product-Segmentor and adjusted event flow to improve matching precision
+- 2025-08-18: Reversed LLM order in main-api (Gemini first)
+- 2025-08-18: Added rule requiring automatic Memory Bank updates after tasks
+- 2025-08-18: Removed published_at column from database schema and YouTube crawler
 
 ## Pending
 - Sprint 9 (in progress): Retire dedicated vector-index service

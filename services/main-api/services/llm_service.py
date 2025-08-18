@@ -87,30 +87,50 @@ class LLMService:
                 raise HTTPException(status_code=500, detail=f"Gemini request failed: {e.response.text}")
 
     async def call_llm(self, kind: str, prompt: str, **kwargs) -> dict:
-        """Call LLM with fallback from Ollama to Gemini."""
+        """
+        Call LLM with primary Gemini provider and Ollama fallback.
+        
+        This method follows the new priority order:
+        1. First attempts to call Gemini API (production-ready)
+        2. Falls back to Ollama only if Gemini fails
+        
+        Args:
+            kind: The type of LLM call ("classify" or "generate")
+            prompt: The prompt to send to the LLM
+            **kwargs: Additional options for the LLM call
+            
+        Returns:
+            dict: LLM response containing the "response" key
+            
+        Raises:
+            HTTPException: If both Gemini and Ollama fail
+            Exception: Original exception if no fallback is available
+        """
         timeout_s = config.LLM_TIMEOUT
         model = config.OLLAMA_MODEL_CLASSIFY if kind == "classify" else config.OLLAMA_MODEL_GENERATE
         
-        try:
+        # Skip Gemini if GEMINI_API_KEY is not set
+        if not config.GEMINI_API_KEY:
+            logger.warning({
+                "phase": "llm_call",
+                "provider": "gemini",
+                "status": "skipped",
+                "reason": "GEMINI_API_KEY not set"
+            })
+            # Fall back to Ollama directly
             return await self.call_ollama(model=model, prompt=prompt, timeout_s=timeout_s, **kwargs)
+        
+        try:
+            # Try Gemini first (production-ready)
+            return await self.call_gemini(model=config.GEMINI_MODEL, prompt=prompt, timeout_s=timeout_s, **kwargs)
         except (asyncio.TimeoutError, httpx.HTTPError, Exception) as e:
             logger.warning({
-                "phase": "llm_call", 
-                "provider": "ollama", 
-                "status": "error", 
-                "fallback": "gemini", 
+                "phase": "llm_call",
+                "provider": "gemini",
+                "status": "error",
+                "fallback": "ollama",
                 "reason": str(e)
             })
             
-            # Skip fallback if GEMINI_API_KEY is not set
-            if not config.GEMINI_API_KEY:
-                logger.warning({
-                    "phase": "llm_call",
-                    "provider": "gemini",
-                    "status": "skipped",
-                    "reason": "GEMINI_API_KEY not set"
-                })
-                # Re-raise the original exception since we can't fallback
-                raise
-            
-            return await self.call_gemini(model=config.GEMINI_MODEL, prompt=prompt, timeout_s=timeout_s, **kwargs)
+            # Fall back to Ollama
+            return await self.call_ollama(model=model, prompt=prompt, timeout_s=timeout_s, **kwargs)
