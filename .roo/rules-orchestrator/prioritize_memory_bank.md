@@ -1,0 +1,106 @@
+# Orchestrator Rule: Prioritize Reading the Memory Bank for Complex Tasks
+
+## Purpose
+Ensure the orchestrator forms a **holistic understanding** of the project before planning or executing any complex or multi-step task by **systematically consulting the Memory Bank**.
+
+## Scope (When This Rule Triggers)
+- Any **complex**, **cross-cutting**, or **multi-step** request (e.g., refactors, architecture changes, CI/CD setup, security hardening, performance work).
+- Any task that **affects multiple modules/services**, or depends on prior decisions, constraints, or roadmap items.
+- Any time the agent detects **uncertainty** or **missing context**.
+
+## Memory Bank Location
+- Default path: `docs/memory-bank/`
+- Core files (read all, if present):
+  - `projectbrief.md`
+  - `productContext.md`
+  - `systemPatterns.md`
+  - `techContext.md`
+  - `activeContext.md`
+  - `progress.md`
+
+> If your repo uses a different path, substitute it consistently in this document.
+
+---
+
+## Orchestrator Rules
+
+### 1) Mandatory Context Load (Before Any Plan/Action)
+- **ALWAYS** read the Memory Bank first for complex tasks.
+- **Summarize** (for self-use) the key intents, constraints, and risks across the files before generating a plan.
+- **Do not** proceed with planning until a minimum context set is obtained:
+  - Project goals + scope (from `projectbrief.md`)
+  - Architecture + integration points (from `systemPatterns.md`)
+  - Tech stack + constraints (from `techContext.md`)
+  - Current focus/decisions + WIP (from `activeContext.md`)
+  - Status/roadmap + known issues (from `progress.md`)
+  - Product/user intent (from `productContext.md`)
+
+### 2) Planning Must Reflect Memory Bank
+- The **plan** must cite which Memory Bank facts it relies on (file + bullet).
+- Prefer solutions aligned with documented goals, constraints, and patterns.
+- If a requested change **conflicts** with Memory Bank constraints, propose:
+  - (a) A compliant alternative, **or**
+  - (b) A clear exception request with implications.
+
+### 3) Execution Discipline
+- Break work into **phased tasks** aligned with system boundaries.
+- For each step, state the **assumptions** derived from the Memory Bank.
+- If new facts emerge that alter assumptions, **pause** and re-consult Memory Bank.
+
+### 4) Update the Memory Bank After Significant Work
+- After non-trivial changes, **synchronize** the Memory Bank:
+  - `activeContext.md`: current focus, new insights, decisions made.
+  - `progress.md`: what changed, what’s pending, known issues, follow-ups.
+  - If architecture changed, update `systemPatterns.md`.
+  - If tech/tooling changed, update `techContext.md`.
+- Use concise, diff-friendly bullets; link PRs/commits where helpful.
+
+### 5) Fallbacks / Missing or Stale Memory
+- If Memory Bank is **missing** → propose initializing it in `docs/memory-bank/` and scaffold core files with headings.
+- If Memory Bank is **stale/contradictory** → call it out, propose a short **sync pass** to reconcile facts before proceeding.
+- If **time-boxed**, proceed with a minimal plan **explicitly listing risks** due to missing context.
+
+### 6) Safety & Alignment
+- Prefer **minimal, reversible** changes when context is uncertain.
+- Avoid changes that violate **documented constraints** (security, compliance, performance budgets).
+- Ask for explicit confirmation only when **irreconcilable conflicts** exist.
+
+---
+
+## Minimal Working Procedure (Checklist)
+
+1. Load: `projectbrief.md → productContext.md → systemPatterns.md → techContext.md → activeContext.md → progress.md`.
+2. Extract: goals, constraints, patterns, stack, current focus, status, blockers.
+3. Plan: phased steps with explicit references to Memory Bank facts.
+4. Execute: smallest viable increments; validate assumptions each step.
+5. Update: `activeContext.md` and `progress.md` (and others if needed).
+6. Surface: risks, trade-offs, and next actions.
+
+---
+
+## Examples
+
+### ✅ Good Behavior (Complex Refactor)
+**User asks:** “Split the monolith into services and add an events bus.”
+
+**Orchestrator:**
+- Reads Memory Bank: finds domain boundaries in `systemPatterns.md`, Kafka preference & infra constraints in `techContext.md`, and a current performance sprint in `activeContext.md`.
+- Plans:
+  - Phase 1: Extract `Billing` service (bounded context confirmed in `systemPatterns.md`).
+  - Phase 2: Define event contracts aligning with existing `OrderCreated` events.
+  - Phase 3: Introduce Kafka (already approved per `techContext.md`), with a canary path.
+- Notes alignment: “This plan respects the `Billing ←→ Orders` boundary and reuse of existing schemas.”
+- After work: updates `activeContext.md` (what’s in-flight) and `progress.md` (what’s done + next).
+
+### ❌ Bad Behavior (Context Ignored)
+- Immediately edits code to add RabbitMQ even though `techContext.md` mandates Kafka.
+- Refactors modules that `progress.md` marks as frozen for the release.
+- No updates to Memory Bank after making cross-cutting changes.
+
+### ✅ Good Behavior (Conflicting Request)
+**User asks:** “Replace OAuth provider with a custom token service.”
+
+**Orchestrator:**
+- Reads Memory Bank: `techContext.md` shows compliance constraints requiring certified providers.
+- Responds: proposes compliant alternatives (e.g., provider config), or requests an explicit exception with risks.
+- If proceeding, logs a **decision record** in `activeContext.md`.
