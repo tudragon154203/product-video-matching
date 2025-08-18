@@ -86,6 +86,7 @@ class Config:
     
     # Data Storage
     DATA_ROOT: str = field(default_factory=lambda: get_env_var("DATA_ROOT", "./data"))
+    VIDEO_DIR: str = field(default_factory=lambda: get_env_var("VIDEO_DIR", os.path.join(get_env_var("DATA_ROOT", "./data"), "videos")))
     
     # Vision Models
     EMBED_MODEL: str = field(default_factory=lambda: get_env_var("EMBED_MODEL", "clip-vit-b32"))

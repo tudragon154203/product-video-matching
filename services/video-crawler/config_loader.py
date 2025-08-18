@@ -34,8 +34,11 @@ class VideoCrawlerConfig:
     # Data storage (from global config)
     DATA_ROOT: str = global_config.DATA_ROOT
     
-    # Logging (from global config)
-    LOG_LEVEL: str = global_config.LOG_LEVEL
+    # Video storage directory
+    VIDEO_DIR: str = os.getenv("VIDEO_DIR", os.path.join(global_config.DATA_ROOT, "videos"))
+    
+    # Logging (from .env first, then global config)
+    LOG_LEVEL: str = os.getenv("LOG_LEVEL", global_config.LOG_LEVEL)
 
 # Create config instance
 config = VideoCrawlerConfig()

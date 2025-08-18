@@ -1,4 +1,5 @@
 import uuid
+import os
 import logging
 from typing import Dict, Any, List
 from common_py.database import DatabaseManager
@@ -9,6 +10,7 @@ from fetcher.video_fetcher import VideoFetcher
 from fetcher.keyframe_extractor import KeyframeExtractor
 from platform_crawler.interface import PlatformCrawlerInterface
 from platform_crawler.mock_crawler import MockPlatformCrawler
+from platform_crawler.youtube_crawler import YoutubeCrawler
 from handlers.event_emitter import EventEmitter
 from common_py.logging_config import configure_logging
 
@@ -45,11 +47,18 @@ class VideoCrawlerService:
             
             # Use VideoFetcher to search videos across platforms
             for platform in platforms:
-                platform_dir = self.keyframe_extractor.videos_dir / platform
-                platform_dir.mkdir(parents=True, exist_ok=True)
+                # For YouTube, use VIDEO_DIR/youtube as download directory
+                if platform == "youtube":
+                    download_dir = os.path.join(config.VIDEO_DIR, "youtube")
+                else:
+                    # For other platforms, use the existing structure
+                    download_dir = str(self.keyframe_extractor.videos_dir / platform)
+                
+                # Ensure download directory exists
+                Path(download_dir).mkdir(parents=True, exist_ok=True)
                 
                 platform_videos = await self.video_fetcher.search_platform_videos(
-                    platform, queries, recency_days, str(platform_dir)
+                    platform, queries, recency_days, download_dir
                 )
                 all_videos.extend(platform_videos)
             
@@ -153,9 +162,10 @@ class VideoCrawlerService:
         """Initialize platform crawlers for each supported platform"""
         crawlers = {}
         
-        # For now, use mock crawlers for all platforms
-        # In production, these would be replaced with real implementations
-        crawlers["youtube"] = MockPlatformCrawler("youtube")
+        # Use real YouTube crawler
+        crawlers["youtube"] = YoutubeCrawler()
+        
+        # Use mock crawlers for other platforms (not implemented yet)
         crawlers["bilibili"] = MockPlatformCrawler("bilibili")
         crawlers["douyin"] = MockPlatformCrawler("douyin")
         crawlers["tiktok"] = MockPlatformCrawler("tiktok")
