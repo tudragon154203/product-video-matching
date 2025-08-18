@@ -4,12 +4,12 @@ eBay OAuth 2.0 authentication service with Redis token storage.
 import json
 import asyncio
 import httpx
-import structlog
 import base64
 from typing import Optional, Dict, Any
 from datetime import datetime, timedelta
+from common_py.logging_config import configure_logging
 
-logger = structlog.get_logger()
+logger = configure_logging("dropship-product-finder")
 
 
 class eBayAuthService:

@@ -1,8 +1,8 @@
 from common_py.database import DatabaseManager
 from typing import Optional, Dict, Any
-import logging
+from common_py.logging_config import configure_logging
 
-logger = logging.getLogger(__name__)
+logger = configure_logging("main-api")
 
 class DatabaseHandler:
     def __init__(self, db: DatabaseManager):

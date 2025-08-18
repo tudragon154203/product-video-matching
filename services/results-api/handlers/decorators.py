@@ -1,8 +1,8 @@
 from fastapi import HTTPException
-import structlog
+from common_py.logging_config import configure_logging
 
 # Create a logger instance
-logger = structlog.get_logger()
+logger = configure_logging("results-api")
 
 def handle_errors(func):
     """Decorator to handle errors in FastAPI endpoints"""

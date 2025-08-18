@@ -3,10 +3,10 @@ from typing import List, Dict, Any, Optional
 from pathlib import Path
 import httpx
 from PIL import Image
-import structlog
 from io import BytesIO
+from common_py.logging_config import configure_logging
 
-logger = structlog.get_logger()
+logger = configure_logging("dropship-product-finder")
 
 
 class BaseProductCollector(ABC):

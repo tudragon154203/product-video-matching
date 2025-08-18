@@ -4,9 +4,9 @@ from transformers import CLIPProcessor, CLIPModel
 from PIL import Image
 import numpy as np
 from typing import Tuple, Optional
-import structlog
+from common_py.logging_config import configure_logging
 
-logger = structlog.get_logger()
+logger = configure_logging("vision-embedding")
 
 from config_loader import config
 

@@ -1,10 +1,10 @@
 import os
-import structlog
 from typing import Optional, List, Dict, Any
 from common_py.database import DatabaseManager
 from common_py.crud import ProductCRUD, VideoCRUD, MatchCRUD
+from common_py.logging_config import configure_logging
 
-logger = structlog.get_logger()
+logger = configure_logging("results-api")
 
 
 class ResultsService:

@@ -1,15 +1,15 @@
 import uuid
-import structlog
 from typing import Dict, Any, List, Optional
 from common_py.database import DatabaseManager
 from common_py.messaging import MessageBroker
 from common_py.crud import ProductCRUD, ProductImageCRUD
 from common_py.models import Product, ProductImage
+from common_py.logging_config import configure_logging
 from collectors.collectors import BaseProductCollector, MockProductCollector, AmazonProductCollector, EbayProductCollector
 from .auth import eBayAuthService
 from config_loader import config
 
-logger = structlog.get_logger()
+logger = configure_logging("dropship-product-finder")
 
 
 class DropshipProductFinderService:

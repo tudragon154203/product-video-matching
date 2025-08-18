@@ -1,13 +1,13 @@
 import uuid
-import structlog
 from typing import Dict, Any, List
 from common_py.database import DatabaseManager
 from common_py.messaging import MessageBroker
 from common_py.crud import MatchCRUD
 from common_py.models import Match
+from common_py.logging_config import configure_logging
 from matching import MatchingEngine
 
-logger = structlog.get_logger()
+logger = configure_logging("matcher")
 
 
 class MatcherService:

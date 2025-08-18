@@ -2,10 +2,10 @@ import cv2
 import numpy as np
 from pathlib import Path
 from typing import Optional, Tuple
-import structlog
 from config_loader import config
+from common_py.logging_config import configure_logging
 
-logger = structlog.get_logger()
+logger = configure_logging("vision-keypoint")
 
 
 class KeypointExtractor:

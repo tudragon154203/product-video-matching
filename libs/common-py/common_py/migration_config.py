@@ -6,9 +6,9 @@ import os
 from pathlib import Path
 from typing import Optional, Tuple
 from dataclasses import dataclass
-import logging
+from .logging_config import configure_logging
 
-logger = logging.getLogger(__name__)
+logger = configure_logging("common-py")
 
 
 @dataclass

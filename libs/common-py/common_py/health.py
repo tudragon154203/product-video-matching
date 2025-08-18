@@ -3,9 +3,9 @@ Health check utilities for services
 """
 import asyncio
 from typing import Dict, Any
-import structlog
+from .logging_config import configure_logging
 
-logger = structlog.get_logger()
+logger = configure_logging("common-py")
 
 
 class HealthChecker:

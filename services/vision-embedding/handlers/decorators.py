@@ -1,8 +1,8 @@
 import functools
-import structlog
+from common_py.logging_config import configure_logging
 from contracts.validator import validator
 
-logger = structlog.get_logger()
+logger = configure_logging("vision-embedding")
 
 def validate_event(schema_name):
     """Decorator to validate event data against a schema"""

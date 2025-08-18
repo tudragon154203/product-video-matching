@@ -7,11 +7,11 @@ from contextlib import contextmanager
 from sqlalchemy import create_engine, Engine, text
 from sqlalchemy.exc import OperationalError, DisconnectionError
 from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type
-import logging
 
 from .migration_config import MigrationConfig
+from .logging_config import configure_logging
 
-logger = logging.getLogger(__name__)
+logger = configure_logging("common-py")
 
 
 class MigrationConnectionManager:

@@ -3,10 +3,10 @@ Monitoring and alerting utilities
 """
 import asyncio
 from typing import Dict, Any, List, Callable
-import structlog
+from .logging_config import configure_logging
 from .metrics import metrics
 
-logger = structlog.get_logger()
+logger = configure_logging("common-py")
 
 
 class HealthMonitor:

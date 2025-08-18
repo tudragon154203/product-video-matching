@@ -5,9 +5,9 @@ from typing import Dict, Any, Callable, Optional
 from datetime import datetime
 import aio_pika
 from aio_pika import Message, DeliveryMode
-import structlog
+from .logging_config import configure_logging
 
-logger = structlog.get_logger()
+logger = configure_logging("common-py")
 
 
 class MessageBroker:

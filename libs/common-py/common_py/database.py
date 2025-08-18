@@ -1,9 +1,9 @@
 import asyncpg
-import logging
 import os
 from typing import Optional, List, Dict, Any
+from .logging_config import configure_logging
 
-logger = logging.getLogger(__name__)
+logger = configure_logging("common-py")
 
 class DatabaseManager:
     """Async PostgreSQL database manager using asyncpg"""

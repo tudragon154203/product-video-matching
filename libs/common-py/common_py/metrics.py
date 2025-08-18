@@ -4,9 +4,9 @@ Basic metrics collection utilities
 import time
 from typing import Dict, Any, Optional
 from collections import defaultdict, deque
-import structlog
+from .logging_config import configure_logging
 
-logger = structlog.get_logger()
+logger = configure_logging("common-py")
 
 
 class MetricsCollector:

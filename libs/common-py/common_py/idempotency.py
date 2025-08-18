@@ -4,9 +4,9 @@ Idempotency utilities for preventing duplicate processing
 import hashlib
 import json
 from typing import Any, Dict, Optional
-import structlog
+from .logging_config import configure_logging
 
-logger = structlog.get_logger()
+logger = configure_logging("common-py")
 
 
 class IdempotencyManager:

@@ -17,28 +17,9 @@ from config_loader import config
 from services.auth import eBayAuthService
 from collectors.collectors import EbayProductCollector
 import aioredis
-import structlog
+from common_py.logging_config import configure_logging
 
-# Configure logging
-structlog.configure(
-    processors=[
-        structlog.stdlib.filter_by_level,
-        structlog.stdlib.add_logger_name,
-        structlog.stdlib.add_log_level,
-        structlog.stdlib.PositionalArgumentsFormatter(),
-        structlog.processors.TimeStamper(fmt="iso"),
-        structlog.processors.StackInfoRenderer(),
-        structlog.processors.format_exc_info,
-        structlog.processors.UnicodeDecoder(),
-        structlog.processors.JSONRenderer()
-    ],
-    context_class=dict,
-    logger_factory=structlog.stdlib.LoggerFactory(),
-    wrapper_class=structlog.stdlib.BoundLogger,
-    cache_logger_on_first_use=True,
-)
-
-logger = structlog.get_logger()
+logger = configure_logging("dropship-product-finder")
 
 async def test_e2e_flow():
     """Test complete end-to-end flow"""

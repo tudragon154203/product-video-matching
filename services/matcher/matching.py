@@ -1,9 +1,9 @@
 import numpy as np
 from typing import Dict, Any, Optional, List, Tuple
-import structlog
 from pathlib import Path
+from common_py.logging_config import configure_logging
 
-logger = structlog.get_logger()
+logger = configure_logging("matcher")
 
 
 class MatchingEngine:

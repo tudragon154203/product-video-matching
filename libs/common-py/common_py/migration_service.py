@@ -13,7 +13,7 @@ from .migration_config import MigrationConfig
 from .migration_executor import MigrationExecutor
 from .logging_config import configure_logging
 
-logger = logging.getLogger(__name__)
+logger = configure_logging("common-py")
 
 
 class MigrationAction(Enum):

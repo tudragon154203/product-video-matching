@@ -8,8 +8,6 @@ from handlers.broker_handler import BrokerHandler
 from contracts.validator import validator
 
 logger = configure_logging("main-api")
-# Also get a standard logger for test compatibility
-std_logger = logging.getLogger("main-api")
 
 
 class PhaseEventService:
@@ -20,12 +18,12 @@ class PhaseEventService:
         
     async def handle_phase_event(self, event_type: str, event_data: Dict[str, Any]):
         """Handle a job-based completion event"""
-        std_logger.info(f"Received event: {event_type} for job {event_data.get('job_id')}")
+        logger.info(f"Received event: {event_type} for job {event_data.get('job_id')}")
         
         # Validate event
         try:
             validator.validate_event(event_type, event_data)
-            std_logger.info(f"Event validation passed: {event_type}")
+            logger.info(f"Event validation passed: {event_type}")
         except ValueError as e:
             if "Unknown event type" in str(e):
                 logger.error(f"Unknown event type received: {event_type}. Available schemas: {list(validator.schemas.keys())}")
@@ -50,25 +48,25 @@ class PhaseEventService:
             
         # Deduplication - check if we've already processed this event
         if event_id in self.processed_events:
-            std_logger.info(f"Duplicate event, skipping: {event_id} for job {job_id}")
+            logger.info(f"Duplicate event, skipping: {event_id} for job {job_id}")
             return
             
         # Add to processed events
         self.processed_events.add(event_id)
-        std_logger.info(f"Added event to processed cache: {event_id}")
+        logger.info(f"Added event to processed cache: {event_id}")
         
         # Store event in database
         try:
             await self.db_handler.store_phase_event(event_id, job_id, event_type)
-            std_logger.info(f"Stored phase event: {event_type} for job {job_id}")
+            logger.info(f"Stored phase event: {event_type} for job {job_id}")
         except Exception as e:
             logger.error(f"Failed to store phase event {event_id} for job {job_id}: {str(e)}")
             # Remove from cache if storage failed
             self.processed_events.discard(event_id)
-            std_logger.error(f"Removed event from cache due to storage failure: {event_id}")
+            logger.error(f"Removed event from cache due to storage failure: {event_id}")
             return
             
-        std_logger.info(f"Stored phase event for job {job_id}: {event_type} (event_id={event_id})")
+        logger.info(f"Stored phase event for job {job_id}: {event_type} (event_id={event_id})")
         
         # Check if we need to trigger a phase transition
         await self.check_phase_transitions(job_id, event_type)
@@ -89,7 +87,7 @@ class PhaseEventService:
                 # Get job type to determine required events
                 try:
                     job_type = await self.db_handler.get_job_asset_types(job_id)
-                    std_logger.info(f"Job {job_id} asset_types: {job_type}")
+                    logger.info(f"Job {job_id} asset_types: {job_type}")
                 except Exception as e:
                     logger.error(f"Failed to get asset types for job {job_id}: {str(e)}")
                     return
@@ -103,7 +101,7 @@ class PhaseEventService:
                     required_events.append("video.embeddings.completed")
                     required_events.append("video.keypoints.completed")
                 
-                std_logger.info(f"Job {job_id} requires events: {required_events}")
+                logger.info(f"Job {job_id} requires events: {required_events}")
                 
                 # Handle zero-asset jobs - if no asset types are present, transition immediately
                 if not required_events:
@@ -131,7 +129,7 @@ class PhaseEventService:
                     # Publish match request
                     await self._publish_match_request_for_job(job_id)
                 else:
-                    std_logger.info(f"Job {job_id} waiting for required events: {missing_events}")
+                    logger.info(f"Job {job_id} waiting for required events: {missing_events}")
                         
             elif current_phase == "matching":
                 # Check for matching completion event

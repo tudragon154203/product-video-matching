@@ -1,11 +1,11 @@
-import structlog
 import uuid
 from typing import Dict, Any, Optional
 from common_py.database import DatabaseManager
 from common_py.messaging import MessageBroker
+from common_py.logging_config import configure_logging
 from evidence import EvidenceGenerator
 
-logger = structlog.get_logger()
+logger = configure_logging("evidence-builder")
 
 
 class EvidenceBuilderService:

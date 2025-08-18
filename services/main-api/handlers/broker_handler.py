@@ -1,8 +1,8 @@
 from common_py.messaging import MessageBroker
 from typing import Dict, Any
-import logging
+from common_py.logging_config import configure_logging
 
-logger = logging.getLogger(__name__)
+logger = configure_logging("main-api")
 
 class BrokerHandler:
     def __init__(self, broker: MessageBroker):

@@ -1,14 +1,13 @@
 """Manages completion events and watermark timers for jobs."""
 
 import asyncio
-import logging
 from typing import Dict, Set, Optional
 from datetime import datetime, timedelta
 
 from handlers.event_emitter import EventEmitter
+from common_py.logging_config import configure_logging
 
-
-logger = logging.getLogger(__name__)
+logger = configure_logging("product-segmentor")
 
 
 class CompletionManager:

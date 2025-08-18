@@ -6,7 +6,6 @@ import sys
 from pathlib import Path
 from typing import Optional, Dict, Any, List
 from datetime import datetime
-import logging
 from alembic import command, config
 from alembic.runtime.migration import MigrationContext
 from alembic.runtime.environment import EnvironmentContext
@@ -14,8 +13,9 @@ import json
 
 from .migration_config import MigrationConfig
 from .migration_connection import MigrationConnectionManager
+from .logging_config import configure_logging
 
-logger = logging.getLogger(__name__)
+logger = configure_logging("common-py")
 
 
 class MigrationExecutor:

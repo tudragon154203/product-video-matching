@@ -1,12 +1,12 @@
 """Factory for creating segmentation engines."""
 
 from typing import Optional
-import logging
 from segmentation.interface import SegmentationInterface
 from segmentation.rmbg20_segmentor import RMBG20Segmentor
 from segmentation.rmbg14_segmentor import RMBG14Segmentor
+from common_py.logging_config import configure_logging
 
-logger = logging.getLogger(__name__)
+logger = configure_logging("product-segmentor")
 
 
 def create_segmentor(model_name: Optional[str] = None, hf_token: Optional[str] = None) -> SegmentationInterface:
