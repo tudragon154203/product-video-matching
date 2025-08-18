@@ -1,6 +1,35 @@
 import logging
 import sys
+import json
+import os
 from typing import Any, Dict, Optional
+from contextvars import ContextVar, copy_context
+
+
+# Define a ContextVar for correlation_id
+correlation_id_var: ContextVar[Optional[str]] = ContextVar("correlation_id", default=None)
+
+
+class JsonFormatter(logging.Formatter):
+    def format(self, record: logging.LogRecord) -> str:
+        log_record = {
+            "timestamp": self.formatTime(record, self.datefmt),
+            "name": record.name,
+            "level": record.levelname,
+            "message": record.getMessage(),
+        }
+        # Add correlation_id if present in the context
+        correlation_id = correlation_id_var.get()
+        if correlation_id:
+            log_record["correlation_id"] = correlation_id
+
+        if hasattr(record, "extra_kwargs"):
+            log_record.update(record.extra_kwargs)
+        if record.exc_info:
+            log_record["exc_info"] = self.formatException(record.exc_info)
+        if record.stack_info:
+            log_record["stack_info"] = self.formatStack(record.stack_info)
+        return json.dumps(log_record)
 
 
 class ContextLogger:
@@ -29,8 +58,7 @@ class ContextLogger:
             if key in kwargs:
                 std_kwargs[key] = kwargs.pop(key)
         if kwargs:
-            parts = ", ".join(f"{k}={kwargs[k]}" for k in kwargs)
-            msg = f"{msg} | {parts}"
+            std_kwargs["extra"] = {"extra_kwargs": kwargs}  # Pass as extra dict
         return {"msg": msg, "std": std_kwargs}
 
     def debug(self, msg: str, *args: Any, **kwargs: Any) -> None:
@@ -60,7 +88,11 @@ class ContextLogger:
         self._base.critical(prepared["msg"], *args, **prepared["std"])  # type: ignore[arg-type]
 
 
-def configure_logging(service_name: str, log_level: str = "INFO") -> ContextLogger:
+def configure_logging(
+    service_name: str,
+    log_level: str = "INFO",
+    log_format: Optional[str] = None,
+) -> ContextLogger:
     """Configure logging and return a ContextLogger that accepts kwargs.
 
     Usage:
@@ -68,13 +100,29 @@ def configure_logging(service_name: str, log_level: str = "INFO") -> ContextLogg
         logger.info("Started", job_id=job_id)
         logger.error("Failure", error=str(e))
     """
+    if log_format == "json":
+        formatter = JsonFormatter()
+    else:
+        formatter = logging.Formatter(
+            log_format or "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+        )
 
-    logging.basicConfig(
-        format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-        stream=sys.stdout,
-        level=getattr(logging, log_level.upper(), logging.INFO),
-    )
+    # Remove any existing handlers to prevent duplicate logs in case of re-configuration
+    for handler in logging.getLogger(service_name).handlers[:]:
+        logging.getLogger(service_name).removeHandler(handler)
+        handler.close()
+
+    handler = logging.StreamHandler(sys.stdout)
+    handler.setFormatter(formatter)
 
     base = logging.getLogger(service_name)
     base.setLevel(getattr(logging, log_level.upper(), logging.INFO))
+    base.addHandler(handler)
+    base.propagate = False  # Prevent logs from being duplicated by the root logger
+
     return ContextLogger(base)
+
+
+def set_correlation_id(correlation_id: Optional[str]) -> None:
+    """Sets the correlation ID for the current context."""
+    correlation_id_var.set(correlation_id)
