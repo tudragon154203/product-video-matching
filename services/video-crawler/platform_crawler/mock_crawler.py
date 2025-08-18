@@ -12,7 +12,7 @@ class MockPlatformCrawler(PlatformCrawlerInterface):
     def __init__(self, platform_name: str = "mock"):
         self.platform_name = platform_name
     
-    async def search_and_download_videos(self, queries: List[str], recency_days: int, download_dir: str) -> List[Dict[str, Any]]:
+    async def search_and_download_videos(self, queries: List[str], recency_days: int, download_dir: str, num_videos: int = 3) -> List[Dict[str, Any]]:
         """
         Mock implementation that generates fake video data and creates dummy files
         
@@ -31,8 +31,8 @@ class MockPlatformCrawler(PlatformCrawlerInterface):
         mock_videos = []
         
         for i, query in enumerate(queries):
-            # Create 1-2 mock videos per query
-            for j in range(min(2, len(queries))):
+            # Create up to num_videos mock videos per query
+            for j in range(min(num_videos, len(queries))):
                 video_id = f"mock_{query}_{j}"
                 video_filename = f"{video_id}.mp4"
                 local_path = os.path.join(download_dir, video_filename)

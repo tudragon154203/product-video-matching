@@ -46,7 +46,7 @@ class YoutubeCrawler(PlatformCrawlerInterface):
         return filename
     
     async def search_and_download_videos(
-        self, queries: List[str], recency_days: int, download_dir: str
+        self, queries: List[str], recency_days: int, download_dir: str, num_videos: int = 3
     ) -> List[Dict[str, Any]]:
         """
         Search for videos on YouTube and download them
@@ -74,7 +74,7 @@ class YoutubeCrawler(PlatformCrawlerInterface):
                 logger.info(f"Searching YouTube for: {query}")
                 
                 # Search for videos using yt-dlp
-                search_results = await self._search_youtube(query, recency_days)
+                search_results = await self._search_youtube(query, recency_days, num_videos)
                 
                 # Add to our results
                 all_videos.extend(search_results)
@@ -104,13 +104,14 @@ class YoutubeCrawler(PlatformCrawlerInterface):
         logger.info(f"Successfully downloaded {len(downloaded_videos)} videos")
         return downloaded_videos
     
-    async def _search_youtube(self, query: str, recency_days: int) -> List[Dict[str, Any]]:
+    async def _search_youtube(self, query: str, recency_days: int, num_videos: int = 3) -> List[Dict[str, Any]]:
         """
         Search YouTube for videos matching the query and recency filter
         
         Args:
             query: Search query
             recency_days: How many days back to search
+            num_videos: Maximum number of videos to return
             
         Returns:
             List of video metadata dictionaries
@@ -119,10 +120,10 @@ class YoutubeCrawler(PlatformCrawlerInterface):
             'quiet': True,
             'no_warnings': True,
             'extract_flat': 'discard_in_playlist',
-            'playlistend': 50,  # Limit search results
+            'playlistend': num_videos,  # Limit search results
         }
         
-        search_query = f"ytsearch50:{query}"
+        search_query = f"ytsearch{num_videos}:{query}"
         
         try:
             with yt_dlp.YoutubeDL(ydl_opts) as ydl:

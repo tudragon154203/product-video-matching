@@ -2,6 +2,7 @@ import uuid
 import os
 import logging
 from typing import Dict, Any, List
+from pathlib import Path
 from common_py.database import DatabaseManager
 from common_py.messaging import MessageBroker
 from common_py.crud import VideoCRUD, VideoFrameCRUD
@@ -58,7 +59,7 @@ class VideoCrawlerService:
                 Path(download_dir).mkdir(parents=True, exist_ok=True)
                 
                 platform_videos = await self.video_fetcher.search_platform_videos(
-                    platform, queries, recency_days, download_dir
+                    platform, queries, recency_days, download_dir, num_videos=3
                 )
                 all_videos.extend(platform_videos)
             
