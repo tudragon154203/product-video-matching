@@ -1,13 +1,16 @@
 import uuid
-import structlog
+import logging
 from typing import Dict, Any, List
 from common_py.database import DatabaseManager
 from common_py.messaging import MessageBroker
 from common_py.crud import VideoCRUD, VideoFrameCRUD
 from common_py.models import Video, VideoFrame
-from fetcher.video_api_fetcher import VideoAPIFetcher
+from fetcher.video_fetcher import VideoFetcher
+from fetcher.keyframe_extractor import KeyframeExtractor
+from platform_crawler.interface import PlatformCrawlerInterface
+from platform_crawler.mock_crawler import MockPlatformCrawler
 
-logger = structlog.get_logger()
+logger = logging.getLogger("video-crawler")
 
 
 class VideoCrawlerService:
@@ -18,7 +21,9 @@ class VideoCrawlerService:
         self.broker = broker
         self.video_crud = VideoCRUD(db)
         self.frame_crud = VideoFrameCRUD(db)
-        self.fetcher = VideoAPIFetcher(data_root)
+        self.platform_crawlers = self._initialize_platform_crawlers(data_root)
+        self.video_fetcher = VideoFetcher(platform_crawlers=self.platform_crawlers)
+        self.keyframe_extractor = KeyframeExtractor(data_root)
     
     async def handle_videos_search_request(self, event_data: Dict[str, Any]):
         """Handle video search request"""
@@ -35,20 +40,15 @@ class VideoCrawlerService:
             # Search videos on each platform
             all_videos = []
             
+            # Use VideoFetcher to search videos across platforms
             for platform in platforms:
-                platform_queries = []
-                if platform == "youtube" and "vi" in queries:
-                    platform_queries = queries["vi"]
-                elif platform == "bilibili" and "zh" in queries:
-                    platform_queries = queries["zh"]
-                    
-                if platform_queries:
-                    if platform == "youtube":
-                        videos = await self.fetcher.search_youtube_videos(platform_queries, recency_days)
-                        all_videos.extend(videos)
-                    elif platform == "bilibili":
-                        videos = await self.fetcher.search_bilibili_videos(platform_queries, recency_days)
-                        all_videos.extend(videos)
+                platform_dir = self.keyframe_extractor.videos_dir / platform
+                platform_dir.mkdir(parents=True, exist_ok=True)
+                
+                platform_videos = await self.video_fetcher.search_platform_videos(
+                    platform, queries, recency_days, str(platform_dir)
+                )
+                all_videos.extend(platform_videos)
             
             # Handle zero-asset case (no videos found)
             if not all_videos:
@@ -90,7 +90,7 @@ class VideoCrawlerService:
             total_frames = 0
             for video_data in all_videos:
                 # Extract keyframes to count them without saving to DB
-                keyframes = await self.fetcher.extract_keyframes(video_data["url"], "temp_count")
+                keyframes = await self.keyframe_extractor.extract_keyframes(video_data["url"], "temp_count")
                 total_frames += len(keyframes)
             
             # Emit batch keyframes ready event before processing individual videos
@@ -129,7 +129,7 @@ class VideoCrawlerService:
                        total_videos=len(all_videos))
             
         except Exception as e:
-            logger.error("Failed to process video search request", error=str(e))
+            logger.error(f"Failed to process video search request: {str(e)}")
             raise
     
     async def process_video(self, video_data: Dict[str, Any], job_id: str):
@@ -153,7 +153,7 @@ class VideoCrawlerService:
             )
             
             # Download video and extract keyframes
-            keyframes = await self.fetcher.extract_keyframes(video_data["url"], video.video_id)
+            keyframes = await self.keyframe_extractor.extract_keyframes(video_data["url"], video.video_id)
             
             # Process each keyframe
             frame_data = []
@@ -192,4 +192,18 @@ class VideoCrawlerService:
                        frame_count=len(frame_data))
             
         except Exception as e:
-            logger.error("Failed to process video", video_data=video_data, error=str(e))
+            logger.error(f"Failed to process video: {str(e)}", extra={"video_data": video_data})
+    
+    def _initialize_platform_crawlers(self, data_root: str) -> Dict[str, PlatformCrawlerInterface]:
+        """Initialize platform crawlers for each supported platform"""
+        crawlers = {}
+        
+        # For now, use mock crawlers for all platforms
+        # In production, these would be replaced with real implementations
+        crawlers["youtube"] = MockPlatformCrawler("youtube")
+        crawlers["bilibili"] = MockPlatformCrawler("bilibili")
+        crawlers["douyin"] = MockPlatformCrawler("douyin")
+        crawlers["tiktok"] = MockPlatformCrawler("tiktok")
+        
+        return crawlers
+    

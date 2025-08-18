@@ -1,8 +1,8 @@
 import functools
-import structlog
+import logging
 from contracts.validator import validator
 
-logger = structlog.get_logger()
+logger = logging.getLogger("video-crawler")
 
 def validate_event(schema_name):
     """Decorator to validate event data against a schema"""

@@ -1,70 +1,21 @@
-import os
 import asyncio
 import subprocess
 from pathlib import Path
-from typing import List, Dict, Any, Tuple, Optional
-from datetime import datetime, timedelta
+from typing import List, Tuple
 import cv2
 import numpy as np
-import structlog
+import logging
 
-logger = structlog.get_logger()
+logger = logging.getLogger("video-crawler")
 
 
-class VideoAPIFetcher:
-    """Handles video search, download, and keyframe extraction"""
+class KeyframeExtractor:
+    """Handles keyframe extraction from videos"""
     
     def __init__(self, data_root: str):
         self.data_root = Path(data_root)
         self.videos_dir = self.data_root / "videos"
         self.videos_dir.mkdir(parents=True, exist_ok=True)
-    
-    async def search_youtube_videos(self, queries: List[str], recency_days: int) -> List[Dict[str, Any]]:
-        """
-        Search YouTube videos (mock implementation)
-        In production, this would use YouTube Data API
-        """
-        logger.info("Searching YouTube videos", queries=queries, recency_days=recency_days)
-        
-        # Mock video data for MVP - reduced to 1-2 representative videos per query
-        mock_videos = []
-        for i, query in enumerate(queries):
-            # Return 1-2 representative videos per query instead of 3
-            for j in range(min(2, len(queries))):  # Reduced from 3 to 2 videos per query
-                video = {
-                    "platform": "youtube",
-                    "url": f"https://youtube.com/watch?v=mock_{query}_{j}",
-                    "title": f"Mock YouTube Video: {query} #{j+1}",
-                    "duration_s": 120 + (j * 30),  # 2-4 minutes
-                    "published_at": datetime.utcnow() - timedelta(days=j+1)
-                }
-                mock_videos.append(video)
-        
-        logger.info("Found YouTube videos", count=len(mock_videos))
-        return mock_videos
-    
-    async def search_bilibili_videos(self, queries: List[str], recency_days: int) -> List[Dict[str, Any]]:
-        """
-        Search Bilibili videos (mock implementation)
-        In production, this would use Bilibili API
-        """
-        logger.info("Searching Bilibili videos", queries=queries, recency_days=recency_days)
-        
-        # Mock video data for MVP - reduced to 1 representative video per query
-        mock_videos = []
-        for i, query in enumerate(queries):
-            # Return 1 representative video per query instead of 2
-            video = {
-                "platform": "bilibili",
-                "url": f"https://bilibili.com/video/mock_{query}_0",
-                "title": f"Mock Bilibili Video: {query} #1",
-                "duration_s": 180,  # 3 minutes
-                "published_at": datetime.utcnow() - timedelta(days=2)
-            }
-            mock_videos.append(video)
-        
-        logger.info("Found Bilibili videos", count=len(mock_videos))
-        return mock_videos
     
     async def extract_keyframes(self, video_url: str, video_id: str) -> List[Tuple[float, str]]:
         """
