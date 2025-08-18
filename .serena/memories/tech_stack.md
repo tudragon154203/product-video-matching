@@ -1,1 +1,0 @@
-Python, FastAPI, PostgreSQL, RabbitMQ, Docker, Ollama, CLIP embeddings, AKAZE/SIFT keypoints, pgvector for vector search.
