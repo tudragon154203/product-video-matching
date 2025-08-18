@@ -6,6 +6,9 @@ from typing import Optional
 
 from segmentation.interface import SegmentationInterface
 from config_loader import config
+from common_py.logging_config import configure_logging
+
+logger = configure_logging("yolo-segmentor")
 
 class YOLOSegmentor(SegmentationInterface):
     """YOLOv8 segmentation model for people segmentation."""
@@ -20,12 +23,19 @@ class YOLOSegmentor(SegmentationInterface):
     async def initialize(self) -> None:
         """Initialize the YOLO segmentation model."""
         try:
-            print(f"Initializing YOLO segmentor with model: {self._model_path}")
+            logger.info("Initializing model",
+                       model_name=self.model_name,
+                       model_path=self._model_path)
             self._model = YOLO(self._model_path)
             self._initialized = True
-            print("YOLO segmentor initialized successfully.")
+            logger.info("Model initialized successfully",
+                       model_name=self.model_name)
         except Exception as e:
-            print(f"Failed to initialize YOLO segmentor: {e}")
+            logger.error("Model initialization failed",
+                        model_name=self.model_name,
+                        model_path=self._model_path,
+                        error=str(e),
+                        error_type=type(e).__name__)
             raise
 
     async def segment_image(self, image_path: str) -> Optional[np.ndarray]:
@@ -65,7 +75,8 @@ class YOLOSegmentor(SegmentationInterface):
 
                     people_mask = combined_mask
                 else:
-                    print(f"No persons detected or no masks generated for {image_path}.")
+                    logger.debug("No persons detected",
+                               image_path=image_path)
 
             # If no people mask was generated, return None
             if people_mask is None:
@@ -74,12 +85,16 @@ class YOLOSegmentor(SegmentationInterface):
             return people_mask.reshape(people_mask.shape[0], people_mask.shape[1], 1)
 
         except Exception as e:
-            print(f"Error during YOLO segmentation for {image_path}: {e}")
+            logger.error("Item processing failed",
+                        image_path=image_path,
+                        error=str(e),
+                        error_type=type(e).__name__)
             return None
 
     def cleanup(self) -> None:
         """Cleanup model resources."""
-        print("Cleaning up YOLO segmentor resources.")
+        logger.info("Cleaning up model resources",
+                   model_name=self.model_name)
         self._model = None
         self._initialized = False
 

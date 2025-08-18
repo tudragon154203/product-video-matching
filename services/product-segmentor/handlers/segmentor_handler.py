@@ -49,9 +49,11 @@ class ProductSegmentorHandler:
             event_data: Event payload containing product image information
         """
         logger.info(
-            "Received product image ready event", 
-            product_id=event_data.get("product_id"),
-            image_id=event_data.get("image_id")
+            "Event received",
+            job_id=event_data.get("job_id"),
+            asset_id=event_data.get("image_id"),
+            asset_type="image",
+            event_type="products_image_ready"
         )
         
         await self.service.handle_products_image_ready(event_data)
@@ -65,9 +67,11 @@ class ProductSegmentorHandler:
             event_data: Batch event payload
         """
         logger.info(
-            "Received product images ready batch event",
+            "Batch event received",
             job_id=event_data.get("job_id"),
-            total_images=event_data.get("total_images")
+            asset_type="image",
+            total_items=event_data.get("total_images"),
+            event_type="products_images_ready_batch"
         )
         
         await self.service.handle_products_images_ready_batch(event_data)
@@ -81,9 +85,11 @@ class ProductSegmentorHandler:
             event_data: Event payload containing video keyframe information
         """
         logger.info(
-            "Received video keyframes ready event",
-            video_id=event_data.get("video_id"),
-            frame_count=len(event_data.get("frames", []))
+            "Event received",
+            job_id=event_data.get("job_id"),
+            asset_type="video",
+            total_items=len(event_data.get("frames", [])),
+            event_type="videos_keyframes_ready"
         )
         
         await self.service.handle_videos_keyframes_ready(event_data)
@@ -97,9 +103,11 @@ class ProductSegmentorHandler:
             event_data: Batch event payload
         """
         logger.info(
-            "Received video keyframes ready batch event",
+            "Batch event received",
             job_id=event_data.get("job_id"),
-            total_keyframes=event_data.get("total_keyframes")
+            asset_type="video",
+            total_items=event_data.get("total_keyframes"),
+            event_type="videos_keyframes_ready_batch"
         )
         
         await self.service.handle_videos_keyframes_ready_batch(event_data)

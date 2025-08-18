@@ -216,17 +216,21 @@ class ProductSegmentorService:
             # Mark as processed using deduper
             self.deduper.mark_processed(asset_key)
             
-            logger.info("Processing product image", image_id=image_id, product_id=product_id)
+            logger.info("Processing item",
+                       job_id=job_id,
+                       asset_id=image_id,
+                       asset_type="image",
+                       item_path=local_path)
             
             # Process image with concurrency control
             async with self._processing_semaphore:
-                mask_path = await self._process_single_image(image_id, local_path, "product")
+                mask_path = await self._process_single_image(image_id, local_path, "product", job_id)
             
             if mask_path:
                 db_update_success = False
                 try:
                     # Update database
-                    await self._update_product_image_mask(image_id, mask_path)
+                    await self._update_product_image_mask(image_id, mask_path, job_id)
                     db_update_success = True
                     
                     # Emit masked event
@@ -278,18 +282,25 @@ class ProductSegmentorService:
             job_id = event_data["job_id"]
             total_images = event_data["total_images"]
             
-            logger.info("Products images ready batch received", job_id=job_id, total_images=total_images)
+            logger.info("Batch event received",
+                       job_id=job_id,
+                       asset_type="image",
+                       total_items=total_images,
+                       event_type="products_images_ready_batch")
             
             # Store the total image count for the job using progress tracker
             self.progress_tracker.update_job_counts(job_id, 'image', total_images, 0)
-            logger.info("Initialized job image counters", job_id=job_id, total_images=total_images)    
+            logger.info("Batch tracking initialized",
+                       job_id=job_id,
+                       asset_type="image",
+                       total_items=total_images)
             
             # Start watermark timer using completion manager
             self.completion_manager.start_timer(job_id)
             
             # If there are no images, immediately publish batch completion event
             if total_images == 0:
-                logger.info("No images found for job, publishing immediate batch completion", job_id=job_id)
+                logger.info("Immediate completion for zero-asset job", job_id=job_id, asset_type="image")
                 # Publish immediate batch completion event for empty batch
                 await self.event_emitter.emit_products_images_masked_batch(
                     job_id=job_id,
@@ -311,7 +322,11 @@ class ProductSegmentorService:
             frames = event_data["frames"]
             job_id = event_data["job_id"]
             
-            logger.info("Processing video keyframes", video_id=video_id, frame_count=len(frames))
+            logger.info("Starting batch processing",
+                       job_id=job_id,
+                       asset_type="video",
+                       total_items=len(frames),
+                       operation="segmentation")
             
             processed_frames = []
             
@@ -326,7 +341,7 @@ class ProductSegmentorService:
                 
                 # Skip if we've already processed this asset using deduper
                 if self.deduper.is_processed(asset_key):
-                    logger.info("Skipping duplicate asset", frame_id=frame_id, job_id=job_id)
+                    logger.info("Skipping duplicate asset", job_id=job_id, asset_id=frame_id, asset_type="video")
                     continue
                     
                 # Mark as processed using deduper
@@ -334,13 +349,13 @@ class ProductSegmentorService:
                 
                 # Process frame with concurrency control
                 async with self._processing_semaphore:
-                    mask_path = await self._process_single_image(frame_id, local_path, "frame")
+                    mask_path = await self._process_single_image(frame_id, local_path, "frame", job_id)
                 
                 if mask_path:
                     db_update_success = False
                     try:
                         # Update database
-                        await self._update_video_frame_mask(frame_id, mask_path)
+                        await self._update_video_frame_mask(frame_id, mask_path, job_id)
                         db_update_success = True
                         
                         processed_frames.append({
@@ -356,13 +371,19 @@ class ProductSegmentorService:
                         current_count = frame_counts['processed']
                         total_count = frame_counts['total']
                         
-                        logger.info("Updated job frame counters", job_id=job_id,
-                                   processed=current_count, total=total_count)
+                        logger.debug("Progress update",
+                                    job_id=job_id,
+                                    asset_type="video",
+                                    processed=current_count,
+                                    total=total_count)
                         
                         # Check if all frames are processed
                         if current_count >= total_count:
-                            logger.info("All frames processed for job", job_id=job_id,
-                                       processed=current_count, total=total_count)
+                            logger.info("Batch completed",
+                                       job_id=job_id,
+                                       asset_type="video",
+                                       processed=current_count,
+                                       total=total_count)
                             
                             # Publish completion event using completion manager
                             await self.completion_manager.publish_completion(job_id, self.progress_tracker)
@@ -376,7 +397,7 @@ class ProductSegmentorService:
                         # Don't re-raise, allow processing to continue
                         # Don't update progress or check completion if database update failed
                         if not db_update_success:
-                            continue
+                            return
                 else:
                     logger.warning("Failed to process frame", frame_id=frame_id)
                     continue  # Skip this frame if processing failed
@@ -400,11 +421,19 @@ class ProductSegmentorService:
             event_id = event_data.get("event_id", str(uuid.uuid4()))  # Generate if not provided
             total_keyframes = event_data.get("total_keyframes", 0)
 
-            logger.info("Videos keyframes ready batch received", job_id=job_id, event_id=event_id, total_keyframes=total_keyframes)
+            logger.info("Batch event received",
+                       job_id=job_id,
+                       asset_type="video",
+                       total_items=total_keyframes,
+                       event_type="videos_keyframes_ready_batch",
+                       event_id=event_id)
 
             # Store the total frame count for the job using progress tracker
             self.progress_tracker.update_job_counts(job_id, 'frame', total_keyframes, 0)
-            logger.info("Initialized job frame counters", job_id=job_id, total_frames=total_keyframes)
+            logger.info("Batch tracking initialized",
+                       job_id=job_id,
+                       asset_type="video",
+                       total_items=total_keyframes)
 
             # Start watermark timer using completion manager
             self.completion_manager.start_timer(job_id)
@@ -420,13 +449,14 @@ class ProductSegmentorService:
             logger.error("Failed to handle videos keyframes ready batch", job_id=job_id, event_id=event_id, error=str(e))
             raise
     
-    async def _process_single_image(self, image_id: str, local_path: str, image_type: str) -> Optional[str]:
+    async def _process_single_image(self, image_id: str, local_path: str, image_type: str, job_id: str = "unknown") -> Optional[str]:
         """Process a single image to generate mask.
         
         Args:
             image_id: Unique identifier for the image
             local_path: Path to the source image
             image_type: Type of image ("product" or "frame")
+            job_id: Optional job identifier for logging context
             
         Returns:
             Path to generated mask or None if processing failed
@@ -441,64 +471,119 @@ class ProductSegmentorService:
             )
 
             if foreground_mask_path is None:
-                logger.warning(f"Failed to generate foreground mask for {image_id}")
+                logger.warning("Item processing failed",
+                             job_id=job_id,
+                             asset_id=image_id,
+                             asset_type="image",
+                             error="Failed to generate foreground mask")
                 return None
 
             # Load the foreground mask
             foreground_mask = cv2.imread(foreground_mask_path, cv2.IMREAD_GRAYSCALE)
             if foreground_mask is None:
-                logger.error(f"Failed to load foreground mask from {foreground_mask_path}")
+                logger.error("Resource not found",
+                           job_id=job_id,
+                           asset_id=image_id,
+                           asset_type="image",
+                           resource_type="foreground_mask",
+                           mask_path=foreground_mask_path)
                 return None
             
             # Ensure foreground mask is (H, W)
             if foreground_mask.ndim == 3 and foreground_mask.shape[2] == 1:
                 foreground_mask = foreground_mask.squeeze(axis=2)
 
-            logger.info(f"Loading foreground mask from: {foreground_mask_path}")
+            logger.info("Loading foreground mask from: {foreground_mask_path}", mask_path=foreground_mask_path)
             # Generate people mask
-            people_mask = await self.people_segmentor.segment_image(local_path)
+            try:
+                logger.debug("Attempting to segment people mask", local_path=local_path)
+                people_mask = await self.people_segmentor.segment_image(local_path)
+                if people_mask is not None:
+                    logger.debug("People mask segmented successfully", people_mask_shape=people_mask.shape)
+                else:
+                    logger.debug("No people mask generated by segmentor")
+            except Exception as people_e:
+                logger.error("Error during people mask segmentation", error=str(people_e), error_type=type(people_e).__name__, local_path=local_path)
+                return None
 
-            logger.info(f"Foreground mask shape: {foreground_mask.shape}")
-            if people_mask is not None:
-                logger.info(f"People mask shape: {people_mask.shape}")
+            logger.info("Foreground mask shape: {foreground_mask_shape}", foreground_mask_shape=foreground_mask.shape)
 
             final_mask = foreground_mask # to be substracted later
             
             if people_mask is not None:
                 # Save people mask
-                await self.file_manager.save_people_mask(image_id, people_mask, image_type)
+                try:
+                    await self.file_manager.save_people_mask(image_id, people_mask, image_type)
+                    logger.debug("People mask saved successfully", image_id=image_id, image_type=image_type)
+                except Exception as save_e:
+                    logger.error("Error saving people mask", error=str(save_e), error_type=type(save_e).__name__, image_id=image_id)
+                    return None
 
                 # Ensure both masks are binary (0 or 255) and of the same size
                 if foreground_mask.shape == people_mask.shape:
-                    final_mask = cv2.bitwise_and(foreground_mask, cv2.bitwise_not(people_mask))
-                    logger.info(f"Subtracted people mask from foreground mask for {image_id}")
+                    try:
+                        final_mask = cv2.bitwise_and(foreground_mask, cv2.bitwise_not(people_mask))
+                        logger.info("Subtracted people mask from foreground mask", image_id=image_id)
+                    except Exception as bitwise_e:
+                        logger.error("Error during bitwise operation for mask subtraction", error=str(bitwise_e), error_type=type(bitwise_e).__name__, image_id=image_id, foreground_shape=foreground_mask.shape, people_shape=people_mask.shape)
+                        return None
                 else:
-                    logger.warning(f"Foreground and people mask shapes do not match for {image_id}. Skipping subtraction.")
+                    logger.warning("Mask processing warning",
+                                 job_id=job_id,
+                                 asset_id=image_id,
+                                 asset_type="image",
+                                 error="Foreground and people mask shapes do not match",
+                                 foreground_shape=foreground_mask.shape,
+                                 people_shape=people_mask.shape)
             else:
-                logger.info(f"No people mask generated for {image_id}. Using foreground mask as final mask.")
+                logger.info("Processing completed with warning",
+                           job_id=job_id,
+                           asset_id=image_id,
+                           asset_type="image",
+                           warning="No people mask generated")
 
             # Save the final mask (product mask) to the product mask directory
-            mask_path = await self.file_manager.save_product_final_mask(image_id, final_mask, image_type)
+            try:
+                mask_path = await self.file_manager.save_product_final_mask(image_id, final_mask, image_type)
+                logger.debug("Final product mask saved", mask_path=mask_path)
+            except Exception as final_save_e:
+                logger.error("Error saving final product mask", error=str(final_save_e), error_type=type(final_save_e).__name__, image_id=image_id)
+                return None
             
             return mask_path
 
         except Exception as e:
-            logger.error(f"Error processing image {image_id}: {e}")
+            logger.error("Item processing failed",
+                        job_id=job_id,
+                        asset_id=image_id,
+                        asset_type="image",
+                        error=str(e),
+                        error_type=type(e).__name__)
             return None
     
-    async def _update_product_image_mask(self, image_id: str, mask_path: str) -> None:
+    async def _update_product_image_mask(self, image_id: str, mask_path: str, job_id: str = "unknown") -> None:
         """Update product image record with mask path."""
         try:
             await self.db_updater.update_product_image_mask(image_id, mask_path)
         except Exception as e:
-            logger.error("Failed to update product image mask", image_id=image_id, error=str(e))
+            logger.error("Database update failed",
+                        job_id=job_id,
+                        asset_id=image_id,
+                        asset_type="image",
+                        error=str(e),
+                        error_type=type(e).__name__)
     
-    async def _update_video_frame_mask(self, frame_id: str, mask_path: str) -> None:
+    async def _update_video_frame_mask(self, frame_id: str, mask_path: str, job_id: str = "unknown") -> None:
         """Update video frame record with mask path."""
         try:
             await self.db_updater.update_video_frame_mask(frame_id, mask_path)
         except Exception as e:
-            logger.error("Failed to update video frame mask", frame_id=frame_id, error=str(e))
+            logger.error("Database update failed",
+                        job_id=job_id,
+                        asset_id=frame_id,
+                        asset_type="video",
+                        error=str(e),
+                        error_type=type(e).__name__)
     
     async def _publish_completion_event(self, job_id: str) -> None:
         """Publish completion event for a job.
@@ -509,7 +594,7 @@ class ProductSegmentorService:
         try:
             # Check if completion event already sent for this job
             if job_id in self._completion_events_sent:
-                logger.debug("Completion event already sent for job", job_id=job_id)
+                logger.debug("Completion event already sent for job", job_id=job_id, asset_type="both")
                 return
             
             # Get job progress
@@ -521,11 +606,11 @@ class ProductSegmentorService:
             images_complete = (image_counts['total'] > 0 and
                              image_counts['processed'] >= image_counts['total'])
             frames_complete = (frame_counts['total'] > 0 and
-                              frame_counts['processed'] >= frame_counts['total'])
+                               frame_counts['processed'] >= frame_counts['total'])
             
             # If both types are complete (or have no assets), publish completion
             if images_complete and frames_complete:
-                logger.info("Publishing completion event for job", job_id=job_id)
+                logger.info("Publishing completion event", job_id=job_id, asset_type="both")
                 
                 # Publish completion event
                 completion_event = {
@@ -540,14 +625,17 @@ class ProductSegmentorService:
                 )
                 
                 self._completion_events_sent.add(job_id)
-                logger.info("Completion event published successfully", job_id=job_id)
+                logger.info("Completion event published", job_id=job_id, asset_type="both")
             else:
                 logger.debug("Job not ready for completion",
                            job_id=job_id,
                            images_complete=images_complete,
-                           frames_complete=frames_complete)
+                           frames_complete=frames_complete,
+                           asset_type="both")
                 
         except Exception as e:
             logger.error("Failed to publish completion event",
-                        job_id=job_id, error=str(e))
-    
+                        job_id=job_id,
+                        asset_type="both",
+                        error=str(e),
+                        error_type=type(e).__name__)
