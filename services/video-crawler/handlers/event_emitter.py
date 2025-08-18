@@ -1,5 +1,4 @@
 import uuid
-import logging
 from typing import Dict, Any, Optional
 from common_py.messaging import MessageBroker
 from common_py.logging_config import configure_logging

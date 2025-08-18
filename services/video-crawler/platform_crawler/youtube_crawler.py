@@ -1,14 +1,20 @@
 import os
 import re
 import asyncio
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Callable, Protocol
 from pathlib import Path
 from datetime import datetime, timedelta
 import yt_dlp
-import logging
+from common_py.logging_config import configure_logging
 from .interface import PlatformCrawlerInterface
+from utils.filter_chain import FilterChain
+from utils.youtube_filters import (
+    filter_valid_entry,
+    filter_upload_date,
+    filter_duration
+)
 
-logger = logging.getLogger(__name__)
+logger = configure_logging("video-crawler")
 
 
 class YoutubeCrawler(PlatformCrawlerInterface):
@@ -46,7 +52,7 @@ class YoutubeCrawler(PlatformCrawlerInterface):
         return filename
     
     async def search_and_download_videos(
-        self, queries: List[str], recency_days: int, download_dir: str, num_videos: int = 3
+        self, queries: List[str], recency_days: int, download_dir: str, num_ytb_videos: int = 10
     ) -> List[Dict[str, Any]]:
         """
         Search for videos on YouTube and download them
@@ -55,10 +61,14 @@ class YoutubeCrawler(PlatformCrawlerInterface):
             queries: List of search queries (keywords only)
             recency_days: How many days back to search for videos
             download_dir: Directory path where videos should be saved (should be {VIDEO_DIR}/youtube)
+            num_ytb_videos: Number of YouTube videos to search for per query
+                (actual downloaded videos may be fewer due to filtering)
             
         Returns:
             List of video metadata dictionaries with required fields
         """
+        logger.info(f"Starting search_and_download_videos with {len(queries)} queries, recency_days={recency_days}, num_ytb_videos={num_ytb_videos}")
+        
         # Ensure download directory exists
         Path(download_dir).mkdir(parents=True, exist_ok=True)
         
@@ -74,7 +84,9 @@ class YoutubeCrawler(PlatformCrawlerInterface):
                 logger.info(f"Searching YouTube for: {query}")
                 
                 # Search for videos using yt-dlp
-                search_results = await self._search_youtube(query, recency_days, num_videos)
+                search_results = await self._search_youtube(query, recency_days, num_ytb_videos)
+                
+                logger.info(f"Found {len(search_results)} videos for query '{query}'")
                 
                 # Add to our results
                 all_videos.extend(search_results)
@@ -83,6 +95,8 @@ class YoutubeCrawler(PlatformCrawlerInterface):
                 logger.error(f"Failed to search for query '{query}': {str(e)}")
                 continue
         
+        logger.info(f"Total videos found across all queries: {len(all_videos)}")
+        
         # Deduplicate by video_id
         unique_videos = {}
         for video in all_videos:
@@ -90,28 +104,34 @@ class YoutubeCrawler(PlatformCrawlerInterface):
             if video_id not in unique_videos:
                 unique_videos[video_id] = video
         
+        logger.info(f"Unique videos after deduplication: {len(unique_videos)}")
+        
         # Download videos
         downloaded_videos = []
         for video in unique_videos.values():
             try:
+                logger.info(f"Attempting to download video: {video['title']} ({video['video_id']})")
                 downloaded_video = await self._download_video(video, download_dir)
                 if downloaded_video:
                     downloaded_videos.append(downloaded_video)
+                    logger.info(f"Successfully downloaded video: {video['title']} ({video['video_id']})")
+                else:
+                    logger.warning(f"Failed to download video: {video['title']} ({video['video_id']})")
             except Exception as e:
                 logger.error(f"Failed to download video {video['video_id']}: {str(e)}")
                 continue
         
-        logger.info(f"Successfully downloaded {len(downloaded_videos)} videos")
+        logger.info(f"Successfully downloaded {len(downloaded_videos)} videos out of {len(unique_videos)} unique videos")
         return downloaded_videos
     
-    async def _search_youtube(self, query: str, recency_days: int, num_videos: int = 3) -> List[Dict[str, Any]]:
+    async def _search_youtube(self, query: str, recency_days: int, num_ytb_videos: int = 10) -> List[Dict[str, Any]]:
         """
         Search YouTube for videos matching the query and recency filter
         
         Args:
             query: Search query
             recency_days: How many days back to search
-            num_videos: Maximum number of videos to return
+            num_ytb_videos: Number of YouTube videos to search for
             
         Returns:
             List of video metadata dictionaries
@@ -120,57 +140,53 @@ class YoutubeCrawler(PlatformCrawlerInterface):
             'quiet': True,
             'no_warnings': True,
             'extract_flat': 'discard_in_playlist',
-            'playlistend': num_videos,  # Limit search results
+            'playlistend': num_ytb_videos,  # Limit search results
         }
         
-        search_query = f"ytsearch{num_videos}:{query}"
+        search_query = f"ytsearch{num_ytb_videos}:{query}"
+        
+        logger.info(f"Starting YouTube search for query: '{query}' with recency_days: {recency_days}, num_ytb_videos: {num_ytb_videos}")
         
         try:
             with yt_dlp.YoutubeDL(ydl_opts) as ydl:
                 info = ydl.extract_info(search_query, download=False)
                 
+                total_entries = len(info.get('entries', []))
+                logger.info(f"Retrieved {total_entries} raw search results for query: '{query}'")
+                
                 videos = []
                 cutoff_date = datetime.utcnow() - timedelta(days=recency_days)
                 
-                for entry in info.get('entries', []):
-                    if not entry:
-                        continue
-                    
-                    # Parse upload date
+                # Create and configure filter chain
+                filter_chain = FilterChain()
+                filter_chain.add_filter(filter_valid_entry)
+                filter_chain.add_filter(filter_upload_date)
+                filter_chain.add_filter(filter_duration)
+                
+                # Apply filters to entries
+                filtered_entries, skipped_count = filter_chain.apply(info.get('entries', []), cutoff_date)
+                
+                # Convert filtered entries to video metadata
+                for entry in filtered_entries:
+                    # Parse upload date (we know it's valid because filters passed)
                     upload_date_str = entry.get('upload_date')
-                    if not upload_date_str:
-                        continue
-                    
-                    try:
-                        upload_date = datetime.strptime(upload_date_str, '%Y%m%d')
-                        upload_date = upload_date.replace(tzinfo=None)  # Remove timezone info for comparison
-                        
-                        # Filter by recency
-                        if upload_date < cutoff_date:
-                            continue
-                            
-                    except ValueError:
-                        # If we can't parse the date, skip this video
-                        continue
-                    
-                    # Extract duration
-                    duration = entry.get('duration')
-                    if duration is None:
-                        continue
+                    upload_date = datetime.strptime(upload_date_str, '%Y%m%d')
+                    upload_date = upload_date.replace(tzinfo=None)
                     
                     video = {
                         'platform': self.platform_name,
                         'video_id': entry['id'],
                         'url': f"https://www.youtube.com/watch?v={entry['id']}",
                         'title': entry.get('title', ''),
-                        'duration_s': duration,
+                        'duration_s': entry['duration'],
                         'published_at': upload_date.strftime('%Y-%m-%d'),
                         'uploader': entry.get('uploader', 'unknown'),
                     }
                     
                     videos.append(video)
                 
-                logger.info(f"Found {len(videos)} videos for query '{query}'")
+                logger.info(f"Found {len(videos)} videos for query '{query}' (skipped {skipped_count} entries)")
+                logger.debug(f"Video details: {[{'id': v['video_id'], 'title': v['title'], 'date': v['published_at']} for v in videos]}")
                 return videos
                 
         except Exception as e:

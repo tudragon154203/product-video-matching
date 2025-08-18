@@ -1,6 +1,5 @@
 import uuid
 import os
-import logging
 from typing import Dict, Any, List
 from pathlib import Path
 from common_py.database import DatabaseManager
@@ -14,6 +13,7 @@ from platform_crawler.mock_crawler import MockPlatformCrawler
 from platform_crawler.youtube_crawler import YoutubeCrawler
 from handlers.event_emitter import EventEmitter
 from common_py.logging_config import configure_logging
+from config_loader import config
 
 logger = configure_logging("video-crawler")
 
@@ -43,6 +43,27 @@ class VideoCrawlerService:
             logger.info("Processing video search request",
                        job_id=job_id, industry=industry, platforms=platforms)
             
+            # Extract appropriate queries based on platform
+            # queries is a dict with keys like "vi", "zh" containing lists of queries
+            platform_queries = []
+            if isinstance(queries, dict):
+                if "youtube" in platforms and "vi" in queries:
+                    platform_queries = queries["vi"]
+                elif "bilibili" in platforms and "zh" in queries:
+                    platform_queries = queries["zh"]
+                elif "douyin" in platforms and "vi" in queries:
+                    platform_queries = queries["vi"]
+                elif "tiktok" in platforms and "vi" in queries:
+                    platform_queries = queries["vi"]
+                else:
+                    # Fallback: use all queries if we can't determine the right ones
+                    for query_list in queries.values():
+                        if isinstance(query_list, list):
+                            platform_queries.extend(query_list)
+            else:
+                # Fallback for backward compatibility
+                platform_queries = queries if isinstance(queries, list) else []
+            
             # Search videos on each platform
             all_videos = []
             
@@ -59,7 +80,7 @@ class VideoCrawlerService:
                 Path(download_dir).mkdir(parents=True, exist_ok=True)
                 
                 platform_videos = await self.video_fetcher.search_platform_videos(
-                    platform, queries, recency_days, download_dir, num_videos=3
+                    platform, platform_queries, recency_days, download_dir, num_ytb_videos=config.NUM_YTB_VIDEOS
                 )
                 all_videos.extend(platform_videos)
             

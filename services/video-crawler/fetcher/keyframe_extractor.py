@@ -4,7 +4,6 @@ from pathlib import Path
 from typing import List, Tuple
 import cv2
 import numpy as np
-import logging
 from common_py.logging_config import configure_logging
 
 logger = configure_logging("video-crawler")

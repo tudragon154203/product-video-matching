@@ -1,5 +1,4 @@
 import functools
-import logging
 from contracts.validator import validator
 from common_py.logging_config import configure_logging
 
