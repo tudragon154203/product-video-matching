@@ -42,7 +42,7 @@ This system processes industry keywords to find visual matches between products 
 +----------------+  +----------------+
     |                 |
     v                 v
- (products.images.   (videos.keyframes.
+ (products.image.   (videos.keyframes.
      ready)              ready)
     |                 |
     +--------+--------+

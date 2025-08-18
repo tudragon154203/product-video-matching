@@ -31,6 +31,35 @@ class VisionEmbeddingService:
         self.job_frame_counts: Dict[str, Dict[str, int]] = {}  # Track job frame counts: {job_id: {'total': int, 'processed': int}}
         self.expected_total_frames: Dict[str, int] = {}  # Track expected total frames per job: {job_id: total_frames}
         self.processed_batch_events: set = set()  # Track processed batch events to avoid duplicates
+        self._completion_events_sent: set = set()  # Track completion events sent to prevent duplicates
+        self.job_batch_initialized: Dict[str, set] = {}  # Track which batch types have been initialized for each job: {job_id: {asset_types}}
+    
+    def _mark_batch_initialized(self, job_id: str, asset_type: str):
+        """Mark a batch as initialized for a job"""
+        if job_id not in self.job_batch_initialized:
+            self.job_batch_initialized[job_id] = set()
+        self.job_batch_initialized[job_id].add(asset_type)
+        logger.debug("Marked batch as initialized", job_id=job_id, asset_type=asset_type)
+    
+    def _is_batch_initialized(self, job_id: str, asset_type: str) -> bool:
+        """Check if a batch has been initialized for a job"""
+        return job_id in self.job_batch_initialized and asset_type in self.job_batch_initialized[job_id]
+    
+    def _cleanup_job_tracking(self, job_id: str):
+        """Clean up all tracking data for a job"""
+        if job_id in self.job_tracking:
+            del self.job_tracking[job_id]
+        if job_id in self.watermark_timers:
+            self.watermark_timers[job_id].cancel()
+            del self.watermark_timers[job_id]
+        if job_id in self.expected_total_frames:
+            del self.expected_total_frames[job_id]
+        if job_id in self.job_image_counts:
+            del self.job_image_counts[job_id]
+        if job_id in self.job_frame_counts:
+            del self.job_frame_counts[job_id]
+        if job_id in self.job_batch_initialized:
+            del self.job_batch_initialized[job_id]
     
     async def initialize(self):
         """Initialize the embedding extractor"""
@@ -42,6 +71,16 @@ class VisionEmbeddingService:
         # Cancel all watermark timers
         for timer in self.watermark_timers.values():
             timer.cancel()
+        # Clear all tracking data
+        self.processed_assets.clear()
+        self.job_tracking.clear()
+        self.watermark_timers.clear()
+        self.job_image_counts.clear()
+        self.job_frame_counts.clear()
+        self.expected_total_frames.clear()
+        self.processed_batch_events.clear()
+        self._completion_events_sent.clear()
+        self.job_batch_initialized.clear()
     
     async def _start_watermark_timer(self, job_id: str, ttl: int = 300):
         """Start a watermark timer for a job"""
@@ -95,14 +134,14 @@ class VisionEmbeddingService:
         # Check if this job has already emitted a completion event for this specific asset_type
         # We need to track completion per asset_type (image/video) to allow separate events for embedding vs keypoint
         completion_key = f"{job_id}:{asset_type}"
-        if hasattr(self, '_completion_events_sent') and completion_key in self._completion_events_sent:
+        logger.debug("Checking for existing completion event", job_id=job_id, asset_type=asset_type,
+                     completion_key_in_set=completion_key in self._completion_events_sent)
+        if completion_key in self._completion_events_sent:
             logger.info("Completion event already sent for this job and asset type, skipping duplicate",
                        job_id=job_id, asset_type=asset_type)
             return
             
         # Mark this job and asset_type as having sent completion event
-        if not hasattr(self, '_completion_events_sent'):
-            self._completion_events_sent = set()
         self._completion_events_sent.add(completion_key)
         
         await self.broker.publish_event(event_type, event_data)
@@ -111,16 +150,13 @@ class VisionEmbeddingService:
                    total=expected, done=done, is_timeout=is_timeout)
         
         # Cleanup job tracking
-        if job_id in self.job_tracking:
-            del self.job_tracking[job_id]
-        if job_id in self.watermark_timers:
-            self.watermark_timers[job_id].cancel()
-            del self.watermark_timers[job_id]
-        if job_id in self.expected_total_frames:
-            del self.expected_total_frames[job_id]
+        self._cleanup_job_tracking(job_id)
     
     async def _update_job_progress(self, job_id: str, asset_type: str, expected_count: int, increment: int = 1):
         """Update job progress and check for completion"""
+        logger.debug("Updating job progress", job_id=job_id, asset_type=asset_type,
+                     expected_count=expected_count, increment=increment,
+                     current_job_tracking=self.job_tracking.get(job_id))
         # Initialize job tracking if not exists
         if job_id not in self.job_tracking:
             self.job_tracking[job_id] = {
@@ -148,6 +184,8 @@ class VisionEmbeddingService:
         
         # Check completion condition
         if job_data["done"] >= job_data["expected"]:
+            logger.debug("Completion condition met, attempting to publish event", job_id=job_id,
+                         done=job_data["done"], expected=job_data["expected"])
             await self._publish_completion_event(job_id)
     
     async def handle_products_images_ready_batch(self, event_data: Dict[str, Any]):
@@ -161,6 +199,9 @@ class VisionEmbeddingService:
             # Store the total image count for the job
             self.job_image_counts[job_id] = {'total': total_images, 'processed': 0}
             logger.info("Initialized job image counters", job_id=job_id, total_images=total_images)
+            
+            # Mark batch as initialized
+            self._mark_batch_initialized(job_id, "image")
             
             # If there are no images, immediately publish completion event
             if total_images == 0:
@@ -196,6 +237,9 @@ class VisionEmbeddingService:
             # Store the total frame count for the job
             self.job_frame_counts[job_id] = {'total': total_keyframes, 'processed': 0}
             logger.info("Initialized job frame counters", job_id=job_id, total_frames=total_keyframes)
+            
+            # Mark batch as initialized
+            self._mark_batch_initialized(job_id, "video")
             
             # If there are no keyframes, immediately publish completion event
             if total_keyframes == 0:
@@ -233,15 +277,17 @@ class VisionEmbeddingService:
         
         # Check if this job has already emitted a completion event for this specific asset_type
         completion_key = f"{job_id}:{asset_type}"
-        if hasattr(self, '_completion_events_sent') and completion_key in self._completion_events_sent:
+        logger.debug("Checking for existing completion event", job_id=job_id, asset_type=asset_type,
+                     completion_key_in_set=completion_key in self._completion_events_sent)
+        if completion_key in self._completion_events_sent:
             logger.info("Completion event already sent for this job and asset type, skipping duplicate",
                        job_id=job_id, asset_type=asset_type)
             return
             
         # Mark this job and asset_type as having sent completion event
-        if not hasattr(self, '_completion_events_sent'):
-            self._completion_events_sent = set()
         self._completion_events_sent.add(completion_key)
+        logger.debug("Added completion key to set", job_id=job_id, asset_type=asset_type,
+                     current_set_size=len(self._completion_events_sent))
         
         await self.broker.publish_event(event_type, event_data)
         logger.info(f"Emitted {asset_type} embeddings completed event",
@@ -249,17 +295,7 @@ class VisionEmbeddingService:
                    total=expected, done=done, is_timeout=False)
         
         # Cleanup job tracking
-        if job_id in self.job_tracking:
-            del self.job_tracking[job_id]
-        if job_id in self.watermark_timers:
-            self.watermark_timers[job_id].cancel()
-            del self.watermark_timers[job_id]
-        if job_id in self.job_image_counts:
-            del self.job_image_counts[job_id]
-        if job_id in self.job_frame_counts:
-            del self.job_frame_counts[job_id]
-        if job_id in self.expected_total_frames:
-            del self.expected_total_frames[job_id]
+        self._cleanup_job_tracking(job_id)
     
     
     async def handle_products_image_ready(self, event_data: Dict[str, Any]):
@@ -312,6 +348,11 @@ class VisionEmbeddingService:
                 logger.warning("Job counts not initialized for job, skipping completion tracking", job_id=job_id)
                 return
                 
+            # Check if batch has been initialized
+            if not self._is_batch_initialized(job_id, "image"):
+                logger.warning("Batch not initialized for job, skipping completion tracking", job_id=job_id)
+                return
+                
             # Increment processed count
             self.job_image_counts[job_id]['processed'] += 1
             current_count = self.job_image_counts[job_id]['processed']
@@ -330,8 +371,8 @@ class VisionEmbeddingService:
                     job_id, "image", total_count, current_count
                 )
                 
-                # Remove job from tracking
-                del self.job_image_counts[job_id]
+                # Clean up job tracking
+                self._cleanup_job_tracking(job_id)
                 logger.info("Removed job from tracking", job_id=job_id)
                 
         except Exception as e:
@@ -349,6 +390,11 @@ class VisionEmbeddingService:
             expected_count = self.expected_total_frames.get(job_id, len(frames))
             
             logger.info("Processing video frames", video_id=video_id, frame_count=len(frames), job_id=job_id, expected_count=expected_count)
+            
+            # Check if batch has been initialized
+            if not self._is_batch_initialized(job_id, "video"):
+                logger.warning("Batch not initialized for job, skipping completion tracking", job_id=job_id)
+                return
             
             # Initialize job progress with expected frame count from batch
             await self._update_job_progress(job_id, "video", expected_count, increment=0)
@@ -412,8 +458,8 @@ class VisionEmbeddingService:
                                 job_id, "video", total_count, current_count
                             )
                             
-                            # Remove job from tracking
-                            del self.job_frame_counts[job_id]
+                            # Clean up job tracking
+                            self._cleanup_job_tracking(job_id)
                             logger.info("Removed job from tracking", job_id=job_id)
                 else:
                     logger.error("Failed to extract embeddings", frame_id=frame_id)
@@ -479,6 +525,11 @@ class VisionEmbeddingService:
                 logger.warning("Job counts not initialized for job, skipping completion tracking", job_id=job_id)
                 return
                 
+            # Check if batch has been initialized
+            if not self._is_batch_initialized(job_id, "image"):
+                logger.warning("Batch not initialized for job, skipping completion tracking", job_id=job_id)
+                return
+                
             # Increment processed count
             self.job_image_counts[job_id]['processed'] += 1
             current_count = self.job_image_counts[job_id]['processed']
@@ -497,8 +548,8 @@ class VisionEmbeddingService:
                     job_id, "image", total_count, current_count
                 )
                 
-                # Remove job from tracking
-                del self.job_image_counts[job_id]
+                # Clean up job tracking
+                self._cleanup_job_tracking(job_id)
                 logger.info("Removed job from tracking", job_id=job_id)
                 
         except Exception as e:
@@ -516,6 +567,11 @@ class VisionEmbeddingService:
             expected_count = self.expected_total_frames.get(job_id, len(frames))
             
             logger.info("Processing masked video frames", video_id=video_id, frame_count=len(frames), job_id=job_id, expected_count=expected_count)
+            
+            # Check if batch has been initialized
+            if not self._is_batch_initialized(job_id, "video"):
+                logger.warning("Batch not initialized for job, skipping completion tracking", job_id=job_id)
+                return
             
             # Initialize job progress with expected frame count from batch
             await self._update_job_progress(job_id, "video", expected_count, increment=0)
@@ -587,8 +643,8 @@ class VisionEmbeddingService:
                                 job_id, "video", total_count, current_count
                             )
                             
-                            # Remove job from tracking
-                            del self.job_frame_counts[job_id]
+                            # Clean up job tracking
+                            self._cleanup_job_tracking(job_id)
                             logger.info("Removed job from tracking", job_id=job_id)
                 else:
                     logger.error("Failed to extract embeddings from masked frame", frame_id=frame_id)
@@ -608,6 +664,9 @@ class VisionEmbeddingService:
             # Store the total image count for the job
             self.job_image_counts[job_id] = {'total': total_images, 'processed': 0}
             logger.info("Initialized job image counters for masked batch", job_id=job_id, total_images=total_images)
+            
+            # Mark batch as initialized
+            self._mark_batch_initialized(job_id, "image")
             
             # If there are no images, immediately publish completion event
             if total_images == 0:
@@ -643,6 +702,9 @@ class VisionEmbeddingService:
             # Store the total frame count for the job
             self.job_frame_counts[job_id] = {'total': total_keyframes, 'processed': 0}
             logger.info("Initialized job frame counters for masked batch", job_id=job_id, total_frames=total_keyframes)
+            
+            # Mark batch as initialized
+            self._mark_batch_initialized(job_id, "video")
             
             # If there are no keyframes, immediately publish completion event
             if total_keyframes == 0:

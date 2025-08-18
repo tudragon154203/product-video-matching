@@ -409,14 +409,12 @@ class ProductSegmentorService:
             # Start watermark timer using completion manager
             self.completion_manager.start_timer(job_id)
 
-            # If there are no keyframes, immediately publish batch completion event
-            if total_keyframes == 0:
-                logger.info("No keyframes found for job, publishing immediate batch completion", job_id=job_id)
-                # Publish immediate batch completion event for empty batch
-                await self.event_emitter.emit_videos_keyframes_masked_batch(
-                    job_id=job_id,
-                    total_keyframes=0
-                )
+            # Emit videos keyframes masked batch event for all cases (both zero and non-zero keyframes)
+            await self.event_emitter.emit_videos_keyframes_masked_batch(
+                job_id=job_id,
+                total_keyframes=total_keyframes
+            )
+            logger.info("Published videos keyframes masked batch event", job_id=job_id, total_keyframes=total_keyframes)
 
         except Exception as e:
             logger.error("Failed to handle videos keyframes ready batch", job_id=job_id, event_id=event_id, error=str(e))
