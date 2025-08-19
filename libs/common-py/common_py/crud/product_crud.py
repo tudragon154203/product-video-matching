@@ -10,13 +10,13 @@ class ProductCRUD:
     async def create_product(self, product: Product) -> str:
         """Create a new product"""
         query = """
-        INSERT INTO products (product_id, src, asin_or_itemid, title, brand, url)
-        VALUES ($1, $2, $3, $4, $5, $6)
+        INSERT INTO products (product_id, src, asin_or_itemid, title, brand, url, marketplace)
+        VALUES ($1, $2, $3, $4, $5, $6, $7)
         RETURNING product_id
         """
         return await self.db.fetch_val(
             query, product.product_id, product.src, product.asin_or_itemid,
-            product.title, product.brand, product.url
+            product.title, product.brand, product.url, product.marketplace
         )
     
     async def get_product(self, product_id: str) -> Optional[Product]:

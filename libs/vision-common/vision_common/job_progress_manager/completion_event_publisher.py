@@ -55,7 +55,8 @@ class CompletionEventPublisher:
         if completion_key in self._completion_events_sent:
             logger.warning("DUPLICATE COMPLETION EVENT DETECTED - skipping",
                           job_id=job_id, asset_type=asset_type, event_type_prefix=event_type_prefix,
-                          completion_key=completion_key, current_set_size=len(self._completion_events_sent))
+                          completion_key=completion_key, current_set_size=len(self._completion_events_sent)
+                          )
             return
             
         # Mark this job and asset_type as having sent completion event

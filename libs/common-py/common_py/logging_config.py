@@ -57,8 +57,15 @@ class ContextLogger:
         for key in ("exc_info", "stack_info", "stacklevel", "extra"):
             if key in kwargs:
                 std_kwargs[key] = kwargs.pop(key)
+        
         if kwargs:
-            std_kwargs["extra"] = {"extra_kwargs": kwargs}  # Pass as extra dict
+            # Include extra kwargs in the message for default format
+            extra_parts = []
+            for key, value in kwargs.items():
+                extra_parts.append(f"{key}={value}")
+            if extra_parts:
+                msg = f"{msg} - {' - '.join(extra_parts)}"
+            std_kwargs["extra"] = {"extra_kwargs": kwargs}  # Still pass for JSON format
         return {"msg": msg, "std": std_kwargs}
 
     def debug(self, msg: str, *args: Any, **kwargs: Any) -> None:

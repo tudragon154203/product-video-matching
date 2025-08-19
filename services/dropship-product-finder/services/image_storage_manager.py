@@ -20,19 +20,23 @@ class ImageStorageManager:
     async def store_product(self, product_data: Dict[str, Any], job_id: str, source: str):
         """Store a single product and its images without publishing individual events"""
         try:
+            # Determine marketplace based on source (default to 'us' for mock data)
+            marketplace = 'us'  # Default marketplace for mock data
+            
             product = Product(
                 product_id=str(uuid.uuid4()),
                 src=source,
                 asin_or_itemid=product_data["id"],
                 title=product_data["title"],
                 brand=product_data.get("brand"),
-                url=product_data["url"]
+                url=product_data["url"],
+                marketplace=marketplace
             )
             
             await self.db.execute(
-                "INSERT INTO products (product_id, src, asin_or_itemid, title, brand, url, job_id) VALUES ($1, $2, $3, $4, $5, $6, $7)",
-                product.product_id, product.src, product.asin_or_itemid, 
-                product.title, product.brand, product.url, job_id
+                "INSERT INTO products (product_id, src, asin_or_itemid, title, brand, url, marketplace, job_id) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)",
+                product.product_id, product.src, product.asin_or_itemid,
+                product.title, product.brand, product.url, product.marketplace, job_id
             )
             
             await self._download_and_store_product_images(product, product_data["images"], source)

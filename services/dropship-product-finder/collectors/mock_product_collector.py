@@ -23,8 +23,9 @@ class MockProductCollector(BaseProductCollector):
                 "url": f"https://{source}.com/mock-product-{i}",
                 "images": [
                     f"https://picsum.photos/400/400?random={i*10+j}"
-                    for j in range(1 + (i % 3))  # 1-4 representative images 
-                ]
+                    for j in range(1 + (i % 3))  # 1-4 representative images
+                ],
+                "marketplace": "us"  # Add marketplace field with 'us' value
             }
             mock_products.append(product)
         

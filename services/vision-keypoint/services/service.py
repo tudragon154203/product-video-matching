@@ -46,15 +46,30 @@ class VisionKeypointService:
             
             # Store the total image count for the job
             self.progress_manager.job_image_counts[job_id] = {'total': total_images, 'processed': 0}
+            # Mark batch as initialized (consistent with vision-embedding pattern)
+            self.progress_manager._mark_batch_initialized(job_id, "image")
             logger.info("Batch tracking initialized",
                        job_id=job_id,
                        asset_type="image",
                        total_items=total_images)
+            # DEBUG: Log batch event initialization
+            logger.debug("DIAGNOSTIC: Batch event initialized job counts",
+                       job_id=job_id,
+                       asset_type="image",
+                       total_images=total_images,
+                       job_image_counts_keys=list(self.progress_manager.job_image_counts.keys()))
             
             # If there are no images, immediately publish completion event
             if total_images == 0:
                 logger.info("Immediate completion for zero-asset job", job_id=job_id, asset_type="image")
                 await self.progress_manager.publish_completion_event_with_count(job_id, "image", 0, 0, "keypoints")
+            
+            # Check if job is already complete (per-asset first scenario)
+            if job_id in self.progress_manager.job_tracking:
+                logger.info("Checking for completion after batch initialization", job_id=job_id, asset_type="image", total_images=total_images)
+                is_complete = await self.progress_manager.update_expected_and_recheck_completion(job_id, "image", total_images, "keypoints")
+                if is_complete:
+                    logger.info("Job completed after batch initialization", job_id=job_id, asset_type="image", total_images=total_images)
             
         except Exception as e:
             logger.error("Failed to handle products images ready batch",
@@ -102,6 +117,13 @@ class VisionKeypointService:
                 logger.info("Immediate completion for zero-asset job", job_id=job_id, asset_type="video")
                 await self.progress_manager.publish_completion_event_with_count(job_id, "video", 0, 0, "keypoints")
             
+            # Check if job is already complete (per-asset first scenario)
+            if job_id in self.progress_manager.job_tracking:
+                logger.info("Checking for completion after batch initialization", job_id=job_id, asset_type="video", total_keyframes=total_keyframes)
+                is_complete = await self.progress_manager.update_expected_and_recheck_completion(job_id, "video", total_keyframes, "keypoints")
+                if is_complete:
+                    logger.info("Job completed after batch initialization", job_id=job_id, asset_type="video", total_keyframes=total_keyframes)
+            
         except Exception as e:
             logger.error("Failed to handle videos keyframes ready batch",
                         job_id=job_id,
@@ -112,6 +134,45 @@ class VisionKeypointService:
     
     async def _publish_completion_event_with_count(self, job_id: str, asset_type: str, expected: int, done: int):
         await self.progress_manager.publish_completion_event_with_count(job_id, asset_type, expected, done, "keypoints")
+
+    async def _update_and_check_completion_per_asset_first(self, job_id: str, asset_type: str):
+        """Update progress and check if batch is complete (per-asset first pattern)"""
+        # Initialize job tracking with high expected count if not already initialized
+        if job_id not in self.progress_manager.job_tracking:
+            logger.info("Initializing job tracking with high expected count (per-asset first)", job_id=job_id, asset_type=asset_type)
+            await self.progress_manager.initialize_with_high_expected(job_id, asset_type)
+        
+        # Update job progress tracking
+        await self.progress_manager.update_job_progress(job_id, asset_type, 0, increment=1, event_type_prefix="keypoints")
+        
+        # Check if batch has been initialized (real expected count available)
+        if self.progress_manager._is_batch_initialized(job_id, asset_type):
+            # Get real expected count from batch tracking
+            if asset_type == "image":
+                job_counts = self.progress_manager.job_image_counts.get(job_id)
+                real_expected = job_counts['total'] if job_counts else 0
+            else:  # video
+                real_expected = self.progress_manager.expected_total_frames.get(job_id, 0)
+            
+            if real_expected > 0:
+                logger.info("Batch initialized, updating with real expected count", job_id=job_id, asset_type=asset_type, real_expected=real_expected)
+                
+                # Update expected count with real value and re-check completion
+                is_complete = await self.progress_manager.update_expected_and_recheck_completion(job_id, asset_type, real_expected, "keypoints")
+                
+                if is_complete:
+                    # Get current done count for completion event
+                    job_data = self.progress_manager.job_tracking[job_id]
+                    done_count = job_data["done"]
+                    
+                    # Publish completion event
+                    await self.progress_manager.publish_completion_event_with_count(
+                        job_id, asset_type, real_expected, done_count, "keypoints"
+                    )
+                    
+                    # Clean up job tracking
+                    self.progress_manager._cleanup_job_tracking(job_id)
+                    logger.info("Removed job from tracking after per-asset first completion", job_id=job_id)
     
     
     async def handle_products_image_ready(self, event_data: Dict[str, Any]):
@@ -121,6 +182,14 @@ class VisionKeypointService:
             image_id = event_data["image_id"]
             local_path = event_data["local_path"]
             job_id = event_data["job_id"]  # job_id is now required
+            
+            # DEBUG: Log individual asset event arrival
+            logger.debug("DIAGNOSTIC: Individual asset event received",
+                       job_id=job_id,
+                       asset_id=image_id,
+                       asset_type="image",
+                       current_job_image_counts=list(self.progress_manager.job_image_counts.keys()),
+                       has_batch_initialized=job_id in getattr(self.progress_manager.base_manager, 'job_batch_initialized', {}))
             
             # Create a unique key for this asset
             asset_key = f"{job_id}:{image_id}"
@@ -173,34 +242,8 @@ class VisionKeypointService:
                             error="Failed to extract keypoints")
                 return
             
-            # Update job progress tracking only if we have job counts initialized
-            job_counts = self.progress_manager.job_image_counts.get(job_id)
-            if not job_counts:
-                logger.warning("Job counts not initialized for job, skipping completion tracking", job_id=job_id)
-                return
-                
-            # Increment processed count
-            self.progress_manager.job_image_counts[job_id]['processed'] += 1
-            current_count = self.progress_manager.job_image_counts[job_id]['processed']
-            total_count = self.progress_manager.job_image_counts[job_id]['total']
-            
-            
-            # Check if all images are processed
-            if current_count >= total_count:
-                logger.info("Batch completed",
-                           job_id=job_id,
-                           asset_type="image",
-                           processed=current_count,
-                           total=total_count)
-                
-                # Publish completion event
-                await self.progress_manager.publish_completion_event_with_count(
-                    job_id, "image", total_count, current_count, "keypoints"
-                )
-                
-                # Remove job from tracking
-                del self.progress_manager.job_image_counts[job_id]
-                logger.info("Removed job from tracking", job_id=job_id)
+            # Update job progress tracking using per-asset first pattern
+            await self._update_and_check_completion_per_asset_first(job_id, "image")
                 
         except Exception as e:
             logger.error("Item processing failed",
@@ -218,20 +261,7 @@ class VisionKeypointService:
             frames = event_data["frames"]
             job_id = event_data["job_id"]  # job_id is now required
             
-            # Use expected_total_frames from batch event if available, otherwise use frame count
-            expected_count = self.progress_manager.expected_total_frames.get(job_id, len(frames))
-            
-            logger.info("Starting batch processing",
-                       job_id=job_id,
-                       asset_type="video",
-                       total_items=len(frames),
-                       expected_count=expected_count,
-                       operation="keypoint_extraction")
-            
-            # Initialize job progress with expected frame count from batch
-            await self.progress_manager.update_job_progress(job_id, "video", expected_count, increment=0)
-            
-            # Process each frame
+            # Process each frame using per-asset first pattern
             for frame_data in frames:
                 frame_id = frame_data["frame_id"]
                 local_path = frame_data["local_path"]
@@ -279,34 +309,8 @@ class VisionKeypointService:
                                job_id=job_id,
                                asset_id=frame_id,
                                asset_type="video")
-                    # Update job progress for successful processing using expected_total_frames
-                    await self.progress_manager.update_job_progress(job_id, "video", expected_count, increment=1)
-                    
-                    # Update job keyframe counts tracking
-                    if job_id not in self.progress_manager.job_frame_counts:
-                        # Initialize tracking if not already done
-                        self.progress_manager.job_frame_counts[job_id] = {'total': self.progress_manager.expected_total_frames.get(job_id, 1), 'processed': 0}
-                    
-                    self.progress_manager.job_frame_counts[job_id]['processed'] += 1
-                    current_count = self.progress_manager.job_frame_counts[job_id]['processed']
-                    total_count = self.progress_manager.job_frame_counts[job_id]['total']
-                        
-                    # Check if all keyframes are processed
-                    if current_count >= total_count:
-                        logger.info("Batch completed",
-                                   job_id=job_id,
-                                   asset_type="video",
-                                   processed=current_count,
-                                   total=total_count)
-                        
-                        # Publish completion event
-                        await self.progress_manager.publish_completion_event_with_count(
-                            job_id, "video", total_count, current_count, "keypoints"
-                        )
-                        
-                        # Remove job from tracking
-                        del self.progress_manager.job_frame_counts[job_id]
-                        logger.info("Removed job from tracking", job_id=job_id)
+                    # Update job progress for successful processing using per-asset first pattern
+                    await self._update_and_check_completion_per_asset_first(job_id, "video")
                 else:
                     logger.error("Item processing failed",
                                 job_id=job_id,
@@ -327,6 +331,14 @@ class VisionKeypointService:
             job_id = event_data["job_id"]
             image_id = event_data["image_id"]
             mask_path = event_data["mask_path"]
+            
+            # DEBUG: Log individual masked asset event arrival
+            logger.debug("DIAGNOSTIC: Individual masked asset event received",
+                       job_id=job_id,
+                       asset_id=image_id,
+                       asset_type="image",
+                       current_job_image_counts=list(self.progress_manager.job_image_counts.keys()),
+                       has_batch_initialized=job_id in getattr(self.progress_manager.base_manager, 'job_batch_initialized', {}))
             
             # Create a unique key for this asset
             asset_key = f"{job_id}:{image_id}"
@@ -395,34 +407,8 @@ class VisionKeypointService:
                             error="Failed to extract keypoints from masked image")
                 return
             
-            # Update job progress tracking only if we have job counts initialized
-            job_counts = self.progress_manager.job_image_counts.get(job_id)
-            if not job_counts:
-                logger.warning("Job counts not initialized for job, skipping completion tracking", job_id=job_id)
-                return
-                
-            # Increment processed count
-            self.progress_manager.job_image_counts[job_id]['processed'] += 1
-            current_count = self.progress_manager.job_image_counts[job_id]['processed']
-            total_count = self.progress_manager.job_image_counts[job_id]['total']
-            
-            
-            # Check if all images are processed
-            if current_count >= total_count:
-                logger.info("Batch completed",
-                           job_id=job_id,
-                           asset_type="image",
-                           processed=current_count,
-                           total=total_count)
-                
-                # Publish completion event
-                await self.progress_manager.publish_completion_event_with_count(
-                    job_id, "image", total_count, current_count, "keypoints"
-                )
-                
-                # Remove job from tracking
-                del self.progress_manager.job_image_counts[job_id]
-                logger.info("Removed job from tracking", job_id=job_id)
+            # Update job progress tracking using per-asset first pattern
+            await self._update_and_check_completion_per_asset_first(job_id, "image")
                 
         except Exception as e:
             logger.error("Item processing failed",
@@ -440,20 +426,7 @@ class VisionKeypointService:
             video_id = event_data["video_id"]
             frames = event_data["frames"]
             
-            # Use expected_total_frames from batch event if available, otherwise use frame count
-            expected_count = self.progress_manager.expected_total_frames.get(job_id, len(frames))
-            
-            logger.info("Starting batch processing",
-                       job_id=job_id,
-                       asset_type="video",
-                       total_items=len(frames),
-                       expected_count=expected_count,
-                       operation="masked_processing")
-            
-            # Initialize job progress with expected frame count from batch
-            await self.progress_manager.update_job_progress(job_id, "video", expected_count, increment=0)
-            
-            # Process each frame
+            # Process each frame using per-asset first pattern
             for frame_data in frames:
                 frame_id = frame_data["frame_id"]
                 mask_path = frame_data["mask_path"]
@@ -517,34 +490,8 @@ class VisionKeypointService:
                                job_id=job_id,
                                asset_id=frame_id,
                                asset_type="video")
-                    # Update job progress for successful processing using expected_total_frames
-                    await self.progress_manager.update_job_progress(job_id, "video", expected_count, increment=1)
-                    
-                    # Update job keyframe counts tracking
-                    if job_id not in self.progress_manager.job_frame_counts:
-                        # Initialize tracking if not already done
-                        self.progress_manager.job_frame_counts[job_id] = {'total': self.progress_manager.expected_total_frames.get(job_id, 1), 'processed': 0}
-                    
-                    self.progress_manager.job_frame_counts[job_id]['processed'] += 1
-                    current_count = self.progress_manager.job_frame_counts[job_id]['processed']
-                    total_count = self.progress_manager.job_frame_counts[job_id]['total']
-                        
-                    # Check if all keyframes are processed
-                    if current_count >= total_count:
-                        logger.info("Batch completed",
-                                   job_id=job_id,
-                                   asset_type="video",
-                                   processed=current_count,
-                                   total=total_count)
-                        
-                        # Publish completion event
-                        await self.progress_manager.publish_completion_event_with_count(
-                            job_id, "video", total_count, current_count, "keypoints"
-                        )
-                        
-                        # Remove job from tracking
-                        del self.progress_manager.job_frame_counts[job_id]
-                        logger.info("Removed job from tracking", job_id=job_id)
+                    # Update job progress for successful processing using per-asset first pattern
+                    await self._update_and_check_completion_per_asset_first(job_id, "video")
                 else:
                     logger.error("Item processing failed",
                                 job_id=job_id,
@@ -578,11 +525,24 @@ class VisionKeypointService:
                        job_id=job_id,
                        asset_type="image",
                        total_items=total_images)
+            # DEBUG: Log batch event initialization
+            logger.debug("DIAGNOSTIC: Masked batch event initialized job counts",
+                       job_id=job_id,
+                       asset_type="image",
+                       total_images=total_images,
+                       job_image_counts_keys=list(self.progress_manager.job_image_counts.keys()))
             
             # If there are no images, immediately publish completion event
             if total_images == 0:
                 logger.info("Immediate completion for zero-asset job", job_id=job_id, asset_type="image")
                 await self.progress_manager.publish_completion_event_with_count(job_id, "image", 0, 0, "keypoints")
+            
+            # Check if job is already complete (per-asset first scenario)
+            if job_id in self.progress_manager.job_tracking:
+                logger.info("Checking for completion after batch initialization", job_id=job_id, asset_type="image", total_images=total_images)
+                is_complete = await self.progress_manager.update_expected_and_recheck_completion(job_id, "image", total_images, "keypoints")
+                if is_complete:
+                    logger.info("Job completed after batch initialization", job_id=job_id, asset_type="image", total_images=total_images)
             
         except Exception as e:
             logger.error("Failed to handle products images masked batch",
@@ -629,6 +589,13 @@ class VisionKeypointService:
             if total_keyframes == 0:
                 logger.info("Immediate completion for zero-asset job", job_id=job_id, asset_type="video")
                 await self.progress_manager.publish_completion_event_with_count(job_id, "video", 0, 0, "keypoints")
+            
+            # Check if job is already complete (per-asset first scenario)
+            if job_id in self.progress_manager.job_tracking:
+                logger.info("Checking for completion after batch initialization", job_id=job_id, asset_type="video", total_keyframes=total_keyframes)
+                is_complete = await self.progress_manager.update_expected_and_recheck_completion(job_id, "video", total_keyframes, "keypoints")
+                if is_complete:
+                    logger.info("Job completed after batch initialization", job_id=job_id, asset_type="video", total_keyframes=total_keyframes)
             
         except Exception as e:
             logger.error("Failed to handle videos keyframes masked batch",

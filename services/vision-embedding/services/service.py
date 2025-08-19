@@ -20,21 +20,8 @@ class VisionEmbeddingService:
         self.image_crud = ProductImageCRUD(db)
         self.frame_crud = VideoFrameCRUD(db)
         logger.info("Initializing vision embedding service", model_name=embed_model)
-        if hasattr(self.frame_crud, 'get_by_id'):
-            logger.debug("VideoFrameCRUD has get_by_id method")
-        else:
-            logger.warning("VideoFrameCRUD does not have get_by_id method")
         self.extractor = EmbeddingExtractor(embed_model)
         self.progress_manager = JobProgressManager(broker)
-    
-    def _mark_batch_initialized(self, job_id: str, asset_type: str):
-        self.progress_manager._mark_batch_initialized(job_id, asset_type)
-    
-    def _is_batch_initialized(self, job_id: str, asset_type: str) -> bool:
-        return self.progress_manager._is_batch_initialized(job_id, asset_type)
-    
-    def _cleanup_job_tracking(self, job_id: str):
-        self.progress_manager._cleanup_job_tracking(job_id)
     
     async def initialize(self):
         """Initialize the embedding extractor"""
@@ -45,14 +32,178 @@ class VisionEmbeddingService:
         await self.extractor.cleanup()
         await self.progress_manager.cleanup_all()
     
-    async def _start_watermark_timer(self, job_id: str, ttl: int = 300):
-        await self.progress_manager._start_watermark_timer(job_id, ttl, "embeddings")
+    # Helper methods for common patterns
+    async def _publish_embedding_ready_event(self, asset_type: str, job_id: str, asset_id: str):
+        """Publish embedding ready event for a single asset"""
+        event_id = str(uuid.uuid4())
+        await self.broker.publish_event(
+            f"{asset_type}.embedding.ready",
+            {
+                "job_id": job_id,
+                "asset_id": asset_id,
+                "event_id": event_id
+            }
+        )
     
-    async def _publish_completion_event(self, job_id: str, is_timeout: bool = False):
-        await self.progress_manager._publish_completion_event(job_id, is_timeout, "embeddings")
+    async def _handle_batch_initialization(self, job_id: str, asset_type: str, total_items: int, event_type: str, event_id: str = None):
+        """Common batch initialization logic"""
+        logger.info("Batch event received",
+                   job_id=job_id,
+                   asset_type=asset_type,
+                   total_items=total_items,
+                   event_type=event_type)
+        
+        # Store the total count for the job
+        if asset_type == "image":
+            self.progress_manager.job_image_counts[job_id] = {'total': total_items, 'processed': 0}
+        else:  # video
+            self.progress_manager.expected_total_frames[job_id] = total_items
+            self.progress_manager.job_frame_counts[job_id] = {'total': total_items, 'processed': 0}
+        
+        logger.info("Batch tracking initialized",
+                   job_id=job_id,
+                   asset_type=asset_type,
+                   total_items=total_items)
+        
+        # Mark batch as initialized
+        self.progress_manager._mark_batch_initialized(job_id, asset_type)
+        
+        # If there are no items, immediately publish completion event
+        if total_items == 0:
+            logger.info("Immediate completion for zero-asset job", job_id=job_id, asset_type=asset_type)
+            await self.progress_manager.publish_completion_event_with_count(job_id, asset_type, 0, 0, "embeddings")
     
-    async def _update_job_progress(self, job_id: str, asset_type: str, expected_count: int, increment: int = 1):
-        await self.progress_manager.update_job_progress(job_id, asset_type, expected_count, increment, "embeddings")
+    async def _handle_single_asset_processing(self, job_id: str, asset_id: str, asset_type: str, local_path: str,
+                                            crud, extract_func, is_masked: bool = False, mask_path: str = None):
+        """Common single asset processing logic"""
+        # Create a unique key for this asset
+        asset_key = f"{job_id}:{asset_id}"
+        
+        # Skip if we've already processed this asset
+        if asset_key in self.progress_manager.processed_assets:
+            logger.info("Skipping duplicate asset", job_id=job_id, asset_id=asset_id, asset_type=asset_type)
+            return False
+            
+        # Add to processed assets
+        self.progress_manager.processed_assets.add(asset_key)
+        
+        logger.info("Processing item",
+                   job_id=job_id,
+                   asset_id=asset_id,
+                   asset_type=asset_type,
+                   item_path=local_path,
+                   operation="masked_processing" if is_masked else "normal_processing")
+        
+        # Extract embeddings
+        if is_masked and mask_path:
+            emb_rgb, emb_gray = await extract_func(local_path, mask_path)
+        else:
+            emb_rgb, emb_gray = await extract_func(local_path)
+        
+        if emb_rgb is not None and emb_gray is not None:
+            # Update database with embeddings
+            await crud.update_embeddings(asset_id, emb_rgb.tolist(), emb_gray.tolist())
+            
+            # Emit embedding ready event
+            await self._publish_embedding_ready_event(asset_type, job_id, asset_id)
+            
+            logger.info("Item processed successfully",
+                       job_id=job_id,
+                       asset_id=asset_id,
+                       asset_type=asset_type)
+            return True
+        else:
+            logger.error("Item processing failed",
+                        job_id=job_id,
+                        asset_id=asset_id,
+                        asset_type=asset_type,
+                        error=f"Failed to extract embeddings {'from masked ' + asset_type if is_masked else ''}")
+            return False
+    
+    async def _update_and_check_completion(self, job_id: str, asset_type: str):
+        """Update progress and check if batch is complete (batch-first pattern)"""
+        # Update job progress tracking only if we have job counts initialized
+        job_counts = None
+        if asset_type == "image":
+            job_counts = self.progress_manager.job_image_counts.get(job_id)
+        else:  # video
+            job_counts = self.progress_manager.job_frame_counts.get(job_id)
+            
+        if not job_counts:
+            logger.warning("Job counts not initialized for job, skipping completion tracking", job_id=job_id)
+            return
+            
+        # Check if batch has been initialized
+        if not self.progress_manager._is_batch_initialized(job_id, asset_type):
+            logger.warning("Batch not initialized for job, skipping completion tracking", job_id=job_id)
+            return
+            
+        # Increment processed count
+        job_counts['processed'] += 1
+        current_count = job_counts['processed']
+        total_count = job_counts['total']
+        
+        logger.debug("Progress update",
+                    job_id=job_id,
+                    asset_type=asset_type,
+                    processed=current_count,
+                    total=total_count)
+        
+        # Check if all items are processed
+        if current_count >= total_count:
+            logger.info("Batch completed",
+                       job_id=job_id,
+                       asset_type=asset_type,
+                       processed=current_count,
+                       total=total_count)
+            
+            # Publish completion event
+            await self.progress_manager.publish_completion_event_with_count(
+                job_id, asset_type, total_count, current_count, "embeddings"
+            )
+            
+            # Clean up job tracking
+            self.progress_manager._cleanup_job_tracking(job_id)
+            logger.info("Removed job from tracking", job_id=job_id)
+
+    async def _update_and_check_completion_per_asset_first(self, job_id: str, asset_type: str):
+        """Update progress and check if batch is complete (per-asset first pattern)"""
+        # Initialize job tracking with high expected count if not already initialized
+        if job_id not in self.progress_manager.job_tracking:
+            logger.info("Initializing job tracking with high expected count (per-asset first)", job_id=job_id, asset_type=asset_type)
+            await self.progress_manager.initialize_with_high_expected(job_id, asset_type)
+        
+        # Update job progress tracking
+        await self.progress_manager.update_job_progress(job_id, asset_type, 0, increment=1, event_type_prefix="embeddings")
+        
+        # Check if batch has been initialized (real expected count available)
+        if self.progress_manager._is_batch_initialized(job_id, asset_type):
+            # Get real expected count from batch tracking
+            if asset_type == "image":
+                job_counts = self.progress_manager.job_image_counts.get(job_id)
+                real_expected = job_counts['total'] if job_counts else 0
+            else:  # video
+                real_expected = self.progress_manager.expected_total_frames.get(job_id, 0)
+            
+            if real_expected > 0:
+                logger.info("Batch initialized, updating with real expected count", job_id=job_id, asset_type=asset_type, real_expected=real_expected)
+                
+                # Update expected count with real value and re-check completion
+                is_complete = await self.progress_manager.update_expected_and_recheck_completion(job_id, asset_type, real_expected, "embeddings")
+                
+                if is_complete:
+                    # Get current done count for completion event
+                    job_data = self.progress_manager.job_tracking[job_id]
+                    done_count = job_data["done"]
+                    
+                    # Publish completion event
+                    await self.progress_manager.publish_completion_event_with_count(
+                        job_id, asset_type, real_expected, done_count, "embeddings"
+                    )
+                    
+                    # Clean up job tracking
+                    self.progress_manager._cleanup_job_tracking(job_id)
+                    logger.info("Removed job from tracking after per-asset first completion", job_id=job_id)
     
     async def handle_products_images_ready_batch(self, event_data: Dict[str, Any]):
         """Handle products images ready batch event to initialize job tracking"""
@@ -60,26 +211,7 @@ class VisionEmbeddingService:
             job_id = event_data["job_id"]
             total_images = event_data["total_images"]
             
-            logger.info("Batch event received",
-                       job_id=job_id,
-                       asset_type="image",
-                       total_items=total_images,
-                       event_type="products_images_ready_batch")
-            
-            # Store the total image count for the job
-            self.progress_manager.job_image_counts[job_id] = {'total': total_images, 'processed': 0}
-            logger.info("Batch tracking initialized",
-                       job_id=job_id,
-                       asset_type="image",
-                       total_items=total_images)
-            
-            # Mark batch as initialized
-            self.progress_manager._mark_batch_initialized(job_id, "image")
-            
-            # If there are no images, immediately publish completion event
-            if total_images == 0:
-                logger.info("Immediate completion for zero-asset job", job_id=job_id, asset_type="image")
-                await self.progress_manager.publish_completion_event_with_count(job_id, "image", 0, 0, "embeddings")
+            await self._handle_batch_initialization(job_id, "image", total_images, "products_images_ready_batch")
             
         except Exception as e:
             logger.error("Failed to handle products images ready batch",
@@ -106,29 +238,7 @@ class VisionEmbeddingService:
             # Mark this batch event as processed
             self.progress_manager.processed_batch_events.add(batch_event_key)
             
-            logger.info("Batch event received",
-                       job_id=job_id,
-                       asset_type="video",
-                       total_items=total_keyframes,
-                       event_type="videos_keyframes_ready_batch",
-                       event_id=event_id)
-            
-            # Store the total frame count for the job
-            self.progress_manager.expected_total_frames[job_id] = total_keyframes
-            # Store the total frame count for the job
-            self.progress_manager.job_frame_counts[job_id] = {'total': total_keyframes, 'processed': 0}
-            logger.info("Batch tracking initialized",
-                       job_id=job_id,
-                       asset_type="video",
-                       total_items=total_keyframes)
-            
-            # Mark batch as initialized
-            self.progress_manager._mark_batch_initialized(job_id, "video")
-            
-            # If there are no keyframes, immediately publish completion event
-            if total_keyframes == 0:
-                logger.info("Immediate completion for zero-asset job", job_id=job_id, asset_type="video")
-                await self.progress_manager.publish_completion_event_with_count(job_id, "video", 0, 0, "embeddings")
+            await self._handle_batch_initialization(job_id, "video", total_keyframes, "videos_keyframes_ready_batch", event_id)
             
         except Exception as e:
             logger.error("Failed to handle videos keyframes ready batch",
@@ -144,26 +254,7 @@ class VisionEmbeddingService:
             job_id = event_data["job_id"]
             total_images = event_data["total_images"]
             
-            logger.info("Batch event received",
-                       job_id=job_id,
-                       asset_type="image",
-                       total_items=total_images,
-                       event_type="products_images_masked_batch")
-            
-            # Store the total image count for the job
-            self.progress_manager.job_image_counts[job_id] = {'total': total_images, 'processed': 0}
-            logger.info("Batch tracking initialized",
-                       job_id=job_id,
-                       asset_type="image",
-                       total_items=total_images)
-            
-            # Mark batch as initialized
-            self.progress_manager._mark_batch_initialized(job_id, "image")
-            
-            # If there are no images, immediately publish completion event
-            if total_images == 0:
-                logger.info("Immediate completion for zero-asset job", job_id=job_id, asset_type="image")
-                await self.progress_manager.publish_completion_event_with_count(job_id, "image", 0, 0, "embeddings")
+            await self._handle_batch_initialization(job_id, "image", total_images, "products_images_masked_batch")
             
         except Exception as e:
             logger.error("Failed to handle products images masked batch",
@@ -190,29 +281,7 @@ class VisionEmbeddingService:
             # Mark this batch event as processed
             self.progress_manager.processed_batch_events.add(batch_event_key)
             
-            logger.info("Batch event received",
-                       job_id=job_id,
-                       asset_type="video",
-                       total_items=total_keyframes,
-                       event_type="videos_keyframes_masked_batch",
-                       event_id=event_id)
-            
-            # Store the total frame count for the job
-            self.progress_manager.expected_total_frames[job_id] = total_keyframes
-            # Store the total frame count for the job
-            self.progress_manager.job_frame_counts[job_id] = {'total': total_keyframes, 'processed': 0}
-            logger.info("Batch tracking initialized",
-                       job_id=job_id,
-                       asset_type="video",
-                       total_items=total_keyframes)
-            
-            # Mark batch as initialized
-            self.progress_manager._mark_batch_initialized(job_id, "video")
-            
-            # If there are no keyframes, immediately publish completion event
-            if total_keyframes == 0:
-                logger.info("Immediate completion for zero-asset job", job_id=job_id, asset_type="video")
-                await self.progress_manager.publish_completion_event_with_count(job_id, "video", 0, 0, "embeddings")
+            await self._handle_batch_initialization(job_id, "video", total_keyframes, "videos_keyframes_masked_batch", event_id)
             
         except Exception as e:
             logger.error("Failed to handle videos keyframes masked batch",
@@ -230,91 +299,15 @@ class VisionEmbeddingService:
             local_path = event_data["local_path"]
             job_id = event_data.get("job_id")
             
-            # Create a unique key for this asset
-            asset_key = f"{job_id}:{image_id}"
+            # Process the single asset
+            success = await self._handle_single_asset_processing(
+                job_id, image_id, "image", local_path,
+                self.image_crud, self.extractor.extract_embeddings
+            )
             
-            # Skip if we've already processed this asset
-            if self.progress_manager.processed_assets.is_processed(asset_key):
-                logger.info("Skipping duplicate asset", job_id=job_id, asset_id=image_id, asset_type="image")
-                return
-                
-            # Add to processed assets
-            self.progress_manager.processed_assets.add(asset_key)
-            
-            logger.info("Processing item",
-                       job_id=job_id,
-                       asset_id=image_id,
-                       asset_type="image",
-                       item_path=local_path)
-            
-            # Extract embeddings first
-            emb_rgb, emb_gray = await self.extractor.extract_embeddings(local_path)
-            
-            if emb_rgb is not None and emb_gray is not None:
-                # Update database with embeddings
-                await self.image_crud.update_embeddings(image_id, emb_rgb.tolist(), emb_gray.tolist())
-                
-                # Emit image embedding ready event (per asset)
-                event_id = str(uuid.uuid4())
-                await self.broker.publish_event(
-                    "image.embedding.ready",
-                    {
-                        "job_id": job_id,
-                        "asset_id": image_id,
-                        "event_id": event_id
-                    }
-                )
-                
-                logger.info("Item processed successfully",
-                           job_id=job_id,
-                           asset_id=image_id,
-                           asset_type="image")
-            else:
-                logger.error("Item processing failed",
-                            job_id=job_id,
-                            asset_id=image_id,
-                            asset_type="image",
-                            error="Failed to extract embeddings")
-                return
-            
-            # Update job progress tracking only if we have job counts initialized
-            job_counts = self.progress_manager.job_image_counts.get(job_id)
-            if not job_counts:
-                logger.warning("Job counts not initialized for job, skipping completion tracking", job_id=job_id)
-                return
-                
-            # Check if batch has been initialized
-            if not self.progress_manager._is_batch_initialized(job_id, "image"):
-                logger.warning("Batch not initialized for job, skipping completion tracking", job_id=job_id)
-                return
-                
-            # Increment processed count
-            self.progress_manager.job_image_counts[job_id]['processed'] += 1
-            current_count = self.progress_manager.job_image_counts[job_id]['processed']
-            total_count = self.progress_manager.job_image_counts[job_id]['total']
-            
-            logger.debug("Progress update",
-                        job_id=job_id,
-                        asset_type="image",
-                        processed=current_count,
-                        total=total_count)
-            
-            # Check if all images are processed
-            if current_count >= total_count:
-                logger.info("Batch completed",
-                           job_id=job_id,
-                           asset_type="image",
-                           processed=current_count,
-                           total=total_count)
-                
-                # Publish completion event
-                await self.progress_manager.publish_completion_event_with_count(
-                    job_id, "image", total_count, current_count, "embeddings"
-                )
-                
-                # Clean up job tracking
-                self.progress_manager._cleanup_job_tracking(job_id)
-                logger.info("Removed job from tracking", job_id=job_id)
+            if success:
+                # Update progress and check for completion
+                await self._update_and_check_completion_per_asset_first(job_id, "image")
                 
         except Exception as e:
             logger.error("Item processing failed",
@@ -332,104 +325,20 @@ class VisionEmbeddingService:
             frames = event_data["frames"]
             job_id = event_data["job_id"]  # job_id is now required
             
-            # Use expected_total_frames from batch event if available, otherwise use frame count
-            expected_count = self.progress_manager.expected_total_frames.get(job_id, len(frames))
-            
-            logger.info("Starting batch processing",
-                       job_id=job_id,
-                       asset_type="video",
-                       total_items=len(frames),
-                       expected_count=expected_count)
-            
-            # Check if batch has been initialized
-            if not self.progress_manager._is_batch_initialized(job_id, "video"):
-                logger.warning("Batch not initialized for job, skipping completion tracking", job_id=job_id)
-                return
-            
-            # Initialize job progress with expected frame count from batch
-            await self.progress_manager.update_job_progress(job_id, "video", expected_count, increment=0, event_type_prefix="embeddings")
-            
-            # Process each frame
+            # Process each frame using per-asset first pattern
             for frame_data in frames:
                 frame_id = frame_data["frame_id"]
                 local_path = frame_data["local_path"]
                 
-                # Create a unique key for this asset
-                asset_key = f"{job_id}:{frame_id}"
+                # Process the single asset
+                success = await self._handle_single_asset_processing(
+                    job_id, frame_id, "video", local_path,
+                    self.frame_crud, self.extractor.extract_embeddings
+                )
                 
-                # Skip if we've already processed this asset
-                if self.progress_manager.processed_assets.is_processed(asset_key):
-                    logger.info("Skipping duplicate asset", job_id=job_id, asset_id=frame_id, asset_type="video")
-                    continue
-                    
-                # Add to processed assets
-                self.progress_manager.processed_assets.add(asset_key)
-                
-                logger.info("Processing item",
-                           job_id=job_id,
-                           asset_id=frame_id,
-                           asset_type="video",
-                           item_path=local_path)
-                
-                # Extract embeddings
-                emb_rgb, emb_gray = await self.extractor.extract_embeddings(local_path)
-                
-                if emb_rgb is not None and emb_gray is not None:
-                    # Update database with embeddings
-                    await self.frame_crud.update_embeddings(frame_id, emb_rgb.tolist(), emb_gray.tolist())
-                    
-                    # Emit video embedding ready event (per asset)
-                    event_id = str(uuid.uuid4())
-                    await self.broker.publish_event(
-                        "video.embedding.ready",
-                        {
-                            "job_id": job_id,
-                            "asset_id": frame_id,
-                            "event_id": event_id
-                        }
-                    )
-                    
-                    logger.info("Item processed successfully",
-                               job_id=job_id,
-                               asset_id=frame_id,
-                               asset_type="video")
-                    # Update job progress for successful processing using expected_total_frames
-                    await self.progress_manager.update_job_progress(job_id, "video", expected_count, event_type_prefix="embeddings")
-                    
-                    # Update job frame counts tracking
-                    if job_id in self.progress_manager.job_frame_counts:
-                        self.progress_manager.job_frame_counts[job_id]['processed'] += 1
-                        current_count = self.progress_manager.job_frame_counts[job_id]['processed']
-                        total_count = self.progress_manager.job_frame_counts[job_id]['total']
-                        
-                        logger.debug("Progress update",
-                                    job_id=job_id,
-                                    asset_type="video",
-                                    processed=current_count,
-                                    total=total_count)
-                        
-                        # Check if all frames are processed
-                        if current_count >= total_count:
-                            logger.info("Batch completed",
-                                       job_id=job_id,
-                                       asset_type="video",
-                                       processed=current_count,
-                                       total=total_count)
-                            
-                            # Publish completion event
-                            await self.progress_manager.publish_completion_event_with_count(
-                                job_id, "video", total_count, current_count, "embeddings"
-                            )
-                            
-                            # Clean up job tracking
-                            self.progress_manager._cleanup_job_tracking(job_id)
-                            logger.info("Removed job from tracking", job_id=job_id)
-                else:
-                    logger.error("Item processing failed",
-                                job_id=job_id,
-                                asset_id=frame_id,
-                                asset_type="video",
-                                error="Failed to extract embeddings")
+                if success:
+                    # Update progress and check for completion (per-asset first pattern)
+                    await self._update_and_check_completion_per_asset_first(job_id, "video")
         
         except Exception as e:
             logger.error("Batch processing failed",
@@ -446,26 +355,8 @@ class VisionEmbeddingService:
             image_id = event_data["image_id"]
             mask_path = event_data["mask_path"]
             
-            # Create a unique key for this asset
-            asset_key = f"{job_id}:{image_id}"
-            
-            # Skip if we've already processed this asset
-            if self.progress_manager.processed_assets.is_processed(asset_key):
-                logger.info("Skipping duplicate asset", job_id=job_id, asset_id=image_id, asset_type="image")
-                return
-                
-            # Add to processed assets
-            self.progress_manager.processed_assets.add(asset_key)
-            
-            logger.info("Processing item",
-                       job_id=job_id,
-                       asset_id=image_id,
-                       asset_type="image",
-                       item_path=mask_path,
-                       operation="masked_processing")
-            
             # Get the original image path from database
-            image_record = await self.image_crud.get_by_id(image_id)
+            image_record = await self.image_crud.get_product_image(image_id)
             if not image_record:
                 logger.error("Resource not found",
                             job_id=job_id,
@@ -476,74 +367,16 @@ class VisionEmbeddingService:
             
             local_path = image_record.local_path
             
-            # Extract embeddings with mask applied
-            emb_rgb, emb_gray = await self.extractor.extract_embeddings_with_mask(local_path, mask_path)
+            # Process the single asset with mask
+            success = await self._handle_single_asset_processing(
+                job_id, image_id, "image", local_path,
+                self.image_crud, self.extractor.extract_embeddings_with_mask,
+                is_masked=True, mask_path=mask_path
+            )
             
-            if emb_rgb is not None and emb_gray is not None:
-                # Update database with embeddings
-                await self.image_crud.update_embeddings(image_id, emb_rgb.tolist(), emb_gray.tolist())
-                
-                # Emit image embedding ready event (per asset)
-                event_id = str(uuid.uuid4())
-                await self.broker.publish_event(
-                    "image.embedding.ready",
-                    {
-                        "job_id": job_id,
-                        "asset_id": image_id,
-                        "event_id": event_id
-                    }
-                )
-                
-                logger.info("Item processed successfully",
-                           job_id=job_id,
-                           asset_id=image_id,
-                           asset_type="image")
-            else:
-                logger.error("Item processing failed",
-                            job_id=job_id,
-                            asset_id=image_id,
-                            asset_type="image",
-                            error="Failed to extract embeddings from masked image")
-                return
-            
-            # Update job progress tracking only if we have job counts initialized
-            job_counts = self.progress_manager.job_image_counts.get(job_id)
-            if not job_counts:
-                logger.warning("Job counts not initialized for job, skipping completion tracking", job_id=job_id)
-                return
-                
-            # Check if batch has been initialized
-            if not self.progress_manager._is_batch_initialized(job_id, "image"):
-                logger.warning("Batch not initialized for job, skipping completion tracking", job_id=job_id)
-                return
-                
-            # Increment processed count
-            self.progress_manager.job_image_counts[job_id]['processed'] += 1
-            current_count = self.progress_manager.job_image_counts[job_id]['processed']
-            total_count = self.progress_manager.job_image_counts[job_id]['total']
-            
-            logger.debug("Progress update",
-                        job_id=job_id,
-                        asset_type="image",
-                        processed=current_count,
-                        total=total_count)
-            
-            # Check if all images are processed
-            if current_count >= total_count:
-                logger.info("Batch completed",
-                           job_id=job_id,
-                           asset_type="image",
-                           processed=current_count,
-                           total=total_count)
-                
-                # Publish completion event
-                await self.progress_manager.publish_completion_event_with_count(
-                    job_id, "image", total_count, current_count, "embeddings"
-                )
-                
-                # Clean up job tracking
-                self.progress_manager._cleanup_job_tracking(job_id)
-                logger.info("Removed job from tracking", job_id=job_id)
+            if success:
+                # Update progress and check for completion (per-asset first pattern)
+                await self._update_and_check_completion_per_asset_first(job_id, "image")
                 
         except Exception as e:
             logger.error("Item processing failed",
@@ -561,46 +394,10 @@ class VisionEmbeddingService:
             video_id = event_data["video_id"]
             frames = event_data["frames"]
             
-            # Use expected_total_frames from batch event if available, otherwise use frame count
-            expected_count = self.progress_manager.expected_total_frames.get(job_id, len(frames))
-            
-            logger.info("Starting batch processing",
-                       job_id=job_id,
-                       asset_type="video",
-                       total_items=len(frames),
-                       expected_count=expected_count,
-                       operation="masked_processing")
-            
-            # Check if batch has been initialized
-            if not self.progress_manager._is_batch_initialized(job_id, "video"):
-                logger.warning("Batch not initialized for job, skipping completion tracking", job_id=job_id)
-                return
-            
-            # Initialize job progress with expected frame count from batch
-            await self.progress_manager.update_job_progress(job_id, "video", expected_count, increment=0, event_type_prefix="embeddings")
-            
-            # Process each frame
+            # Process each frame using per-asset first pattern
             for frame_data in frames:
                 frame_id = frame_data["frame_id"]
                 mask_path = frame_data["mask_path"]
-                
-                # Create a unique key for this asset
-                asset_key = f"{job_id}:{frame_id}"
-                
-                # Skip if we've already processed this asset
-                if self.progress_manager.processed_assets.is_processed(asset_key):
-                    logger.info("Skipping duplicate asset", job_id=job_id, asset_id=frame_id, asset_type="video")
-                    continue
-                    
-                # Add to processed assets
-                self.progress_manager.processed_assets.add(asset_key)
-                
-                logger.info("Processing item",
-                           job_id=job_id,
-                           asset_id=frame_id,
-                           asset_type="video",
-                           item_path=mask_path,
-                           operation="masked_processing")
                 
                 # Get the original frame path from database
                 frame_record = await self.frame_crud.get_video_frame(frame_id)
@@ -614,65 +411,16 @@ class VisionEmbeddingService:
                 
                 local_path = frame_record.local_path
                 
-                # Extract embeddings with mask applied
-                emb_rgb, emb_gray = await self.extractor.extract_embeddings_with_mask(local_path, mask_path)
+                # Process the single asset with mask
+                success = await self._handle_single_asset_processing(
+                    job_id, frame_id, "video", local_path,
+                    self.frame_crud, self.extractor.extract_embeddings_with_mask,
+                    is_masked=True, mask_path=mask_path
+                )
                 
-                if emb_rgb is not None and emb_gray is not None:
-                    # Update database with embeddings
-                    await self.frame_crud.update_embeddings(frame_id, emb_rgb.tolist(), emb_gray.tolist())
-                    
-                    # Emit video embedding ready event (per asset)
-                    event_id = str(uuid.uuid4())
-                    await self.broker.publish_event(
-                        "video.embedding.ready",
-                        {
-                            "job_id": job_id,
-                            "asset_id": frame_id,
-                            "event_id": event_id
-                        }
-                    )
-                    
-                    logger.info("Item processed successfully",
-                               job_id=job_id,
-                               asset_id=frame_id,
-                               asset_type="video")
-                    # Update job progress for successful processing using expected_total_frames
-                    await self.progress_manager.update_job_progress(job_id, "video", expected_count, event_type_prefix="embeddings")
-                    
-                    # Update job frame counts tracking
-                    if job_id in self.progress_manager.job_frame_counts:
-                        self.progress_manager.job_frame_counts[job_id]['processed'] += 1
-                        current_count = self.progress_manager.job_frame_counts[job_id]['processed']
-                        total_count = self.progress_manager.job_frame_counts[job_id]['total']
-                        
-                        logger.debug("Progress update",
-                                    job_id=job_id,
-                                    asset_type="video",
-                                    processed=current_count,
-                                    total=total_count)
-                        
-                        # Check if all frames are processed
-                        if current_count >= total_count:
-                            logger.info("Batch completed",
-                                       job_id=job_id,
-                                       asset_type="video",
-                                       processed=current_count,
-                                       total=total_count)
-                            
-                            # Publish completion event
-                            await self.progress_manager.publish_completion_event_with_count(
-                                job_id, "video", total_count, current_count, "embeddings"
-                            )
-                            
-                            # Clean up job tracking
-                            self.progress_manager._cleanup_job_tracking(job_id)
-                            logger.info("Removed job from tracking", job_id=job_id)
-                else:
-                    logger.error("Item processing failed",
-                                job_id=job_id,
-                                asset_id=frame_id,
-                                asset_type="video",
-                                error="Failed to extract embeddings from masked frame")
+                if success:
+                    # Update progress and check for completion (per-asset first pattern)
+                    await self._update_and_check_completion_per_asset_first(job_id, "video")
         
         except Exception as e:
             logger.error("Batch processing failed",

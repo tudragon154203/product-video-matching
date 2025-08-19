@@ -6,6 +6,9 @@ import os
 import sys
 from dataclasses import dataclass
 
+from dotenv import load_dotenv
+load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), '.env'))
+
 # Add libs directory to PYTHONPATH for imports
 sys.path.insert(0, '/app/libs')
 

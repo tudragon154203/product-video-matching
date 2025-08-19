@@ -10,6 +10,7 @@ class Product(BaseModel):
     title: Optional[str] = None
     brand: Optional[str] = None
     url: Optional[str] = None
+    marketplace: str  # 'us', 'de', 'au'
     created_at: Optional[datetime] = None
 
 

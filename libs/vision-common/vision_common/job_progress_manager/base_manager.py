@@ -78,3 +78,44 @@ class BaseJobProgressManager:
         
         # Update expected count in tracking to match actual expected
         job_data["expected"] = actual_expected
+
+    async def initialize_with_high_expected(self, job_id: str, asset_type: str, high_expected: int = 1000000):
+        """Initialize job tracking with high expected count for per-asset first scenarios"""
+        logger.debug("Initializing job with high expected count", job_id=job_id, asset_type=asset_type, high_expected=high_expected)
+        
+        # Initialize job tracking with high expected count
+        if job_id not in self.job_tracking:
+            self.job_tracking[job_id] = {
+                "expected": high_expected,
+                "done": 0,
+                "asset_type": asset_type
+            }
+            logger.info("Job tracking initialized with high expected count", job_id=job_id, asset_type=asset_type, high_expected=high_expected)
+        else:
+            # Update existing job tracking with high expected count
+            self.job_tracking[job_id]["expected"] = high_expected
+            self.job_tracking[job_id]["asset_type"] = asset_type
+            logger.info("Job tracking updated with high expected count", job_id=job_id, asset_type=asset_type, high_expected=high_expected)
+
+    async def update_expected_and_recheck_completion(self, job_id: str, asset_type: str, real_expected: int, event_type_prefix: str = "embeddings"):
+        """Update expected count with real value and re-check completion condition"""
+        logger.debug("Updating expected count and re-checking completion", job_id=job_id, asset_type=asset_type, real_expected=real_expected)
+        
+        if job_id not in self.job_tracking:
+            logger.warning("Job not found in tracking when updating expected count", job_id=job_id)
+            return False
+        
+        job_data = self.job_tracking[job_id]
+        current_done = job_data["done"]
+        
+        # Update expected count with real value
+        job_data["expected"] = real_expected
+        logger.debug("Updated expected count", job_id=job_id, old_expected=job_data["expected"], new_expected=real_expected, current_done=current_done)
+        
+        # Check if job is complete with new expected count
+        if current_done >= real_expected:
+            logger.info("Job completed after updating expected count", job_id=job_id, asset_type=asset_type, done=current_done, expected=real_expected)
+            return True
+        else:
+            logger.debug("Job not complete after updating expected count", job_id=job_id, asset_type=asset_type, done=current_done, expected=real_expected)
+            return False

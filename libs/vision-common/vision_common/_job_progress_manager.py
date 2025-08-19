@@ -92,3 +92,11 @@ class JobProgressManager:
     @property
     def _completion_events_sent(self) -> Set[str]:
         return self.completion_publisher._completion_events_sent
+
+    async def initialize_with_high_expected(self, job_id: str, asset_type: str, high_expected: int = 1000000):
+        """Initialize job tracking with high expected count for per-asset first scenarios"""
+        await self.base_manager.initialize_with_high_expected(job_id, asset_type, high_expected)
+
+    async def update_expected_and_recheck_completion(self, job_id: str, asset_type: str, real_expected: int, event_type_prefix: str = "embeddings"):
+        """Update expected count with real value and re-check completion condition"""
+        return await self.base_manager.update_expected_and_recheck_completion(job_id, asset_type, real_expected, event_type_prefix)
