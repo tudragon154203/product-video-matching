@@ -5,6 +5,8 @@ from PIL import Image
 import numpy as np
 from typing import Tuple, Optional
 from common_py.logging_config import configure_logging
+from embedding_components.clip_processor import CLIPProcessor as CustomCLIPProcessor
+from embedding_components.mock_generator import MockEmbeddingGenerator
 
 logger = configure_logging("vision-embedding")
 
@@ -19,6 +21,8 @@ class EmbeddingExtractor:
         self.model = None
         self.processor = None
         self.initialized = False
+        self.clip_processor_instance = None
+        self.mock_generator = MockEmbeddingGenerator()
     
     async def initialize(self):
         """Initialize the model and processor"""
@@ -44,6 +48,8 @@ class EmbeddingExtractor:
             self.model.to(self.device)
             self.model.eval()
             
+            self.clip_processor_instance = CustomCLIPProcessor(self.model, self.processor, self.device)
+
             self.initialized = True
             logger.info("CLIP model loaded successfully")
             
@@ -60,58 +66,14 @@ class EmbeddingExtractor:
             
             if self.initialized:
                 # Real CLIP embeddings
-                return await self._extract_clip_embeddings(image)
+                return await self.clip_processor_instance.extract_clip_embeddings(image)
             else:
                 # Mock embeddings for MVP
-                return await self._extract_mock_embeddings(image)
+                return await self.mock_generator.extract_mock_embeddings(image)
                 
         except Exception as e:
             logger.error("Failed to extract embeddings", image_path=image_path, error=str(e))
             return None, None
-    
-    async def _extract_clip_embeddings(self, image: Image.Image) -> Tuple[np.ndarray, np.ndarray]:
-        """Extract real CLIP embeddings"""
-        with torch.no_grad():
-            # RGB embedding
-            rgb_inputs = self.processor(images=image, return_tensors="pt")
-            rgb_inputs = {k: v.to(self.device) for k, v in rgb_inputs.items()}
-            rgb_features = self.model.get_image_features(**rgb_inputs)
-            rgb_embedding = F.normalize(rgb_features, p=2, dim=1).cpu().numpy()[0]
-            
-            # Grayscale embedding
-            gray_image = image.convert('L').convert('RGB')  # Convert to grayscale then back to RGB
-            gray_inputs = self.processor(images=gray_image, return_tensors="pt")
-            gray_inputs = {k: v.to(self.device) for k, v in gray_inputs.items()}
-            gray_features = self.model.get_image_features(**gray_inputs)
-            gray_embedding = F.normalize(gray_features, p=2, dim=1).cpu().numpy()[0]
-            
-            return rgb_embedding, gray_embedding
-    
-    async def _extract_mock_embeddings(self, image: Image.Image) -> Tuple[np.ndarray, np.ndarray]:
-        """Extract mock embeddings for MVP testing"""
-        # Create deterministic but varied embeddings based on image properties
-        width, height = image.size
-        
-        # Use image properties to create somewhat realistic embeddings
-        np.random.seed(hash(str(width * height)) % 2**32)
-        
-        # Generate 512-dimensional embeddings (CLIP ViT-B/32 dimension)
-        rgb_embedding = np.random.normal(0, 0.1, 512).astype(np.float32)
-        gray_embedding = np.random.normal(0, 0.1, 512).astype(np.float32)
-        
-        # Normalize embeddings
-        rgb_embedding = rgb_embedding / np.linalg.norm(rgb_embedding)
-        gray_embedding = gray_embedding / np.linalg.norm(gray_embedding)
-        
-        # Add some correlation between RGB and grayscale
-        gray_embedding = 0.7 * gray_embedding + 0.3 * rgb_embedding
-        gray_embedding = gray_embedding / np.linalg.norm(gray_embedding)
-        
-        logger.info("Generated mock embeddings", 
-                   rgb_dim=rgb_embedding.shape[0], 
-                   gray_dim=gray_embedding.shape[0])
-        
-        return rgb_embedding, gray_embedding
     
     async def cleanup(self):
         """Clean up resources"""
@@ -127,53 +89,9 @@ class EmbeddingExtractor:
     
     async def extract_embeddings_with_mask(self, image_path: str, mask_path: str) -> Tuple[Optional[np.ndarray], Optional[np.ndarray]]:
         """Extract RGB and grayscale embeddings from an image with mask applied"""
-        try:
-            # Load and preprocess image
+        if self.initialized:
+            return await self.clip_processor_instance.extract_embeddings_with_mask(image_path, mask_path, config.IMG_SIZE)
+        else:
+            # Mock embeddings for MVP with mask
             image = Image.open(image_path).convert('RGB')
-            
-            # Resize image to config.IMG_SIZE
-            if image.size != config.IMG_SIZE:
-                image = image.resize(config.IMG_SIZE, Image.LANCZOS) # Using LANCZOS for better quality resizing
-            
-            # Load mask
-            mask = Image.open(mask_path).convert('L')
-            
-            # Resize mask to match image size if needed
-            if mask.size != config.IMG_SIZE:
-                mask = mask.resize(config.IMG_SIZE, Image.NEAREST)
-            
-            # Apply mask to image
-            masked_image = self._apply_mask_to_image(image, mask)
-            
-            if self.initialized:
-                # Real CLIP embeddings with mask
-                return await self._extract_clip_embeddings(masked_image)
-            else:
-                # Mock embeddings for MVP with mask
-                return await self._extract_mock_embeddings(masked_image)
-                
-        except Exception as e:
-            logger.error("Failed to extract embeddings with mask", 
-                        image_path=image_path, mask_path=mask_path, error=str(e))
-            return None, None
-    
-    def _apply_mask_to_image(self, image: Image.Image, mask: Image.Image) -> Image.Image:
-        """Apply mask to image, setting background to black"""
-        # Convert mask to numpy array
-        mask_array = np.array(mask)
-        
-        # Normalize mask to 0-1 range
-        mask_normalized = mask_array.astype(np.float32) / 255.0
-        
-        # Convert image to numpy array
-        image_array = np.array(image)
-        
-        # Apply mask to each channel
-        masked_array = image_array.copy()
-        for channel in range(3):  # RGB channels
-            masked_array[:, :, channel] = masked_array[:, :, channel] * mask_normalized
-        
-        # Convert back to PIL Image
-        masked_image = Image.fromarray(masked_array.astype(np.uint8))
-        
-        return masked_image
+            return await self.mock_generator.extract_mock_embeddings(image)

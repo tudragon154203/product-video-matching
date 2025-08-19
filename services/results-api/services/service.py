@@ -26,7 +26,6 @@ class ResultsService:
     ) -> List[Dict[str, Any]]:
         """Get matching results with optional filtering"""
         try:
-            # Get matches
             matches = await self.match_crud.list_matches(
                 job_id=job_id,
                 min_score=min_score,
@@ -34,36 +33,11 @@ class ResultsService:
                 offset=offset
             )
             
-            # Enrich with product and video information
             enriched_matches = []
             for match in matches:
-                # Get product info
-                product = await self.product_crud.get_product(match.product_id)
-                
-                # Get video info
-                video = await self.video_crud.get_video(match.video_id)
-                
-                # Filter by industry if specified
-                if industry and product and industry.lower() not in (product.title or "").lower():
-                    continue
-                
-                enriched_match = {
-                    "match_id": match.match_id,
-                    "job_id": match.job_id,
-                    "product_id": match.product_id,
-                    "video_id": match.video_id,
-                    "best_img_id": match.best_img_id,
-                    "best_frame_id": match.best_frame_id,
-                    "ts": match.ts,
-                    "score": match.score,
-                    "evidence_path": match.evidence_path,
-                    "created_at": match.created_at.isoformat() if match.created_at else "",
-                    "product_title": product.title if product else None,
-                    "video_title": video.title if video else None,
-                    "video_platform": video.platform if video else None
-                }
-                
-                enriched_matches.append(enriched_match)
+                enriched_match = await self._enrich_match_data(match, industry)
+                if enriched_match:
+                    enriched_matches.append(enriched_match)
             
             logger.info("Retrieved results", 
                        count=len(enriched_matches), 
@@ -75,6 +49,29 @@ class ResultsService:
         except Exception as e:
             logger.error("Failed to get results", error=str(e))
             raise
+
+    async def _enrich_match_data(self, match: Any, industry: Optional[str]) -> Optional[Dict[str, Any]]:
+        product = await self.product_crud.get_product(match.product_id)
+        video = await self.video_crud.get_video(match.video_id)
+        
+        if industry and product and industry.lower() not in (product.title or "").lower():
+            return None
+        
+        return {
+            "match_id": match.match_id,
+            "job_id": match.job_id,
+            "product_id": match.product_id,
+            "video_id": match.video_id,
+            "best_img_id": match.best_img_id,
+            "best_frame_id": match.best_frame_id,
+            "ts": match.ts,
+            "score": match.score,
+            "evidence_path": match.evidence_path,
+            "created_at": match.created_at.isoformat() if match.created_at else "",
+            "product_title": product.title if product else None,
+            "video_title": video.title if video else None,
+            "video_platform": video.platform if video else None
+        }
     
     async def get_product(self, product_id: str) -> Optional[Dict[str, Any]]:
         """Get detailed product information"""
@@ -83,26 +80,31 @@ class ResultsService:
             if not product:
                 return None
             
-            # Get image count
-            image_count = await self.db.fetch_val(
-                "SELECT COUNT(*) FROM product_images WHERE product_id = $1",
-                product_id
-            ) or 0
+            image_count = await self._get_product_image_count(product_id)
             
-            return {
-                "product_id": product.product_id,
-                "src": product.src,
-                "asin_or_itemid": product.asin_or_itemid,
-                "title": product.title,
-                "brand": product.brand,
-                "url": product.url,
-                "created_at": product.created_at.isoformat() if product.created_at else "",
-                "image_count": image_count
-            }
+            return self._format_product_details(product, image_count)
             
         except Exception as e:
             logger.error("Failed to get product", product_id=product_id, error=str(e))
             raise
+
+    async def _get_product_image_count(self, product_id: str) -> int:
+        return await self.db.fetch_val(
+            "SELECT COUNT(*) FROM product_images WHERE product_id = $1",
+            product_id
+        ) or 0
+
+    def _format_product_details(self, product: Any, image_count: int) -> Dict[str, Any]:
+        return {
+            "product_id": product.product_id,
+            "src": product.src,
+            "asin_or_itemid": product.asin_or_itemid,
+            "title": product.title,
+            "brand": product.brand,
+            "url": product.url,
+            "created_at": product.created_at.isoformat() if product.created_at else "",
+            "image_count": image_count
+        }
     
     async def get_video(self, video_id: str) -> Optional[Dict[str, Any]]:
         """Get detailed video information"""
@@ -111,26 +113,31 @@ class ResultsService:
             if not video:
                 return None
             
-            # Get frame count
-            frame_count = await self.db.fetch_val(
-                "SELECT COUNT(*) FROM video_frames WHERE video_id = $1",
-                video_id
-            ) or 0
+            frame_count = await self._get_video_frame_count(video_id)
             
-            return {
-                "video_id": video.video_id,
-                "platform": video.platform,
-                "url": video.url,
-                "title": video.title,
-                "duration_s": video.duration_s,
-                "published_at": video.published_at.isoformat() if video.published_at else None,
-                "created_at": video.created_at.isoformat() if video.created_at else "",
-                "frame_count": frame_count
-            }
+            return self._format_video_details(video, frame_count)
             
         except Exception as e:
             logger.error("Failed to get video", video_id=video_id, error=str(e))
             raise
+
+    async def _get_video_frame_count(self, video_id: str) -> int:
+        return await self.db.fetch_val(
+            "SELECT COUNT(*) FROM video_frames WHERE video_id = $1",
+            video_id
+        ) or 0
+
+    def _format_video_details(self, video: Any, frame_count: int) -> Dict[str, Any]:
+        return {
+            "video_id": video.video_id,
+            "platform": video.platform,
+            "url": video.url,
+            "title": video.title,
+            "duration_s": video.duration_s,
+            "published_at": video.published_at.isoformat() if video.published_at else None,
+            "created_at": video.created_at.isoformat() if video.created_at else "",
+            "frame_count": frame_count
+        }
     
     async def get_match(self, match_id: str) -> Optional[Dict[str, Any]]:
         """Get detailed match information"""
@@ -139,61 +146,66 @@ class ResultsService:
             if not match:
                 return None
             
-            # Get product details
-            product = await self.product_crud.get_product(match.product_id)
-            if not product:
+            product, video = await self._get_match_related_entities(match)
+            if not product or not video:
                 return None
             
-            # Get video details
-            video = await self.video_crud.get_video(match.video_id)
-            if not video:
-                return None
+            product_image_count, video_frame_count = await self._get_match_asset_counts(match)
             
-            # Get counts
-            product_image_count = await self.db.fetch_val(
-                "SELECT COUNT(*) FROM product_images WHERE product_id = $1",
-                match.product_id
-            ) or 0
-            
-            video_frame_count = await self.db.fetch_val(
-                "SELECT COUNT(*) FROM video_frames WHERE video_id = $1",
-                match.video_id
-            ) or 0
-            
-            return {
-                "match_id": match.match_id,
-                "job_id": match.job_id,
-                "product": {
-                    "product_id": product.product_id,
-                    "src": product.src,
-                    "asin_or_itemid": product.asin_or_itemid,
-                    "title": product.title,
-                    "brand": product.brand,
-                    "url": product.url,
-                    "created_at": product.created_at.isoformat() if product.created_at else "",
-                    "image_count": product_image_count
-                },
-                "video": {
-                    "video_id": video.video_id,
-                    "platform": video.platform,
-                    "url": video.url,
-                    "title": video.title,
-                    "duration_s": video.duration_s,
-                    "published_at": video.published_at.isoformat() if video.published_at else None,
-                    "created_at": video.created_at.isoformat() if video.created_at else "",
-                    "frame_count": video_frame_count
-                },
-                "best_img_id": match.best_img_id,
-                "best_frame_id": match.best_frame_id,
-                "ts": match.ts,
-                "score": match.score,
-                "evidence_path": match.evidence_path,
-                "created_at": match.created_at.isoformat() if match.created_at else ""
-            }
+            return self._format_match_details(match, product, video, product_image_count, video_frame_count)
             
         except Exception as e:
             logger.error("Failed to get match", match_id=match_id, error=str(e))
             raise
+
+    async def _get_match_related_entities(self, match: Any) -> tuple[Any, Any]:
+        product = await self.product_crud.get_product(match.product_id)
+        video = await self.video_crud.get_video(match.video_id)
+        return product, video
+
+    async def _get_match_asset_counts(self, match: Any) -> tuple[int, int]:
+        product_image_count = await self.db.fetch_val(
+            "SELECT COUNT(*) FROM product_images WHERE product_id = $1",
+            match.product_id
+        ) or 0
+        
+        video_frame_count = await self.db.fetch_val(
+            "SELECT COUNT(*) FROM video_frames WHERE video_id = $1",
+            match.video_id
+        ) or 0
+        return product_image_count, video_frame_count
+
+    def _format_match_details(self, match: Any, product: Any, video: Any, product_image_count: int, video_frame_count: int) -> Dict[str, Any]:
+        return {
+            "match_id": match.match_id,
+            "job_id": match.job_id,
+            "product": {
+                "product_id": product.product_id,
+                "src": product.src,
+                "asin_or_itemid": product.asin_or_itemid,
+                "title": product.title,
+                "brand": product.brand,
+                "url": product.url,
+                "created_at": product.created_at.isoformat() if product.created_at else "",
+                "image_count": product_image_count
+            },
+            "video": {
+                "video_id": video.video_id,
+                "platform": video.platform,
+                "url": video.url,
+                "title": video.title,
+                "duration_s": video.duration_s,
+                "published_at": video.published_at.isoformat() if video.published_at else None,
+                "created_at": video.created_at.isoformat() if video.created_at else "",
+                "frame_count": video_frame_count
+            },
+            "best_img_id": match.best_img_id,
+            "best_frame_id": match.best_frame_id,
+            "ts": match.ts,
+            "score": match.score,
+            "evidence_path": match.evidence_path,
+            "created_at": match.created_at.isoformat() if match.created_at else ""
+        }
     
     async def get_evidence_path(self, match_id: str) -> Optional[str]:
         """Get evidence image path for a match"""

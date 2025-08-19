@@ -1,5 +1,17 @@
 # Progress
 
+## August 2025 Updates
+- Completed import verification across all microservices after refactoring
+- Fixed syntax errors in vision-keypoint service
+- Resolved import issues in evidence-builder service
+- Added vision-common library to Dockerfiles for vision services
+- Refactored product-segmentor to use vision-common:
+  - Replaced custom progress tracking with JobProgressManager
+  - Implemented WatermarkTimerManager
+  - Added CompletionEventPublisher
+  - Removed redundant custom code (~200 lines)
+- Improved consistency across vision services
+
 ## Completed
 - Sprint 1: Defined microservice specs and the end-to-end video→product matching pipeline boundaries
 - Sprint 2: Unified Main API spec and added LLM (Ollama) query normalization/fallback path

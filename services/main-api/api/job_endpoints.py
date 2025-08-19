@@ -1,5 +1,5 @@
 from fastapi import APIRouter
-from services.job_service import JobService
+from services.job.job_service import JobService
 from models.schemas import StartJobRequest, StartJobResponse, JobStatusResponse
 
 # Create router for job endpoints (no prefix)

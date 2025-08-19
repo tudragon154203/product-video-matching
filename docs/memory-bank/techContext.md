@@ -27,3 +27,6 @@
   - Main API: `python services/main-api/main.py`
   - Results API: `python services/results-api/main.py`
   - Worker services (crawler, keypoint, embedding, matcher, evidence, segmentor): run their `main.py` or service entry script in each folder
+
+## Shared Libraries
+- vision-common: Used by product-segmentor, vision-embedding, and vision-keypoint for job progress tracking, event publishing, and watermark timers

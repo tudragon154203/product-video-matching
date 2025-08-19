@@ -3,7 +3,7 @@ from typing import List, Dict, Any
 from pathlib import Path
 import asyncio
 from datetime import datetime, timedelta
-from .interface import PlatformCrawlerInterface
+from platform_crawler.interface import PlatformCrawlerInterface
 
 
 class MockPlatformCrawler(PlatformCrawlerInterface):

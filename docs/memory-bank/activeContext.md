@@ -4,6 +4,7 @@
 - Sprint 9: Retire the dedicated vector‑index service and simplify the matcher to consume embeddings directly from storage/DB. Update contracts and consumers to stop emitting/consuming vector‑index events. Keep Qdrant infra optional/off by default in dev. Ensure performance parity using batch and pre‑announce flows introduced in sprint 6.2.
 - Current LLM strategy: Gemini-first with Ollama fallback (implemented in main-api/services/llm_service.py)
 - 2025-08-18: Completed removal of published_at column from database schema and YouTube crawler
+- Current focus: Ensuring all vision services consistently use vision-common library for progress tracking and event management
 
 ## Next Steps
 - Finalize schema deprecations and emit compatibility notices for retired events.

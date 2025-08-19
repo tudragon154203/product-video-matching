@@ -2,8 +2,8 @@
 
 from typing import Optional
 from segmentation.interface import SegmentationInterface
-from segmentation.rmbg20_segmentor import RMBG20Segmentor
-from segmentation.rmbg14_segmentor import RMBG14Segmentor
+from segmentation.models.rmbg20_segmentor import RMBG20Segmentor
+from segmentation.models.rmbg14_segmentor import RMBG14Segmentor
 from common_py.logging_config import configure_logging
 
 logger = configure_logging("product-segmentor")

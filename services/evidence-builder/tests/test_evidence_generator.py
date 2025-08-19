@@ -6,7 +6,7 @@ from pathlib import Path
 import tempfile
 import shutil
 
-from evidence import EvidenceGenerator
+from ..evidence import EvidenceGenerator
 
 
 @pytest.fixture

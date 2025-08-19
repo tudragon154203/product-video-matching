@@ -1,4 +1,4 @@
-"""Manages completion events and watermark timers for jobs."""
+"""Manages completion events for jobs using vision-common components."""
 
 import asyncio
 from typing import Dict, Set, Optional
@@ -6,60 +6,45 @@ from datetime import datetime, timedelta
 
 from handlers.event_emitter import EventEmitter
 from common_py.logging_config import configure_logging
+from vision_common import JobProgressManager
 
 logger = configure_logging("product-segmentor")
 
 
 class CompletionManager:
-    """Manages completion events and watermark timers for jobs."""
+    """Manages completion events for jobs using vision-common components."""
     
-    def __init__(self, event_emitter: EventEmitter):
+    def __init__(self, event_emitter: EventEmitter, job_progress_manager: JobProgressManager):
         """Initialize completion manager.
         
         Args:
             event_emitter: EventEmitter instance for publishing events
+            job_progress_manager: JobProgressManager instance for progress tracking
         """
         self.event_emitter = event_emitter
-        self._watermark_timers: Dict[str, asyncio.Task] = {}
+        self.job_progress_manager = job_progress_manager
         self._completion_events_sent: Set[str] = set()
     
     def start_timer(self, job_id: str, timeout_seconds: int = 300) -> None:
-        """Start a watermark timer for a job.
+        """Start a watermark timer for a job using vision-common.
         
         Args:
             job_id: Job identifier
             timeout_seconds: Timeout duration in seconds (default: 5 minutes)
         """
-        if job_id in self._watermark_timers:
-            # Timer already exists, cancel it first
-            self._watermark_timers[job_id].cancel()
-        
-        async def _watermark_timer():
-            """Timer task that publishes completion event on timeout."""
-            try:
-                await asyncio.sleep(timeout_seconds)
-                logger.info(f"Watermark timer expired for job {job_id}, publishing completion event")
-                # Create empty counts for timeout case
-                empty_counts = {'image': {'total': 0, 'processed': 0}, 'frame': {'total': 0, 'processed': 0}}
-                await self.finalize(job_id, empty_counts, is_timeout=True)
-            except asyncio.CancelledError:
-                logger.debug(f"Watermark timer cancelled for job {job_id}")
-            except Exception as e:
-                logger.error(f"Error in watermark timer for job {job_id}: {e}")
-        
-        self._watermark_timers[job_id] = asyncio.create_task(_watermark_timer())
-        logger.debug(f"Started watermark timer for job {job_id} ({timeout_seconds}s)")
+        # Use vision-common's watermark timer manager
+        asyncio.create_task(self.job_progress_manager._start_watermark_timer(job_id, timeout_seconds, "segmentation"))
+        logger.debug(f"Started watermark timer for job {job_id} ({timeout_seconds}s) using vision-common")
     
     def cancel_timer(self, job_id: str) -> None:
-        """Cancel the watermark timer for a job.
+        """Cancel the watermark timer for a job using vision-common.
         
         Args:
             job_id: Job identifier
         """
-        if job_id in self._watermark_timers:
-            self._watermark_timers[job_id].cancel()
-            del self._watermark_timers[job_id]
-            logger.debug(f"Cancelled watermark timer for job {job_id}")
+        # Use vision-common's watermark timer manager
+        self.job_progress_manager.watermark_timer_manager.cancel_watermark_timer(job_id)
+        logger.debug(f"Cancelled watermark timer for job {job_id} using vision-common")
     
     async def finalize(
         self, 
@@ -191,31 +176,29 @@ class CompletionManager:
         # Clear both normal and timeout completion markers
         self._completion_events_sent.discard(f"{job_id}:normal")
         self._completion_events_sent.discard(f"{job_id}:timeout")
+        # Use vision-common to cleanup job tracking
+        self.job_progress_manager._cleanup_job_tracking(job_id)
         logger.debug(f"Cleaned up completion resources for job {job_id}")
     
     def cleanup_all(self) -> None:
         """Cleanup all resources."""
-        # Cancel all timers
-        for job_id in list(self._watermark_timers.keys()):
-            self.cancel_timer(job_id)
+        # Cancel all timers using vision-common
+        self.job_progress_manager.watermark_timer_manager.cleanup_all()
         
         # Clear all completion markers
         self._completion_events_sent.clear()
         logger.debug("Cleaned up all completion resources")
     
-    async def publish_completion(self, job_id: str, progress_tracker) -> None:
+    async def publish_completion(self, job_id: str, progress_tracker=None) -> None:
         """Publish completion event for a job.
         
         Args:
             job_id: Job identifier
-            progress_tracker: ProgressTracker instance
+            progress_tracker: Deprecated parameter, kept for backward compatibility
         """
         try:
-            # Get job progress from progress tracker
-            counts = progress_tracker.get_job_counts(job_id)
-            
-            # Publish completion event
-            await self.finalize(job_id, counts, is_timeout=False)
+            # Use vision-common to publish completion event
+            await self.job_progress_manager._publish_completion_event(job_id, False, "segmentation")
             
         except Exception as e:
             logger.error(f"Error publishing completion for job {job_id}: {e}")

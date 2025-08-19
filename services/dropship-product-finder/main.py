@@ -55,7 +55,7 @@ async def main():
                 handler.handle_products_collect_request
             )
             
-            logger.info("Catalog collector service started")
+            logger.info("Product finder service started")
             
             # Keep service running
             while True:

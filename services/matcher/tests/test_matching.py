@@ -1,7 +1,7 @@
 import pytest
 import numpy as np
 from unittest.mock import AsyncMock, MagicMock, patch
-from matching import MatchingEngine
+from ..matching import MatchingEngine
 
 
 @pytest.fixture

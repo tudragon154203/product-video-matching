@@ -23,7 +23,9 @@ RUN pip install -r requirements.txt
 COPY libs/common-py /app/libs/common-py
 COPY libs/contracts /app/libs/contracts
 COPY libs/config.py /app/libs/config.py
+COPY libs/vision-common /app/libs/vision-common
 
 # Install shared libraries in development mode
 RUN pip install -e /app/libs/common-py
 RUN pip install -e /app/libs/contracts
+RUN pip install -e /app/libs/vision-common

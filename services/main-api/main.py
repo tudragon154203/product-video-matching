@@ -16,7 +16,7 @@ logger = configure_logging("main-api")
 from config_loader import config
 
 # Import services
-from services.job_service import JobService
+from services.job.job_service import JobService
 
 # Import models
 from models.schemas import StartJobRequest, StartJobResponse, JobStatusResponse

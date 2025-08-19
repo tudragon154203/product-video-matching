@@ -172,7 +172,7 @@ services:
     env_file:
       - .env
     environment:
-      PYTHONPATH: /app/libs:/app/libs/common-py:/app/libs/contracts
+      PYTHONPATH: /app/libs:/app/libs/common-py:/app/libs/contracts:/app/libs/vision-common
       DATA_ROOT: /app/data
       TRANSFORMERS_TRUST_REMOTE_CODE: 1
       HF_HUB_ENABLE_HF_TRANSFER: 1 
@@ -202,7 +202,7 @@ services:
     env_file:
       - .env
     environment:
-      PYTHONPATH: /app/libs:/app/libs/common-py:/app/libs/contracts
+      PYTHONPATH: /app/libs:/app/libs/common-py:/app/libs/contracts:/app/libs/vision-common
     volumes:
       - ../../libs:/app/libs
       - ../../data:/app/data:ro
@@ -231,7 +231,7 @@ services:
     env_file:
       - .env
     environment:
-      PYTHONPATH: /app/libs:/app/libs/common-py:/app/libs/contracts
+      PYTHONPATH: /app/libs:/app/libs/common-py:/app/libs/contracts:/app/libs/vision-common
     volumes:
       - ../../libs:/app/libs
       - ../../data:/app/data

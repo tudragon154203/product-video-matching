@@ -1,5 +1,5 @@
 """
-Configuration loader for the catalog collector service.
+Configuration loader for the product finder service.
 Uses environment variables directly since Docker Compose loads both shared and service-specific .env files.
 """
 import os
@@ -18,7 +18,7 @@ except ImportError:
 
 @dataclass
 class DropshipProductFinderConfig:
-    """Configuration for the catalog collector service."""
+    """Configuration for the product finder service."""
     
     # eBay API configuration
     EBAY_CLIENT_ID: str = os.getenv("EBAY_CLIENT_ID", "")

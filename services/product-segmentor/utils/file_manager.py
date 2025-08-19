@@ -68,73 +68,37 @@ class FileManager:
     
     async def save_product_mask(self, image_id: str, mask: np.ndarray) -> str:
         """Save product image foreground mask."""
-        mask_filename = f"{image_id}.png"
-        mask_path = self.foreground_products_dir / mask_filename
-        
-        try:
-            logger.debug("Saving product mask", image_id=image_id, path=str(mask_path))
-            
-            # Save mask atomically using temporary file
-            await self._save_mask_atomic(mask, mask_path)
-            
-            logger.debug("Product mask saved successfully", image_id=image_id)
-            return str(mask_path)
-            
-        except Exception as e:
-            logger.error("Failed to save product mask", image_id=image_id, error=str(e))
-            raise
+        return await self._save_mask(self.foreground_products_dir, image_id, mask)
     
     async def save_frame_mask(self, frame_id: str, mask: np.ndarray) -> str:
         """Save video frame foreground mask."""
-        mask_filename = f"{frame_id}.png"
-        mask_path = self.foreground_frames_dir / mask_filename
-        
-        try:
-            logger.debug("Saving frame mask", frame_id=frame_id, path=str(mask_path))
-            
-            # Save mask atomically using temporary file
-            await self._save_mask_atomic(mask, mask_path)
-            
-            logger.debug("Frame mask saved successfully", frame_id=frame_id)
-            return str(mask_path)
-            
-        except Exception as e:
-            logger.error("Failed to save frame foreground mask", frame_id=frame_id, error=str(e))
-            raise
+        return await self._save_mask(self.foreground_frames_dir, frame_id, mask)
 
     async def save_people_mask(self, image_id: str, mask: np.ndarray, image_type: str) -> str:
         """Save people mask."""
-        
-        mask_filename = f"{image_id}.png"
         if image_type == "product":
-            mask_path = self.people_products_dir / mask_filename
+            return await self._save_mask(self.people_products_dir, image_id, mask)
         else: # frame
-            mask_path = self.people_frames_dir / mask_filename
-        
-        try:
-            logger.debug("Saving people mask", image_id=image_id, path=str(mask_path))
-            await self._save_mask_atomic(mask, mask_path)
-            logger.debug("People mask saved successfully", image_id=image_id)
-            return str(mask_path)
-        except Exception as e:
-            logger.error("Failed to save people mask", image_id=image_id, error=str(e))
-            raise
+            return await self._save_mask(self.people_frames_dir, image_id, mask)
 
     async def save_product_final_mask(self, image_id: str, mask: np.ndarray, image_type: str) -> str:
         """Save final product mask (foreground - people)."""
-        mask_filename = f"{image_id}.png"
         if image_type == "product":
-            mask_path = self.product_products_dir / mask_filename
+            return await self._save_mask(self.product_products_dir, image_id, mask)
         else: # frame
-            mask_path = self.product_frames_dir / mask_filename
+            return await self._save_mask(self.product_frames_dir, image_id, mask)
+
+    async def _save_mask(self, base_dir: Path, image_id: str, mask: np.ndarray) -> str:
+        mask_filename = f"{image_id}.png"
+        mask_path = base_dir / mask_filename
         
         try:
-            logger.debug("Saving final product mask", image_id=image_id, path=str(mask_path))
+            logger.debug("Saving mask", image_id=image_id, path=str(mask_path))
             await self._save_mask_atomic(mask, mask_path)
-            logger.debug("Final product mask saved successfully", image_id=image_id)
+            logger.debug("Mask saved successfully", image_id=image_id)
             return str(mask_path)
         except Exception as e:
-            logger.error("Failed to save final product mask", image_id=image_id, error=str(e))
+            logger.error("Failed to save mask", image_id=image_id, error=str(e))
             raise
     
     async def _save_mask_atomic(self, mask: np.ndarray, target_path: Path) -> None:
@@ -189,6 +153,11 @@ class FileManager:
             mask: Binary mask as numpy array
             file_path: Path to save the mask
         """
+        prepared_mask = self._normalize_and_prepare_mask_for_save(mask)
+        mask_image = Image.fromarray(prepared_mask, mode='L')
+        mask_image.save(file_path, 'PNG', optimize=True)
+
+    def _normalize_and_prepare_mask_for_save(self, mask: np.ndarray) -> np.ndarray:
         # Ensure values are clipped to 0-255 range first
         mask = np.clip(mask, 0, 255)
         
@@ -202,10 +171,7 @@ class FileManager:
         # Squeeze the mask to remove single-dimensional entries (e.g., (H, W, 1) -> (H, W))
         if mask.ndim == 3 and mask.shape[2] == 1:
             mask = mask.squeeze(axis=2)
-
-        # Save as PNG
-        mask_image = Image.fromarray(mask, mode='L')
-        mask_image.save(file_path, 'PNG', optimize=True)
+        return mask
     
     async def mask_exists(self, mask_path: str) -> bool:
         """Check if mask file exists.

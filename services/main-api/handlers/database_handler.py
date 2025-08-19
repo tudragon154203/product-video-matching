@@ -158,24 +158,25 @@ class DatabaseHandler:
         - {"images": False, "videos": False} for zero-asset jobs
         """
         try:
-            # Get counts of products and videos for this job
-            product_count, video_count, _ = await self.get_job_counts(job_id)
-            
-            # Get counts of products and videos with features
-            products_with_features, videos_with_features = await self.get_features_counts(job_id)
-            
-            # Determine asset types based on presence of products/videos
-            # According to sprint 7 requirements, we need to handle zero-asset cases
-            has_images = product_count > 0 or products_with_features > 0
-            has_videos = video_count > 0 or videos_with_features > 0
+            product_count, video_count, products_with_features, videos_with_features = await self._get_raw_asset_counts(job_id)
+            has_images, has_videos = self._determine_asset_presence(product_count, video_count, products_with_features, videos_with_features)
             
             logger.info(f"Job {job_id} asset types determined: images={has_images} (products={product_count}, with_features={products_with_features}), videos={has_videos} (videos={video_count}, with_features={videos_with_features})")
             
             return {"images": has_images, "videos": has_videos}
         except Exception as e:
             logger.error(f"Failed to determine job asset types for job {job_id}: {str(e)}")
-            # Fallback to both being True to maintain current behavior
             return {"images": True, "videos": True}
+
+    async def _get_raw_asset_counts(self, job_id: str) -> tuple[int, int, int, int]:
+        product_count, video_count, _ = await self.get_job_counts(job_id)
+        products_with_features, videos_with_features = await self.get_features_counts(job_id)
+        return product_count, video_count, products_with_features, videos_with_features
+
+    def _determine_asset_presence(self, product_count: int, video_count: int, products_with_features: int, videos_with_features: int) -> tuple[bool, bool]:
+        has_images = product_count > 0 or products_with_features > 0
+        has_videos = video_count > 0 or videos_with_features > 0
+        return has_images, has_videos
     
     async def clear_phase_events(self, job_id: str):
         """Clear all phase events for a job (for testing/reset purposes)."""

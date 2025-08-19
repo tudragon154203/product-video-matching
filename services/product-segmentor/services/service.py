@@ -26,17 +26,19 @@ from utils.file_manager import FileManager
 from config_loader import config
 from handlers.event_emitter import EventEmitter
 from .foreground_processor import ForegroundProcessor
+from .image_masking_processor import ImageMaskingProcessor
 from utils.db_updater import DatabaseUpdater
 from .foreground_segmentor_factory import create_segmentor
-from segmentation.yolo_segmentor import YOLOSegmentor
-from utils.progress_tracker import ProgressTracker
+from segmentation.models.yolo_segmentor import YOLOSegmentor
 from utils.completion_manager import CompletionManager
 from utils.deduper import Deduper
+from .asset_processor import AssetProcessor # New import
+from vision_common import JobProgressManager
 
 logger = configure_logging("product-segmentor-service", config.LOG_LEVEL)
 
 class ProductSegmentorService:
-    """Core business logic for product segmentation.
+    """Core business logic for product segmentation. 
     
     This service orchestrates segmentation operations by delegating to specialized modules:
     - SegmentorFactory: Creates and manages segmentation engines
@@ -56,7 +58,7 @@ class ProductSegmentorService:
         foreground_model_name: str = config.FOREGROUND_SEG_MODEL_NAME,
         max_concurrent: int = 4
     ):
-        """Initialize segmentation service.
+        """Initialize segmentation service. 
         
         Args:
             db: Database manager instance
@@ -93,41 +95,56 @@ class ProductSegmentorService:
         self.db_updater = DatabaseUpdater(self.db)
         
         # Initialize new modules
-        self.progress_tracker = ProgressTracker()
-        self.completion_manager = CompletionManager(self.event_emitter)
+        self.job_progress_manager = JobProgressManager(broker)
+        self.completion_manager = CompletionManager(self.event_emitter, self.job_progress_manager)
         self.deduper = Deduper()
+        
+        self.image_masking_processor = ImageMaskingProcessor(
+            self.foreground_segmentor,
+            self.people_segmentor,
+            self.file_manager,
+            self.image_processor
+        )
         
         self._processing_semaphore = asyncio.Semaphore(int(max_concurrent))
         
-        # Legacy attributes are now handled by properties that delegate to new modules
+        # Initialize AssetProcessor
+        self.asset_processor = AssetProcessor(
+            deduper=self.deduper,
+            image_masking_processor=self.image_masking_processor,
+            db_updater=self.db_updater,
+            event_emitter=self.event_emitter,
+            job_progress_manager=self.job_progress_manager,
+            completion_manager=self.completion_manager
+        )
         
         self.initialized = False
     
     # Pass-through accessors for backward compatibility - delegate to specialized modules
     @property
     def job_image_counts(self) -> Dict[str, Dict[str, int]]:
-        """Get job image counts (delegated to ProgressTracker)."""
-        return self.progress_tracker.get_all_job_counts()
+        """Get job image counts (delegated to JobProgressManager)."""
+        return self.job_progress_manager.job_image_counts
     
     @property
     def job_frame_counts(self) -> Dict[str, Dict[str, int]]:
-        """Get job frame counts (delegated to ProgressTracker)."""
-        return self.progress_tracker.get_all_job_counts()
+        """Get job frame counts (delegated to JobProgressManager)."""
+        return self.job_progress_manager.job_frame_counts
     
     @property
     def processed_assets(self) -> Set[str]:
-        """Get processed assets (delegated to Deduper)."""
-        return self.deduper.get_processed_assets()
+        """Get processed assets (delegated to JobProgressManager)."""
+        return self.job_progress_manager.processed_assets
     
     @property
     def watermark_timers(self) -> Dict[str, asyncio.Task]:
-        """Get watermark timers (delegated to CompletionManager)."""
-        return self.completion_manager._watermark_timers.copy()
+        """Get watermark timers (delegated to JobProgressManager)."""
+        return self.job_progress_manager.watermark_timers.copy()
     
     @property
     def _completion_events_sent(self) -> Set[str]:
-        """Get completion events sent (delegated to CompletionManager)."""
-        return self.completion_manager._completion_events_sent.copy()
+        """Get completion events sent (delegated to JobProgressManager)."""
+        return self.job_progress_manager._completion_events_sent.copy()
     
     async def initialize(self) -> None:
         """Initialize the service."""
@@ -169,12 +186,9 @@ class ProductSegmentorService:
             if self.people_segmentor:
                 self.people_segmentor.cleanup()
             
-            # Clear batch trackers (legacy - kept for backward compatibility)
-            self._batch_trackers.clear()
-            
             # Cleanup progress tracking using new specialized modules
+            await self.job_progress_manager.cleanup_all()
             self.completion_manager.cleanup_all()
-            self.progress_tracker.clear_all()
             self.deduper.clear_all()
             
             # Release acquired permits
@@ -187,93 +201,22 @@ class ProductSegmentorService:
         except Exception as e:
             logger.error("Error during cleanup", error=str(e))
     
-    # Legacy methods removed - functionality moved to specialized modules:
-    # - Progress tracking: completion_manager.py and progress_tracker.py
-    # - Batch completion: completion_manager.py
-    # - Asset deduplication: deduper.py
-    
-    
     async def handle_products_image_ready(self, event_data: dict) -> None:
-        """Handle single product image ready event.
+        """Handle single product image ready event. 
         
         Args:
             event_data: Event payload containing image information
         """
-        try:
-            product_id = event_data["product_id"]
-            image_id = event_data["image_id"]
-            local_path = event_data["local_path"]
-            job_id = event_data.get("job_id")
-            
-            # Create a unique key for this asset
-            asset_key = f"{job_id}:{image_id}"
-            
-            # Skip if we've already processed this asset using deduper
-            if self.deduper.is_processed(asset_key):
-                logger.info("Skipping duplicate asset", image_id=image_id, job_id=job_id)
-                return
-                
-            # Mark as processed using deduper
-            self.deduper.mark_processed(asset_key)
-            
-            logger.info("Processing item",
-                       job_id=job_id,
-                       asset_id=image_id,
-                       asset_type="image",
-                       item_path=local_path)
-            
-            # Process image with concurrency control
-            async with self._processing_semaphore:
-                mask_path = await self._process_single_image(image_id, local_path, "product", job_id)
-            
-            if mask_path:
-                db_update_success = False
-                try:
-                    # Update database
-                    await self._update_product_image_mask(image_id, mask_path, job_id)
-                    db_update_success = True
-                    
-                    # Emit masked event
-                    await self.event_emitter.emit_product_image_masked(job_id=job_id, image_id=image_id, mask_path=mask_path)
-                    
-                    logger.info("Product image processed successfully", image_id=image_id)
-                    
-                    # Update job progress tracking using progress tracker
-                    self.progress_tracker.increment_processed(job_id, 'image')
-                    all_counts = self.progress_tracker.get_job_counts(job_id)
-                    image_counts = all_counts.get('image', {'total': 0, 'processed': 0})
-                    current_count = image_counts['processed']
-                    total_count = image_counts['total']
-                    
-                    logger.info("Updated job image counters", job_id=job_id,
-                               processed=current_count, total=total_count)
-                    
-                    # Check if all images are processed
-                    if current_count >= total_count:
-                        logger.info("All images processed for job", job_id=job_id,
-                                   processed=current_count, total=total_count)
-                        
-                        # Publish completion event using completion manager
-                        await self.completion_manager.publish_completion(job_id, self.progress_tracker)
-                        
-                        # Remove job from tracking
-                        self.progress_tracker.remove_job(job_id)
-                        logger.info("Removed job from tracking", job_id=job_id)
-                        
-                except Exception as e:
-                    logger.error("Failed to update database or emit event for product image", image_id=image_id, error=str(e))
-                    # Don't re-raise, allow processing to continue
-                    # Don't update progress or check completion if database update failed
-                    if not db_update_success:
-                        return
-            else:
-                logger.warning("Failed to process product image", image_id=image_id)
-                
-        except Exception as e:
-            logger.error("Error processing product image", error=str(e), event_data=event_data)
+        await self.asset_processor.handle_single_asset_processing(
+            event_data=event_data,
+            asset_type="image",
+            asset_id_key="image_id",
+            db_update_func=self.db_updater.update_product_image_mask,
+            emit_masked_func=self.event_emitter.emit_product_image_masked
+        )
     
     async def handle_products_images_ready_batch(self, event_data: dict) -> None:
-        """Handle product images batch completion event.
+        """Handle product images batch completion event. 
         
         Args:
             event_data: Batch event payload
@@ -288,15 +231,15 @@ class ProductSegmentorService:
                        total_items=total_images,
                        event_type="products_images_ready_batch")
             
-            # Store the total image count for the job using progress tracker
-            self.progress_tracker.update_job_counts(job_id, 'image', total_images, 0)
+            # Store the total image count for the job using job progress manager
+            await self.job_progress_manager.update_job_progress(job_id, "image", total_images, 0, "segmentation")
             logger.info("Batch tracking initialized",
                        job_id=job_id,
                        asset_type="image",
                        total_items=total_images)
             
-            # Start watermark timer using completion manager
-            self.completion_manager.start_timer(job_id)
+            # Start watermark timer using job progress manager
+            await self.job_progress_manager._start_watermark_timer(job_id, 300, "segmentation")
             
             # If there are no images, immediately publish batch completion event
             if total_images == 0:
@@ -312,103 +255,55 @@ class ProductSegmentorService:
             raise
     
     async def handle_videos_keyframes_ready(self, event_data: dict) -> None:
-        """Handle video keyframes ready event.
+        """Handle video keyframes ready event. 
         
         Args:
             event_data: Event payload containing keyframe information
         """
-        try:
-            video_id = event_data["video_id"]
-            frames = event_data["frames"]
-            job_id = event_data["job_id"]
-            
-            logger.info("Starting batch processing",
-                       job_id=job_id,
-                       asset_type="video",
-                       total_items=len(frames),
-                       operation="segmentation")
-            
-            processed_frames = []
-            
-            # Process each frame
-            for frame in frames:
-                frame_id = frame["frame_id"]
-                ts = frame["ts"]
-                local_path = frame["local_path"]
-                
-                # Create a unique key for this asset
-                asset_key = f"{job_id}:{frame_id}"
-                
-                # Skip if we've already processed this asset using deduper
-                if self.deduper.is_processed(asset_key):
-                    logger.info("Skipping duplicate asset", job_id=job_id, asset_id=frame_id, asset_type="video")
-                    continue
-                    
-                # Mark as processed using deduper
-                self.deduper.mark_processed(asset_key)
-                
-                # Process frame with concurrency control
-                async with self._processing_semaphore:
-                    mask_path = await self._process_single_image(frame_id, local_path, "frame", job_id)
-                
-                if mask_path:
-                    db_update_success = False
-                    try:
-                        # Update database
-                        await self._update_video_frame_mask(frame_id, mask_path, job_id)
-                        db_update_success = True
-                        
-                        processed_frames.append({
-                            "frame_id": frame_id,
-                            "ts": ts,
-                            "mask_path": mask_path
-                        })
-                        
-                        # Update job progress tracking using progress tracker
-                        self.progress_tracker.increment_processed(job_id, 'frame')
-                        all_counts = self.progress_tracker.get_job_counts(job_id)
-                        frame_counts = all_counts.get('frame', {'total': 0, 'processed': 0})
-                        current_count = frame_counts['processed']
-                        total_count = frame_counts['total']
-                        
-                        logger.debug("Progress update",
-                                    job_id=job_id,
-                                    asset_type="video",
-                                    processed=current_count,
-                                    total=total_count)
-                        
-                        # Check if all frames are processed
-                        if current_count >= total_count:
-                            logger.info("Batch completed",
-                                       job_id=job_id,
-                                       asset_type="video",
-                                       processed=current_count,
-                                       total=total_count)
-                            
-                            # Publish completion event using completion manager
-                            await self.completion_manager.publish_completion(job_id, self.progress_tracker)
-                            
-                            # Remove job from tracking
-                            self.progress_tracker.remove_job(job_id)
-                            logger.info("Removed job from tracking", job_id=job_id)
-                            
-                    except Exception as e:
-                        logger.error("Failed to update database for video frame", frame_id=frame_id, error=str(e))
-                        # Don't re-raise, allow processing to continue
-                        # Don't update progress or check completion if database update failed
-                        if not db_update_success:
-                            return
-                else:
-                    logger.warning("Failed to process frame", frame_id=frame_id)
-                    continue  # Skip this frame if processing failed
-            
-            # Emit masked event if any frames were processed
-            if processed_frames:
-                await self.event_emitter.emit_video_keyframes_masked(job_id=job_id, video_id=video_id, frames=processed_frames)
-                logger.info("Video keyframes processed", video_id=video_id, processed=len(processed_frames))
-            
-        except Exception as e:
-            logger.error("Error processing video keyframes", error=str(e), event_data=event_data)
+        video_id = event_data["video_id"]
+        frames = event_data["frames"]
+        job_id = event_data["job_id"]
+
+        logger.info("Starting batch processing",
+                   job_id=job_id,
+                   asset_type="video",
+                   total_items=len(frames),
+                   operation="segmentation")
+
+        processed_frames = []
+
+        for frame in frames:
+            frame_id = frame["frame_id"]
+            ts = frame["ts"]
+            local_path = frame["local_path"]
+
+            mask_path = await self.asset_processor.handle_single_asset_processing(
+                event_data=frame,
+                asset_type="frame",
+                asset_id_key="frame_id",
+                db_update_func=self.db_updater.update_video_frame_mask,
+                emit_masked_func=None, # Individual frame masked event is handled by emit_video_keyframes_masked
+                job_id=job_id # Pass job_id explicitly for frames
+            )
+
+            if mask_path:
+                processed_frames.append({
+                    "frame_id": frame_id,
+                    "ts": ts,
+                    "mask_path": mask_path
+                })
+
+        if processed_frames:
+            await self.event_emitter.emit_video_keyframes_masked(job_id=job_id, video_id=video_id, frames=processed_frames)
+            logger.info("Video keyframes processed", video_id=video_id, processed=len(processed_frames))
+
+        # Update progress and check for completion for the batch of frames
+        await self.job_progress_manager.update_job_progress(job_id, "frame", len(frames), 0, "segmentation")
+        current_processed = self.job_progress_manager.job_tracking[job_id]["done"]
+        total_expected = self.job_progress_manager.job_tracking[job_id]["expected"]
+        if current_processed >= total_expected:
+            await self.job_progress_manager._publish_completion_event(job_id, False, "segmentation")
+            self.deduper.clear_all()
     
     async def handle_videos_keyframes_ready_batch(self, event_data: dict) -> None:
         """Handle video keyframes batch completion event.
@@ -428,15 +323,15 @@ class ProductSegmentorService:
                        event_type="videos_keyframes_ready_batch",
                        event_id=event_id)
 
-            # Store the total frame count for the job using progress tracker
-            self.progress_tracker.update_job_counts(job_id, 'frame', total_keyframes, 0)
+            # Store the total frame count for the job using job progress manager
+            await self.job_progress_manager.update_job_progress(job_id, "frame", total_keyframes, 0, "segmentation")
             logger.info("Batch tracking initialized",
                        job_id=job_id,
                        asset_type="video",
                        total_items=total_keyframes)
 
-            # Start watermark timer using completion manager
-            self.completion_manager.start_timer(job_id)
+            # Start watermark timer using job progress manager
+            await self.job_progress_manager._start_watermark_timer(job_id, 300, "segmentation")
 
             # Emit videos keyframes masked batch event for all cases (both zero and non-zero keyframes)
             await self.event_emitter.emit_videos_keyframes_masked_batch(
@@ -448,194 +343,3 @@ class ProductSegmentorService:
         except Exception as e:
             logger.error("Failed to handle videos keyframes ready batch", job_id=job_id, event_id=event_id, error=str(e))
             raise
-    
-    async def _process_single_image(self, image_id: str, local_path: str, image_type: str, job_id: str = "unknown") -> Optional[str]:
-        """Process a single image to generate mask.
-        
-        Args:
-            image_id: Unique identifier for the image
-            local_path: Path to the source image
-            image_type: Type of image ("product" or "frame")
-            job_id: Optional job identifier for logging context
-            
-        Returns:
-            Path to generated mask or None if processing failed
-        """
-        try:
-            # Generate foreground mask and get its path
-            foreground_mask_path = await self.image_processor.process_image(
-                image_id=image_id,
-                local_path=local_path,
-                image_type=image_type,
-                file_manager=self.file_manager,
-            )
-
-            if foreground_mask_path is None:
-                logger.warning("Item processing failed",
-                             job_id=job_id,
-                             asset_id=image_id,
-                             asset_type="image",
-                             error="Failed to generate foreground mask")
-                return None
-
-            # Load the foreground mask
-            foreground_mask = cv2.imread(foreground_mask_path, cv2.IMREAD_GRAYSCALE)
-            if foreground_mask is None:
-                logger.error("Resource not found",
-                           job_id=job_id,
-                           asset_id=image_id,
-                           asset_type="image",
-                           resource_type="foreground_mask",
-                           mask_path=foreground_mask_path)
-                return None
-            
-            # Ensure foreground mask is (H, W)
-            if foreground_mask.ndim == 3 and foreground_mask.shape[2] == 1:
-                foreground_mask = foreground_mask.squeeze(axis=2)
-
-            logger.info("Loading foreground mask from: {foreground_mask_path}", mask_path=foreground_mask_path)
-            # Generate people mask
-            try:
-                logger.debug("Attempting to segment people mask", local_path=local_path)
-                people_mask = await self.people_segmentor.segment_image(local_path)
-                if people_mask is not None:
-                    logger.debug("People mask segmented successfully", people_mask_shape=people_mask.shape)
-                else:
-                    logger.debug("No people mask generated by segmentor")
-            except Exception as people_e:
-                logger.error("Error during people mask segmentation", error=str(people_e), error_type=type(people_e).__name__, local_path=local_path)
-                return None
-
-            logger.info("Foreground mask shape: {foreground_mask_shape}", foreground_mask_shape=foreground_mask.shape)
-
-            final_mask = foreground_mask # to be substracted later
-            
-            if people_mask is not None:
-                # Save people mask
-                try:
-                    await self.file_manager.save_people_mask(image_id, people_mask, image_type)
-                    logger.debug("People mask saved successfully", image_id=image_id, image_type=image_type)
-                except Exception as save_e:
-                    logger.error("Error saving people mask", error=str(save_e), error_type=type(save_e).__name__, image_id=image_id)
-                    return None
-
-                # Ensure both masks are binary (0 or 255) and of the same size
-                if foreground_mask.shape == people_mask.shape:
-                    try:
-                        final_mask = cv2.bitwise_and(foreground_mask, cv2.bitwise_not(people_mask))
-                        logger.info("Subtracted people mask from foreground mask", image_id=image_id)
-                    except Exception as bitwise_e:
-                        logger.error("Error during bitwise operation for mask subtraction", error=str(bitwise_e), error_type=type(bitwise_e).__name__, image_id=image_id, foreground_shape=foreground_mask.shape, people_shape=people_mask.shape)
-                        return None
-                else:
-                    logger.warning("Mask processing warning",
-                                 job_id=job_id,
-                                 asset_id=image_id,
-                                 asset_type="image",
-                                 error="Foreground and people mask shapes do not match",
-                                 foreground_shape=foreground_mask.shape,
-                                 people_shape=people_mask.shape)
-            else:
-                logger.info("Processing completed with warning",
-                           job_id=job_id,
-                           asset_id=image_id,
-                           asset_type="image",
-                           warning="No people mask generated")
-
-            # Save the final mask (product mask) to the product mask directory
-            try:
-                mask_path = await self.file_manager.save_product_final_mask(image_id, final_mask, image_type)
-                logger.debug("Final product mask saved", mask_path=mask_path)
-            except Exception as final_save_e:
-                logger.error("Error saving final product mask", error=str(final_save_e), error_type=type(final_save_e).__name__, image_id=image_id)
-                return None
-            
-            return mask_path
-
-        except Exception as e:
-            logger.error("Item processing failed",
-                        job_id=job_id,
-                        asset_id=image_id,
-                        asset_type="image",
-                        error=str(e),
-                        error_type=type(e).__name__)
-            return None
-    
-    async def _update_product_image_mask(self, image_id: str, mask_path: str, job_id: str = "unknown") -> None:
-        """Update product image record with mask path."""
-        try:
-            await self.db_updater.update_product_image_mask(image_id, mask_path)
-        except Exception as e:
-            logger.error("Database update failed",
-                        job_id=job_id,
-                        asset_id=image_id,
-                        asset_type="image",
-                        error=str(e),
-                        error_type=type(e).__name__)
-    
-    async def _update_video_frame_mask(self, frame_id: str, mask_path: str, job_id: str = "unknown") -> None:
-        """Update video frame record with mask path."""
-        try:
-            await self.db_updater.update_video_frame_mask(frame_id, mask_path)
-        except Exception as e:
-            logger.error("Database update failed",
-                        job_id=job_id,
-                        asset_id=frame_id,
-                        asset_type="video",
-                        error=str(e),
-                        error_type=type(e).__name__)
-    
-    async def _publish_completion_event(self, job_id: str) -> None:
-        """Publish completion event for a job.
-        
-        Args:
-            job_id: Job identifier
-        """
-        try:
-            # Check if completion event already sent for this job
-            if job_id in self._completion_events_sent:
-                logger.debug("Completion event already sent for job", job_id=job_id, asset_type="both")
-                return
-            
-            # Get job progress
-            all_counts = self.progress_tracker.get_job_counts(job_id)
-            image_counts = all_counts.get('image', {'total': 0, 'processed': 0})
-            frame_counts = all_counts.get('frame', {'total': 0, 'processed': 0})
-            
-            # Check if all assets processed
-            images_complete = (image_counts['total'] > 0 and
-                             image_counts['processed'] >= image_counts['total'])
-            frames_complete = (frame_counts['total'] > 0 and
-                               frame_counts['processed'] >= frame_counts['total'])
-            
-            # If both types are complete (or have no assets), publish completion
-            if images_complete and frames_complete:
-                logger.info("Publishing completion event", job_id=job_id, asset_type="both")
-                
-                # Publish completion event
-                completion_event = {
-                    "job_id": job_id,
-                    "timestamp": datetime.utcnow().isoformat(),
-                    "status": "completed"
-                }
-                
-                await self.broker.publish_event(
-                    event_type="products.images.masked.completed",
-                    payload=completion_event
-                )
-                
-                self._completion_events_sent.add(job_id)
-                logger.info("Completion event published", job_id=job_id, asset_type="both")
-            else:
-                logger.debug("Job not ready for completion",
-                           job_id=job_id,
-                           images_complete=images_complete,
-                           frames_complete=frames_complete,
-                           asset_type="both")
-                
-        except Exception as e:
-            logger.error("Failed to publish completion event",
-                        job_id=job_id,
-                        asset_type="both",
-                        error=str(e),
-                        error_type=type(e).__name__)

@@ -4,6 +4,7 @@ from pathlib import Path
 from typing import Optional
 from common_py.logging_config import configure_logging
 from PIL import Image, ImageDraw, ImageFont
+from evidence_image_renderer import EvidenceImageRenderer
 
 logger = configure_logging("evidence-builder")
 
@@ -15,6 +16,7 @@ class EvidenceGenerator:
         self.data_root = Path(data_root)
         self.evidence_dir = self.data_root / "evidence"
         self.evidence_dir.mkdir(parents=True, exist_ok=True)
+        self.image_renderer = EvidenceImageRenderer()
     
     def create_evidence(self, image_path: str, frame_path: str, 
                             img_id: str, frame_id: str, score: float, 
@@ -36,7 +38,7 @@ class EvidenceGenerator:
                 return None
             
             # Create side-by-side comparison
-            evidence_img = self.create_side_by_side_comparison(
+            evidence_img = self.image_renderer.create_side_by_side_comparison(
                 product_img, frame_img, score, timestamp, img_id, frame_id
             )
             
@@ -60,74 +62,6 @@ class EvidenceGenerator:
             logger.error("Failed to create evidence", 
                         img_id=img_id, frame_id=frame_id, error=str(e))
             return None
-    
-    def create_side_by_side_comparison(self, product_img: np.ndarray, 
-                                           frame_img: np.ndarray, score: float, 
-                                           timestamp: float, img_id: str, 
-                                           frame_id: str) -> np.ndarray:
-        """Create side-by-side comparison image"""
-        try:
-            # Resize images to same height
-            target_height = 400
-            
-            # Resize product image
-            h1, w1 = product_img.shape[:2]
-            new_w1 = int(w1 * target_height / h1)
-            product_resized = cv2.resize(product_img, (new_w1, target_height))
-            
-            # Resize frame image
-            h2, w2 = frame_img.shape[:2]
-            new_w2 = int(w2 * target_height / h2)
-            frame_resized = cv2.resize(frame_img, (new_w2, target_height))
-            
-            # Create combined image with padding
-            padding = 20
-            header_height = 80
-            footer_height = 60
-            
-            total_width = new_w1 + new_w2 + padding * 3
-            total_height = target_height + header_height + footer_height
-            
-            # Create white background
-            combined = np.ones((total_height, total_width, 3), dtype=np.uint8) * 255
-            
-            # Place images
-            y_offset = header_height
-            combined[y_offset:y_offset+target_height, padding:padding+new_w1] = product_resized
-            combined[y_offset:y_offset+target_height, padding*2+new_w1:padding*2+new_w1+new_w2] = frame_resized
-            
-            # Add text labels
-            font = cv2.FONT_HERSHEY_SIMPLEX
-            font_scale = 0.7
-            color = (0, 0, 0)  # Black
-            thickness = 2
-            
-            # Header
-            header_text = f"Product-Video Match (Score: {score:.3f})"
-            cv2.putText(combined, header_text, (padding, 30), font, font_scale, color, thickness)
-            
-            # Image labels
-            cv2.putText(combined, "Product Image", (padding, y_offset - 10), font, 0.6, color, 1)
-            cv2.putText(combined, f"Video Frame (t={timestamp:.1f}s)", 
-                       (padding*2 + new_w1, y_offset - 10), font, 0.6, color, 1)
-            
-            # Footer with IDs
-            footer_y = y_offset + target_height + 30
-            cv2.putText(combined, f"Image ID: {img_id}", (padding, footer_y), font, 0.5, color, 1)
-            cv2.putText(combined, f"Frame ID: {frame_id}", (padding*2 + new_w1, footer_y), font, 0.5, color, 1)
-            
-            # Add border around images
-            cv2.rectangle(combined, (padding-2, y_offset-2), 
-                         (padding+new_w1+2, y_offset+target_height+2), (0, 255, 0), 2)
-            cv2.rectangle(combined, (padding*2+new_w1-2, y_offset-2), 
-                         (padding*2+new_w1+new_w2+2, y_offset+target_height+2), (0, 255, 0), 2)
-            
-            return combined
-            
-        except Exception as e:
-            logger.error("Failed to create side-by-side comparison", error=str(e))
-            # Return simple concatenation as fallback
-            return np.hstack([product_img, frame_img])
     
     def add_keypoint_overlays(self, evidence_img: np.ndarray, 
                                   product_img: np.ndarray, frame_img: np.ndarray,

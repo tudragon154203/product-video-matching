@@ -10,7 +10,7 @@ from fetcher.video_fetcher import VideoFetcher
 from fetcher.keyframe_extractor import KeyframeExtractor
 from platform_crawler.interface import PlatformCrawlerInterface
 from platform_crawler.mock_crawler import MockPlatformCrawler
-from platform_crawler.youtube_crawler import YoutubeCrawler
+from platform_crawler.youtube.youtube_crawler import YoutubeCrawler
 from handlers.event_emitter import EventEmitter
 from common_py.logging_config import configure_logging
 from config_loader import config
@@ -43,78 +43,19 @@ class VideoCrawlerService:
             logger.info("Processing video search request",
                        job_id=job_id, industry=industry, platforms=platforms)
             
-            # Extract appropriate queries based on platform
-            # queries is a dict with keys like "vi", "zh" containing lists of queries
-            platform_queries = []
-            if isinstance(queries, dict):
-                if "youtube" in platforms and "vi" in queries:
-                    platform_queries = queries["vi"]
-                elif "bilibili" in platforms and "zh" in queries:
-                    platform_queries = queries["zh"]
-                elif "douyin" in platforms and "vi" in queries:
-                    platform_queries = queries["vi"]
-                elif "tiktok" in platforms and "vi" in queries:
-                    platform_queries = queries["vi"]
-                else:
-                    # Fallback: use all queries if we can't determine the right ones
-                    for query_list in queries.values():
-                        if isinstance(query_list, list):
-                            platform_queries.extend(query_list)
-            else:
-                # Fallback for backward compatibility
-                platform_queries = queries if isinstance(queries, list) else []
+            platform_queries = self._extract_platform_queries(queries, platforms)
             
-            # Search videos on each platform
-            all_videos = []
+            all_videos = await self._search_and_collect_all_videos(platform_queries, platforms, recency_days)
             
-            # Use VideoFetcher to search videos across platforms
-            for platform in platforms:
-                # For YouTube, use VIDEO_DIR/youtube as download directory
-                if platform == "youtube":
-                    download_dir = os.path.join(config.VIDEO_DIR, "youtube")
-                else:
-                    # For other platforms, use the existing structure
-                    download_dir = str(self.keyframe_extractor.videos_dir / platform)
-                
-                # Ensure download directory exists
-                Path(download_dir).mkdir(parents=True, exist_ok=True)
-                
-                platform_videos = await self.video_fetcher.search_platform_videos(
-                    platform, platform_queries, recency_days, download_dir, num_ytb_videos=config.NUM_YTB_VIDEOS
-                )
-                all_videos.extend(platform_videos)
-            
-            # Handle zero-asset case (no videos found)
             if not all_videos:
-                logger.info("No videos found for job {job_id}", job_id=job_id)
-                
-                # Publish zero asset event
-                await self.event_emitter.publish_zero_asset_event(job_id)
-                
-                # Publish collections completed event
-                await self.event_emitter.publish_videos_collections_completed(job_id)
-                
-                logger.info("Completed video search with zero videos",
-                           job_id=job_id,
-                           total_videos=0)
+                await self._handle_zero_videos_case(job_id)
                 return
             
-            # Calculate total frames across all candidate videos
-            total_frames = 0
-            for video_data in all_videos:
-                # Extract keyframes to count them without saving to DB
-                keyframes = await self.keyframe_extractor.extract_keyframes(video_data["url"], "temp_count")
-                total_frames += len(keyframes)
+            total_frames = await self._calculate_total_keyframes(all_videos)
             
-            # Emit batch keyframes ready event before processing individual videos
             await self.event_emitter.publish_videos_keyframes_ready_batch(job_id, total_frames)
             
-            # Process each video
-            for video_data in all_videos:
-                await self.process_video(video_data, job_id)
-            
-            # Emit videos collections completed event
-            await self.event_emitter.publish_videos_collections_completed(job_id)
+            await self._process_and_emit_videos(all_videos, job_id)
             
             logger.info("Completed video search",
                        job_id=job_id,
@@ -123,61 +64,114 @@ class VideoCrawlerService:
         except Exception as e:
             logger.error(f"Failed to process video search request: {str(e)}")
             raise
+
+    def _extract_platform_queries(self, queries: Dict[str, Any], platforms: List[str]) -> List[str]:
+        platform_queries = []
+        if isinstance(queries, dict):
+            if "youtube" in platforms and "vi" in queries:
+                platform_queries = queries["vi"]
+            elif "bilibili" in platforms and "zh" in queries:
+                platform_queries = queries["zh"]
+            elif "douyin" in platforms and "vi" in queries:
+                platform_queries = queries["vi"]
+            elif "tiktok" in platforms and "vi" in queries:
+                platform_queries = queries["vi"]
+            else:
+                for query_list in queries.values():
+                    if isinstance(query_list, list):
+                        platform_queries.extend(query_list)
+        else:
+            platform_queries = queries if isinstance(queries, list) else []
+        return platform_queries
+
+    async def _search_and_collect_all_videos(self, platform_queries: List[str], platforms: List[str], recency_days: int) -> List[Dict[str, Any]]:
+        all_videos = []
+        for platform in platforms:
+            if platform == "youtube":
+                download_dir = os.path.join(config.VIDEO_DIR, "youtube")
+            else:
+                download_dir = str(self.keyframe_extractor.videos_dir / platform)
+            
+            Path(download_dir).mkdir(parents=True, exist_ok=True)
+            
+            platform_videos = await self.video_fetcher.search_platform_videos(
+                platform, platform_queries, recency_days, download_dir, num_ytb_videos=config.NUM_YTB_VIDEOS
+            )
+            all_videos.extend(platform_videos)
+        return all_videos
+
+    async def _handle_zero_videos_case(self, job_id: str):
+        logger.info("No videos found for job {job_id}", job_id=job_id)
+        await self.event_emitter.publish_zero_asset_event(job_id)
+        await self.event_emitter.publish_videos_collections_completed(job_id)
+        logger.info("Completed video search with zero videos",
+                   job_id=job_id,
+                   total_videos=0)
+
+    async def _calculate_total_keyframes(self, all_videos: List[Dict[str, Any]]) -> int:
+        total_frames = 0
+        for video_data in all_videos:
+            keyframes = await self.keyframe_extractor.extract_keyframes(video_data["url"], "temp_count")
+            total_frames += len(keyframes)
+        return total_frames
+
+    async def _process_and_emit_videos(self, all_videos: List[Dict[str, Any]], job_id: str):
+        for video_data in all_videos:
+            await self.process_video(video_data, job_id)
+        await self.event_emitter.publish_videos_collections_completed(job_id)
     
     async def process_video(self, video_data: Dict[str, Any], job_id: str):
         """Process a single video and extract keyframes"""
         try:
-            # Create video record
-            video = Video(
-                video_id=str(uuid.uuid4()),
-                platform=video_data["platform"],
-                url=video_data["url"],
-                title=video_data["title"],
-                duration_s=video_data.get("duration_s")
-            )
-            
-            # Save to database
-            await self.db.execute(
-                "INSERT INTO videos (video_id, platform, url, title, duration_s, job_id) VALUES ($1, $2, $3, $4, $5, $6)",
-                video.video_id, video.platform, video.url,
-                video.title, video.duration_s, job_id
-            )
-            
-            # Download video and extract keyframes
-            keyframes = await self.keyframe_extractor.extract_keyframes(video_data["url"], video.video_id)
-            
-            # Process each keyframe
-            frame_data = []
-            for i, (timestamp, frame_path) in enumerate(keyframes):
-                frame_id = f"{video.video_id}_frame_{i}"
-                
-                # Create frame record
-                frame = VideoFrame(
-                    frame_id=frame_id,
-                    video_id=video.video_id,
-                    ts=timestamp,
-                    local_path=frame_path
-                )
-                
-                await self.frame_crud.create_video_frame(frame)
-                
-                frame_data.append({
-                    "frame_id": frame_id,
-                    "ts": timestamp,
-                    "local_path": frame_path
-                })
-            
-            # Emit keyframes ready event
-            if frame_data:
-                await self.event_emitter.publish_videos_keyframes_ready(
-                    video.video_id, frame_data, job_id
-                )
+            video = await self._create_and_save_video_record(video_data, job_id)
+            keyframes_data = await self._extract_and_save_keyframes(video, video_data)
+            await self._emit_keyframes_ready_event(video, keyframes_data, job_id)
             
             logger.info("Processed video", video_id=video.video_id, 
-                       frame_count=len(frame_data))
+                       frame_count=len(keyframes_data))
             
         except Exception as e:
             logger.error(f"Failed to process video: {str(e)}", extra={"video_data": video_data})
+
+    async def _create_and_save_video_record(self, video_data: Dict[str, Any], job_id: str) -> Video:
+        video = Video(
+            video_id=str(uuid.uuid4()),
+            platform=video_data["platform"],
+            url=video_data["url"],
+            title=video_data["title"],
+            duration_s=video_data.get("duration_s")
+        )
+        await self.db.execute(
+            "INSERT INTO videos (video_id, platform, url, title, duration_s, job_id) VALUES ($1, $2, $3, $4, $5, $6)",
+            video.video_id, video.platform, video.url,
+            video.title, video.duration_s, job_id
+        )
+        return video
+
+    async def _extract_and_save_keyframes(self, video: Video, video_data: Dict[str, Any]) -> List[Dict[str, Any]]:
+        keyframes = await self.keyframe_extractor.extract_keyframes(video_data["url"], video.video_id)
+        frame_data = []
+        for i, (timestamp, frame_path) in enumerate(keyframes):
+            frame_id = f"{video.video_id}_frame_{i}"
+            frame = VideoFrame(
+                frame_id=frame_id,
+                video_id=video.video_id,
+                ts=timestamp,
+                local_path=frame_path
+            )
+            await self.frame_crud.create_video_frame(frame)
+            frame_data.append({
+                "frame_id": frame_id,
+                "ts": timestamp,
+                "local_path": frame_path
+            })
+        return frame_data
+
+    async def _emit_keyframes_ready_event(self, video: Video, keyframes_data: List[Dict[str, Any]], job_id: str):
+        if keyframes_data:
+            await self.event_emitter.publish_videos_keyframes_ready(
+                video.video_id, keyframes_data, job_id
+            )
     
     def _initialize_platform_crawlers(self, data_root: str) -> Dict[str, PlatformCrawlerInterface]:
         """Initialize platform crawlers for each supported platform"""

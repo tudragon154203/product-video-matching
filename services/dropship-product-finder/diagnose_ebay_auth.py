@@ -94,12 +94,56 @@ def test_basic_auth_encoding():
         print(f"❌ Basic auth encoding test failed: {e}")
         return False
 
+async def _make_token_request(url: str, headers: dict, data: dict, timeout: float = 30.0) -> httpx.Response:
+    async with httpx.AsyncClient(timeout=timeout) as client:
+        return await client.post(url, headers=headers, data=data)
+
+async def _validate_token_response(response: httpx.Response) -> bool:
+    print(f"Response Status: {response.status_code}")
+    print(f"Response Headers: {dict(response.headers)}")
+    
+    if response.status_code == 200:
+        print("✅ Token request successful!")
+        token_data = response.json()
+        print(f"Token Data: {json.dumps(token_data, indent=2)}")
+        
+        if 'access_token' in token_data:
+            print(f"✅ Access token received: {token_data['access_token'][:20]}...")
+            if 'expires_in' in token_data:
+                print(f"✅ Token expires in: {token_data['expires_in']} seconds")
+            return True
+        else:
+            print("❌ No access_token in response")
+            return False
+            
+    elif response.status_code == 401:
+        print("❌ 401 Unauthorized - Authentication failed")
+        try:
+            error_data = response.json()
+            print(f"Error Details: {json.dumps(error_data, indent=2)}")
+        except:
+            print(f"Error Response: {response.text}")
+        return False
+        
+    elif response.status_code == 400:
+        print("❌ 400 Bad Request - Invalid request")
+        try:
+            error_data = response.json()
+            print(f"Error Details: {json.dumps(error_data, indent=2)}")
+        except:
+            print(f"Error Response: {response.text}")
+        return False
+        
+    else:
+        print(f"❌ Unexpected status code: {response.status_code}")
+        print(f"Response: {response.text}")
+        return False
+
 async def test_ebay_token_request():
     """Test eBay token request with detailed logging"""
     print_section("eBay Token Request Test")
     
     try:
-        # Prepare request details
         credentials = f"{config.EBAY_CLIENT_ID}:{config.EBAY_CLIENT_SECRET}"
         encoded_credentials = base64.b64encode(credentials.encode()).decode()
         
@@ -117,52 +161,10 @@ async def test_ebay_token_request():
         print(f"Request Headers: {json.dumps(headers, indent=2)}")
         print(f"Request Data: {json.dumps(data, indent=2)}")
         
-        # Make the request
-        async with httpx.AsyncClient(timeout=30.0) as client:
-            print("\nMaking request...")
-            response = await client.post(config.EBAY_TOKEN_URL, headers=headers, data=data)
+        print("\nMaking request...")
+        response = await _make_token_request(config.EBAY_TOKEN_URL, headers, data)
+        return await _validate_token_response(response)
             
-            print(f"Response Status: {response.status_code}")
-            print(f"Response Headers: {dict(response.headers)}")
-            
-            if response.status_code == 200:
-                print("✅ Token request successful!")
-                token_data = response.json()
-                print(f"Token Data: {json.dumps(token_data, indent=2)}")
-                
-                # Validate token response
-                if 'access_token' in token_data:
-                    print(f"✅ Access token received: {token_data['access_token'][:20]}...")
-                    if 'expires_in' in token_data:
-                        print(f"✅ Token expires in: {token_data['expires_in']} seconds")
-                    return True
-                else:
-                    print("❌ No access_token in response")
-                    return False
-                    
-            elif response.status_code == 401:
-                print("❌ 401 Unauthorized - Authentication failed")
-                try:
-                    error_data = response.json()
-                    print(f"Error Details: {json.dumps(error_data, indent=2)}")
-                except:
-                    print(f"Error Response: {response.text}")
-                return False
-                
-            elif response.status_code == 400:
-                print("❌ 400 Bad Request - Invalid request")
-                try:
-                    error_data = response.json()
-                    print(f"Error Details: {json.dumps(error_data, indent=2)}")
-                except:
-                    print(f"Error Response: {response.text}")
-                return False
-                
-            else:
-                print(f"❌ Unexpected status code: {response.status_code}")
-                print(f"Response: {response.text}")
-                return False
-                
     except httpx.TimeoutException:
         print("❌ Request timed out")
         return False
@@ -173,11 +175,29 @@ async def test_ebay_token_request():
         print(f"❌ Unexpected error: {e}")
         return False
 
+async def _test_single_endpoint(url: str, headers: dict, data: dict) -> bool:
+    print(f"\nTesting: {url}")
+    try:
+        response = await _make_token_request(url, headers, data, timeout=10.0)
+        print(f"  Status: {response.status_code}")
+        
+        if response.status_code == 200:
+            print("  ✅ SUCCESS!")
+            return True
+        elif response.status_code == 401:
+            print("  ❌ 401 Unauthorized")
+        else:
+            print(f"  ❌ {response.status_code}")
+            
+    except Exception as e:
+        print(f"  ❌ Error: {e}")
+    
+    return False
+
 async def test_alternative_endpoints():
     """Test alternative eBay OAuth endpoints"""
     print_section("Testing Alternative eBay OAuth Endpoints")
     
-    # Common alternative endpoints
     alternative_urls = [
         "https://api.sandbox.ebay.com/identity/v1/oauth2/token",
         "https://api.ebay.com/identity/v1/oauth2/token",
@@ -199,22 +219,8 @@ async def test_alternative_endpoints():
     }
     
     for url in alternative_urls:
-        print(f"\nTesting: {url}")
-        try:
-            async with httpx.AsyncClient(timeout=10.0) as client:
-                response = await client.post(url, headers=headers, data=data)
-                print(f"  Status: {response.status_code}")
-                
-                if response.status_code == 200:
-                    print("  ✅ SUCCESS!")
-                    return True
-                elif response.status_code == 401:
-                    print("  ❌ 401 Unauthorized")
-                else:
-                    print(f"  ❌ {response.status_code}")
-                    
-        except Exception as e:
-            print(f"  ❌ Error: {e}")
+        if await _test_single_endpoint(url, headers, data):
+            return True
     
     return False
 

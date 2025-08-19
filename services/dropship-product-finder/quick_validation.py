@@ -16,13 +16,7 @@ from services.auth import eBayAuthService
 from collectors.collectors import EbayProductCollector
 import aioredis
 
-async def quick_validation():
-    """Quick validation of key components"""
-    print("=== Quick eBay OAuth Validation ===")
-    
-    results = {}
-    
-    # Test 1: Configuration
+async def _test_configuration(results: dict) -> bool:
     print("\n1. Configuration Check...")
     try:
         results["config"] = {
@@ -35,12 +29,13 @@ async def quick_validation():
         print(f"   ✅ Configuration loaded")
         print(f"   Environment: {config.EBAY_ENVIRONMENT}")
         print(f"   Token URL: {config.EBAY_TOKEN_URL}")
+        return True
     except Exception as e:
         results["config"] = {"error": str(e)}
         print(f"   ❌ Configuration error: {e}")
         return False
-    
-    # Test 2: Redis Connection
+
+async def _test_redis_connection(results: dict) -> bool:
     print("\n2. Redis Connection...")
     try:
         redis_client = aioredis.from_url(config.REDIS_URL, decode_responses=True)
@@ -48,12 +43,13 @@ async def quick_validation():
         results["redis"] = {"status": "connected"}
         print(f"   ✅ Redis connected")
         await redis_client.close()
+        return True
     except Exception as e:
         results["redis"] = {"error": str(e)}
         print(f"   ❌ Redis error: {e}")
         return False
-    
-    # Test 3: Authentication Service
+
+async def _test_authentication_service(results: dict) -> bool:
     print("\n3. Authentication Service...")
     try:
         redis_client = aioredis.from_url(config.REDIS_URL, decode_responses=True)
@@ -61,12 +57,13 @@ async def quick_validation():
         results["auth_service"] = {"status": "initialized"}
         print(f"   ✅ Auth service initialized")
         await redis_client.close()
+        return True
     except Exception as e:
         results["auth_service"] = {"error": str(e)}
         print(f"   ❌ Auth service error: {e}")
         return False
-    
-    # Test 4: Token Retrieval (with timeout)
+
+async def _test_token_retrieval(results: dict) -> bool:
     print("\n4. Token Retrieval...")
     try:
         redis_client = aioredis.from_url(config.REDIS_URL, decode_responses=True)
@@ -83,6 +80,7 @@ async def quick_validation():
         }
         print(f"   ✅ Token retrieved ({len(token)} chars, {token_time:.3f}s)")
         await redis_client.close()
+        return True
     except asyncio.TimeoutError:
         results["token"] = {"error": "timeout"}
         print(f"   ❌ Token retrieval timed out")
@@ -91,8 +89,8 @@ async def quick_validation():
         results["token"] = {"error": str(e)}
         print(f"   ❌ Token error: {e}")
         return False
-    
-    # Test 5: Single API Call (with timeout)
+
+async def _test_api_call(results: dict) -> bool:
     print("\n5. Browse API Call...")
     try:
         redis_client = aioredis.from_url(config.REDIS_URL, decode_responses=True)
@@ -113,6 +111,7 @@ async def quick_validation():
         }
         print(f"   ✅ API call successful ({len(products)} products, {api_time:.3f}s)")
         await redis_client.close()
+        return True
     except asyncio.TimeoutError:
         results["api"] = {"error": "timeout"}
         print(f"   ❌ API call timed out")
@@ -121,6 +120,27 @@ async def quick_validation():
         results["api"] = {"error": str(e)}
         print(f"   ❌ API error: {e}")
         return False
+
+async def quick_validation():
+    """Quick validation of key components"""
+    print("=== Quick eBay OAuth Validation ===")
+    
+    results = {}
+    
+    config_passed = await _test_configuration(results)
+    if not config_passed: return False
+
+    redis_passed = await _test_redis_connection(results)
+    if not redis_passed: return False
+
+    auth_service_passed = await _test_authentication_service(results)
+    if not auth_service_passed: return False
+
+    token_passed = await _test_token_retrieval(results)
+    if not token_passed: return False
+
+    api_passed = await _test_api_call(results)
+    if not api_passed: return False
     
     # Summary
     print("\n" + "="*50)

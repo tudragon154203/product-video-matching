@@ -3,11 +3,10 @@ eBay OAuth 2.0 authentication service with Redis token storage.
 """
 import json
 import asyncio
-import httpx
-import base64
 from typing import Optional, Dict, Any
 from datetime import datetime, timedelta
 from common_py.logging_config import configure_logging
+from .ebay_auth_api_client import eBayAuthAPIClient
 
 logger = configure_logging("dropship-product-finder")
 
@@ -22,6 +21,7 @@ class eBayAuthService:
         self.scopes = config.EBAY_SCOPES
         self.redis = redis_client
         self.redis_key = "ebay:access_token"
+        self.api_client = eBayAuthAPIClient(self.client_id, self.client_secret, self.token_url, self.scopes)
         
         # Rate limiting
         self.last_request_time = 0
@@ -53,34 +53,12 @@ class eBayAuthService:
         await self._enforce_rate_limit()
         
         try:
-            # Prepare basic auth header
-            credentials = f"{self.client_id}:{self.client_secret}"
-            encoded_credentials = base64.b64encode(credentials.encode()).decode()
-            
-            headers = {
-                "Content-Type": "application/x-www-form-urlencoded",
-                "Authorization": f"Basic {encoded_credentials}"
-            }
-            
-            data = {
-                "grant_type": "client_credentials",
-                "scope": self.scopes
-            }
-            
-            async with httpx.AsyncClient(timeout=30.0) as client:
-                response = await client.post(self.token_url, headers=headers, data=data)
-                response.raise_for_status()
+            token_data = await self.api_client.request_access_token()
+            await self._store_token(token_data)
+            logger.info("Successfully refreshed eBay token")
                 
-                token_data = response.json()
-                await self._store_token(token_data)
-                
-                logger.info("Successfully refreshed eBay token")
-                
-        except httpx.HTTPStatusError as e:
-            logger.error("eBay token refresh failed", status_code=e.response.status_code, error=str(e))
-            raise
         except Exception as e:
-            logger.error("Unexpected error refreshing eBay token", error=str(e))
+            logger.error("Error refreshing eBay token", error=str(e))
             raise
     
     async def _store_token(self, token_data: Dict[str, Any]) -> None:

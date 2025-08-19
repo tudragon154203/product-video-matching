@@ -15,7 +15,7 @@ sys.path.insert(0, str(Path(__file__).parent))
 
 from config_loader import config
 from services.auth import eBayAuthService
-from collectors.collectors import EbayProductCollector
+from collectors.ebay_product_collector import EbayProductCollector
 import aioredis
 from common_py.logging_config import configure_logging
 

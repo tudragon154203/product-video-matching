@@ -4,7 +4,7 @@ from common_py.database import DatabaseManager
 from common_py.messaging import MessageBroker
 from common_py.logging_config import configure_logging
 from config_loader import config
-from services.job_service import JobService
+from services.job.job_service import JobService
 
 logger = configure_logging("main-api")
 

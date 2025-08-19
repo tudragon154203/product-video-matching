@@ -1,7 +1,7 @@
 import pytest
 import uuid
 from unittest.mock import AsyncMock, MagicMock, patch
-from services.service import MatcherService
+from ..services.service import MatcherService
 from common_py.database import DatabaseManager
 from common_py.messaging import MessageBroker
 

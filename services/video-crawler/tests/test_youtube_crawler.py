@@ -7,7 +7,7 @@ import logging
 from pathlib import Path
 from unittest.mock import patch, AsyncMock
 from datetime import datetime, timedelta
-from platform_crawler.youtube_crawler import YoutubeCrawler
+from platform_crawler.youtube.youtube_crawler import YoutubeCrawler
 
 
 class TestYoutubeCrawler:
