@@ -59,14 +59,15 @@ class AssetProcessor:
             if emit_masked_func:
                 await emit_masked_func(job_id=job_id, image_id=asset_id, mask_path=mask_path)
 
-            # Check for batch completion - only complete if this asset matches the expected total
+            # Check for batch completion - this is now handled automatically by update_job_progress()
+            # The update_job_progress() call above already triggers completion when done >= expected
             if current_processed >= total_expected:
-                logger.info("Batch completed",
+                logger.info("Batch completion condition met (handled automatically by update_job_progress)",
                            job_id=job_id,
                            asset_type=asset_type,
                            processed=current_processed,
-                           total=total_expected)
-                await self.job_progress_manager._publish_completion_event(job_id, False, "segmentation")
+                           total=total_expected,
+                           completion_trigger="automatic_from_update_job_progress")
                 self.deduper.clear_all() # Clear deduplicator for this job
 
             logger.info("Item processed successfully",

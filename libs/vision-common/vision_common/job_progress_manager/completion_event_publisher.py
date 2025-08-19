@@ -53,12 +53,15 @@ class CompletionEventPublisher:
         logger.debug("Checking for existing completion event", job_id=job_id, asset_type=asset_type,
                      completion_key_in_set=completion_key in self._completion_events_sent)
         if completion_key in self._completion_events_sent:
-            logger.info("Completion event already sent for this job and asset type, skipping duplicate",
-                       job_id=job_id, asset_type=asset_type)
+            logger.warning("DUPLICATE COMPLETION EVENT DETECTED - skipping",
+                          job_id=job_id, asset_type=asset_type, event_type_prefix=event_type_prefix,
+                          completion_key=completion_key, current_set_size=len(self._completion_events_sent))
             return
             
         # Mark this job and asset_type as having sent completion event
         self._completion_events_sent.add(completion_key)
+        logger.debug("Marked completion event as sent", job_id=job_id, asset_type=asset_type,
+                     completion_key=completion_key, total_set_size=len(self._completion_events_sent))
         
         await self.broker.publish_event(event_type, event_data)
         logger.info(f"Emitted {asset_type} {event_type_prefix} completed event",

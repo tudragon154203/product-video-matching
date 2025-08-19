@@ -4,9 +4,10 @@
 - Python 3.10+ for all services and shared libraries
 - Docker/Compose for local orchestration; per-service images
 - RabbitMQ as the event broker for contract-driven communication
-- Postgres for state, job/phase tracking, and results persistence
+- Postgres for state, job/phase tracking, and results persistence (with pgvector for embeddings)
 - Optional: Redis (used by dropship-product-finder), Qdrant (legacy/optional; vector-index service retired in sprint 9)
 - LLM Services: Gemini (primary) with Ollama fallback for production requests
+- Media Processing: yt-dlp for YouTube video downloads, OpenCV for image processing
 
 ## Development Setup
 - Prereqs: Docker, Docker Compose, Python 3.10+, make (optional)
@@ -30,3 +31,11 @@
 
 ## Shared Libraries
 - vision-common: Used by product-segmentor, vision-embedding, and vision-keypoint for job progress tracking, event publishing, and watermark timers
+- common-py: Database connections, CRUD operations, messaging, monitoring, and migration utilities
+- contracts: JSON Schema definitions for all events and API contracts
+
+## Service-Specific Dependencies
+- video-crawler: yt-dlp for YouTube video downloads
+- vision services: OpenCV for image processing, various ML models for keypoints/embeddings
+- dropship-product-finder: Redis for caching, requests for API calls
+- main-api: Gemini/Ollama LLM integration

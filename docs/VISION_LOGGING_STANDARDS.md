@@ -347,7 +347,7 @@ All log messages should include consistent fields when applicable:
 # In handlers/embedding_handler.py
 from common_py.logging_config import configure_logging
 
-logger = configure_logging("vision-embedding.handlers")
+logger = configure_logging("vision-embedding")
 
 @validate_event("products_image_masked")
 async def handle_products_image_masked(self, event_data):
@@ -374,7 +374,7 @@ async def handle_products_image_masked(self, event_data):
 # In services/service.py
 from common_py.logging_config import configure_logging
 
-logger = configure_logging("vision-embedding.services")
+logger = configure_logging("vision-embedding")
 
 class VisionEmbeddingService:
     async def handle_products_image_masked(self, event_data):

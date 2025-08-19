@@ -47,6 +47,13 @@ class JobProgressManager:
         # Check completion condition
         job_data = self.base_manager.job_tracking[job_id]
         if job_data["done"] >= job_data["expected"]:
+            logger.info("Automatic completion triggered by progress update",
+                       job_id=job_id,
+                       asset_type=asset_type,
+                       done=job_data["done"],
+                       expected=job_data["expected"],
+                       completion_trigger="update_job_progress",
+                       current_completion_events_sent=len(self.completion_publisher._completion_events_sent))
             logger.debug("Completion condition met, attempting to publish event", job_id=job_id,
                          done=job_data["done"], expected=job_data["expected"])
             await self.completion_publisher.publish_completion_event(job_id, event_type_prefix=event_type_prefix)

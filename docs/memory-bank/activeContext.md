@@ -1,17 +1,29 @@
 # Active Context
 
 ## Current Focus
-- Sprint 9: Retire the dedicated vector‑index service and simplify the matcher to consume embeddings directly from storage/DB. Update contracts and consumers to stop emitting/consuming vector‑index events. Keep Qdrant infra optional/off by default in dev. Ensure performance parity using batch and pre‑announce flows introduced in sprint 6.2.
+- Sprint 9: ✅ COMPLETED - Retired the dedicated vector-index service and simplified the matcher to consume embeddings directly from storage/DB. Updated contracts and consumers to stop emitting/consuming vector-index events. Made Qdrant infra optional/off by default in dev.
 - Current LLM strategy: Gemini-first with Ollama fallback (implemented in main-api/services/llm_service.py)
 - 2025-08-18: Completed removal of published_at column from database schema and YouTube crawler
-- Current focus: Ensuring all vision services consistently use vision-common library for progress tracking and event management
+- 2025-08-19: ✅ COMPLETED - Updated memory bank with current project state and recent sprint completions
+- Current focus: eBay integration for dropship-product-finder and YouTube crawler implementation for video-crawler service
+
+## Active Development Areas
+- **Dropship Product Finder**: eBay integration implementation (OAuth, Browse API, image processing)
+- **Video Crawler**: YouTube search and download functionality using yt-dlp
+- **Vision Services**: Consistent use of vision-common library across all vision services
+
+## Recent Completions
+- Sprint 9: Vector-index service retirement and matcher simplification
+- Database schema updates (removed published_at column)
+- Memory bank automation rule implementation
+- Vision services refactoring to use vision-common library
 
 ## Next Steps
-- Finalize schema deprecations and emit compatibility notices for retired events.
-- Update infra compose and service configs to make vector index optional and disabled by default.
-- Clean up dead code paths and remove vector‑index service references across services and docs.
-- Strengthen integration tests across ingestion → embeddings → matcher → results.
-- Update dashboards/metrics to reflect the new matching path and evidence timing.
+- Complete eBay integration phases (OAuth implementation, Browse API integration, image pipeline)
+- Implement YouTube crawler with proper search and download functionality
+- Strengthen integration tests across the updated pipeline
+- Update documentation to reflect current architecture and capabilities
+- Monitor performance after vector-index service removal
 
 ## New Orchestrator Rule
 - New orchestrator rule: Mandatory Memory Bank updates after each task

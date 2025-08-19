@@ -11,6 +11,7 @@
   - Added CompletionEventPublisher
   - Removed redundant custom code (~200 lines)
 - Improved consistency across vision services
+- 2025-08-19: ✅ COMPLETED - Updated memory bank with current project state and recent sprint completions
 
 ## Completed
 - Sprint 1: Defined microservice specs and the end-to-end video→product matching pipeline boundaries
@@ -24,14 +25,22 @@
 - Sprint 6.2b: Added videos batch pre-announce to reduce tail latency and coordinate consumers
 - Sprint 7: Addressed zero/edge-case handling in the pipeline and contracts
 - Sprint 8: Designed Product-Segmentor and adjusted event flow to improve matching precision
+- Sprint 9: ✅ COMPLETED - Retired dedicated vector-index service
+  - Migrated matcher to consume embeddings directly from storage/DB
+  - Removed/deprecated vector-index events and updated dependent services
+  - Made Qdrant optional/off by default in dev compose
+  - Cleaned up dead code paths and documentation
 - 2025-08-18: Reversed LLM order in main-api (Gemini first)
 - 2025-08-18: Added rule requiring automatic Memory Bank updates after tasks
 - 2025-08-18: Removed published_at column from database schema and YouTube crawler
 
+## In Progress
+- **Dropship Product Finder**: eBay integration implementation (Phase 2: OAuth, Phase 3: Browse API)
+- **Video Crawler**: YouTube crawler implementation using yt-dlp
+
 ## Pending
-- Sprint 9 (in progress): Retire dedicated vector-index service
-  - Migrate matcher to consume embeddings directly from storage/DB
-  - Remove/deprecate vector-index events and update dependent services
-  - Make Qdrant optional/off by default in dev compose
-  - Strengthen integration tests and performance checks post-removal
-  - Update docs (RUN.md, contracts notes) and clean dead code paths
+- Complete eBay integration phases (Phase 4: Images & Events, Phase 5: Reliability & Tests, Phase 6: Sandbox Smoke)
+- Implement YouTube crawler with proper search and download functionality
+- Strengthen integration tests across the updated pipeline
+- Update documentation to reflect current architecture and capabilities
+- Monitor performance after vector-index service removal
