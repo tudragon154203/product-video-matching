@@ -100,15 +100,13 @@ async def start_job(client):
     return job_id
 
 
-async def wait_for_job_completion(client, job_id, max_wait_time=300):
+async def wait_for_job_completion(client, job_id, max_wait_time=500):
     """Wait for job to complete
     
     Args:
         client: HTTP client for API requests
         job_id: ID of the job to wait for
-        max_wait_time: Maximum time to wait for job completion in seconds (default: 180)
-                       Increased from 90 to 180 to accommodate longer processing times
-                       for critical functionalities including video processing and matching
+        max_wait_time: Maximum time to wait for job completion in seconds (default: 500)                           
     """
     logger.info(f"Waiting for job completion... (job_id: {job_id})")
     

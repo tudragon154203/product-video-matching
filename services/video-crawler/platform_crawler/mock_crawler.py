@@ -12,7 +12,7 @@ class MockPlatformCrawler(PlatformCrawlerInterface):
     def __init__(self, platform_name: str = "mock"):
         self.platform_name = platform_name
     
-    async def search_and_download_videos(self, queries: List[str], recency_days: int, download_dir: str, num_videos: int = 3) -> List[Dict[str, Any]]:
+    async def search_and_download_videos(self, queries: List[str], recency_days: int, download_dir: str, num_videos: int) -> List[Dict[str, Any]]:
         """
         Mock implementation that generates fake video data and creates dummy files
         

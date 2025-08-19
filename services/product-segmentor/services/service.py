@@ -297,13 +297,10 @@ class ProductSegmentorService:
             await self.event_emitter.emit_video_keyframes_masked(job_id=job_id, video_id=video_id, frames=processed_frames)
             logger.info("Video keyframes processed", video_id=video_id, processed=len(processed_frames))
 
-        # Update progress and check for completion for the batch of frames
+        # Update progress for the batch of frames (completion check handled by individual processing)  
         await self.job_progress_manager.update_job_progress(job_id, "frame", len(frames), 0, "segmentation")
-        current_processed = self.job_progress_manager.job_tracking[job_id]["done"]
-        total_expected = self.job_progress_manager.job_tracking[job_id]["expected"]
-        if current_processed >= total_expected:
-            await self.job_progress_manager._publish_completion_event(job_id, False, "segmentation")
-            self.deduper.clear_all()
+        
+        # Note: Completion check moved to individual asset processing to avoid duplicate events
     
     async def handle_videos_keyframes_ready_batch(self, event_data: dict) -> None:
         """Handle video keyframes batch completion event.

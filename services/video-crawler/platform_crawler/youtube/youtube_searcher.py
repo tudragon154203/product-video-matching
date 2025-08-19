@@ -9,14 +9,15 @@ from utils.youtube_filters import (
     filter_valid_entry,
     filter_duration
 )
+from config_loader import config # Import config
 
-logger = configure_logging("video-crawler")
+logger = configure_logging("video-crawler", log_level=config.LOG_LEVEL)
 
 class YoutubeSearcher:
     def __init__(self, platform_name: str):
         self.platform_name = platform_name
 
-    async def search_youtube(self, query: str, recency_days: int, num_ytb_videos: int = 10) -> List[Dict[str, Any]]:
+    async def search_youtube(self, query: str, recency_days: int, num_ytb_videos: int) -> List[Dict[str, Any]]:
         """
         Search YouTube for videos matching the query and recency filter
         
@@ -28,6 +29,7 @@ class YoutubeSearcher:
         Returns:
             List of video metadata dictionaries
         """
+        logger.critical(f"DEBUG: search_youtube method called with query='{query}', recency_days={recency_days}, num_ytb_videos={num_ytb_videos}")
         MAX_ATTEMPTS = 5
         current_search_limit = num_ytb_videos
         attempts = 0
@@ -66,10 +68,15 @@ class YoutubeSearcher:
             'playlistend': search_limit,
         }
         search_query = f"ytsearch{search_limit}:{query}"
+        logger.debug(f"Performing yt-dlp search with query: '{search_query}' and options: {ydl_opts}")
         
-        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-            info = ydl.extract_info(search_query, download=False)
-            return info.get('entries', [])
+        try:
+            with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+                info = ydl.extract_info(search_query, download=False)
+                return info.get('entries', [])
+        except Exception as e:
+            logger.error(f"yt-dlp search failed for query '{search_query}': {e}", exc_info=True)
+            raise # Re-raise the exception to be caught by the outer try-except block
 
     def _filter_and_format_entries(self, entries: List[Dict[str, Any]], recency_days: int) -> List[Dict[str, Any]]:
         videos = []

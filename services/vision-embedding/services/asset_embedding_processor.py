@@ -102,6 +102,90 @@ class AssetEmbeddingProcessor:
                         error_type=type(e).__name__)
             raise
     
+    async def handle_videos_keyframes_masked_batch(self, event_data: Dict[str, Any]):
+        """Handle videos keyframes masked batch event to initialize job tracking"""
+        try:
+            job_id = event_data["job_id"]
+            event_id = event_data["event_id"]
+            total_keyframes = event_data["total_keyframes"]
+            
+            # Create a unique identifier for this batch event to detect duplicates
+            batch_event_key = f"{job_id}:{event_id}"
+            
+            # Check if we've already processed this batch event
+            if batch_event_key in self.progress_manager.processed_batch_events:
+                logger.info("Ignoring duplicate batch event", job_id=job_id, event_id=event_id, asset_type="video")
+                return
+            
+            # Mark this batch event as processed
+            self.progress_manager.processed_batch_events.add(batch_event_key)
+            
+            logger.info("Batch event received",
+                       job_id=job_id,
+                       asset_type="video",
+                       total_items=total_keyframes,
+                       event_type="videos_keyframes_masked_batch",
+                       event_id=event_id)
+            
+            # Store the total frame count for the job
+            self.progress_manager.expected_total_frames[job_id] = total_keyframes
+            # Store the total frame count for the job
+            self.progress_manager.job_frame_counts[job_id] = {'total': total_keyframes, 'processed': 0}
+            logger.info("Batch tracking initialized",
+                       job_id=job_id,
+                       asset_type="video",
+                       total_items=total_keyframes)
+            
+            # Mark batch as initialized
+            self.progress_manager._mark_batch_initialized(job_id, "video")
+            
+            # If there are no keyframes, immediately publish completion event
+            if total_keyframes == 0:
+                logger.info("Immediate completion for zero-asset job", job_id=job_id, asset_type="video")
+                await self.progress_manager.publish_completion_event_with_count(job_id, "video", 0, 0, "embeddings")
+            
+        except Exception as e:
+            logger.error("Failed to handle videos keyframes masked batch",
+                        job_id=job_id,
+                        event_id=event_data.get("event_id"),
+                        error=str(e),
+                        error_type=type(e).__name__)
+            raise
+    
+    async def handle_products_images_masked_batch(self, event_data: Dict[str, Any]):
+        """Handle products images masked batch event to initialize job tracking"""
+        try:
+            job_id = event_data["job_id"]
+            total_images = event_data["total_images"]
+            
+            logger.info("Batch event received",
+                       job_id=job_id,
+                       asset_type="image",
+                       total_items=total_images,
+                       event_type="products_images_masked_batch")
+            
+            # Store the total image count for the job
+            self.progress_manager.job_image_counts[job_id] = {'total': total_images, 'processed': 0}
+            logger.info("Batch tracking initialized",
+                       job_id=job_id,
+                       asset_type="image",
+                       total_items=total_images)
+            
+            # Mark batch as initialized
+            self.progress_manager._mark_batch_initialized(job_id, "image")
+            
+            # If there are no images, immediately publish completion event
+            if total_images == 0:
+                logger.info("Immediate completion for zero-asset job", job_id=job_id, asset_type="image")
+                await self.progress_manager.publish_completion_event_with_count(job_id, "image", 0, 0, "embeddings")
+            
+        except Exception as e:
+            logger.error("Failed to handle products images masked batch",
+                        job_id=job_id,
+                        error=str(e),
+                        error_type=type(e).__name__)
+            raise
+    
     async def handle_products_image_ready(self, event_data: Dict[str, Any]):
         """Handle product images ready event"""
         try:

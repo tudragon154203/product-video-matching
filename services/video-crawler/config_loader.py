@@ -37,8 +37,8 @@ class VideoCrawlerConfig:
     # Video storage directory
     VIDEO_DIR: str = os.getenv("VIDEO_DIR", os.path.join(global_config.DATA_ROOT, "videos"))
     
-    # Number of YouTube videos to search for per query
-    NUM_YTB_VIDEOS: int = int(os.getenv("NUM_YTB_VIDEOS", "10"))
+    # Number of videos to search for per query
+    NUM_VIDEOS: int = int(os.getenv("NUM_VIDEOS", "5"))
     
     # Logging (from .env first, then global config)
     LOG_LEVEL: str = os.getenv("LOG_LEVEL", global_config.LOG_LEVEL)

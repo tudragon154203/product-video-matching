@@ -42,7 +42,7 @@ class AssetProcessor:
 
         if mask_path:
             # Update database
-            await db_update_func(asset_id, mask_path, job_id)
+            await db_update_func(asset_id, mask_path)
 
             # Increment processed count and check for completion
             await self.job_progress_manager.update_job_progress(job_id, asset_type, 1, 1, "segmentation")
@@ -59,7 +59,7 @@ class AssetProcessor:
             if emit_masked_func:
                 await emit_masked_func(job_id=job_id, image_id=asset_id, mask_path=mask_path)
 
-            # Check for batch completion
+            # Check for batch completion - only complete if this asset matches the expected total
             if current_processed >= total_expected:
                 logger.info("Batch completed",
                            job_id=job_id,

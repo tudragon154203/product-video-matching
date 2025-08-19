@@ -11,7 +11,7 @@ class VideoFetcher:
     def __init__(self, platform_crawlers: Optional[Dict[str, PlatformCrawlerInterface]] = None):
         self.platform_crawlers = platform_crawlers or {}
     
-    async def search_platform_videos(self, platform: str, queries: List[str], recency_days: int, download_dir: str, num_ytb_videos: int = 10) -> List[Dict[str, Any]]:
+    async def search_platform_videos(self, platform: str, queries: List[str], recency_days: int, download_dir: str, num_videos: int) -> List[Dict[str, Any]]:
         """
         Generic method to search videos on a specific platform
         """
@@ -25,7 +25,7 @@ class VideoFetcher:
                 queries=queries,
                 recency_days=recency_days,
                 download_dir=download_dir,
-                num_ytb_videos=num_ytb_videos
+                num_videos=num_videos
             )
             
             logger.info(f"Found {len(videos)} videos on {platform}",

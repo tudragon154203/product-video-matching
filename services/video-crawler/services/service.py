@@ -95,7 +95,7 @@ class VideoCrawlerService:
             Path(download_dir).mkdir(parents=True, exist_ok=True)
             
             platform_videos = await self.video_fetcher.search_platform_videos(
-                platform, platform_queries, recency_days, download_dir, num_ytb_videos=config.NUM_YTB_VIDEOS
+                platform, platform_queries, recency_days, download_dir, num_videos=config.NUM_VIDEOS
             )
             all_videos.extend(platform_videos)
         return all_videos

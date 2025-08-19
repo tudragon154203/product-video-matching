@@ -7,7 +7,7 @@ import uuid
 import asyncio
 from vision_common import JobProgressManager
 
-logger = configure_logging("vision-keypoint.services")
+logger = configure_logging("vision-keypoint")
 
 
 class VisionKeypointService:
@@ -91,7 +91,7 @@ class VisionKeypointService:
             # Store the total frame count for the job
             self.progress_manager.expected_total_frames[job_id] = total_keyframes
             # Store the total keyframe count for the job
-            self.progress_manager.job_keyframe_counts[job_id] = {'total': total_keyframes, 'processed': 0}
+            self.progress_manager.job_frame_counts[job_id] = {'total': total_keyframes, 'processed': 0}
             logger.info("Batch tracking initialized",
                        job_id=job_id,
                        asset_type="video",
@@ -126,7 +126,7 @@ class VisionKeypointService:
             asset_key = f"{job_id}:{image_id}"
             
             # Skip if we've already processed this asset
-            if self.progress_manager.processed_assets.is_processed(asset_key):
+            if asset_key in self.progress_manager.processed_assets:
                 logger.info("Skipping duplicate asset", job_id=job_id, asset_id=image_id, asset_type="image")
                 return
                 
@@ -184,11 +184,6 @@ class VisionKeypointService:
             current_count = self.progress_manager.job_image_counts[job_id]['processed']
             total_count = self.progress_manager.job_image_counts[job_id]['total']
             
-            logger.debug("Progress update",
-                        job_id=job_id,
-                        asset_type="image",
-                        processed=current_count,
-                        total=total_count)
             
             # Check if all images are processed
             if current_count >= total_count:
@@ -245,7 +240,7 @@ class VisionKeypointService:
                 asset_key = f"{job_id}:{frame_id}"
                 
                 # Skip if we've already processed this asset
-                if self.progress_manager.processed_assets.is_processed(asset_key):
+                if asset_key in self.progress_manager.processed_assets:
                     logger.info("Skipping duplicate asset", job_id=job_id, asset_id=frame_id, asset_type="video")
                     continue
                     
@@ -285,36 +280,33 @@ class VisionKeypointService:
                                asset_id=frame_id,
                                asset_type="video")
                     # Update job progress for successful processing using expected_total_frames
-                    await self.progress_manager.update_job_progress(job_id, "video", expected_count, "keypoints")
+                    await self.progress_manager.update_job_progress(job_id, "video", expected_count, increment=1)
                     
                     # Update job keyframe counts tracking
-                    if job_id in self.progress_manager.job_keyframe_counts:
-                        self.progress_manager.job_keyframe_counts[job_id]['processed'] += 1
-                        current_count = self.progress_manager.job_keyframe_counts[job_id]['processed']
-                        total_count = self.progress_manager.job_keyframe_counts[job_id]['total']
+                    if job_id not in self.progress_manager.job_frame_counts:
+                        # Initialize tracking if not already done
+                        self.progress_manager.job_frame_counts[job_id] = {'total': self.progress_manager.expected_total_frames.get(job_id, 1), 'processed': 0}
+                    
+                    self.progress_manager.job_frame_counts[job_id]['processed'] += 1
+                    current_count = self.progress_manager.job_frame_counts[job_id]['processed']
+                    total_count = self.progress_manager.job_frame_counts[job_id]['total']
                         
-                        logger.debug("Progress update",
-                                    job_id=job_id,
-                                    asset_type="video",
-                                    processed=current_count,
-                                    total=total_count)
+                    # Check if all keyframes are processed
+                    if current_count >= total_count:
+                        logger.info("Batch completed",
+                                   job_id=job_id,
+                                   asset_type="video",
+                                   processed=current_count,
+                                   total=total_count)
                         
-                        # Check if all keyframes are processed
-                        if current_count >= total_count:
-                            logger.info("Batch completed",
-                                       job_id=job_id,
-                                       asset_type="video",
-                                       processed=current_count,
-                                       total=total_count)
-                            
-                            # Publish completion event
-                            await self.progress_manager.publish_completion_event_with_count(
-                                job_id, "video", total_count, current_count, "keypoints"
-                            )
-                            
-                            # Remove job from tracking
-                            del self.progress_manager.job_keyframe_counts[job_id]
-                            logger.info("Removed job from tracking", job_id=job_id)
+                        # Publish completion event
+                        await self.progress_manager.publish_completion_event_with_count(
+                            job_id, "video", total_count, current_count, "keypoints"
+                        )
+                        
+                        # Remove job from tracking
+                        del self.progress_manager.job_frame_counts[job_id]
+                        logger.info("Removed job from tracking", job_id=job_id)
                 else:
                     logger.error("Item processing failed",
                                 job_id=job_id,
@@ -340,7 +332,7 @@ class VisionKeypointService:
             asset_key = f"{job_id}:{image_id}"
             
             # Skip if we've already processed this asset
-            if self.progress_manager.processed_assets.is_processed(asset_key):
+            if asset_key in self.progress_manager.processed_assets:
                 logger.info("Skipping duplicate asset", job_id=job_id, asset_id=image_id, asset_type="image")
                 return
                 
@@ -414,11 +406,6 @@ class VisionKeypointService:
             current_count = self.progress_manager.job_image_counts[job_id]['processed']
             total_count = self.progress_manager.job_image_counts[job_id]['total']
             
-            logger.debug("Progress update",
-                        job_id=job_id,
-                        asset_type="image",
-                        processed=current_count,
-                        total=total_count)
             
             # Check if all images are processed
             if current_count >= total_count:
@@ -475,7 +462,7 @@ class VisionKeypointService:
                 asset_key = f"{job_id}:{frame_id}"
                 
                 # Skip if we've already processed this asset
-                if self.progress_manager.processed_assets.is_processed(asset_key):
+                if asset_key in self.progress_manager.processed_assets:
                     logger.info("Skipping duplicate asset", job_id=job_id, asset_id=frame_id, asset_type="video")
                     continue
                     
@@ -531,36 +518,33 @@ class VisionKeypointService:
                                asset_id=frame_id,
                                asset_type="video")
                     # Update job progress for successful processing using expected_total_frames
-                    await self.progress_manager.update_job_progress(job_id, "video", expected_count, "keypoints")
+                    await self.progress_manager.update_job_progress(job_id, "video", expected_count, increment=1)
                     
                     # Update job keyframe counts tracking
-                    if job_id in self.progress_manager.job_keyframe_counts:
-                        self.progress_manager.job_keyframe_counts[job_id]['processed'] += 1
-                        current_count = self.progress_manager.job_keyframe_counts[job_id]['processed']
-                        total_count = self.progress_manager.job_keyframe_counts[job_id]['total']
+                    if job_id not in self.progress_manager.job_frame_counts:
+                        # Initialize tracking if not already done
+                        self.progress_manager.job_frame_counts[job_id] = {'total': self.progress_manager.expected_total_frames.get(job_id, 1), 'processed': 0}
+                    
+                    self.progress_manager.job_frame_counts[job_id]['processed'] += 1
+                    current_count = self.progress_manager.job_frame_counts[job_id]['processed']
+                    total_count = self.progress_manager.job_frame_counts[job_id]['total']
                         
-                        logger.debug("Progress update",
-                                    job_id=job_id,
-                                    asset_type="video",
-                                    processed=current_count,
-                                    total=total_count)
+                    # Check if all keyframes are processed
+                    if current_count >= total_count:
+                        logger.info("Batch completed",
+                                   job_id=job_id,
+                                   asset_type="video",
+                                   processed=current_count,
+                                   total=total_count)
                         
-                        # Check if all keyframes are processed
-                        if current_count >= total_count:
-                            logger.info("Batch completed",
-                                       job_id=job_id,
-                                       asset_type="video",
-                                       processed=current_count,
-                                       total=total_count)
-                            
-                            # Publish completion event
-                            await self.progress_manager.publish_completion_event_with_count(
-                                job_id, "video", total_count, current_count, "keypoints"
-                            )
-                            
-                            # Remove job from tracking
-                            del self.progress_manager.job_keyframe_counts[job_id]
-                            logger.info("Removed job from tracking", job_id=job_id)
+                        # Publish completion event
+                        await self.progress_manager.publish_completion_event_with_count(
+                            job_id, "video", total_count, current_count, "keypoints"
+                        )
+                        
+                        # Remove job from tracking
+                        del self.progress_manager.job_frame_counts[job_id]
+                        logger.info("Removed job from tracking", job_id=job_id)
                 else:
                     logger.error("Item processing failed",
                                 job_id=job_id,
@@ -635,7 +619,7 @@ class VisionKeypointService:
             # Store the total keyframe count for the job
             self.progress_manager.expected_total_frames[job_id] = total_keyframes
             # Store the total keyframe count for the job
-            self.progress_manager.job_keyframe_counts[job_id] = {'total': total_keyframes, 'processed': 0}
+            self.progress_manager.job_frame_counts[job_id] = {'total': total_keyframes, 'processed': 0}
             logger.info("Batch tracking initialized",
                        job_id=job_id,
                        asset_type="video",

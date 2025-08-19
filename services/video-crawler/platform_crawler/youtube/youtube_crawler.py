@@ -22,7 +22,7 @@ class YoutubeCrawler(PlatformCrawlerInterface):
         self.downloader = YoutubeDownloader()
     
     async def search_and_download_videos(
-        self, queries: List[str], recency_days: int, download_dir: str, num_ytb_videos: int = 10
+        self, queries: List[str], recency_days: int, download_dir: str, num_videos: int
     ) -> List[Dict[str, Any]]:
         """
         Search for videos on YouTube and download them
@@ -31,17 +31,17 @@ class YoutubeCrawler(PlatformCrawlerInterface):
             queries: List of search queries (keywords only)
             recency_days: How many days back to search for videos
             download_dir: Directory path where videos should be saved (should be {VIDEO_DIR}/youtube)
-            num_ytb_videos: Number of YouTube videos to search for per query
+            num_videos: Number of YouTube videos to search for per query
                 (actual downloaded videos may be fewer due to filtering)
             
         Returns:
             List of video metadata dictionaries with required fields
         """
-        logger.info(f"Starting search_and_download_videos with {len(queries)} queries, recency_days={recency_days}, num_ytb_videos={num_ytb_videos}")
+        logger.info(f"Starting search_and_download_videos with {len(queries)} queries, recency_days={recency_days}, num_videos={num_videos}")
         
         Path(download_dir).mkdir(parents=True, exist_ok=True)
         
-        all_videos = await self._search_videos_for_queries(queries, recency_days, num_ytb_videos)
+        all_videos = await self._search_videos_for_queries(queries, recency_days, num_videos)
         logger.info(f"Total videos found across all queries: {len(all_videos)}")
         
         unique_videos = self._deduplicate_videos(all_videos)

@@ -85,3 +85,11 @@ class VisionEmbeddingService:
     async def handle_video_keyframes_masked(self, event_data: Dict[str, Any]):
         """Handle video keyframes masked event"""
         await self.asset_embedding_processor.handle_video_keyframes_masked(event_data)
+    
+    async def handle_products_images_masked_batch(self, event_data: Dict[str, Any]):
+        """Handle products images masked batch event"""
+        await self.asset_embedding_processor.handle_products_images_masked_batch(event_data)
+    
+    async def handle_videos_keyframes_masked_batch(self, event_data: Dict[str, Any]):
+        """Handle videos keyframes masked batch event"""
+        await self.asset_embedding_processor.handle_videos_keyframes_masked_batch(event_data)
