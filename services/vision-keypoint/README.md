@@ -1,39 +1,29 @@
-# Vision Keypoint Service
+# Vision Keypoint Microservice
 
-This service extracts keypoint descriptors from product images and video frames using AKAZE and SIFT algorithms.
+## Overview
+This microservice extracts traditional computer vision features (keypoints and descriptors) from images and video frames. These features are used for geometric matching and verification.
 
-## Architecture
+## Functionality
+- Detects robust keypoints and computes descriptors (e.g., AKAZE, SIFT).
+- Processes product images and video frames to extract local features.
+- Publishes keypoint data for use by the Matcher service.
 
-The service follows a modular architecture with the following components:
+## In/Out Events
+### Input Events
+- `ImageForKeypointExtraction`: Event containing an image (product or video frame) for keypoint extraction.
+  - Data: `{"image_id": "img-001", "image_url": "http://example.com/image.jpg", "type": "video_frame"}`
 
-1. **Main Entry Point** (`main.py`): Handles service initialization, event subscription, and graceful shutdown.
-2. **Configuration** (`config_loader.py`): Loads service configuration from environment variables.
-3. **Business Logic** (`service.py`): Contains the main `VisionKeypointService` class that orchestrates keypoint extraction.
-4. **Keypoint Extraction** (`keypoint.py`): Contains the `KeypointExtractor` class that handles AKAZE and SIFT operations.
-5. **Tests** (`tests/`): Unit tests for the service components.
+### Output Events
+- `ProductKeypointsReady`: Event indicating that product keypoints have been extracted.
+  - Data: `{"product_id": "prod-456", "keypoints": [...], "descriptors": [...]}`
+- `VideoFrameKeypointsReady`: Event indicating that video frame keypoints have been extracted.
+  - Data: `{"video_id": "vid-789", "frame_number": 10, "keypoints": [...], "descriptors": [...]}`
 
-## Key Features
+## Current Progress
+- AKAZE keypoint detection and descriptor computation implemented.
+- Basic integration with image processing utilities.
 
-- **Modular Design**: Separation of concerns with distinct modules for different responsibilities
-- **Dual Algorithm Support**: Uses both AKAZE (faster) and SIFT (more robust) algorithms
-- **Event-Driven**: Subscribes to image and frame ready events for automatic processing
-- **Dependency Injection**: Makes the service testable
-- **Proper Error Handling**: Comprehensive error handling and logging
-- **Resource Management**: Proper cleanup of resources on shutdown
-
-## Event Handling
-
-The service subscribes to:
-- `products.image.ready` events for product image keypoint extraction
-- `videos.keyframes.ready` events for video frame keypoint extraction
-
-For each event, it:
-1. Extracts keypoints and descriptors using AKAZE or SIFT
-2. Updates the database with the keypoint file path
-3. Publishes a `features.ready` event for downstream processing
-
-## Running Tests
-
-```bash
-python -m pytest tests/ -v
-```
+## What's Next
+- Explore other keypoint detectors and descriptors (e.g., SIFT, ORB).
+- Optimize keypoint extraction for performance on high-resolution images.
+- Implement feature matching and outlier rejection within the service (if applicable).

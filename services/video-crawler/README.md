@@ -1,43 +1,29 @@
-# Video Crawler Service
+# Video Crawler Microservice
 
-This service is responsible for searching, downloading, and processing videos from platforms like YouTube, Bilibili, Douyin, and TikTok.
+## Overview
+This microservice is responsible for processing video content, including downloading, segmenting, and extracting frames. It prepares video data for further analysis and matching.
 
-## Architecture
+## Functionality
+- Downloads video content from specified URLs (e.g., YouTube).
+- Segments videos into manageable chunks or extracts key frames.
+- Publishes video frames for embedding and keypoint extraction.
 
-The service follows a modular architecture with the following components:
+## In/Out Events
+### Input Events
+- `VideoIngestionRequest`: Request to initiate video processing for a given URL.
+  - Data: `{"video_id": "vid-789", "video_url": "http://youtube.com/watch?v=example"}`
 
-1. **Main Entry Point** (`main.py`): Handles service initialization, event subscription, and graceful shutdown.
-2. **Configuration** (`config_loader.py`): Loads service configuration from environment variables.
-3. **Business Logic** (`service.py`): Contains the main `VideoCrawlerService` class that orchestrates video processing.
-4. **Video Fetcher** (`fetcher/video_fetcher.py`): Handles searching for videos across different platforms.
-5. **Keyframe Extractor** (`fetcher/keyframe_extractor.py`): Handles extracting keyframes from videos.
-6. **Tests** (`tests/`): Unit tests for the service components.
+### Output Events
+- `VideoProcessed`: Event indicating that a video has been successfully processed.
+  - Data: `{"video_id": "vid-789", "total_frames": 1000, "duration": 120.5}`
+- `VideoFrameExtracted`: Event containing a single video frame for further processing.
+  - Data: `{"video_id": "vid-789", "frame_number": 10, "frame_url": "http://example.com/frame_10.jpg"}`
 
-## Key Features
+## Current Progress
+- Basic video downloading and frame extraction implemented.
+- Integration with video processing libraries.
 
-- **Modular Design**: Separation of concerns with distinct modules for different responsibilities
-- **Multi-Platform Support**: Supports YouTube, Bilibili, Douyin, and TikTok
-- **Dependency Injection**: Makes the service testable
-- **Proper Error Handling**: Comprehensive error handling and logging
-- **Resource Management**: Proper cleanup of resources on shutdown
-
-## How It Works
-
-1. The service subscribes to `videos.search.request` events from the message broker
-2. When a video search request is received, it searches for videos on the specified platforms
-3. For each video found, it downloads the video and extracts keyframes
-4. The extracted keyframes are saved to disk and database records are created
-5. A `videos.keyframes.ready` event is published for each processed video
-
-## Supported Platforms
-
-- YouTube (vi queries)
-- Bilibili (zh queries)
-- Douyin (vi queries)
-- TikTok (vi queries)
-
-## Running Tests
-
-```bash
-python -m pytest tests/ -v
-```
+## What's Next
+- Implement more efficient video segmentation strategies.
+- Add support for various video sources and formats.
+- Optimize frame extraction for performance.

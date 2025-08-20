@@ -3,7 +3,6 @@
 This service orchestrates product segmentation operations by delegating to specialized modules:
 - SegmentorFactory: Creates and manages segmentation engines
 - JobProgressManager: Tracks job progress and handles batch completion and watermark emission
-- Deduper: Prevents duplicate processing
 - ForegroundProcessor: Handles image segmentation operations
 - DatabaseUpdater: Manages database operations
 
@@ -29,7 +28,6 @@ from .image_masking_processor import ImageMaskingProcessor
 from utils.db_updater import DatabaseUpdater
 from .foreground_segmentor_factory import create_segmentor
 from segmentation.models.yolo_segmentor import YOLOSegmentor
-from utils.deduper import Deduper
 from .asset_processor import AssetProcessor # New import
 from vision_common import JobProgressManager
 
@@ -41,7 +39,6 @@ class ProductSegmentorService:
     This service orchestrates segmentation operations by delegating to specialized modules:
     - SegmentorFactory: Creates and manages segmentation engines
     - JobProgressManager: Tracks job progress and handles batch completion and watermark emission
-    - Deduper: Prevents duplicate processing
     - ForegroundProcessor: Handles image segmentation operations
     - DatabaseUpdater: Manages database operations
      
@@ -66,7 +63,6 @@ class ProductSegmentorService:
         Initializes specialized modules:
         - SegmentorFactory: Creates segmentation engines
         - JobProgressManager: Tracks job progress and handles batch completion
-        - Deduper: Prevents duplicate processing
         - ImageProcessor: Handles image segmentation
         - DatabaseUpdater: Manages database operations
         """
@@ -92,7 +88,6 @@ class ProductSegmentorService:
         
         # Initialize new modules
         self.job_progress_manager = JobProgressManager(broker)
-        self.deduper = Deduper()
         
         self.image_masking_processor = ImageMaskingProcessor(
             self.foreground_segmentor,
@@ -105,7 +100,6 @@ class ProductSegmentorService:
         
         # Initialize AssetProcessor
         self.asset_processor = AssetProcessor(
-            deduper=self.deduper,
             image_masking_processor=self.image_masking_processor,
             db_updater=self.db_updater,
             event_emitter=self.event_emitter,
@@ -183,7 +177,6 @@ class ProductSegmentorService:
             
             # Cleanup progress tracking using JobProgressManager
             await self.job_progress_manager.cleanup_all()
-            self.deduper.clear_all()
             
             # Release acquired permits
             for _ in range(permits_acquired):
@@ -319,13 +312,7 @@ class ProductSegmentorService:
                        event_type="videos_keyframes_ready_batch",
                        event_id=event_id)
 
-            # Store the total frame count for the job using job progress manager
-            # Use update_expected_and_recheck_completion to avoid premature completion
-            is_complete = await self.job_progress_manager.update_expected_and_recheck_completion(job_id, "frame", total_keyframes, "segmentation")
-            if is_complete:
-                logger.info("Job completed after updating expected count", job_id=job_id, asset_type="frame", done=total_keyframes, expected=total_keyframes)
-            
-            # Start watermark timer using job progress manager
+            # Start watermark timer first to handle timeout cases
             await self.job_progress_manager._start_watermark_timer(job_id, 300, "segmentation")
 
             # If there are zero keyframes, publish batch completion immediately
@@ -334,8 +321,46 @@ class ProductSegmentorService:
                 # Publish immediate batch completion event for empty batch
                 await self.job_progress_manager.publish_videos_keyframes_masked_batch(job_id=job_id, total_keyframes=0)
             else:
-                logger.debug("Video keyframes batch initialized - JobProgressManager will handle completion", job_id=job_id, total_keyframes=total_keyframes)
+                # Initialize job tracking and let individual asset processing trigger completion
+                await self.job_progress_manager.update_job_progress(job_id, "frame", total_keyframes, 0, "segmentation")
+                logger.debug("Video keyframes batch initialized - waiting for individual asset processing", job_id=job_id, total_keyframes=total_keyframes)
 
         except Exception as e:
             logger.error("Failed to handle videos keyframes ready batch", job_id=job_id, event_id=event_id, error=str(e))
+            raise
+
+    async def handle_products_images_ready_batch(self, event_data: dict) -> None:
+        """Handle products images batch completion event.
+
+        Args:
+            event_data: Batch event payload
+        """
+        try:
+            job_id = event_data["job_id"]
+            event_id = event_data.get("event_id", str(uuid.uuid4()))  # Generate if not provided
+            total_images = event_data.get("total_images", 0)
+
+            logger.info("Batch event received",
+                       job_id=job_id,
+                       asset_type="image",
+                       total_items=total_images,
+                       event_type="products_images_ready_batch",
+                       event_id=event_id)
+
+            # Store the total image count for the job using job progress manager
+            # Start watermark timer first to handle timeout cases
+            await self.job_progress_manager._start_watermark_timer(job_id, 300, "segmentation")
+
+            # If there are zero images, publish batch completion immediately
+            if total_images == 0:
+                logger.info("Zero images job - publishing immediate batch completion", job_id=job_id, asset_type="image")
+                # Publish immediate batch completion event for empty batch
+                await self.job_progress_manager.publish_products_images_masked_batch(job_id=job_id, total_images=0)
+            else:
+                # Initialize job tracking and let individual asset processing trigger completion
+                await self.job_progress_manager.update_job_progress(job_id, "image", total_images, 0, "segmentation")
+                logger.debug("Products images batch initialized - waiting for individual asset processing", job_id=job_id, total_images=total_images)
+
+        except Exception as e:
+            logger.error("Failed to handle products images ready batch", job_id=job_id, event_id=event_id, error=str(e))
             raise

@@ -1,14 +1,12 @@
 from typing import Optional
 from common_py.logging_config import configure_logging
-from utils.deduper import Deduper
 from vision_common import JobProgressManager
 # CompletionManager was removed - using JobProgressManager directly
 
 logger = configure_logging("product-segmentor-service")
 
 class AssetProcessor:
-    def __init__(self, deduper: Deduper, image_masking_processor, db_updater, event_emitter, job_progress_manager: JobProgressManager):
-        self.deduper = deduper
+    def __init__(self, image_masking_processor, db_updater, event_emitter, job_progress_manager: JobProgressManager):
         self.image_masking_processor = image_masking_processor
         self.db_updater = db_updater
         self.event_emitter = event_emitter
@@ -18,13 +16,6 @@ class AssetProcessor:
         """Generic handler for single asset processing (image or frame)."""
         asset_id = event_data[asset_id_key]
         local_path = event_data["local_path"]
-
-        # Use deduplicator to prevent reprocessing
-        asset_key = f"{job_id}:{asset_id}"
-        if self.deduper.is_processed(asset_key):
-            logger.info("Skipping duplicate asset", job_id=job_id, asset_id=asset_id, asset_type=asset_type)
-            return None
-        self.deduper.mark_processed(asset_key)
 
         logger.info("Processing item",
                    job_id=job_id,
@@ -67,7 +58,6 @@ class AssetProcessor:
                            processed=current_processed,
                            total=total_expected,
                            completion_trigger="automatic_from_update_job_progress")
-                self.deduper.clear_all() # Clear deduplicator for this job
 
             logger.info("Item processed successfully",
                        job_id=job_id,

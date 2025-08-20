@@ -1,43 +1,29 @@
-# Matcher Service
+# Matcher Microservice
 
-This service is responsible for matching products with videos using a combination of deep learning embeddings and traditional computer vision techniques.
+## Overview
+This microservice contains the core logic for matching products with video content. It leverages deep learning embeddings and traditional computer vision techniques to identify visual similarities.
 
-## Architecture
+## Functionality
+- Compares product embeddings with video frame embeddings.
+- Applies computer vision algorithms (e.g., AKAZE/SIFT + RANSAC) for precise matching.
+- Determines the confidence score of potential matches.
 
-The service follows a modular architecture with the following components:
+## In/Out Events
+### Input Events
+- `ProductEmbeddingReady`: Event indicating that product embeddings are available for matching.
+  - Data: `{"product_id": "prod-456", "embedding_vector": [0.1, 0.2, ...]}`
+- `VideoFrameEmbeddingReady`: Event indicating that video frame embeddings are available.
+  - Data: `{"video_id": "vid-789", "frame_number": 10, "embedding_vector": [0.3, 0.4, ...]}`
 
-1. **Main Entry Point** (`main.py`): Handles service initialization, event subscription, and graceful shutdown.
-2. **Configuration** (`config_loader.py`): Loads service configuration from environment variables.
-3. **Business Logic** (`service.py`): Contains the main `MatcherService` class that orchestrates the matching process.
-4. **Matching Engine** (`matching.py`): Contains the `MatchingEngine` class that implements the core matching algorithms.
-5. **Tests** (`tests/`): Unit tests for the service components.
+### Output Events
+- `MatchFound`: Event indicating a successful match between a product and a video segment.
+  - Data: `{"match_id": "abc-123", "product_id": "prod-456", "video_id": "vid-789", "timestamp": 123.45, "confidence": 0.95}`
 
-## Key Features
+## Current Progress
+- Initial implementation of CLIP embedding similarity matching.
+- Integration of AKAZE/SIFT for keypoint matching.
 
-- **Modular Design**: Separation of concerns with distinct modules for different responsibilities
-- **Hybrid Matching Approach**: Combines deep learning embeddings with traditional computer vision techniques
-- **Dependency Injection**: Makes the service testable
-- **Proper Error Handling**: Comprehensive error handling and logging
-- **Resource Management**: Proper cleanup of resources on shutdown
-
-## How It Works
-
-1. The service subscribes to `match.request` events from the message broker
-2. When a match request is received, it retrieves the relevant products and videos for the job
-3. It performs matching between all product-video pairs using the matching engine
-4. For each match found, it creates a match record in the database and publishes a `match.result` event
-
-## Matching Process
-
-The matching process involves several steps:
-
-1. **Vector Retrieval**: Uses embeddings to find similar video frames for each product image
-2. **Keypoint Matching**: Applies RANSAC-based keypoint matching for geometric verification
-3. **Score Aggregation**: Combines multiple similarity scores with weighted averaging
-4. **Acceptance Filtering**: Applies threshold-based filtering to ensure high-quality matches
-
-## Running Tests
-
-```bash
-python -m pytest tests/ -v
-```
+## What's Next
+- Optimize matching algorithms for speed and accuracy.
+- Explore advanced matching techniques and models.
+- Implement batch processing for improved efficiency.

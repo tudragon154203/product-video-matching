@@ -1,40 +1,29 @@
-# Vision Embedding Service
+# Vision Embedding Microservice
 
-This service extracts visual embeddings from product images and video frames using CLIP models.
+## Overview
+This microservice generates deep learning features (embeddings) from images and video frames. These embeddings are crucial for semantic similarity matching between products and video content.
 
-## Architecture
+## Functionality
+- Utilizes pre-trained deep learning models (e.g., CLIP) to generate embeddings.
+- Processes product images and video frames to extract high-dimensional feature vectors.
+- Publishes embeddings for use by the Matcher service.
 
-The service follows a modular architecture with the following components:
+## In/Out Events
+### Input Events
+- `ImageForEmbedding`: Event containing an image (product or video frame) for embedding generation.
+  - Data: `{"image_id": "img-001", "image_url": "http://example.com/image.jpg", "type": "product"}`
 
-1. **Main Entry Point** (`main.py`): Handles service initialization, event subscription, and graceful shutdown.
-2. **Configuration** (`config_loader.py`): Loads service configuration from environment variables.
-3. **Business Logic** (`service.py`): Contains the main `VisionEmbeddingService` class that orchestrates embedding extraction.
-4. **Embedding Extraction** (`embedding.py`): Contains the `EmbeddingExtractor` class that handles CLIP model operations.
-5. **Tests** (`tests/`): Unit tests for the service components.
+### Output Events
+- `ProductEmbeddingReady`: Event indicating that product embeddings have been generated.
+  - Data: `{"product_id": "prod-456", "embedding_vector": [0.1, 0.2, ...]}`
+- `VideoFrameEmbeddingReady`: Event indicating that video frame embeddings have been generated.
+  - Data: `{"video_id": "vid-789", "frame_number": 10, "embedding_vector": [0.3, 0.4, ...]}`
 
-## Key Features
+## Current Progress
+- CLIP model integration for embedding generation.
+- GPU acceleration setup for faster processing.
 
-- **Modular Design**: Separation of concerns with distinct modules for different responsibilities
-- **CLIP Model Support**: Uses CLIP models for state-of-the-art visual embedding extraction
-- **GPU Acceleration**: Automatically uses GPU when available for faster processing
-- **Event-Driven**: Subscribes to image and frame ready events for automatic processing
-- **Dependency Injection**: Makes the service testable
-- **Proper Error Handling**: Comprehensive error handling and logging
-- **Resource Management**: Proper cleanup of resources on shutdown
-
-## Event Handling
-
-The service subscribes to:
-- `products.image.ready` events for product image embedding extraction
-- `videos.keyframes.ready` events for video frame embedding extraction
-
-For each event, it:
-1. Extracts RGB and grayscale embeddings using CLIP
-2. Updates the database with the embeddings
-3. Publishes a `features.ready` event for downstream processing
-
-## Running Tests
-
-```bash
-python -m pytest tests/ -v
-```
+## What's Next
+- Explore and integrate other state-of-the-art embedding models.
+- Optimize embedding generation pipeline for large-scale data.
+- Implement dynamic model loading and updating.

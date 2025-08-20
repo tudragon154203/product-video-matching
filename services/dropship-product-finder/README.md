@@ -1,38 +1,27 @@
-# Dropship Product Finder Service
+# Dropship Product Finder Microservice
 
-This service is responsible for collecting product information from e-commerce platforms like Amazon and eBay.
+## Overview
+This microservice is responsible for collecting product data from various e-commerce platforms. It is a key component of the Product-Video Matching System, designed to provide product information for matching with video content.
 
-## Architecture
+## Functionality
+- Collects product data from various e-commerce platforms (e.g., eBay).
+- Processes and normalizes product information.
+- Publishes product data for further processing.
 
-The service follows a modular architecture with the following components:
+## In/Out Events
+### Input Events
+- `ProductCollectionRequest`: Request to initiate product data collection for a specific product or category.
+  - Data: `{"source": "ebay", "query": "electronics"}`
 
-1. **Main Entry Point** (`main.py`): Handles service initialization, event subscription, and graceful shutdown.
-2. **Configuration** (`config_loader.py`): Loads service configuration from environment variables.
-3. **Business Logic** (`services/service.py`): Contains the main `DropshipProductFinderService` class that orchestrates product collection.
-4. **Collectors** (`collectors/collector.py`): Contains abstract base classes and implementations for different e-commerce platforms.
-5. **Tests** (`tests/`): Unit tests for the service components.
+### Output Events
+- `ProductCollected`: Event indicating that product data has been successfully collected and processed.
+  - Data: `{"product_id": "12345", "title": "Example Product", "image_url": "http://example.com/image.jpg"}`
 
-## Key Features
+## Current Progress
+- Initial setup and basic eBay product collection implemented.
+- Data normalization pipeline in progress.
 
-- **Modular Design**: Easy to extend with new e-commerce platforms
-- **Abstract Base Classes**: Ensures consistent interface for all collectors
-- **Dependency Injection**: Makes the service testable
-- **Proper Error Handling**: Comprehensive error handling and logging
-- **Resource Management**: Proper cleanup of resources on shutdown
-
-## Extending with New Platforms
-
-To add support for a new e-commerce platform:
-
-1. Create a new collector class that inherits from `BaseProductCollector`
-2. Implement the required abstract methods:
-   - `collect_products(self, query: str, top_k: int) -> List[Dict[str, Any]]`
-   - `get_source_name(self) -> str`
-3. Register the new collector in the `DropshipProductFinderService.__init__` method
-
-## Running Tests
-
-```bash
-cd services/dropship-product-finder
-python -m pytest tests/ -v
-```
+## What's Next
+- Integrate with additional e-commerce platforms (e.g., Amazon).
+- Implement robust error handling and retry mechanisms.
+- Optimize data collection performance.

@@ -60,19 +60,8 @@ class VisionKeypointService:
                 # Update expected count with real value and re-check completion
                 is_complete = await self.progress_manager.update_expected_and_recheck_completion(job_id, asset_type, real_expected, "keypoints")
                 
-                if is_complete:
-                    # Get current done count for completion event
-                    job_data = self.progress_manager.job_tracking[job_id]
-                    done_count = job_data["done"]
-                    
-                    # Publish completion event
-                    await self.progress_manager.publish_completion_event_with_count(
-                        job_id, asset_type, real_expected, done_count, "keypoints"
-                    )
-                    
-                    # Clean up job tracking
-                    self.progress_manager._cleanup_job_tracking(job_id)
-                    logger.info("Removed job from tracking after per-asset first completion", job_id=job_id)
+                # The update_expected_and_recheck_completion call should trigger completion automatically
+                # Don't manually emit completion events here to prevent duplicates
     
     
     async def handle_products_image_ready(self, event_data: Dict[str, Any]):
@@ -432,10 +421,14 @@ class VisionKeypointService:
                        total_images=total_images,
                        job_image_counts_keys=list(self.progress_manager.job_image_counts.keys()))
             
-            # If there are no images, immediately publish completion event
+            # If there are no images, ensure job tracking exists and trigger completion
             if total_images == 0:
-                logger.info("Immediate completion for zero-asset job", job_id=job_id, asset_type="image")
-                await self.progress_manager.publish_completion_event_with_count(job_id, "image", 0, 0, "keypoints")
+                logger.info("Zero-asset job, ensuring tracking exists and triggering completion", job_id=job_id, asset_type="image")
+                # Initialize job tracking if not exists (handles edge case where no per-asset events arrived)
+                if job_id not in self.progress_manager.job_tracking:
+                    await self.progress_manager.initialize_with_high_expected(job_id, "image", 0)
+                # Call update_job_progress with 0 expected to trigger automatic completion
+                await self.progress_manager.update_job_progress(job_id, "image", 0, 0, "keypoints")
             
             # Check if job is already complete (per-asset first scenario)
             if job_id in self.progress_manager.job_tracking:
@@ -485,10 +478,14 @@ class VisionKeypointService:
                        asset_type="video",
                        total_items=total_keyframes)
             
-            # If there are no keyframes, immediately publish completion event
+            # If there are no keyframes, ensure job tracking exists and trigger completion
             if total_keyframes == 0:
-                logger.info("Immediate completion for zero-asset job", job_id=job_id, asset_type="video")
-                await self.progress_manager.publish_completion_event_with_count(job_id, "video", 0, 0, "keypoints")
+                logger.info("Zero-asset job, ensuring tracking exists and triggering completion", job_id=job_id, asset_type="video")
+                # Initialize job tracking if not exists (handles edge case where no per-asset events arrived)
+                if job_id not in self.progress_manager.job_tracking:
+                    await self.progress_manager.initialize_with_high_expected(job_id, "video", 0)
+                # Call update_job_progress with 0 expected to trigger automatic completion
+                await self.progress_manager.update_job_progress(job_id, "video", 0, 0, "keypoints")
             
             # Check if job is already complete (per-asset first scenario)
             if job_id in self.progress_manager.job_tracking:

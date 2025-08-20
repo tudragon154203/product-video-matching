@@ -68,10 +68,14 @@ class VisionEmbeddingService:
         # Mark batch as initialized
         self.progress_manager._mark_batch_initialized(job_id, asset_type)
         
-        # If there are no items, immediately publish completion event
+        # If there are no items, let the automatic completion handle it
         if total_items == 0:
-            logger.info("Immediate completion for zero-asset job", job_id=job_id, asset_type=asset_type)
-            await self.progress_manager.publish_completion_event_with_count(job_id, asset_type, 0, 0, "embeddings")
+            logger.info("Zero-asset job, ensuring tracking exists and triggering completion", job_id=job_id, asset_type=asset_type)
+            # Initialize job tracking if not exists (handles edge case where no per-asset events arrived)
+            if job_id not in self.progress_manager.job_tracking:
+                await self.progress_manager.initialize_with_high_expected(job_id, asset_type, 0)
+            # Call update_job_progress with 0 expected to trigger automatic completion
+            await self.progress_manager.update_job_progress(job_id, asset_type, 0, 0, "embeddings")
     
     async def _handle_single_asset_processing(self, job_id: str, asset_id: str, asset_type: str, local_path: str,
                                             crud, extract_func, is_masked: bool = False, mask_path: str = None):
@@ -149,22 +153,8 @@ class VisionEmbeddingService:
                     processed=current_count,
                     total=total_count)
         
-        # Check if all items are processed
-        if current_count >= total_count:
-            logger.info("Batch completed",
-                       job_id=job_id,
-                       asset_type=asset_type,
-                       processed=current_count,
-                       total=total_count)
-            
-            # Publish completion event
-            await self.progress_manager.publish_completion_event_with_count(
-                job_id, asset_type, total_count, current_count, "embeddings"
-            )
-            
-            # Clean up job tracking
-            self.progress_manager._cleanup_job_tracking(job_id)
-            logger.info("Removed job from tracking", job_id=job_id)
+        # The update_job_progress call above should trigger completion automatically
+        # Don't manually emit completion events here to prevent duplicates
 
     async def _update_and_check_completion_per_asset_first(self, job_id: str, asset_type: str):
         """Update progress and check if batch is complete (per-asset first pattern)"""
@@ -191,19 +181,8 @@ class VisionEmbeddingService:
                 # Update expected count with real value and re-check completion
                 is_complete = await self.progress_manager.update_expected_and_recheck_completion(job_id, asset_type, real_expected, "embeddings")
                 
-                if is_complete:
-                    # Get current done count for completion event
-                    job_data = self.progress_manager.job_tracking[job_id]
-                    done_count = job_data["done"]
-                    
-                    # Publish completion event
-                    await self.progress_manager.publish_completion_event_with_count(
-                        job_id, asset_type, real_expected, done_count, "embeddings"
-                    )
-                    
-                    # Clean up job tracking
-                    self.progress_manager._cleanup_job_tracking(job_id)
-                    logger.info("Removed job from tracking after per-asset first completion", job_id=job_id)
+                # The update_expected_and_recheck_completion call should trigger completion automatically
+                # Don't manually emit completion events here to prevent duplicates
 
     
     async def handle_products_images_masked_batch(self, event_data: Dict[str, Any]):

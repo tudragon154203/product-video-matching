@@ -1,16 +1,72 @@
 import asyncio
 import uuid
-from typing import Dict, Any, Set, Optional
+from typing import Dict, Any, Set, Optional, Tuple
 from common_py.logging_config import configure_logging
 from common_py.messaging import MessageBroker
 
 logger = configure_logging("job-progress-manager")
 
 class CompletionEventPublisher:
+    # Constants
+    DEFAULT_WATERMARK_TTL = 300
+    FAILED_ASSETS_PLACEHOLDER = 0
+    
     def __init__(self, broker: MessageBroker, base_manager):
         self.broker = broker
         self.base_manager = base_manager
         self._completion_events_sent: set = set()  # Track completion events sent to prevent duplicates
+
+    def _create_completion_key(self, job_id: str, asset_type: str, event_type: str) -> str:
+        """Generate a unique completion key for job and event type"""
+        return f"{job_id}:{asset_type}:{event_type}"
+
+    def _is_duplicate_event(self, completion_key: str) -> bool:
+        """Check if completion event has already been sent"""
+        is_duplicate = completion_key in self._completion_events_sent
+        if is_duplicate:
+            logger.warning("DUPLICATE COMPLETION EVENT DETECTED - skipping",
+                         completion_key=completion_key, current_set_size=len(self._completion_events_sent))
+        return is_duplicate
+
+    def _mark_event_sent(self, completion_key: str) -> None:
+        """Mark completion event as sent and log it"""
+        self._completion_events_sent.add(completion_key)
+        logger.debug("Marked completion event as sent",
+                    completion_key=completion_key, total_set_size=len(self._completion_events_sent))
+
+    def _prepare_completion_event_data(self, job_id: str, expected: int, done: int, 
+                                     has_partial: bool, is_timeout: bool = False) -> Dict[str, Any]:
+        """Prepare standard completion event data"""
+        event_id = str(uuid.uuid4())
+        return {
+            "job_id": job_id,
+            "event_id": event_id,
+            "total_assets": expected,
+            "processed_assets": done,
+            "failed_assets": self.FAILED_ASSETS_PLACEHOLDER,
+            "has_partial_completion": has_partial or is_timeout,
+            "watermark_ttl": self.DEFAULT_WATERMARK_TTL,
+            "idempotent": True
+        }
+
+    def _determine_event_type(self, asset_type: str, event_type_prefix: str) -> str:
+        """Determine the event type based on asset type and prefix"""
+        if event_type_prefix == "segmentation":
+            return f"{asset_type}.masked.batch" if asset_type in ["products", "video"] else f"{asset_type}.{event_type_prefix}.completed"
+        return f"image.{event_type_prefix}.completed" if asset_type == "image" else f"video.{event_type_prefix}.completed"
+
+    async def _publish_event(self, event_type: str, event_data: Dict[str, Any], 
+                           completion_key: str, message: str) -> None:
+        """Publish event with standardized logging and error handling"""
+        await self.broker.publish_event(event_type, event_data)
+        logger.info(message, job_id=event_data["job_id"], event_id=event_data["event_id"],
+                   total=event_data["total_assets"], done=event_data["processed_assets"])
+
+    def _handle_zero_asset_case(self, expected: int) -> Tuple[int, bool]:
+        """Handle zero asset edge case"""
+        if expected == 0:
+            return 0, False  # done=0, has_partial=False
+        return expected, (expected > 0)  # Return expected and whether it's partial
 
     async def publish_completion_event(self, job_id: str, is_timeout: bool = False, event_type_prefix: str = "embeddings"):
         """Publish completion event with progress data"""
@@ -118,6 +174,17 @@ class CompletionEventPublisher:
         
         # Cleanup job tracking
         self.base_manager._cleanup_job_tracking(job_id)
+        
+        # For segmentation completion, emit masked batch events if this is a segmentation job
+        if event_type_prefix == "segmentation":
+            await self.emit_segmentation_masked_batch_events(job_id, asset_type, expected, done)
+
+    async def emit_segmentation_masked_batch_events(self, job_id: str, asset_type: str, expected: int, done: int):
+        """Emit masked batch events when segmentation completes"""
+        if asset_type == "image":
+            await self.publish_products_images_masked_batch(job_id, done)
+        elif asset_type == "frame":
+            await self.publish_videos_keyframes_masked_batch(job_id, done)
 
     async def publish_products_images_masked_batch(self, job_id: str, total_images: int) -> None:
         """Publish products images masked batch completion event.
