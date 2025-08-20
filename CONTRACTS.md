@@ -7,6 +7,54 @@ This document reflects the current, validated JSON Schemas found under `libs/con
 - Catalog Collector → Dropship Product Finder
 - Media Ingestion → Video Crawler
 
+## Event Architecture Analysis
+
+After comprehensive analysis of service implementations, **all events serve essential purposes** with no redundancy. The event-driven architecture is well-designed with each event type fulfilling specific critical functions:
+
+### Essential Event Categories:
+
+#### 1. Individual Asset Events (Enable Parallel Processing)
+- `products.image.ready`: Signals individual product image is ready
+- `videos.keyframes.ready`: Signals individual video frames are ready
+- `image.embedding.ready`: Signals individual image embedding is complete
+- `video.embedding.ready`: Signals individual video embedding is complete
+- `image.keypoint.ready`: Signals individual image keypoints are ready
+- `video.keypoint.ready`: Signals individual video keypoints are ready
+
+**Purpose**: Enable services to process assets in parallel, providing real-time availability to downstream services.
+
+#### 2. Batch Events (Critical for Progress Tracking)
+- `products.images.ready.batch`: Provides total image count with `total_images`
+- `videos.keyframes.ready.batch`: Provides total keyframe count with `total_keyframes`
+- `products.images.masked.batch`: Provides total masked image count with `total_images`
+- `video.keyframes.masked.batch`: Provides total masked keyframe count with `total_keyframes`
+
+**Purpose**: Vision services use these totals to initialize progress tracking and determine when to emit "completed" events.
+
+#### 3. Completion Events (Enable Job Orchestration)
+- `image.embeddings.completed`: Main API barrier for phase transition with asset counts
+- `video.embeddings.completed`: Main API barrier for phase transition with asset counts
+- `image.keypoints.completed`: Main API barrier for phase transition with asset counts
+- `video.keypoints.completed`: Main API barrier for phase transition with asset counts
+- `matchings.process.completed`: Main API barrier for matching phase completion
+- `evidences.generation.completed`: Main API barrier for evidence phase completion
+
+**Purpose**: Provide Main API with completion data for job orchestration and phase transitions.
+
+### How Services Emit Completion Events
+
+Vision services depend on batch events to track progress:
+
+```python
+# Example workflow:
+# 1. Batch event: "products_images_masked_batch" with total_images=50
+# 2. Service initializes: job_image_counts[job_id] = {'total': 50, 'processed': 0}
+# 3. Processes 50 individual "products.image.ready" events
+# 4. After #50: processed=50, total=50 → emit "image.embeddings.completed"
+```
+
+**Conclusion**: All 24 event schemas are essential. Removing any would break the system's ability to process in parallel, track progress accurately, or manage job phases properly.
+
 ## Envelope and Validation
 
 - Events are published as plain JSON payloads that match the schemas below. There is no separate payload wrapper.
