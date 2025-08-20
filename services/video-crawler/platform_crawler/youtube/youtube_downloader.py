@@ -39,13 +39,18 @@ class YoutubeDownloader:
             logger.info(f"Using existing file: {existing_file}")
             return video
         
-        # Download the video
+        # Download the video with resilient format selection
         ydl_opts = {
-            'format': 'best[ext=mp4]/best',
+            'format': 'bv*[height<=?1080][ext=mp4]+ba[ext=m4a]/b[height<=?1080][ext=mp4]/bv*[height<=?1080]+ba/b[height<=?1080]/best',
             'outtmpl': str(uploader_dir / f"{title}.%(ext)s"),
             'quiet': True,
             'no_warnings': True,
             'nocheckcertificate': True,
+            'merge_output_format': 'mp4',
+            'postprocessors': [{
+                'key': 'FFmpegVideoConvertor',
+                'preferedformat': 'mp4',
+            }],
         }
         
         try:
@@ -64,4 +69,12 @@ class YoutubeDownloader:
                     
         except Exception as e:
             logger.error(f"Failed to download video {video['video_id']}: {str(e)}")
+            # Log available formats for debugging
+            try:
+                with yt_dlp.YoutubeDL({'quiet': True, 'no_warnings': True}) as ydl:
+                    info = ydl.extract_info(video['url'], download=False)
+                    formats = info.get('formats', [])
+                    logger.debug(f"Available formats for {video['video_id']}: {[f.get('format_id', '') for f in formats]}")
+            except Exception as debug_e:
+                logger.debug(f"Could not retrieve formats for debugging: {debug_e}")
             return None
