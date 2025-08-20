@@ -8,6 +8,8 @@ data/
 *.ps1
 mcp.json
 infra/qdrant/data
+.stfolder
+.stignore
 
 # Environment variables
 .env

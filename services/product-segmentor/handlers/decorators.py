@@ -15,10 +15,29 @@ def validate_event(schema_name):
                 if not event_data:
                     raise ValueError("Event data not found in arguments")
                 
+                # Log the event data structure before validation
+                logger.info(f"Validating event for {schema_name}",
+                           schema_name=schema_name,
+                           event_keys=list(event_data.keys()) if isinstance(event_data, dict) else "not_dict",
+                           event_type=type(event_data).__name__)
+                
+                # Log specific required fields for videos_keyframes_ready
+                if schema_name == "videos_keyframes_ready" and isinstance(event_data, dict):
+                    logger.info("Videos keyframes ready validation details",
+                               video_id=event_data.get("video_id"),
+                               job_id=event_data.get("job_id"),
+                               frames_count=len(event_data.get("frames", [])),
+                               frames_keys=list(event_data.get("frames", [{}])[0].keys()) if event_data.get("frames") and len(event_data.get("frames", [])) > 0 else "no_frames")
+                
                 validator.validate_event(schema_name, event_data)
                 return await func(*args, **kwargs)
             except Exception as e:
                 logger.error(f"Validation failed for {schema_name}: {str(e)}")
+                # Debug: Log the full event data structure for debugging
+                logger.error("Failed event data structure",
+                           schema_name=schema_name,
+                           event_data=event_data,
+                           event_type=type(event_data).__name__)
                 raise
         return wrapper
     return decorator

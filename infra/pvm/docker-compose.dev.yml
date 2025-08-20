@@ -150,10 +150,9 @@ services:
       dockerfile: services/video-crawler/Dockerfile
     env_file:
       - .env
-      
     environment:
       DATA_ROOT: /app/data
-      PYTHONPATH: /app/libs:/app/libs/common-py:/app/libs/contracts
+      PYTHONPATH: /app/libs:/app/libs/common-py:/app/libs/contracts::/app/libs/vision-common
     volumes:
       - ../../libs:/app/libs
       - ../../data:/app/data

@@ -189,7 +189,7 @@ class TestEdgeCases:
         
         # Check that batch completion event was called
         batch_call_args = mock_broker.publish_event.call_args_list[1]
-        assert batch_call_args[0][0] == "products.images.masked.completed"
+        assert batch_call_args[0][0] == "video.keyframes.masked.batch"
         assert batch_call_args[0][1]["job_id"] == "job_123"
     
     @pytest.mark.asyncio

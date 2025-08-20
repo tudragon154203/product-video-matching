@@ -40,24 +40,6 @@ class EventEmitter:
             logger.error("Failed to emit product image masked event", job_id=job_id, image_id=image_id, event_id=event_id, error=str(e))
             raise
     
-    async def emit_products_images_masked_batch(self, job_id: str, total_images: int) -> None:
-        """Emit products images masked batch event."""
-        event_id = str(uuid.uuid4())
-        event_data = {
-            "event_id": event_id,
-            "job_id": job_id,
-            "total_images": total_images
-        }
-        
-        logger.info("Emitting products images masked batch event", job_id=job_id, total_images=total_images, event_id=event_id)
-        
-        try:
-            await self.broker.publish_event("products.images.masked.batch", event_data)
-            logger.info("Successfully emitted products images masked batch event", job_id=job_id, total_images=total_images, event_id=event_id)
-        except Exception as e:
-            logger.error("Failed to emit products images masked batch event", job_id=job_id, total_images=total_images, event_id=event_id, error=str(e))
-            raise
-    
     async def emit_video_keyframes_masked(self, job_id: str, video_id: str, frames: List[dict]) -> None:
         """Emit video keyframes masked event."""
         event_id = str(uuid.uuid4())
@@ -77,66 +59,4 @@ class EventEmitter:
             logger.error("Failed to emit video keyframes masked event", job_id=job_id, video_id=video_id, frame_count=len(frames), event_id=event_id, error=str(e))
             raise
     
-    async def emit_videos_keyframes_masked_batch(self, job_id: str, total_keyframes: int) -> None:
-        """Emit videos keyframes masked batch event."""
-        event_id = str(uuid.uuid4())
-        event_data = {
-            "event_id": event_id,
-            "job_id": job_id,
-            "total_keyframes": total_keyframes
-        }
-        
-        logger.info("Emitting videos keyframes masked batch event", job_id=job_id, total_keyframes=total_keyframes, event_id=event_id)
-        
-        try:
-            await self.broker.publish_event("video.keyframes.masked.batch", event_data)
-            logger.info("Successfully emitted videos keyframes masked batch event", job_id=job_id, total_keyframes=total_keyframes, event_id=event_id)
-        except Exception as e:
-            logger.error("Failed to emit videos keyframes masked batch event", job_id=job_id, total_keyframes=total_keyframes, event_id=event_id, error=str(e))
-            raise
-
-    async def emit_products_images_masked_completed(self, job_id: str, total_assets: int, processed_assets: int, has_partial_completion: bool) -> None:
-        """Emit products images masked completed event."""
-        event_id = str(uuid.uuid4())
-        event_data = {
-            "event_id": event_id,
-            "job_id": job_id,
-            "total_assets": total_assets,
-            "processed_assets": processed_assets,
-            "failed_assets": 0,  # Placeholder - actual failure tracking would be added separately
-            "has_partial_completion": has_partial_completion,
-            "watermark_ttl": 300,
-            "idempotent": True  # Flag to prevent duplicate completions
-        }
-        
-        logger.info("Emitting products images masked completed event", job_id=job_id, event_id=event_id)
-        
-        try:
-            await self.broker.publish_event("products.images.masked.completed", event_data)
-            logger.info("Successfully emitted products images masked completed event", job_id=job_id, event_id=event_id)
-        except Exception as e:
-            logger.error("Failed to emit products images masked completed event", job_id=job_id, event_id=event_id, error=str(e))
-            raise
-
-    async def emit_video_keyframes_masked_completed(self, job_id: str, total_assets: int, processed_assets: int, has_partial_completion: bool) -> None:
-        """Emit video keyframes masked completed event."""
-        event_id = str(uuid.uuid4())
-        event_data = {
-            "event_id": event_id,
-            "job_id": job_id,
-            "total_assets": total_assets,
-            "processed_assets": processed_assets,
-            "failed_assets": 0,  # Placeholder - actual failure tracking would be added separately
-            "has_partial_completion": has_partial_completion,
-            "watermark_ttl": 300,
-            "idempotent": True  # Flag to prevent duplicate completions
-        }
-        
-        logger.info("Emitting video keyframes masked completed event", job_id=job_id, event_id=event_id)
-        
-        try:
-            await self.broker.publish_event("video.keyframes.masked.completed", event_data)
-            logger.info("Successfully emitted video keyframes masked completed event", job_id=job_id, event_id=event_id)
-        except Exception as e:
-            logger.error("Failed to emit video keyframes masked completed event", job_id=job_id, event_id=event_id, error=str(e))
-            raise
+    

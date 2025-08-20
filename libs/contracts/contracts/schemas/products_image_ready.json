@@ -3,7 +3,7 @@
   "title": "ProductsImageReady",
   "type": "object",
   "additionalProperties": true,
-  "required": ["product_id", "image_id", "local_path"],
+  "required": ["product_id", "image_id", "local_path", "job_id"],
   "properties": {
     "product_id": {
       "type": "string",

@@ -6,7 +6,7 @@ from pathlib import Path
 from unittest.mock import MagicMock, patch, AsyncMock
 
 # Import the modules to test
-from services.service import VideoCrawlerService
+from services.video_crawler.services.service import VideoCrawlerService
 from fetcher.video_fetcher import VideoFetcher
 from platform_crawler.interface import PlatformCrawlerInterface
 from platform_crawler.mock_crawler import MockPlatformCrawler

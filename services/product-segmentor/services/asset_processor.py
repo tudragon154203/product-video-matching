@@ -2,18 +2,17 @@ from typing import Optional
 from common_py.logging_config import configure_logging
 from utils.deduper import Deduper
 from vision_common import JobProgressManager
-from utils.completion_manager import CompletionManager
+# CompletionManager was removed - using JobProgressManager directly
 
 logger = configure_logging("product-segmentor-service")
 
 class AssetProcessor:
-    def __init__(self, deduper: Deduper, image_masking_processor, db_updater, event_emitter, job_progress_manager: JobProgressManager, completion_manager: CompletionManager):
+    def __init__(self, deduper: Deduper, image_masking_processor, db_updater, event_emitter, job_progress_manager: JobProgressManager):
         self.deduper = deduper
         self.image_masking_processor = image_masking_processor
         self.db_updater = db_updater
         self.event_emitter = event_emitter
         self.job_progress_manager = job_progress_manager
-        self.completion_manager = completion_manager
 
     async def handle_single_asset_processing(self, event_data: dict, asset_type: str, asset_id_key: str, db_update_func, emit_masked_func, job_id: str = "unknown") -> Optional[str]:
         """Generic handler for single asset processing (image or frame)."""
@@ -44,8 +43,8 @@ class AssetProcessor:
             # Update database
             await db_update_func(asset_id, mask_path)
 
-            # Increment processed count and check for completion
-            await self.job_progress_manager.update_job_progress(job_id, asset_type, 1, 1, "segmentation")
+            # Increment processed count without triggering completion (expected count already set high)
+            await self.job_progress_manager.base_manager.update_job_progress(job_id, asset_type, 0, 1, "segmentation")
             current_processed = self.job_progress_manager.job_tracking[job_id]["done"]
             total_expected = self.job_progress_manager.job_tracking[job_id]["expected"]
 

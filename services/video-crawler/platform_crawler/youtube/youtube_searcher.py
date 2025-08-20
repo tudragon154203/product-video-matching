@@ -29,7 +29,6 @@ class YoutubeSearcher:
         Returns:
             List of video metadata dictionaries
         """
-        logger.critical(f"DEBUG: search_youtube method called with query='{query}', recency_days={recency_days}, num_ytb_videos={num_ytb_videos}")
         MAX_ATTEMPTS = 5
         current_search_limit = num_ytb_videos
         attempts = 0

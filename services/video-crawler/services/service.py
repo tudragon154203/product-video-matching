@@ -14,6 +14,7 @@ from platform_crawler.youtube.youtube_crawler import YoutubeCrawler
 from handlers.event_emitter import EventEmitter
 from common_py.logging_config import configure_logging
 from config_loader import config
+from vision_common import JobProgressManager
 
 logger = configure_logging("video-crawler")
 
@@ -30,6 +31,7 @@ class VideoCrawlerService:
         self.video_fetcher = VideoFetcher(platform_crawlers=self.platform_crawlers)
         self.keyframe_extractor = KeyframeExtractor(data_root)
         self.event_emitter = EventEmitter(broker)
+        self.job_progress_manager = JobProgressManager(broker)
     
     async def handle_videos_search_request(self, event_data: Dict[str, Any]):
         """Handle video search request"""
@@ -51,9 +53,8 @@ class VideoCrawlerService:
                 await self._handle_zero_videos_case(job_id)
                 return
             
-            total_frames = await self._calculate_total_keyframes(all_videos)
-            
-            await self.event_emitter.publish_videos_keyframes_ready_batch(job_id, total_frames)
+            # Register total videos with JobProgressManager
+            await self.job_progress_manager.update_job_progress(job_id, "video", len(all_videos), 0, "crawling")
             
             await self._process_and_emit_videos(all_videos, job_id)
             
@@ -102,36 +103,33 @@ class VideoCrawlerService:
 
     async def _handle_zero_videos_case(self, job_id: str):
         logger.info("No videos found for job {job_id}", job_id=job_id)
-        await self.event_emitter.publish_zero_asset_event(job_id)
         await self.event_emitter.publish_videos_collections_completed(job_id)
         logger.info("Completed video search with zero videos",
                    job_id=job_id,
                    total_videos=0)
-
-    async def _calculate_total_keyframes(self, all_videos: List[Dict[str, Any]]) -> int:
-        total_frames = 0
-        for video_data in all_videos:
-            keyframes = await self.keyframe_extractor.extract_keyframes(video_data["url"], "temp_count")
-            total_frames += len(keyframes)
-        return total_frames
 
     async def _process_and_emit_videos(self, all_videos: List[Dict[str, Any]], job_id: str):
         for video_data in all_videos:
             await self.process_video(video_data, job_id)
         await self.event_emitter.publish_videos_collections_completed(job_id)
     
-    async def process_video(self, video_data: Dict[str, Any], job_id: str):
+    async def process_video(self, video_data: Dict[str, Any], job_id: str) -> List[Dict[str, Any]]:
         """Process a single video and extract keyframes"""
         try:
             video = await self._create_and_save_video_record(video_data, job_id)
             keyframes_data = await self._extract_and_save_keyframes(video, video_data)
             await self._emit_keyframes_ready_event(video, keyframes_data, job_id)
             
+            # Increment processed count for the video
+            await self.job_progress_manager.update_job_progress(job_id, "video", 0, 1, "crawling")
+            
             logger.info("Processed video", video_id=video.video_id, 
                        frame_count=len(keyframes_data))
+            return keyframes_data
             
         except Exception as e:
             logger.error(f"Failed to process video: {str(e)}", extra={"video_data": video_data})
+            return [] # Return empty list on error to avoid breaking the sum
 
     async def _create_and_save_video_record(self, video_data: Dict[str, Any], job_id: str) -> Video:
         video = Video(

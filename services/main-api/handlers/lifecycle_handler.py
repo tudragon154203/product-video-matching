@@ -30,9 +30,6 @@ class LifecycleHandler:
         except Exception as e:
             logger.warning(f"Failed to connect to message broker: {e}. Continuing without broker connection.")
         
-        # Start background task for phase updates (deprecated but kept for compatibility)
-        asyncio.create_task(self.job_service.phase_update_task())
-        
         # Subscribe to phase events
         await self.subscribe_to_phase_events()
         

@@ -12,24 +12,6 @@ class EventEmitter:
     def __init__(self, broker: MessageBroker):
         self.broker = broker
     
-    async def publish_videos_keyframes_ready_batch(self, job_id: str, total_keyframes: int, correlation_id: Optional[str] = None):
-        """Publish batch keyframes ready event"""
-        batch_event_id = str(uuid.uuid4())
-        await self.broker.publish_event(
-            "videos.keyframes.ready.batch",
-            {
-                "job_id": job_id,
-                "event_id": batch_event_id,
-                "total_keyframes": total_keyframes
-            },
-            correlation_id=correlation_id or job_id
-        )
-        logger.info("Published batch keyframes ready event",
-                   job_id=job_id,
-                   total_keyframes=total_keyframes,
-                   batch_event_id=batch_event_id)
-        return batch_event_id
-    
     async def publish_videos_collections_completed(self, job_id: str, correlation_id: Optional[str] = None):
         """Publish videos collections completed event"""
         event_id = str(uuid.uuid4())
@@ -62,20 +44,4 @@ class EventEmitter:
                    frame_count=len(frames),
                    job_id=job_id)
     
-    async def publish_zero_asset_event(self, job_id: str, correlation_id: Optional[str] = None):
-        """Publish event for zero assets case (no videos found)"""
-        batch_event_id = str(uuid.uuid4())
-        await self.broker.publish_event(
-            "videos.keyframes.ready.batch",
-            {
-                "job_id": job_id,
-                "event_id": batch_event_id,
-                "total_keyframes": 0
-            },
-            correlation_id=correlation_id or job_id
-        )
-        logger.info("Published batch keyframes ready event with zero keyframes",
-                   job_id=job_id,
-                   total_keyframes=0,
-                   batch_event_id=batch_event_id)
-        return batch_event_id
+    

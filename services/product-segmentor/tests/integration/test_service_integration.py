@@ -93,11 +93,7 @@ class TestProductSegmentorServiceIntegration:
                 
                 # Mock the event emitter to track calls without affecting the actual broker
                 service.event_emitter.emit_product_image_masked = AsyncMock()
-                service.event_emitter.emit_products_images_masked_batch = AsyncMock()
                 service.event_emitter.emit_video_keyframes_masked = AsyncMock()
-                service.event_emitter.emit_videos_keyframes_masked_batch = AsyncMock()
-                service.event_emitter.emit_products_images_masked_completed = AsyncMock()
-                service.event_emitter.emit_video_keyframes_masked_completed = AsyncMock()
                 
                 return service
     
@@ -221,11 +217,7 @@ class TestProductSegmentorServiceIntegration:
         
         await service.handle_products_images_ready_batch(event_data)
         
-        # Verify immediate batch completion event was published via event_emitter
-        service.event_emitter.emit_products_images_masked_batch.assert_called_once_with(
-            job_id="job_123",
-            total_images=0
-        )
+        
     
     @pytest.mark.asyncio
     async def test_handle_videos_keyframes_ready(self, service, temp_dir):
@@ -313,12 +305,7 @@ class TestProductSegmentorServiceIntegration:
         
         await service.handle_videos_keyframes_ready_batch(event_data)
         
-        # Verify immediate batch completion event was published via event_emitter
-        service.event_emitter.emit_videos_keyframes_masked_batch.assert_called_once_with(
-            job_id="job_123",
-            total_keyframes=0
-        )
-    
+       
     @pytest.mark.asyncio
     async def test_segmentation_failure_handling(self, service, temp_dir):
         """Test handling of segmentation failures."""

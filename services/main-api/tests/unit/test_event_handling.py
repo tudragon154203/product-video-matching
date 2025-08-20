@@ -9,7 +9,6 @@ import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
 from services.phase.phase_event_service import PhaseEventService
-from services.phase.phase_management_service import PhaseManagementService
 from handlers.database_handler import DatabaseHandler
 from handlers.broker_handler import BrokerHandler
 
@@ -52,10 +51,6 @@ class TestEventHandling:
         """Create a PhaseEventService instance with mocked dependencies"""
         return PhaseEventService(mock_db_handler, mock_broker_handler)
 
-    @pytest.fixture
-    def phase_management_service(self, mock_db_handler, mock_broker_handler):
-        """Create a PhaseManagementService instance with mocked dependencies"""
-        return PhaseManagementService(mock_db_handler, mock_broker_handler)
 
     @pytest.mark.asyncio
     async def test_handle_image_embeddings_completed_event(self, phase_event_service, mock_db_handler, mock_broker_handler):
@@ -435,17 +430,6 @@ class TestEventHandling:
         assert "Event validation failed" in caplog.text
         assert "'job_id' is a required property" in caplog.text
 
-    def test_phase_management_service_deprecation(self, phase_management_service, caplog):
-        """Test that phase management service logs deprecation message"""
-        # Run the deprecated phase update task
-        asyncio.run(phase_management_service.phase_update_task())
-        
-        # Verify deprecation message is logged
-        assert "Phase update task is deprecated in Sprint 6" in caplog.text
-        assert "Using event-driven phase transitions instead" in caplog.text
-        
-        # Verify no actual phase updates were attempted
-        phase_management_service.db_handler.update_job_phase.assert_not_called()
 
 
 if __name__ == "__main__":

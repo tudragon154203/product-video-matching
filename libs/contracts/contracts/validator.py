@@ -1,7 +1,11 @@
 import json
+import logging
 from pathlib import Path
 from typing import Dict, Any
 from jsonschema import validate, ValidationError
+
+# Configure logging for the validator
+logger = logging.getLogger("contracts-validator")
 
 
 class EventValidator:
@@ -63,11 +67,31 @@ class EventValidator:
         schema_key = self._resolve_schema_key(event_type)
         schema = self.schemas[schema_key]
 
+        # Log validation details
+        logger.info(f"Validating event_type='{event_type}' -> schema_key='{schema_key}'",
+                   event_keys=list(event_data.keys()) if isinstance(event_data, dict) else "not_dict",
+                   schema_required_fields=schema.get('required', 'none'))
+        
+        # Special logging for videos_keyframes_ready
+        if event_type == "videos_keyframes_ready" or schema_key == "videos_keyframes_ready":
+            if isinstance(event_data, dict):
+                logger.info("Videos keyframes validation details",
+                           video_id=event_data.get("video_id"),
+                           job_id=event_data.get("job_id"),
+                           frames_count=len(event_data.get("frames", [])),
+                           frames_keys=list(event_data.get("frames", [{}])[0].keys()) if event_data.get("frames") and len(event_data.get("frames", [])) > 0 else "no_frames")
+            else:
+                logger.warning("Videos keyframes validation - event_data is not a dict")
+
         try:
             validate(instance=event_data, schema=schema)
             return True
         except ValidationError as e:
+            logger.error(f"ValidationError details: {e.message}")
             raise ValidationError(f"Event validation failed for {event_type}: {e.message}")
+        except Exception as e:
+            logger.error(f"Unexpected validation error: {e}")
+            raise
 
     def get_schema(self, event_type: str) -> Dict[str, Any]:
         """Get the schema for a specific event type (supports dotted or underscore names)."""

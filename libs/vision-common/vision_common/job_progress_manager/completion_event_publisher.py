@@ -118,3 +118,87 @@ class CompletionEventPublisher:
         
         # Cleanup job tracking
         self.base_manager._cleanup_job_tracking(job_id)
+
+    async def publish_products_images_masked_batch(self, job_id: str, total_images: int) -> None:
+        """Publish products images masked batch completion event.
+        
+        Args:
+            job_id: Job identifier
+            total_images: Total number of images processed
+        """
+        event_id = str(uuid.uuid4())
+        event_data = {
+            "event_id": event_id,
+            "job_id": job_id,
+            "total_images": total_images
+        }
+        
+        # Check if this job has already emitted a completion event for products images
+        completion_key = f"{job_id}:products.images.masked.batch"
+        if completion_key in self._completion_events_sent:
+            logger.info("Products images masked batch event already sent, skipping duplicate",
+                       job_id=job_id, total_images=total_images)
+            return
+            
+        # Mark this job as having sent the completion event
+        self._completion_events_sent.add(completion_key)
+        
+        await self.broker.publish_event("products.images.masked.batch", event_data)
+        logger.info(f"Emitted products images masked batch event",
+                   job_id=job_id, event_id=event_id, total_images=total_images)
+
+    async def publish_videos_keyframes_masked_batch(self, job_id: str, total_keyframes: int) -> None:
+        """Publish videos keyframes masked batch completion event.
+        
+        Args:
+            job_id: Job identifier
+            total_keyframes: Total number of keyframes processed
+        """
+        event_id = str(uuid.uuid4())
+        event_data = {
+            "event_id": event_id,
+            "job_id": job_id,
+            "total_keyframes": total_keyframes
+        }
+        
+        # Check if this job has already emitted a completion event for videos keyframes
+        completion_key = f"{job_id}:video.keyframes.masked.batch"
+        if completion_key in self._completion_events_sent:
+            logger.info("Videos keyframes masked batch event already sent, skipping duplicate",
+                       job_id=job_id, total_keyframes=total_keyframes)
+            return
+            
+        # Mark this job as having sent the completion event
+        self._completion_events_sent.add(completion_key)
+        
+        await self.broker.publish_event("video.keyframes.masked.batch", event_data)
+        logger.info(f"Emitted videos keyframes masked batch event",
+                   job_id=job_id, event_id=event_id, total_keyframes=total_keyframes)
+
+    async def publish_videos_keyframes_ready_batch(self, job_id: str, total_keyframes: int) -> None:
+        """Publish videos keyframes ready batch completion event.
+        
+        Args:
+            job_id: Job identifier
+            total_keyframes: Total number of keyframes processed
+        """
+        event_id = str(uuid.uuid4())
+        event_data = {
+            "event_id": event_id,
+            "job_id": job_id,
+            "total_keyframes": total_keyframes
+        }
+        
+        # Check if this job has already emitted a completion event for videos keyframes ready
+        completion_key = f"{job_id}:video.keyframes.ready.batch"
+        if completion_key in self._completion_events_sent:
+            logger.info("Videos keyframes ready batch event already sent, skipping duplicate",
+                       job_id=job_id, total_keyframes=total_keyframes)
+            return
+            
+        # Mark this job as having sent the completion event
+        self._completion_events_sent.add(completion_key)
+        
+        await self.broker.publish_event("videos.keyframes.ready.batch", event_data)
+        logger.info(f"Emitted videos keyframes ready batch event",
+                   job_id=job_id, event_id=event_id, total_keyframes=total_keyframes)

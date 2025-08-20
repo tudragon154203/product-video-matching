@@ -20,12 +20,22 @@ class MessageHandler:
         
         try:
             # Parse message
-            event_data = json.loads(message.body.decode())
+            raw_body = message.body.decode()
+            logger.debug("Raw message body", raw_body=raw_body, correlation_id=correlation_id, body_length=len(raw_body))
+            
+            # Check if the raw_body is already a correlation ID (indicating malformed message)
+            if raw_body.strip() == correlation_id and len(raw_body.strip()) == 36:
+                logger.error("Malformed message: body contains only correlation ID", correlation_id=correlation_id)
+                raise ValueError(f"Malformed message: body contains only correlation ID {correlation_id}")
+            
+            event_data = json.loads(raw_body)
             
             logger.info(
                 "Received event",
                 topic=topic,
-                correlation_id=correlation_id
+                correlation_id=correlation_id,
+                event_data_keys=list(event_data.keys()) if isinstance(event_data, dict) else "not_dict",
+                event_data_type=type(event_data).__name__
             )
             
             # Call handler
@@ -40,12 +50,30 @@ class MessageHandler:
                 correlation_id=correlation_id
             )
             
+        except json.JSONDecodeError as e:
+            logger.error(
+                "Failed to decode JSON message",
+                topic=topic,
+                correlation_id=correlation_id,
+                raw_body=raw_body,
+                error=str(e)
+            )
+            raise
+        except ValueError as e:
+            logger.error(
+                "Value error in message processing",
+                topic=topic,
+                correlation_id=correlation_id,
+                error=str(e)
+            )
+            raise
         except Exception as e:
             logger.error(
                 "Failed to process event",
                 topic=topic,
                 correlation_id=correlation_id,
-                error=str(e)
+                error=str(e),
+                error_type=type(e).__name__
             )
             
             # Determine if error is retryable

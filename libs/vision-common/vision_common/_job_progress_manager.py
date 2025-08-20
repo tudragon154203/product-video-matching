@@ -61,6 +61,18 @@ class JobProgressManager:
     async def publish_completion_event_with_count(self, job_id: str, asset_type: str, expected: int, done: int, event_type_prefix: str = "embeddings"):
         await self.completion_publisher.publish_completion_event_with_count(job_id, asset_type, expected, done, event_type_prefix)
 
+    async def publish_products_images_masked_batch(self, job_id: str, total_images: int) -> None:
+        """Publish products images masked batch completion event."""
+        await self.completion_publisher.publish_products_images_masked_batch(job_id, total_images)
+
+    async def publish_videos_keyframes_masked_batch(self, job_id: str, total_keyframes: int) -> None:
+        """Publish videos keyframes masked batch completion event."""
+        await self.completion_publisher.publish_videos_keyframes_masked_batch(job_id, total_keyframes)
+
+    async def publish_videos_keyframes_ready_batch(self, job_id: str, total_keyframes: int) -> None:
+        """Publish videos keyframes ready batch completion event."""
+        await self.completion_publisher.publish_videos_keyframes_ready_batch(job_id, total_keyframes)
+
     @property
     def processed_assets(self) -> Set[str]:
         return self.base_manager.processed_assets
