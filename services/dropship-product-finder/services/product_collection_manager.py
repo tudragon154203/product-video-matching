@@ -1,12 +1,12 @@
 from typing import Dict, Any, List
 from common_py.logging_config import configure_logging
-from collectors.base_product_collector import BaseProductCollector
+from collectors.interface import IProductCollector
 from .image_storage_manager import ImageStorageManager
 
 logger = configure_logging("dropship-product-finder")
 
 class ProductCollectionManager:
-    def __init__(self, collectors: Dict[str, BaseProductCollector], image_storage_manager: ImageStorageManager):
+    def __init__(self, collectors: Dict[str, IProductCollector], image_storage_manager: ImageStorageManager):
         self.collectors = collectors
         self.image_storage_manager = image_storage_manager
 

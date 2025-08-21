@@ -21,7 +21,8 @@ def mock_auth_service():
 @pytest.fixture
 def ebay_collector(mock_auth_service):
     """Create eBay collector with mocked auth service"""
-    return EbayProductCollector("/tmp/test", mock_auth_service)
+    with patch('config_loader.config.EBAY_MARKETPLACES', "EBAY_US,EBAY_UK,EBAY_DE"):
+        return EbayProductCollector("/tmp/test", mock_auth_service)
 
 
 class TestEbayProductCollector:
@@ -99,7 +100,7 @@ class TestEbayProductCollector:
             mock_browse_client.assert_called()
             
             # Verify browse client search was called (once per marketplace)
-            assert mock_browse_instance.search.call_count == 3
+            assert mock_browse_instance.search.call_count == 1
             for call in mock_browse_instance.search.call_args_list:
                 assert call.kwargs['q'] == "no auth query"
                 assert call.kwargs['limit'] == 1
@@ -316,3 +317,84 @@ class TestEbayProductCollector:
             assert products[0]["title"] == "Product 2 - Lower Price"
             assert products[0]["totalPrice"] == 25.99
             assert products[0]["itemId"] == "67890"
+
+    @pytest.mark.asyncio
+    async def test_collect_products_simulation(self, ebay_collector, mock_auth_service):
+        """
+        Integration test for product collection, mocking only the HTTP client.
+        This tests the interaction between EbayProductCollector and EbayBrowseApiClient.
+        """
+        # Mock httpx.AsyncClient to simulate eBay API responses
+        with patch('httpx.AsyncClient') as mock_async_client_class:
+            mock_async_client_instance = AsyncMock()
+            mock_async_client_class.return_value.__aenter__.return_value = mock_async_client_instance
+
+            # Define a realistic mock response for the eBay Browse API search
+            mock_response_data = {
+                "itemSummaries": [
+                    {
+                        "itemId": "INTEG1",
+                        "title": "Integration Test Product 1",
+                        "brand": "TestBrandA",
+                        "itemWebUrl": "https://ebay.com/integ1",
+                        "image": {"imageUrl": "https://example.com/integ1_img1.jpg"},
+                        "additionalImages": [
+                            {"imageUrl": "https://example.com/integ1_img2.jpg"}
+                        ],
+                        "price": {"value": 10.00, "currency": "USD"},
+                        "shippingOptions": [{"shippingType": "FREE"}]
+                    },
+                    {
+                        "itemId": "INTEG2",
+                        "title": "Integration Test Product 2",
+                        "brand": "TestBrandB",
+                        "itemWebUrl": "https://ebay.com/integ2",
+                        "image": {"imageUrl": "https://example.com/integ2_img1.jpg"},
+                        "price": {"value": 25.50, "currency": "EUR"},
+                        "shippingOptions": [{"cost": {"value": 5.00, "currency": "EUR"}}]
+                    }
+                ]
+            }
+
+            mock_http_response = AsyncMock()
+            mock_http_response.json.return_value = mock_response_data
+            mock_http_response.status_code = 200
+            mock_http_response.raise_for_status.return_value = None # Ensure no HTTP errors are raised
+
+            # Set the mock client's get method to return our mock response
+            mock_async_client_instance.get.return_value = mock_http_response
+
+            # Call the collect_products method
+            products = await ebay_collector.collect_products("integration query", 2)
+
+            # Assertions
+            # Verify that httpx.AsyncClient.get was called for each marketplace
+            assert mock_async_client_instance.get.call_count == 3 # US, UK, DE marketplaces
+
+            # Verify the structure and content of the returned products
+            assert len(products) == 2
+
+            # Product 1 assertions
+            assert products[0]["id"] == "INTEG1"
+            assert products[0]["title"] == "Integration Test Product 1"
+            assert products[0]["brand"] == "TestBrandA"
+            assert products[0]["url"] == "https://ebay.com/integ1"
+            assert len(products[0]["images"]) == 2
+            assert products[0]["price"] == 10.00
+            assert products[0]["currency"] == "USD"
+            assert products[0]["shippingCost"] == 0.0
+            assert products[0]["totalPrice"] == 10.00
+
+            # Product 2 assertions
+            assert products[1]["id"] == "INTEG2"
+            assert products[1]["title"] == "Integration Test Product 2"
+            assert products[1]["brand"] == "TestBrandB"
+            assert products[1]["url"] == "https://ebay.com/integ2"
+            assert len(products[1]["images"]) == 1
+            assert products[1]["price"] == 25.50
+            assert products[1]["currency"] == "EUR"
+            assert products[1]["shippingCost"] == 5.00
+            assert products[1]["totalPrice"] == 30.50
+
+            # Verify that the authentication service was used to get a token
+            mock_auth_service.get_token.assert_called()

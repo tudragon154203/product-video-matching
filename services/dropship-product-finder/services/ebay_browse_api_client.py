@@ -21,10 +21,11 @@ FILTER = (
 class EbayBrowseApiClient:
     """eBay Browse API client with retry logic and authentication"""
     
-    def __init__(self, auth_service, marketplace_id: str, base_url: str):
+    def __init__(self, auth_service, marketplace_id: str, base_url: str, httpx_client: Optional[Any] = None):
         self.auth_service = auth_service
         self.marketplace_id = marketplace_id
         self.base_url = base_url.rstrip("/")
+        self.httpx_client = httpx_client
         
     async def _make_request_with_retry(self, url: str, headers: dict, params: dict) -> Dict[str, Any]:
         """Make HTTP request with retry logic"""
@@ -33,33 +34,42 @@ class EbayBrowseApiClient:
         for attempt in range(config.MAX_RETRIES_BROWSE):
             try:
                 import httpx
-                async with httpx.AsyncClient(timeout=config.TIMEOUT_SECS_BROWSE) as client:
-                    response = await client.get(url, headers=headers, params=params)
-                    
-                    if response.status_code == 200:
-                        return await response.json()
-                    elif response.status_code == 401:
-                        # Token expired, refresh and retry once
-                        logger.warning("401 Unauthorized, refreshing token")
-                        await self.auth_service.refresh_token()
-                        headers["Authorization"] = f"Bearer {await self.auth_service.get_token()}"
-                        if attempt == 0:  # Only retry once for 401
-                            continue
-                        else:
-                            logger.error("Still unauthorized after token refresh")
-                            return {"itemSummaries": []}
-                    elif response.status_code in [429, 500, 502, 503, 504]:
-                        # Rate limiting or server errors
-                        wait_time = config.BACKOFF_BASE_BROWSE ** attempt
-                        logger.warning(f"Retry {attempt + 1}/{config.MAX_RETRIES_BROWSE} waiting {wait_time}s")
-                        await asyncio.sleep(wait_time)
+                client = None
+                if self.httpx_client:
+                    client = self.httpx_client
+                else:
+                    client = httpx.AsyncClient(timeout=config.TIMEOUT_SECS_BROWSE)
+
+                response = await client.get(url, headers=headers, params=params)
+
+                if not self.httpx_client:
+                    await client.aclose() # Close client if it was created within this method
+
+                if response.status_code == 200:
+                    return await response.json()
+                elif response.status_code == 401:
+                    # Token expired, refresh and retry once
+                    logger.warning("401 Unauthorized, refreshing token")
+                    await self.auth_service.refresh_token()
+                    headers["Authorization"] = f"Bearer {await self.auth_service.get_token()}"
+                    if attempt == 0:  # Only retry once for 401
                         continue
                     else:
-                        logger.error(f"HTTP {response.status_code}: {response.text}")
+                        logger.error("Still unauthorized after token refresh")
                         return {"itemSummaries": []}
+                elif response.status_code in [429, 500, 502, 503, 504]:
+                    # Rate limiting or server errors
+                    wait_time = config.BACKOFF_BASE_BROWSE ** attempt
+                    logger.warning(f"Retry {attempt + 1}/{config.MAX_RETRIES_BROWSE} waiting {wait_time}s")
+                    await asyncio.sleep(wait_time)
+                    continue
+                else:
+                    logger.error(f"HTTP {response.status_code}: {response.text}")
+                    return {"itemSummaries": []}
                         
             except Exception as e:
                 last_error = e
+                logger.error(f"Network error during request: {e}") # Added this line
                 if attempt < config.MAX_RETRIES_BROWSE - 1:
                     wait_time = config.BACKOFF_BASE_BROWSE ** attempt
                     logger.warning(f"Network error, retrying in {wait_time}s: {e}")
@@ -74,7 +84,7 @@ class EbayBrowseApiClient:
         """Perform keyword search with fixed Sprint-1 filters and EXTENDED fieldgroups."""
         
         # Get fresh token
-        token = await self.auth_service.get_token()
+        token = await self.auth_service.get_access_token()
         
         # Build URL
         search_url = f"{self.base_url}/item_summary/search"

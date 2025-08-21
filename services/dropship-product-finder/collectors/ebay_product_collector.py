@@ -13,10 +13,11 @@ class EbayProductCollector(BaseProductCollector):
     """eBay product collector using real Browse API"""
     
     def __init__(self, data_root: str, auth_service: eBayAuthService,
-                 marketplaces: Optional[List[str]] = None):
+                 marketplaces: Optional[List[str]] = None, httpx_client: Optional[Any] = None):
         super().__init__(data_root, auth_service)
         self.marketplaces = (marketplaces or config.EBAY_MARKETPLACES.split(","))
         self.base_url = config.EBAY_BROWSE_BASE
+        self.httpx_client = httpx_client
         
     def get_source_name(self) -> str:
         """Return the source name"""
