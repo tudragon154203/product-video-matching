@@ -11,6 +11,16 @@ infra/qdrant/data
 .stfolder
 .stignore
 
+# Docs
+AGENTS.md
+CLAUDE.md
+.kiro/*
+.qwen/*
+.roo/*
+.kilocode/*
+.claude/*
+.clinerules/*
+
 # Environment variables
 .env
 .env.local
