@@ -56,6 +56,18 @@ class DropshipProductFinderConfig:
     # Logging (from global config)
     LOG_LEVEL: str = global_config.LOG_LEVEL
     
+    # eBay Browse API configuration
+    TIMEOUT_SECS_BROWSE: float = float(os.getenv("BROWSE_TIMEOUT_SECS", 30.0))
+    MAX_RETRIES_BROWSE: int = int(os.getenv("BROWSE_MAX_RETRIES", 2))
+    BACKOFF_BASE_BROWSE: float = float(os.getenv("BROWSE_BACKOFF_BASE", 1.5))
+    
+    @property
+    def EBAY_BROWSE_BASE(self) -> str:
+        """Get the appropriate Browse API base URL based on environment"""
+        if self.EBAY_ENVIRONMENT == "production":
+            return "https://api.ebay.com/buy/browse/v1"
+        return "https://api.sandbox.ebay.com/buy/browse/v1"
+    
     @property
     def EBAY_TOKEN_URL(self) -> str:
         """Get the appropriate token URL based on environment"""

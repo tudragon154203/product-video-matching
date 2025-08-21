@@ -217,8 +217,126 @@ class TestEbayProductCollector:
             mock_client_class.return_value.__aenter__.return_value = mock_client
             mock_client.get.return_value = mock_response
             
-            with patch.object(ebay_collector, '_enforce_rate_limit') as mock_rate_limit:
-                await ebay_collector.collect_products("rate query", 1)
+            # Test actual rate limiting is handled by browse client
+            with patch('services.ebay_browse_api_client.EbayBrowseApiClient') as mock_browse_client:
+                mock_browse_instance = AsyncMock()
+                mock_browse_client.return_value = mock_browse_instance
+                mock_browse_instance.search.return_value = {
+                    "itemSummaries": [
+                        {
+                            "itemId": "12345",
+                            "title": "Product with images and price",
+                            "brand": "TestBrand",
+                            "itemWebUrl": "https://ebay.com/test",
+                            "price": {"value": 25.99, "currency": "USD"},
+                            "image": {"imageUrl": "https://example.com/image1.jpg"},
+                            "additionalImages": [
+                                {"imageUrl": "https://example.com/image2.jpg"}
+                            ],
+                            "shippingOptions": [
+                                {"shippingType": "FREE"},
+                                {"cost": {"value": 0, "currency": "USD"}}
+                            ]
+                        }
+                    ]
+                }
                 
-                # Verify rate limiting was called
-                mock_rate_limit.assert_called_once()
+                products = await ebay_collector.collect_products("test query", 1)
+                
+                # Verify browse client was called with correct parameters
+                mock_browse_instance.search.assert_called_once()
+                call_args = mock_browse_instance.search.call_args
+                assert call_args.kwargs['q'] == "test query"
+                assert call_args.kwargs['limit'] == 1
+                
+                # Verify product transformation
+                assert len(products) == 1
+                assert products[0]["id"] == "12345"
+                assert products[0]["title"] == "Product with images and price"
+                assert products[0]["brand"] == "TestBrand"
+                assert products[0]["url"] == "https://ebay.com/test"
+                assert len(products[0]["images"]) == 2
+                assert products[0]["price"] == 25.99
+                assert products[0]["currency"] == "USD"
+                assert products[0]["shippingCost"] == 0
+                assert products[0]["totalPrice"] == 25.99
+    
+    @pytest.mark.asyncio
+    async def test_deduplication_by_epid(self, ebay_collector, mock_auth_service):
+        """Test deduplication by EPID"""
+        # Mock eBay API response with duplicate EPID
+        mock_response = AsyncMock()
+        mock_response.json.return_value = {
+            "itemSummaries": [
+                {
+                    "itemId": "12345",
+                    "epid": "epid_001",
+                    "title": "Product 1 - Higher Price",
+                    "brand": "TestBrand",
+                    "itemWebUrl": "https://ebay.com/test1",
+                    "price": {"value": 35.99, "currency": "USD"},
+                    "image": {"imageUrl": "https://example.com/image1.jpg"},
+                    "shippingOptions": [
+                        {"shippingType": "FREE"}
+                    ]
+                },
+                {
+                    "itemId": "67890",
+                    "epid": "epid_001",  # Same EPID
+                    "title": "Product 2 - Lower Price",
+                    "brand": "TestBrand",
+                    "itemWebUrl": "https://ebay.com/test2",
+                    "price": {"value": 25.99, "currency": "USD"},
+                    "image": {"imageUrl": "https://example.com/image2.jpg"},
+                    "shippingOptions": [
+                        {"shippingType": "FREE"}
+                    ]
+                }
+            ]
+        }
+        
+        # Mock browse client to return products directly
+        import httpx
+        from services.ebay_browse_api_client import EbayBrowseApiClient
+        
+        with patch.object(ebay_collector, '_map_ebay_results') as mock_map:
+            mock_map.side_effect = [
+                [
+                    {
+                        "id": "epid_001", 
+                        "title": "Product 1 - Higher Price",
+                        "brand": "TestBrand",
+                        "url": "https://ebay.com/test1",
+                        "images": ["https://example.com/image1.jpg"],
+                        "marketplace": "us",
+                        "price": 35.99,
+                        "currency": "USD",
+                        "epid": "epid_001",
+                        "itemId": "12345",
+                        "totalPrice": 35.99,
+                        "shippingCost": 0
+                    },
+                    {
+                        "id": "epid_001",  # Same EPID
+                        "title": "Product 2 - Lower Price",
+                        "brand": "TestBrand",
+                        "url": "https://ebay.com/test2",
+                        "images": ["https://example.com/image2.jpg"],
+                        "marketplace": "us",
+                        "price": 25.99,
+                        "currency": "USD",
+                        "epid": "epid_001",
+                        "itemId": "67890",
+                        "totalPrice": 25.99,
+                        "shippingCost": 0
+                    }
+                ]
+            ]
+            
+            products = await ebay_collector.collect_products("dedup test", 2)
+            
+            # Should return only one product (the cheaper one)
+            assert len(products) == 1
+            assert products[0]["title"] == "Product 2 - Lower Price"
+            assert products[0]["totalPrice"] == 25.99
+            assert products[0]["itemId"] == "67890"
