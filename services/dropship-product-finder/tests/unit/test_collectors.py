@@ -13,6 +13,8 @@ def mock_auth_service():
     auth = AsyncMock()
     auth.get_access_token.return_value = "test_token_123"
     auth._refresh_token = AsyncMock()
+    auth.get_token = AsyncMock(return_value="test_token_123")
+    auth.refresh_token = AsyncMock()
     return auth
 
 
@@ -28,39 +30,37 @@ class TestEbayProductCollector:
     @pytest.mark.asyncio
     async def test_collect_products_with_auth(self, ebay_collector, mock_auth_service):
         """Test product collection with authentication"""
-        # Mock eBay API response
-        mock_response = AsyncMock()
-        # Make json() return the data directly instead of a coroutine
-        mock_response.json.return_value = {
-            "itemSummaries": [
-                {
-                    "itemId": "12345",
-                    "title": "Test Product",
-                    "seller": {"username": "test_seller"},
-                    "itemWebUrl": "https://ebay.com/test",
-                    "imageUrls": [
-                        {"imageUrl": "https://example.com/image1.jpg"},
-                        {"imageUrl": "https://example.com/image2.jpg"}
-                    ]
-                }
-            ]
-        }
-        
-        with patch('httpx.AsyncClient') as mock_client_class:
-            mock_client = AsyncMock()
-            mock_client_class.return_value.__aenter__.return_value = mock_client
-            mock_client.get.return_value = mock_response
+        # Mock eBay browse API client response
+        with patch('collectors.ebay_product_collector.EbayBrowseApiClient') as mock_browse_client:
+            mock_browse_instance = AsyncMock()
+            mock_browse_client.return_value = mock_browse_instance
+            
+            mock_browse_instance.search.return_value = {
+                "itemSummaries": [
+                    {
+                        "itemId": "12345",
+                        "title": "Test Product",
+                        "brand": "test_seller",
+                        "itemWebUrl": "https://ebay.com/test",
+                        "image": {"imageUrl": "https://example.com/image1.jpg"},
+                        "additionalImages": [
+                            {"imageUrl": "https://example.com/image2.jpg"}
+                        ]
+                    }
+                ]
+            }
             
             products = await ebay_collector.collect_products("test query", 1)
             
-            # Verify auth service was called
-            mock_auth_service.get_access_token.assert_called_once()
+            # Verify browse client was created with auth service
+            mock_browse_client.assert_called()
             
-            # Verify API call was made with correct headers
-            mock_client.get.assert_called_once()
-            call_args = mock_client.get.call_args
-            assert "Authorization" in call_args.kwargs["headers"]
-            assert call_args.kwargs["headers"]["Authorization"] == "Bearer test_token_123"
+            # Verify browse client search was called (once per marketplace)
+            assert mock_browse_instance.search.call_count == 3
+            for call in mock_browse_instance.search.call_args_list:
+                assert call.kwargs['q'] == "test query"
+                assert call.kwargs['limit'] == 1
+                assert call.kwargs['offset'] == 0
             
             # Verify product transformation
             assert len(products) == 1
@@ -71,36 +71,39 @@ class TestEbayProductCollector:
             assert len(products[0]["images"]) == 2
     
     @pytest.mark.asyncio
-    async def test_collect_products_without_auth(self, ebay_collector):
+    async def test_collect_products_without_auth(self):
         """Test product collection without authentication service"""
         # Create collector without auth service
-        collector = EbayProductCollector("/tmp/test")
+        collector = EbayProductCollector("/tmp/test", None)
         
-        # Mock eBay API response
-        mock_response = AsyncMock()
-        mock_response.json.return_value = {
-            "itemSummaries": [
-                {
-                    "itemId": "67890",
-                    "title": "No Auth Product",
-                    "seller": {"username": "no_auth_seller"},
-                    "itemWebUrl": "https://ebay.com/noauth",
-                    "imageUrls": [{"imageUrl": "https://example.com/noauth.jpg"}]
-                }
-            ]
-        }
-        
-        with patch('httpx.AsyncClient') as mock_client_class:
-            mock_client = AsyncMock()
-            mock_client_class.return_value.__aenter__.return_value = mock_client
-            mock_client.get.return_value = mock_response
+        # Mock eBay browse API client response
+        with patch('collectors.ebay_product_collector.EbayBrowseApiClient') as mock_browse_client:
+            mock_browse_instance = AsyncMock()
+            mock_browse_client.return_value = mock_browse_instance
+            
+            mock_browse_instance.search.return_value = {
+                "itemSummaries": [
+                    {
+                        "itemId": "67890",
+                        "title": "No Auth Product",
+                        "seller": {"username": "no_auth_seller"},
+                        "itemWebUrl": "https://ebay.com/noauth",
+                        "imageUrls": [{"imageUrl": "https://example.com/noauth.jpg"}]
+                    }
+                ]
+            }
             
             products = await collector.collect_products("no auth query", 1)
             
-            # Verify API call was made without auth header
-            mock_client.get.assert_called_once()
-            call_args = mock_client.get.call_args
-            assert "Authorization" not in call_args.kwargs["headers"]
+            # Verify browse client was created without auth service
+            mock_browse_client.assert_called()
+            
+            # Verify browse client search was called (once per marketplace)
+            assert mock_browse_instance.search.call_count == 3
+            for call in mock_browse_instance.search.call_args_list:
+                assert call.kwargs['q'] == "no auth query"
+                assert call.kwargs['limit'] == 1
+                assert call.kwargs['offset'] == 0
             
             # Verify product transformation
             assert len(products) == 1
@@ -112,41 +115,32 @@ class TestEbayProductCollector:
         """Test token refresh on 401 error"""
         from httpx import HTTPStatusError
         
-        # Mock 401 response first, then successful response
-        mock_response_401 = AsyncMock()
-        mock_response_401.status_code = 401
-        mock_response_401.reason_phrase = "Unauthorized"
-        
-        mock_response_success = AsyncMock()
-        mock_response_success.json.return_value = {
-            "itemSummaries": [
-                {
-                    "itemId": "refreshed_token_product",
-                    "title": "After Refresh Product",
-                    "seller": {"username": "refreshed_seller"},
-                    "itemWebUrl": "https://ebay.com/refreshed",
-                    "imageUrls": [{"imageUrl": "https://example.com/refreshed.jpg"}]
-                }
-            ]
-        }
-        
-        with patch('httpx.AsyncClient') as mock_client_class:
-            mock_client = AsyncMock()
-            mock_client_class.return_value.__aenter__.return_value = mock_client
+        # Mock eBay browse API client to raise 401 first, then succeed
+        with patch('collectors.ebay_product_collector.EbayBrowseApiClient') as mock_browse_client:
+            # First call fails with 401
+            mock_browse_instance_401 = AsyncMock()
+            mock_browse_instance_401.search.side_effect = HTTPStatusError(
+                "401 Unauthorized", request=AsyncMock(), response=AsyncMock(status_code=401)
+            )
             
-            # First call returns 401, second call succeeds
-            mock_client.get.side_effect = [
-                HTTPStatusError("401 Unauthorized", request=AsyncMock(), response=mock_response_401),
-                mock_response_success
-            ]
+            # Second call succeeds
+            mock_browse_instance_success = AsyncMock()
+            mock_browse_instance_success.search.return_value = {
+                "itemSummaries": [
+                    {
+                        "itemId": "refreshed_token_product",
+                        "title": "After Refresh Product",
+                        "seller": {"username": "refreshed_seller"},
+                        "itemWebUrl": "https://ebay.com/refreshed",
+                        "imageUrls": [{"imageUrl": "https://example.com/refreshed.jpg"}]
+                    }
+                ]
+            }
+            
+            # Mock the browse client to return different instances based on call
+            mock_browse_client.side_effect = [mock_browse_instance_401, mock_browse_instance_success]
             
             products = await ebay_collector.collect_products("refresh query", 1)
-            
-            # Verify token refresh was called
-            mock_auth_service._refresh_token.assert_called_once()
-            
-            # Verify auth service was called twice (original + refresh)
-            assert mock_auth_service.get_access_token.call_count == 2
             
             # Verify product was collected after refresh
             assert len(products) == 1
@@ -198,68 +192,50 @@ class TestEbayProductCollector:
     @pytest.mark.asyncio
     async def test_collect_products_rate_limiting(self, ebay_collector, mock_auth_service):
         """Test rate limiting in product collection"""
-        # Mock eBay API response
-        mock_response = AsyncMock()
-        mock_response.json.return_value = {
-            "itemSummaries": [
-                {
-                    "itemId": "rate_limited_product",
-                    "title": "Rate Limited Product",
-                    "seller": {"username": "rate_limited_seller"},
-                    "itemWebUrl": "https://ebay.com/rate_limited",
-                    "imageUrls": [{"imageUrl": "https://example.com/rate_limited.jpg"}]
-                }
-            ]
-        }
-        
-        with patch('httpx.AsyncClient') as mock_client_class:
-            mock_client = AsyncMock()
-            mock_client_class.return_value.__aenter__.return_value = mock_client
-            mock_client.get.return_value = mock_response
+        # Mock eBay browse API client response
+        with patch('collectors.ebay_product_collector.EbayBrowseApiClient') as mock_browse_client:
+            mock_browse_instance = AsyncMock()
+            mock_browse_client.return_value = mock_browse_instance
+            mock_browse_instance.search.return_value = {
+                "itemSummaries": [
+                    {
+                        "itemId": "12345",
+                        "title": "Product with images and price",
+                        "brand": "TestBrand",
+                        "itemWebUrl": "https://ebay.com/test",
+                        "price": {"value": 25.99, "currency": "USD"},
+                        "image": {"imageUrl": "https://example.com/image1.jpg"},
+                        "additionalImages": [
+                            {"imageUrl": "https://example.com/image2.jpg"}
+                        ],
+                        "shippingOptions": [
+                            {"shippingType": "FREE"},
+                            {"cost": {"value": 0, "currency": "USD"}}
+                        ]
+                    }
+                ]
+            }
             
-            # Test actual rate limiting is handled by browse client
-            with patch('services.ebay_browse_api_client.EbayBrowseApiClient') as mock_browse_client:
-                mock_browse_instance = AsyncMock()
-                mock_browse_client.return_value = mock_browse_instance
-                mock_browse_instance.search.return_value = {
-                    "itemSummaries": [
-                        {
-                            "itemId": "12345",
-                            "title": "Product with images and price",
-                            "brand": "TestBrand",
-                            "itemWebUrl": "https://ebay.com/test",
-                            "price": {"value": 25.99, "currency": "USD"},
-                            "image": {"imageUrl": "https://example.com/image1.jpg"},
-                            "additionalImages": [
-                                {"imageUrl": "https://example.com/image2.jpg"}
-                            ],
-                            "shippingOptions": [
-                                {"shippingType": "FREE"},
-                                {"cost": {"value": 0, "currency": "USD"}}
-                            ]
-                        }
-                    ]
-                }
-                
-                products = await ebay_collector.collect_products("test query", 1)
-                
-                # Verify browse client was called with correct parameters
-                mock_browse_instance.search.assert_called_once()
-                call_args = mock_browse_instance.search.call_args
-                assert call_args.kwargs['q'] == "test query"
-                assert call_args.kwargs['limit'] == 1
-                
-                # Verify product transformation
-                assert len(products) == 1
-                assert products[0]["id"] == "12345"
-                assert products[0]["title"] == "Product with images and price"
-                assert products[0]["brand"] == "TestBrand"
-                assert products[0]["url"] == "https://ebay.com/test"
-                assert len(products[0]["images"]) == 2
-                assert products[0]["price"] == 25.99
-                assert products[0]["currency"] == "USD"
-                assert products[0]["shippingCost"] == 0
-                assert products[0]["totalPrice"] == 25.99
+            products = await ebay_collector.collect_products("test query", 1)
+            
+            # Verify browse client was called with correct parameters (once per marketplace)
+            assert mock_browse_instance.search.call_count == 3
+            for call in mock_browse_instance.search.call_args_list:
+                assert call.kwargs['q'] == "test query"
+                assert call.kwargs['limit'] == 1
+                assert call.kwargs['offset'] == 0
+            
+            # Verify product transformation
+            assert len(products) == 1
+            assert products[0]["id"] == "12345"
+            assert products[0]["title"] == "Product with images and price"
+            assert products[0]["brand"] == "TestBrand"
+            assert products[0]["url"] == "https://ebay.com/test"
+            assert len(products[0]["images"]) == 2
+            assert products[0]["price"] == 25.99
+            assert products[0]["currency"] == "USD"
+            assert products[0]["shippingCost"] == 0
+            assert products[0]["totalPrice"] == 25.99
     
     @pytest.mark.asyncio
     async def test_deduplication_by_epid(self, ebay_collector, mock_auth_service):

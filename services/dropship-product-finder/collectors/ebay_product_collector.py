@@ -1,6 +1,5 @@
 from typing import List, Dict, Any, Optional
 from collections import defaultdict
-from .interface import IProductCollector
 from .base_product_collector import BaseProductCollector
 from services.ebay_browse_api_client import EbayBrowseApiClient
 from services.auth import eBayAuthService
@@ -10,7 +9,7 @@ from common_py.logging_config import configure_logging
 logger = configure_logging("dropship-product-finder")
 
 
-class EbayProductCollector(BaseProductCollector, IProductCollector):
+class EbayProductCollector(BaseProductCollector):
     """eBay product collector using real Browse API"""
     
     def __init__(self, data_root: str, auth_service: eBayAuthService,

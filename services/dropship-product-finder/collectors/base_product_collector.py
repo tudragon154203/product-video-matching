@@ -5,11 +5,12 @@ import httpx
 from PIL import Image
 from io import BytesIO
 from common_py.logging_config import configure_logging
+from .interface import IProductCollector
 
 logger = configure_logging("dropship-product-finder")
 
 
-class BaseProductCollector(ABC):
+class BaseProductCollector(IProductCollector):
     """Abstract base class for product collectors"""
     
     def __init__(self, data_root: str, auth_service=None):

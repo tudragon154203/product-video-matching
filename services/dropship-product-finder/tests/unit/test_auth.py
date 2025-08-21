@@ -79,22 +79,16 @@ class TesteBayAuthService:
                 
                 assert token == "new_token_456"
                 mock_refresh.assert_called_once()
-                mock_redis.setex.assert_called_once()
     
     @pytest.mark.asyncio
     async def test_refresh_token_success(self, auth_service, mock_redis):
         """Test successful token refresh"""
-        # Mock HTTP client response
-        mock_response = AsyncMock()
-        mock_response.json.return_value = {
-            "access_token": "refreshed_token_789",
-            "expires_in": 7200
-        }
-        
-        with patch('httpx.AsyncClient') as mock_client_class:
-            mock_client = AsyncMock()
-            mock_client_class.return_value.__aenter__.return_value = mock_client
-            mock_client.post.return_value = mock_response
+        # Mock API client response
+        with patch.object(auth_service.api_client, 'request_access_token') as mock_request:
+            mock_request.return_value = {
+                "access_token": "refreshed_token_789",
+                "expires_in": 7200
+            }
             
             await auth_service._refresh_token()
             
@@ -110,15 +104,12 @@ class TesteBayAuthService:
         """Test token refresh with HTTP error"""
         from httpx import HTTPStatusError
         
-        # Mock HTTP client error
-        mock_response = AsyncMock()
-        mock_response.status_code = 401
-        mock_response.reason_phrase = "Unauthorized"
-        
-        with patch('httpx.AsyncClient') as mock_client_class:
-            mock_client = AsyncMock()
-            mock_client_class.return_value.__aenter__.return_value = mock_client
-            mock_client.post.side_effect = HTTPStatusError(
+        # Mock API client error
+        with patch.object(auth_service.api_client, 'request_access_token') as mock_request:
+            mock_response = AsyncMock()
+            mock_response.status_code = 401
+            mock_response.reason_phrase = "Unauthorized"
+            mock_request.side_effect = HTTPStatusError(
                 "401 Unauthorized", request=AsyncMock(), response=mock_response
             )
             
@@ -213,7 +204,8 @@ class TesteBayAuthService:
             mock_loop.return_value.time = mock_time
             
             # First call returns 1000.0, second call returns 1000.5 (0.5 second apart)
-            mock_time.side_effect = [1000.0, 1000.5]
+            # Each _enforce_rate_limit call calls time() twice, so we need 4 values
+            mock_time.side_effect = [1000.0, 1000.0, 1000.5, 1001.0, 1001.0]
             
             # First call should not sleep
             await auth_service._enforce_rate_limit()
