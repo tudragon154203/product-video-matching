@@ -28,7 +28,7 @@ class DropshipProductFinderService:
         if config.USE_MOCK_FINDERS:
             logger.info("Using mock product finders for development")
             self.collectors: Dict[str, BaseProductCollector] = {
-                "amazon": MockProductCollector(data_root),
+                "amazon": AmazonProductCollector(data_root),  # Now implements abstract methods
                 "ebay": MockProductCollector(data_root)
             }
         else:

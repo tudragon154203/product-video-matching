@@ -15,6 +15,9 @@ class YOLOSegmentor(BaseSegmentation):
 
     def __init__(self, model_name: str = 'yolo11l-seg.pt'):
         super().__init__()
+        # Ensure model name has .pt extension
+        if not model_name.endswith('.pt'):
+            model_name += '.pt'
         self._model_path = os.path.join(config.PEOPLE_SEG_MODEL_CACHE, model_name)
         self._model: Optional[YOLO] = None
         # Set the YOLO_MODEL_DIR environment variable for ultralytics library

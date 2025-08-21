@@ -1,5 +1,7 @@
 # Mac dev 
 infra/pvm/docker-compose.mac.yml
+infra/pvm/sync_compose.py
+infra/pvm/README.md
 
 # LLM
 demo/
