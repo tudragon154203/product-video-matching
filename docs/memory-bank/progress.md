@@ -1,17 +1,12 @@
 # Progress
 
-## August 2025 Updates
-- Completed import verification across all microservices after refactoring
-- Fixed syntax errors in vision-keypoint service
-- Resolved import issues in evidence-builder service
-- Added vision-common library to Dockerfiles for vision services
-- Refactored product-segmentor to use vision-common:
-  - Replaced custom progress tracking with JobProgressManager
-  - Implemented WatermarkTimerManager
-  - Added CompletionEventPublisher
-  - Removed redundant custom code (~200 lines)
-- Improved consistency across vision services
-- 2025-08-19: ✅ COMPLETED - Updated memory bank with current project state and recent sprint completions
+## Q3 2025 Updates
+
+### August 2025
+- YouTube crawler: Core functionality implemented (85% complete)
+- eBay integration: Initial OAuth implementation (30% complete)
+- Architectural simplification: Retired vector-index service
+- Vision services: Completed refactoring of embedding/keypoint services
 
 ## Completed
 - Sprint 1: Defined microservice specs and the end-to-end video→product matching pipeline boundaries
@@ -33,10 +28,13 @@
 - 2025-08-18: Reversed LLM order in main-api (Gemini first)
 - 2025-08-18: Added rule requiring automatic Memory Bank updates after tasks
 - 2025-08-18: Removed published_at column from database schema and YouTube crawler
+- 2025-08-19: ✅ COMPLETED - Updated memory bank with current project state and recent sprint completions
 
 ## In Progress
 - **Dropship Product Finder**: eBay integration implementation (Phase 2: OAuth, Phase 3: Browse API)
+  * eBay integration: Browse API implementation, product deduplication
 - **Video Crawler**: YouTube crawler implementation using yt-dlp
+  * YouTube crawler: Final testing and edge case handling
 
 ## Pending
 - Complete eBay integration phases (Phase 4: Images & Events, Phase 5: Reliability & Tests, Phase 6: Sandbox Smoke)
@@ -44,3 +42,5 @@
 - Strengthen integration tests across the updated pipeline
 - Update documentation to reflect current architecture and capabilities
 - Monitor performance after vector-index service removal
+- Documentation updates for simplified matcher service
+- Performance benchmarking for YouTube crawler

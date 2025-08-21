@@ -109,31 +109,7 @@ class ProductSegmentorService:
         
         self.initialized = False
     
-    # Pass-through accessors for backward compatibility - delegate to specialized modules
-    @property
-    def job_image_counts(self) -> Dict[str, Dict[str, int]]:
-        """Get job image counts (delegated to JobProgressManager)."""
-        return self.job_progress_manager.job_image_counts
     
-    @property
-    def job_frame_counts(self) -> Dict[str, Dict[str, int]]:
-        """Get job frame counts (delegated to JobProgressManager)."""
-        return self.job_progress_manager.job_frame_counts
-    
-    @property
-    def processed_assets(self) -> Set[str]:
-        """Get processed assets (delegated to JobProgressManager)."""
-        return self.job_progress_manager.processed_assets
-    
-    @property
-    def watermark_timers(self) -> Dict[str, asyncio.Task]:
-        """Get watermark timers (delegated to JobProgressManager)."""
-        return self.job_progress_manager.watermark_timers.copy()
-    
-    @property
-    def _completion_events_sent(self) -> Set[str]:
-        """Get completion events sent (delegated to JobProgressManager)."""
-        return self.job_progress_manager._completion_events_sent.copy()
     
     async def initialize(self) -> None:
         """Initialize the service."""
@@ -211,37 +187,32 @@ class ProductSegmentorService:
             job_id=job_id
         )
     
+    async def _handle_batch_event(self, job_id: str, asset_type: str, total_items: int, event_type: str, event_id: str = None) -> None:
+        logger.info("Batch event received",
+                   job_id=job_id,
+                   asset_type=asset_type,
+                   total_items=total_items,
+                   event_type=event_type,
+                   event_id=event_id)
+
+        await self.job_progress_manager._start_watermark_timer(job_id, 300, "segmentation")
+
+        if total_items == 0:
+            logger.info("Zero-asset job - publishing immediate batch completion", job_id=job_id, asset_type=asset_type)
+            if asset_type == "image":
+                await self.job_progress_manager.publish_products_images_masked_batch(job_id=job_id, total_images=0)
+            else:
+                await self.job_progress_manager.publish_videos_keyframes_masked_batch(job_id=job_id, total_keyframes=0)
+        else:
+            await self.job_progress_manager.update_job_progress(job_id, asset_type, total_items, 0, "segmentation")
+            logger.debug("Batch initialized - waiting for individual asset processing", job_id=job_id, total_items=total_items)
+
     async def handle_products_images_ready_batch(self, event_data: dict) -> None:
-        """Handle product images batch completion event. 
-        
-        Args:
-            event_data: Batch event payload
-        """
+        """Handle product images batch completion event."""
         try:
             job_id = event_data["job_id"]
             total_images = event_data["total_images"]
-            
-            logger.info("Batch event received",
-                       job_id=job_id,
-                       asset_type="image",
-                       total_items=total_images,
-                       event_type="products_images_ready_batch")
-            
-            # Store the total image count for the job using job progress manager
-            # Use update_expected_and_recheck_completion to avoid premature completion
-            is_complete = await self.job_progress_manager.update_expected_and_recheck_completion(job_id, "image", total_images, "segmentation")
-            if is_complete:
-                logger.info("Job completed after updating expected count", job_id=job_id, asset_type="image", done=total_images, expected=total_images)
-            
-            # Start watermark timer using job progress manager
-            await self.job_progress_manager._start_watermark_timer(job_id, 300, "segmentation")
-            
-            # If there are no images, publish batch completion immediately
-            if total_images == 0:
-                logger.info("Zero images job - publishing immediate batch completion", job_id=job_id, asset_type="image")
-                # Publish immediate batch completion event for empty batch
-                await self.job_progress_manager.publish_products_images_masked_batch(job_id=job_id, total_images=0)
-                
+            await self._handle_batch_event(job_id, "image", total_images, "products_images_ready_batch")
         except Exception as e:
             logger.error("Failed to handle products images ready batch", job_id=job_id, error=str(e))
             raise
@@ -302,28 +273,21 @@ class ProductSegmentorService:
         """
         try:
             job_id = event_data["job_id"]
-            event_id = event_data.get("event_id", str(uuid.uuid4()))  # Generate if not provided
+            event_id = event_data.get("event_id", str(uuid.uuid4()))
             total_keyframes = event_data.get("total_keyframes", 0)
+            
+            # Create a unique identifier for this batch event to detect duplicates
+            batch_event_key = f"{job_id}:{event_id}"
+            
+            # Check if we've already processed this batch event
+            if batch_event_key in self.job_progress_manager.processed_batch_events:
+                logger.info("Ignoring duplicate batch event", job_id=job_id, event_id=event_id, asset_type="video")
+                return
+            
+            # Mark this batch event as processed
+            self.job_progress_manager.processed_batch_events.add(batch_event_key)
 
-            logger.info("Batch event received",
-                       job_id=job_id,
-                       asset_type="video",
-                       total_items=total_keyframes,
-                       event_type="videos_keyframes_ready_batch",
-                       event_id=event_id)
-
-            # Start watermark timer first to handle timeout cases
-            await self.job_progress_manager._start_watermark_timer(job_id, 300, "segmentation")
-
-            # If there are zero keyframes, publish batch completion immediately
-            if total_keyframes == 0:
-                logger.info("Zero keyframes job - publishing immediate batch completion", job_id=job_id, asset_type="video")
-                # Publish immediate batch completion event for empty batch
-                await self.job_progress_manager.publish_videos_keyframes_masked_batch(job_id=job_id, total_keyframes=0)
-            else:
-                # Initialize job tracking and let individual asset processing trigger completion
-                await self.job_progress_manager.update_job_progress(job_id, "frame", total_keyframes, 0, "segmentation")
-                logger.debug("Video keyframes batch initialized - waiting for individual asset processing", job_id=job_id, total_keyframes=total_keyframes)
+            await self._handle_batch_event(job_id, "video", total_keyframes, "videos_keyframes_ready_batch", event_id)
 
         except Exception as e:
             logger.error("Failed to handle videos keyframes ready batch", job_id=job_id, event_id=event_id, error=str(e))
