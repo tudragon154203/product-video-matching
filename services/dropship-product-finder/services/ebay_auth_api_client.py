@@ -5,7 +5,7 @@ from common_py.logging_config import configure_logging
 
 logger = configure_logging("dropship-product-finder")
 
-class eBayAuthAPIClient:
+class EbayAuthAPIClient:
     """Client for interacting with the eBay OAuth 2.0 token endpoint."""
 
     def __init__(self, client_id: str, client_secret: str, token_url: str, scopes: str):

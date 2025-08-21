@@ -6,7 +6,7 @@ import asyncio
 from typing import Optional, Dict, Any
 from datetime import datetime, timedelta
 from common_py.logging_config import configure_logging
-from .ebay_auth_api_client import eBayAuthAPIClient
+from .ebay_auth_api_client import EbayAuthAPIClient
 
 logger = configure_logging("dropship-product-finder")
 
@@ -21,7 +21,7 @@ class eBayAuthService:
         self.scopes = config.EBAY_SCOPES
         self.redis = redis_client
         self.redis_key = "ebay:access_token"
-        self.api_client = eBayAuthAPIClient(self.client_id, self.client_secret, self.token_url, self.scopes)
+        self.api_client = EbayAuthAPIClient(self.client_id, self.client_secret, self.token_url, self.scopes)
         
         # Rate limiting
         self.last_request_time = 0

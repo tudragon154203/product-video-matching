@@ -9,7 +9,8 @@ from collectors.base_product_collector import BaseProductCollector
 from collectors.mock_product_collector import MockProductCollector
 from collectors.amazon_product_collector import AmazonProductCollector
 from collectors.ebay_product_collector import EbayProductCollector
-from .auth import eBayAuthService
+from .ebay_auth_api_client import EbayAuthAPIClient
+from .ebay_browse_api_client import eBayBrowseAPIClient
 from config_loader import config
 from .product_collection_manager import ProductCollectionManager
 from .image_storage_manager import ImageStorageManager
@@ -44,9 +45,22 @@ class DropshipProductFinderService:
                 self.ebay_auth = None
         else:
             logger.info("Using real product finders (Amazon and eBay APIs)")
+            # Initialize eBay API clients
+            ebay_auth_client = EbayAuthAPIClient(
+                client_id=config.EBAY_CLIENT_ID,
+                client_secret=config.EBAY_CLIENT_SECRET,
+                token_url=config.EBAY_TOKEN_URL,
+                scopes=config.EBAY_SCOPES
+            )
+            ebay_browse_client = eBayBrowseAPIClient(config.EBAY_BROWSE_API_URL)
+            
             self.collectors: Dict[str, BaseProductCollector] = {
                 "amazon": AmazonProductCollector(data_root),
-                "ebay": EbayProductCollector(data_root, self.ebay_auth)
+                "ebay": EbayProductCollector(
+                    auth_client=ebay_auth_client,
+                    browse_client=ebay_browse_client,
+                    marketplace_id="EBAY_US"
+                )
             }
         
         self.image_storage_manager = ImageStorageManager(db, broker, self.collectors)

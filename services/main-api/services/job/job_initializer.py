@@ -53,16 +53,13 @@ class JobInitializer:
         t0 = time.time()
         try:
             gen_response = await self.llm_service.call_llm("generate", gen_prompt, options={"temperature": 0.2})
-            try:
-                queries = json.loads(gen_response["response"])
-                queries = self.prompt_service.normalize_queries(queries, min_items=2, max_items=4)
-                logger.info("queries from LLM: %s", queries)
-            except json.JSONDecodeError: # fallback to original query
-                queries = {
-                    "product": {"en": [query]},
-                    "video": {"vi": [query], "zh": [query]}
-                }
-                logger.error("queries fallback: %s", queries)
+            # logger.info("response from LLM: %s", gen_response)
+
+            # Pass the raw response string to normalize_queries, which will handle JSON parsing
+            raw_response = gen_response["response"]
+            queries = self.prompt_service.normalize_queries(raw_response, min_items=2, max_items=4)
+            logger.info("queries from LLM: %s", queries)
+            
             return queries
         finally:
             logger.info(f"llm_generate_ms: {(time.time()-t0)*1000}")
