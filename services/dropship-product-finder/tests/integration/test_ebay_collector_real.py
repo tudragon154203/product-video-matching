@@ -54,21 +54,26 @@ async def redis_client():
 @pytest.fixture(scope="module")
 async def auth_service(redis_client):
     """eBay authentication service fixture"""
+    # Ensure test credentials are properly configured
+    assert config.EBAY_CLIENT_ID.startswith("MinhTuNg"), "Invalid test eBay client ID"
+    assert config.EBAY_CLIENT_SECRET.startswith("SBX-"), "Invalid test eBay client secret"
+    assert config.EBAY_ENVIRONMENT == "sandbox", "Tests should use eBay sandbox environment"
+    
     service = eBayAuthService(config, redis_client)
     yield service
     await service.close()
 
 
 @pytest.fixture(scope="module")
-async def ebay_collector(auth_service):
+async def ebay_collector(redis_client):
     """eBay product collector fixture"""
     collector = EbayProductCollector(
         data_root="/tmp/test_integration",
         redis_client=redis_client,
-        auth_service=auth_service,
         marketplaces=["EBAY_US"]  # Test with US marketplace only
     )
     yield collector
+    await collector.close()
 
 
 @pytest.mark.asyncio
