@@ -83,7 +83,7 @@ async def start_job(client):
     logger.info("Starting new job...")
     
     job_request = {
-        "query": "gối công thái học",
+        "query": "gối",
         "top_amz": 3,
         "top_ebay": 2,
         "platforms": ["youtube"],

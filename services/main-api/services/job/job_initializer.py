@@ -30,7 +30,7 @@ class JobInitializer:
         except Exception as e:
             logger.warning(f"Failed to store job in database: {e}")
         
-        await self._publish_initial_events(job_id, request, queries, industry)
+        await self._publish_initial_events(job_id, request, queries, industry, query)
         
         logger.info(f"Initialized job (job_id: {job_id}, industry: {industry})")
         return industry
@@ -43,6 +43,7 @@ class JobInitializer:
             industry = cls_response["response"].strip()
             if industry not in config.INDUSTRY_LABELS:
                 industry = "other"
+            logger.info(f"industry from LLM: {industry}")
             return industry
         finally:
             logger.info(f"llm_classify_ms: {(time.time()-t0)*1000}")
@@ -55,16 +56,18 @@ class JobInitializer:
             try:
                 queries = json.loads(gen_response["response"])
                 queries = self.prompt_service.normalize_queries(queries, min_items=2, max_items=4)
-            except json.JSONDecodeError:
+                logger.info("queries from LLM: %s", queries)
+            except json.JSONDecodeError: # fallback to original query
                 queries = {
                     "product": {"en": [query]},
                     "video": {"vi": [query], "zh": [query]}
                 }
+                logger.error("queries fallback: %s", queries)
             return queries
         finally:
             logger.info(f"llm_generate_ms: {(time.time()-t0)*1000}")
 
-    async def _publish_initial_events(self, job_id: str, request: StartJobRequest, queries: Dict[str, Any], industry: str):
+    async def _publish_initial_events(self, job_id: str, request: StartJobRequest, queries: Dict[str, Any], industry: str, original_query: str):
         try:
             await self.broker_handler.publish_product_collection_request(
                 job_id, 
