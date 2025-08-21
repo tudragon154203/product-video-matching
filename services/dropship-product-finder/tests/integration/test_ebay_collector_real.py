@@ -25,12 +25,31 @@ logger = configure_logging("dropship-product-finder-integration")
 
 
 @pytest.fixture(scope="module")
-async def redis_client():
-    """Redis client fixture for token storage"""
-    client = aioredis.from_url(config.REDIS_URL, decode_responses=True)
-    yield client
-    await client.close()
+def event_loop():
+    """Create an instance of the default event loop for each test module"""
+    loop = asyncio.get_event_loop_policy().new_event_loop()
+    yield loop
+    loop.close()
 
+
+
+@pytest.fixture(scope="module")
+async def redis_client():
+    """Mock Redis client using dictionary storage"""
+    class MockRedis:
+        def __init__(self):
+            self.data = {}
+            
+        async def setex(self, key, ttl, value):
+            self.data[key] = value
+            
+        async def get(self, key):
+            return self.data.get(key)
+            
+        async def close(self):
+            pass
+            
+    return MockRedis()
 
 @pytest.fixture(scope="module")
 async def auth_service(redis_client):

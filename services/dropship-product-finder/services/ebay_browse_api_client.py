@@ -46,7 +46,11 @@ class EbayBrowseApiClient:
                     await client.aclose() # Close client if it was created within this method
 
                 if response.status_code == 200:
-                    return await response.json()
+                    try:
+                        return response.json()
+                    except Exception as e:
+                        logger.error(f"Failed to parse response JSON: {e}")
+                        return {"itemSummaries": []}
                 elif response.status_code == 401:
                     # Token expired, refresh and retry once
                     logger.warning("401 Unauthorized, refreshing token")

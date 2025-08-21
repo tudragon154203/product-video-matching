@@ -113,7 +113,8 @@ class EbayProductCollector(BaseProductCollector):
                         break
             
             # Calculate total price (price + shipping)
-            price_value = item.get("price", {}).get("value", 0)
+            price_value = float(item.get("price", {}).get("value", 0))
+            shipping_cost = float(item.get("shippingOptions", [{}])[0].get("shippingCost", {}).get("value", 0))
             total_price = price_value + shipping_cost
             
             product = {
