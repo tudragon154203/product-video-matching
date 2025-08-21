@@ -39,3 +39,17 @@
 - vision services: OpenCV for image processing, various ML models for keypoints/embeddings
 - dropship-product-finder: Redis for caching, requests for API calls
 - main-api: Gemini/Ollama LLM integration
+
+### Proper Test Execution Workflow
+
+Always navigate to the microservice directory first before running tests:
+```cmd
+cd services\your-microservice-name
+python -m pytest tests\ -v
+```
+
+**Why this matters:**
+The microservice path is automatically added to PYTHONPATH when executing from its root directory, ensuring:
+- Correct module resolution
+- Proper configuration loading
+- Access to local test fixtures

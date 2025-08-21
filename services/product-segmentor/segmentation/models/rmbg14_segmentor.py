@@ -10,7 +10,7 @@ from torchvision import transforms
 from transformers import AutoModelForImageSegmentation
 from common_py.logging_config import configure_logging
 
-from segmentation.interface import SegmentationInterface
+from segmentation.base_segmentation import BaseSegmentation
 from segmentation.segmentation_utils import prepare_image, normalize_and_resize_mask # New import
 
 logger = configure_logging("rmbg14-segmentor")
@@ -18,16 +18,16 @@ logger = configure_logging("rmbg14-segmentor")
 from config_loader import config
 
 
-class RMBG14Segmentor(SegmentationInterface):
+class RMBG14Segmentor(BaseSegmentation):
     """RMBG-1.4 segmentation model implementation."""
     
     def __init__(self):
         """Initialize RMBG-1.4 segmentor."""
+        super().__init__()
         self._model_name = "briaai/RMBG-1.4"
         self._model = None
         self._transform = None
         self._device = None
-        self._initialized = False
         self._image_size = (512, 512)
         
     async def initialize(self) -> None:
@@ -68,7 +68,6 @@ class RMBG14Segmentor(SegmentationInterface):
                 transforms.Normalize([0.5, 0.5, 0.5], [0.5, 0.5, 0.5])  # RMBG-1.4 specific normalization
             ])
             
-            self._initialized = True
             logger.info("RMBG-1.4 model initialized successfully")
             
         except Exception as e:
@@ -158,8 +157,6 @@ class RMBG14Segmentor(SegmentationInterface):
             # Clear GPU cache if using CUDA
             if self._device == "cuda" and torch.cuda.is_available():
                 torch.cuda.empty_cache()
-                
-            self._initialized = False
             logger.info("RMBG-1.4 model resources cleaned up")
             
         except Exception as e:
@@ -170,7 +167,4 @@ class RMBG14Segmentor(SegmentationInterface):
         """Return the model name."""
         return self._model_name
     
-    @property
-    def is_initialized(self) -> bool:
-        """Return whether the model is initialized."""
-        return self._initialized
+    

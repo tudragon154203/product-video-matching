@@ -10,7 +10,7 @@ from torchvision import transforms
 from transformers import AutoModelForImageSegmentation
 from common_py.logging_config import configure_logging
 
-from segmentation.interface import SegmentationInterface
+from segmentation.base_segmentation import BaseSegmentation
 from segmentation.segmentation_utils import prepare_image, normalize_and_resize_mask # New import
 
 logger = configure_logging("rmbg-segmentor")
@@ -18,16 +18,16 @@ logger = configure_logging("rmbg-segmentor")
 from config_loader import config
 
 
-class RMBG20Segmentor(SegmentationInterface):
+class RMBG20Segmentor(BaseSegmentation):
     """RMBG-2.0 segmentation model implementation."""
     
     def __init__(self):
         """Initialize RMBG segmentor."""
+        super().__init__()
         self._model_name = "briaai/RMBG-2.0"
         self._model = None
         self._transform = None
         self._device = None
-        self._initialized = False
         self._image_size = config.IMG_SIZE
         
     async def initialize(self) -> None:
@@ -68,7 +68,6 @@ class RMBG20Segmentor(SegmentationInterface):
                 transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
             ])
             
-            self._initialized = True
             logger.info("RMBG-2.0 model initialized successfully")
             
         except Exception as e:
@@ -141,8 +140,6 @@ class RMBG20Segmentor(SegmentationInterface):
             # Clear GPU cache if using CUDA
             if self._device == "cuda" and torch.cuda.is_available():
                 torch.cuda.empty_cache()
-                
-            self._initialized = False
             logger.info("RMBG-2.0 model resources cleaned up")
             
         except Exception as e:
@@ -153,7 +150,4 @@ class RMBG20Segmentor(SegmentationInterface):
         """Return the model name."""
         return self._model_name
     
-    @property
-    def is_initialized(self) -> bool:
-        """Return whether the model is initialized."""
-        return self._initialized
+    

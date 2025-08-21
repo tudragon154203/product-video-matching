@@ -4,19 +4,19 @@ import cv2
 import os
 from typing import Optional
 
-from segmentation.interface import SegmentationInterface
+from segmentation.base_segmentation import BaseSegmentation
 from config_loader import config
 from common_py.logging_config import configure_logging
 
 logger = configure_logging("yolo-segmentor")
 
-class YOLOSegmentor(SegmentationInterface):
+class YOLOSegmentor(BaseSegmentation):
     """YOLOv8 segmentation model for people segmentation."""
 
     def __init__(self, model_name: str = 'yolo11l-seg.pt'):
+        super().__init__()
         self._model_path = os.path.join(config.PEOPLE_SEG_MODEL_CACHE, model_name)
         self._model: Optional[YOLO] = None
-        self._initialized = False
         # Set the YOLO_MODEL_DIR environment variable for ultralytics library
         os.environ['YOLO_MODEL_DIR'] = config.PEOPLE_SEG_MODEL_CACHE
 
@@ -27,7 +27,6 @@ class YOLOSegmentor(SegmentationInterface):
                        model_name=self.model_name,
                        model_path=self._model_path)
             self._model = YOLO(self._model_path)
-            self._initialized = True
             logger.info("Model initialized successfully",
                        model_name=self.model_name)
         except Exception as e:

@@ -25,7 +25,12 @@
 ## Testing Guidelines
 - Install test deps: `pip install -r requirements-test.txt`.
 - Bring infra up before integration tests.
-- Run tests: `pytest -q` (filter with `-k <expr>`). Aim for meaningful coverage on core flows.
+- Run tests: Always navigate to the microservice directory first:
+  ```cmd
+  cd services\your-microservice-name
+  python -m pytest tests\ -v
+  ```
+  Use `-k <expr>` to filter tests. Aim for meaningful coverage on core flows.
 - Use small fixtures; avoid large media in Git.
 
 ## Commit & Pull Request Guidelines
