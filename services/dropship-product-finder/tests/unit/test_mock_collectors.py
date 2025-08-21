@@ -91,7 +91,7 @@ class TestCollectorConfiguration:
     
     def test_ebay_collector_inherits_from_mock(self, mock_auth_service):
         """Test that EbayProductCollector inherits from BaseProductCollector"""
-        collector = EbayProductCollector("/tmp/test", mock_auth_service)
+        collector = EbayProductCollector("/tmp/test", redis_client=mock_auth_service)
         assert isinstance(collector, BaseProductCollector)
         assert collector.get_source_name() == "ebay"
     
@@ -100,7 +100,7 @@ class TestCollectorConfiguration:
         """Test that all collectors return mock data when USE_MOCK_FINDERS is true"""
         collectors = {
             "amazon": AmazonProductCollector("/tmp/test"),
-            "ebay": EbayProductCollector("/tmp/test", mock_auth_service)
+            "ebay": EbayProductCollector("/tmp/test", redis_client=mock_auth_service)
         }
         
         for source_name, collector in collectors.items():
@@ -138,7 +138,7 @@ class TestServiceIntegration:
         
         # Test that we can create mock collectors
         amazon_collector = AmazonProductCollector("/tmp/test")
-        ebay_collector = EbayProductCollector("/tmp/test", mock_auth_service)
+        ebay_collector = EbayProductCollector("/tmp/test", redis_client=mock_auth_service)
         
         # Both should inherit from their respective base classes
         assert isinstance(amazon_collector, MockProductCollector)

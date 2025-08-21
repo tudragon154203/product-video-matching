@@ -64,6 +64,7 @@ async def ebay_collector(auth_service):
     """eBay product collector fixture"""
     collector = EbayProductCollector(
         data_root="/tmp/test_integration",
+        redis_client=redis_client,
         auth_service=auth_service,
         marketplaces=["EBAY_US"]  # Test with US marketplace only
     )
@@ -426,8 +427,7 @@ async def run_comprehensive_test():
     
     # Initialize components
     redis_client = aioredis.from_url(config.REDIS_URL, decode_responses=True)
-    auth_service = eBayAuthService(config, redis_client)
-    collector = EbayProductCollector("/tmp/test_integration", auth_service, marketplaces=["EBAY_US"])
+    collector = EbayProductCollector("/tmp/test_integration", redis_client=redis_client, marketplaces=["EBAY_US"])
     
     results = {
         "timestamp": datetime.utcnow().isoformat(),

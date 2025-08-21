@@ -13,14 +13,13 @@ logger = configure_logging("dropship-product-finder")
 class BaseProductCollector(IProductCollector):
     """Abstract base class for product collectors"""
     
-    def __init__(self, data_root: str, auth_service=None):
+    def __init__(self, data_root: str):
         self.data_root = Path(data_root)
         self.products_dir = self.data_root / "products"
         self.products_dir.mkdir(parents=True, exist_ok=True)
         
         # HTTP client for downloading images
         self.client = httpx.AsyncClient(timeout=30.0, follow_redirects=True)
-        self.auth_service = auth_service
     
     @abstractmethod
     async def collect_products(self, query: str, top_k: int) -> List[Dict[str, Any]]:

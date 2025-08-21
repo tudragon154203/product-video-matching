@@ -1,3 +1,7 @@
+# Mac dev 
+infra/pvm/docker-compose.mac.yml
+
+# LLM
 demo/
 desktop.ini
 *repomix*

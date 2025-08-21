@@ -22,7 +22,7 @@ def mock_auth_service():
 def ebay_collector(mock_auth_service):
     """Create eBay collector with mocked auth service"""
     with patch('config_loader.config.EBAY_MARKETPLACES', "EBAY_US,EBAY_UK,EBAY_DE"):
-        return EbayProductCollector("/tmp/test", mock_auth_service)
+        return EbayProductCollector("/tmp/test", redis_client=mock_auth_service)
 
 
 class TestEbayProductCollector:
@@ -75,7 +75,7 @@ class TestEbayProductCollector:
     async def test_collect_products_without_auth(self):
         """Test product collection without authentication service"""
         # Create collector without auth service
-        collector = EbayProductCollector("/tmp/test", None)
+        collector = EbayProductCollector("/tmp/test", redis_client=None)
         
         # Mock eBay browse API client response
         with patch('collectors.ebay_product_collector.EbayBrowseApiClient') as mock_browse_client:

@@ -9,8 +9,6 @@ from collectors.base_product_collector import BaseProductCollector
 from collectors.mock_product_collector import MockProductCollector
 from collectors.amazon_product_collector import AmazonProductCollector
 from collectors.ebay_product_collector import EbayProductCollector
-from .ebay_auth_api_client import EbayAuthAPIClient
-from .ebay_browse_api_client import eBayBrowseAPIClient
 from config_loader import config
 from .product_collection_manager import ProductCollectionManager
 from .image_storage_manager import ImageStorageManager
@@ -21,17 +19,10 @@ logger = configure_logging("dropship-product-finder")
 class DropshipProductFinderService:
     """Main service class for product collection"""
     
-    def __init__(self, db: DatabaseManager, broker: MessageBroker, data_root: str, redis_client: Optional = None):
-        from config_loader import config # Import config at the method level to ensure it's available
-        
+    def __init__(self, db: DatabaseManager, broker: MessageBroker, data_root: str, redis_client: Optional = None):        
         self.db = db
         self.broker = broker
         self.redis = redis_client
-        
-        # Initialize eBay auth service if Redis is available
-        self.ebay_auth = None
-        if self.redis:
-            self.ebay_auth = eBayAuthService(config, self.redis)
         
         # Initialize collectors based on configuration
         if config.USE_MOCK_FINDERS:
@@ -40,26 +31,13 @@ class DropshipProductFinderService:
                 "amazon": MockProductCollector(data_root),
                 "ebay": MockProductCollector(data_root)
             }
-            # Disable eBay authentication service when using mock
-            if self.ebay_auth:
-                self.ebay_auth = None
         else:
             logger.info("Using real product finders (Amazon and eBay APIs)")
-            # Initialize eBay API clients
-            ebay_auth_client = EbayAuthAPIClient(
-                client_id=config.EBAY_CLIENT_ID,
-                client_secret=config.EBAY_CLIENT_SECRET,
-                token_url=config.EBAY_TOKEN_URL,
-                scopes=config.EBAY_SCOPES
-            )
-            ebay_browse_client = eBayBrowseAPIClient(config.EBAY_BROWSE_API_URL)
-            
             self.collectors: Dict[str, BaseProductCollector] = {
                 "amazon": AmazonProductCollector(data_root),
                 "ebay": EbayProductCollector(
-                    auth_client=ebay_auth_client,
-                    browse_client=ebay_browse_client,
-                    marketplace_id="EBAY_US"
+                    data_root=data_root,
+                    redis_client=self.redis
                 )
             }
         

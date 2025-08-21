@@ -63,7 +63,7 @@ def ebay_product_collector(mock_ebay_auth_service, mock_config):
         with patch('services.ebay_browse_api_client.config', mock_config):
             return EbayProductCollector(
                 data_root="/tmp/test",
-                auth_service=mock_ebay_auth_service,
+                redis_client=mock_ebay_auth_service,
                 marketplaces=["EBAY_US", "EBAY_UK"]
             )
 
@@ -357,7 +357,7 @@ class TestEbayProductCollector:
     @pytest.mark.asyncio
     async def test_product_data_extraction(self, ebay_product_collector, mock_ebay_auth_service):
         """Test product data extraction from API responses"""
-        # Mock eBay browse API client
+        # Mock the pre-initialized browse clients
         mock_browse_client = AsyncMock()
         mock_browse_client.search.return_value = {
             "itemSummaries": [
@@ -383,31 +383,33 @@ class TestEbayProductCollector:
             ]
         }
         
-        with patch('collectors.ebay_product_collector.EbayBrowseApiClient') as mock_client_class:
-            mock_client_class.return_value = mock_browse_client
-            
-            # Collect products
-            products = await ebay_product_collector.collect_products("test query", 1)
-            
-            # Verify browse client was created and called (should be called twice for 2 marketplaces)
-            assert mock_client_class.call_count == 2
-            mock_browse_client.search.assert_called()
-            
-            # Verify product transformation
-            assert len(products) == 1
-            product = products[0]
-            assert product["id"] == "epid_001"
-            assert product["title"] == "Test Product"
-            assert product["brand"] == "TestBrand"
-            assert product["url"] == "https://ebay.com/test"
-            assert product["marketplace"] == "us"
-            assert product["price"] == 25.99
-            assert product["currency"] == "USD"
-            assert product["epid"] == "epid_001"
-            assert product["itemId"] == "12345"
-            assert product["shippingCost"] == 0  # FREE shipping selected
-            assert product["totalPrice"] == 25.99
-            assert len(product["images"]) == 3  # primary + 2 additional
+        # Mock the browse clients that are already initialized
+        ebay_product_collector.browse_clients = {
+            "EBAY_US": mock_browse_client,
+            "EBAY_UK": mock_browse_client  # Use same mock for both for simplicity
+        }
+        
+        # Collect products
+        products = await ebay_product_collector.collect_products("test query", 1)
+        
+        # Verify browse client was called (should be called for each marketplace)
+        mock_browse_client.search.assert_called()
+        
+        # Verify product transformation
+        assert len(products) == 1
+        product = products[0]
+        assert product["id"] == "epid_001"
+        assert product["title"] == "Test Product"
+        assert product["brand"] == "TestBrand"
+        assert product["url"] == "https://ebay.com/test"
+        assert product["marketplace"] == "us"
+        assert product["price"] == 25.99
+        assert product["currency"] == "USD"
+        assert product["epid"] == "epid_001"
+        assert product["itemId"] == "12345"
+        assert product["shippingCost"] == 0  # FREE shipping selected
+        assert product["totalPrice"] == 25.99
+        assert len(product["images"]) == 3  # primary + 2 additional
     
     @pytest.mark.asyncio
     async def test_multiple_marketplaces(self, ebay_product_collector, mock_ebay_auth_service):
@@ -440,31 +442,33 @@ class TestEbayProductCollector:
             ]
         }
         
-        with patch('collectors.ebay_product_collector.EbayBrowseApiClient') as mock_client_class:
-            mock_client_class.side_effect = [mock_browse_client_us, mock_browse_client_uk]
-            
-            # Collect products
-            products = await ebay_product_collector.collect_products("test query", 2)
-            
-            # Verify both marketplaces were queried
-            assert mock_client_class.call_count == 2
-            mock_browse_client_us.search.assert_called_once_with(
-                q="test query",
-                limit=2,
-                offset=0
-            )
-            mock_browse_client_uk.search.assert_called_once_with(
-                q="test query",
-                limit=2,
-                offset=0
-            )
-            
-            # Verify products from both marketplaces
-            assert len(products) == 2
-            us_product = next(p for p in products if p["marketplace"] == "us")
-            uk_product = next(p for p in products if p["marketplace"] == "uk")
-            assert us_product["title"] == "US Product"
-            assert uk_product["title"] == "UK Product"
+        # Mock the pre-initialized browse clients
+        ebay_product_collector.browse_clients = {
+            "EBAY_US": mock_browse_client_us,
+            "EBAY_UK": mock_browse_client_uk
+        }
+        
+        # Collect products
+        products = await ebay_product_collector.collect_products("test query", 2)
+        
+        # Verify both marketplaces were queried
+        mock_browse_client_us.search.assert_called_once_with(
+            q="test query",
+            limit=2,
+            offset=0
+        )
+        mock_browse_client_uk.search.assert_called_once_with(
+            q="test query",
+            limit=2,
+            offset=0
+        )
+        
+        # Verify products from both marketplaces
+        assert len(products) == 2
+        us_product = next(p for p in products if p["marketplace"] == "us")
+        uk_product = next(p for p in products if p["marketplace"] == "uk")
+        assert us_product["title"] == "US Product"
+        assert uk_product["title"] == "UK Product"
     
     @pytest.mark.asyncio
     async def test_error_handling_during_collection(self, ebay_product_collector, mock_ebay_auth_service):
@@ -487,16 +491,19 @@ class TestEbayProductCollector:
         mock_browse_client_uk = AsyncMock()
         mock_browse_client_uk.search.side_effect = Exception("API Error")
         
-        with patch('collectors.ebay_product_collector.EbayBrowseApiClient') as mock_client_class:
-            mock_client_class.side_effect = [mock_browse_client_us, mock_browse_client_uk]
-            
-            # Collect products - should not raise exception
-            products = await ebay_product_collector.collect_products("test query", 2)
-            
-            # Verify successful product from first marketplace is returned
-            assert len(products) == 1
-            assert products[0]["title"] == "US Product"
-            assert products[0]["marketplace"] == "us"
+        # Mock the pre-initialized browse clients
+        ebay_product_collector.browse_clients = {
+            "EBAY_US": mock_browse_client_us,
+            "EBAY_UK": mock_browse_client_uk
+        }
+        
+        # Collect products - should not raise exception
+        products = await ebay_product_collector.collect_products("test query", 2)
+        
+        # Verify successful product from first marketplace is returned
+        assert len(products) == 1
+        assert products[0]["title"] == "US Product"
+        assert products[0]["marketplace"] == "us"
     
     @pytest.mark.asyncio
     async def test_pagination_handling(self, ebay_product_collector, mock_ebay_auth_service):
@@ -522,20 +529,23 @@ class TestEbayProductCollector:
             ]
         }
         
-        with patch('collectors.ebay_product_collector.EbayBrowseApiClient') as mock_client_class:
-            mock_client_class.return_value = mock_browse_client
-            
-            # Collect products with limit > 50 (should be clamped)
-            products = await ebay_product_collector.collect_products("test query", 100)
-            
-            # Verify browse client was called with original limit (clamping happens inside the client)
-            assert mock_browse_client.search.call_count == 2
-            for call in mock_browse_client.search.call_args_list:
-                assert call.kwargs['limit'] == 100  # Original limit passed to search
-                assert call.kwargs['offset'] == 0
-            
-            # Verify all products were collected
-            assert len(products) == 2
+        # Mock the pre-initialized browse clients
+        ebay_product_collector.browse_clients = {
+            "EBAY_US": mock_browse_client,
+            "EBAY_UK": mock_browse_client  # Use same mock for both for simplicity
+        }
+        
+        # Collect products with limit > 50 (should be clamped)
+        products = await ebay_product_collector.collect_products("test query", 100)
+        
+        # Verify browse client was called with original limit (clamping happens inside the client)
+        assert mock_browse_client.search.call_count == 2
+        for call in mock_browse_client.search.call_args_list:
+            assert call.kwargs['limit'] == 100  # Original limit passed to search
+            assert call.kwargs['offset'] == 0
+        
+        # Verify all products were collected
+        assert len(products) == 2
     
     @pytest.mark.asyncio
     async def test_deduplication_by_epid(self, ebay_product_collector, mock_ebay_auth_service):
@@ -563,18 +573,21 @@ class TestEbayProductCollector:
             ]
         }
         
-        with patch('collectors.ebay_product_collector.EbayBrowseApiClient') as mock_client_class:
-            mock_client_class.return_value = mock_browse_client
-            
-            # Collect products
-            products = await ebay_product_collector.collect_products("test query", 2)
-            
-            # Verify only one product (cheaper one) is returned
-            assert len(products) == 1
-            assert products[0]["epid"] == "epid_001"
-            assert products[0]["title"] == "Lower Price Product"
-            assert products[0]["totalPrice"] == 25.99
-            assert products[0]["itemId"] == "67890"
+        # Mock the pre-initialized browse clients
+        ebay_product_collector.browse_clients = {
+            "EBAY_US": mock_browse_client,
+            "EBAY_UK": mock_browse_client  # Use same mock for both for simplicity
+        }
+        
+        # Collect products
+        products = await ebay_product_collector.collect_products("test query", 2)
+        
+        # Verify only one product (cheaper one) is returned
+        assert len(products) == 1
+        assert products[0]["epid"] == "epid_001"
+        assert products[0]["title"] == "Lower Price Product"
+        assert products[0]["totalPrice"] == 25.99
+        assert products[0]["itemId"] == "67890"
     
     @pytest.mark.asyncio
     async def test_deduplication_by_item_id(self, ebay_product_collector, mock_ebay_auth_service):
@@ -600,17 +613,20 @@ class TestEbayProductCollector:
             ]
         }
         
-        with patch('collectors.ebay_product_collector.EbayBrowseApiClient') as mock_client_class:
-            mock_client_class.return_value = mock_browse_client
-            
-            # Collect products
-            products = await ebay_product_collector.collect_products("test query", 2)
-            
-            # Verify only one product (cheaper one) is returned
-            assert len(products) == 1
-            assert products[0]["itemId"] == "12345"
-            assert products[0]["title"] == "Lower Price Product"
-            assert products[0]["totalPrice"] == 25.99
+        # Mock the pre-initialized browse clients
+        ebay_product_collector.browse_clients = {
+            "EBAY_US": mock_browse_client,
+            "EBAY_UK": mock_browse_client  # Use same mock for both for simplicity
+        }
+        
+        # Collect products
+        products = await ebay_product_collector.collect_products("test query", 2)
+        
+        # Verify only one product (cheaper one) is returned
+        assert len(products) == 1
+        assert products[0]["itemId"] == "12345"
+        assert products[0]["title"] == "Lower Price Product"
+        assert products[0]["totalPrice"] == 25.99
     
     @pytest.mark.asyncio
     async def test_empty_response_handling(self, ebay_product_collector, mock_ebay_auth_service):
@@ -619,14 +635,17 @@ class TestEbayProductCollector:
         mock_browse_client = AsyncMock()
         mock_browse_client.search.return_value = {"itemSummaries": []}
         
-        with patch('collectors.ebay_product_collector.EbayBrowseApiClient') as mock_client_class:
-            mock_client_class.return_value = mock_browse_client
-            
-            # Collect products
-            products = await ebay_product_collector.collect_products("test query", 1)
-            
-            # Verify empty list is returned
-            assert products == []
+        # Mock the pre-initialized browse clients
+        ebay_product_collector.browse_clients = {
+            "EBAY_US": mock_browse_client,
+            "EBAY_UK": mock_browse_client  # Use same mock for both for simplicity
+        }
+        
+        # Collect products
+        products = await ebay_product_collector.collect_products("test query", 1)
+        
+        # Verify empty list is returned
+        assert products == []
     
     @pytest.mark.asyncio
     async def test_insufficient_results_warning(self, ebay_product_collector, mock_ebay_auth_service):
@@ -645,15 +664,18 @@ class TestEbayProductCollector:
             ]
         }
         
-        with patch('collectors.ebay_product_collector.EbayBrowseApiClient') as mock_client_class:
-            mock_client_class.return_value = mock_browse_client
-            
-            # Collect products with higher limit
-            products = await ebay_product_collector.collect_products("test query", 5)
-            
-            # Verify only available products are returned
-            assert len(products) == 1
-            assert products[0]["title"] == "Only Product"
+        # Mock the pre-initialized browse clients
+        ebay_product_collector.browse_clients = {
+            "EBAY_US": mock_browse_client,
+            "EBAY_UK": mock_browse_client  # Use same mock for both for simplicity
+        }
+        
+        # Collect products with higher limit
+        products = await ebay_product_collector.collect_products("test query", 5)
+        
+        # Verify only available products are returned
+        assert len(products) == 1
+        assert products[0]["title"] == "Only Product"
     
     def test_get_source_name(self, ebay_product_collector):
         """Test source name returns 'ebay'"""
@@ -679,16 +701,19 @@ class TestEbayProductCollector:
             ]
         }
         
-        with patch('collectors.ebay_product_collector.EbayBrowseApiClient') as mock_client_class:
-            mock_client_class.return_value = mock_browse_client
-            
-            # Collect products
-            products = await ebay_product_collector.collect_products("test query", 1)
-            
-            # Verify FREE shipping is selected
-            assert len(products) == 1
-            assert products[0]["shippingCost"] == 0  # FREE shipping should be selected
-            assert products[0]["totalPrice"] == 25.99
+        # Mock the pre-initialized browse clients
+        ebay_product_collector.browse_clients = {
+            "EBAY_US": mock_browse_client,
+            "EBAY_UK": mock_browse_client  # Use same mock for both for simplicity
+        }
+        
+        # Collect products
+        products = await ebay_product_collector.collect_products("test query", 1)
+        
+        # Verify FREE shipping is selected
+        assert len(products) == 1
+        assert products[0]["shippingCost"] == 0  # FREE shipping should be selected
+        assert products[0]["totalPrice"] == 25.99
     
     @pytest.mark.asyncio
     async def test_image_handling(self, ebay_product_collector, mock_ebay_auth_service):
@@ -715,18 +740,21 @@ class TestEbayProductCollector:
             ]
         }
         
-        with patch('collectors.ebay_product_collector.EbayBrowseApiClient') as mock_client_class:
-            mock_client_class.return_value = mock_browse_client
-            
-            # Collect products
-            products = await ebay_product_collector.collect_products("test query", 1)
-            
-            # Verify image limit (1 primary + 5 additional = 6 total)
-            assert len(products) == 1
-            assert len(products[0]["images"]) == 6
-            assert products[0]["images"][0] == "https://example.com/primary.jpg"
-            assert products[0]["images"][1] == "https://example.com/additional1.jpg"
-            assert products[0]["images"][5] == "https://example.com/additional5.jpg"
+        # Mock the pre-initialized browse clients
+        ebay_product_collector.browse_clients = {
+            "EBAY_US": mock_browse_client,
+            "EBAY_UK": mock_browse_client  # Use same mock for both for simplicity
+        }
+        
+        # Collect products
+        products = await ebay_product_collector.collect_products("test query", 1)
+        
+        # Verify image limit (1 primary + 5 additional = 6 total)
+        assert len(products) == 1
+        assert len(products[0]["images"]) == 6
+        assert products[0]["images"][0] == "https://example.com/primary.jpg"
+        assert products[0]["images"][1] == "https://example.com/additional1.jpg"
+        assert products[0]["images"][5] == "https://example.com/additional5.jpg"
     
     @pytest.mark.asyncio
     async def test_brand_fallback_to_manufacturer(self, ebay_product_collector, mock_ebay_auth_service):
@@ -746,15 +774,18 @@ class TestEbayProductCollector:
             ]
         }
         
-        with patch('collectors.ebay_product_collector.EbayBrowseApiClient') as mock_client_class:
-            mock_client_class.return_value = mock_browse_client
-            
-            # Collect products
-            products = await ebay_product_collector.collect_products("test query", 1)
-            
-            # Verify manufacturer is used as brand fallback
-            assert len(products) == 1
-            assert products[0]["brand"] == "TestManufacturer"
+        # Mock the pre-initialized browse clients
+        ebay_product_collector.browse_clients = {
+            "EBAY_US": mock_browse_client,
+            "EBAY_UK": mock_browse_client  # Use same mock for both for simplicity
+        }
+        
+        # Collect products
+        products = await ebay_product_collector.collect_products("test query", 1)
+        
+        # Verify manufacturer is used as brand fallback
+        assert len(products) == 1
+        assert products[0]["brand"] == "TestManufacturer"
     
     @pytest.mark.asyncio
     async def test_url_fallback_to_affiliate(self, ebay_product_collector, mock_ebay_auth_service):
@@ -774,12 +805,15 @@ class TestEbayProductCollector:
             ]
         }
         
-        with patch('collectors.ebay_product_collector.EbayBrowseApiClient') as mock_client_class:
-            mock_client_class.return_value = mock_browse_client
-            
-            # Collect products
-            products = await ebay_product_collector.collect_products("test query", 1)
-            
-            # Verify affiliate URL is used as fallback
-            assert len(products) == 1
-            assert products[0]["url"] == "https://ebay.com/affiliate"
+        # Mock the pre-initialized browse clients
+        ebay_product_collector.browse_clients = {
+            "EBAY_US": mock_browse_client,
+            "EBAY_UK": mock_browse_client  # Use same mock for both for simplicity
+        }
+        
+        # Collect products
+        products = await ebay_product_collector.collect_products("test query", 1)
+        
+        # Verify affiliate URL is used as fallback
+        assert len(products) == 1
+        assert products[0]["url"] == "https://ebay.com/affiliate"

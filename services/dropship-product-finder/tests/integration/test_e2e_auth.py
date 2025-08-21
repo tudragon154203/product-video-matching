@@ -27,8 +27,7 @@ async def test_e2e_flow():
     
     # Initialize components
     redis_client = aioredis.from_url(config.REDIS_URL, decode_responses=True)
-    auth_service = eBayAuthService(config, redis_client)
-    collector = EbayProductCollector("/tmp/test", auth_service)
+    collector = EbayProductCollector("/tmp/test", redis_client=redis_client)
     
     results = {
         "timestamp": datetime.utcnow().isoformat(),
