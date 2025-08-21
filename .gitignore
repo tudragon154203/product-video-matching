@@ -14,12 +14,12 @@ infra/qdrant/data
 # Docs
 AGENTS.md
 CLAUDE.md
-.kiro/*
-.qwen/*
-.roo/*
-.kilocode/*
-.claude/*
-.clinerules/*
+.kiro*
+.qwen*
+.roo*
+.kilocode*
+.claude*
+.clinerules*
 
 # Environment variables
 .env
