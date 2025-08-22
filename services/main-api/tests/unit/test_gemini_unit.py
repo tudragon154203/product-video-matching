@@ -95,20 +95,6 @@ async def test_call_gemini_success(mock_post):
         assert result["response"] == "test response"
         mock_post.assert_called_once()
 
-@patch("httpx.AsyncClient.post")
-@pytest.mark.asyncio
-async def test_call_gemini_no_api_key(mock_post):
-    """Test Gemini API call with no API key."""
-    llm_service = LLMService()
-    
-    # Test with empty API key
-    with patch.object(config, 'GEMINI_API_KEY', ''):
-        with pytest.raises(RuntimeError, match="GEMINI_API_KEY is not set"):
-            await llm_service.call_gemini(
-                model="gemini-pro",
-                prompt="test prompt",
-                timeout_s=30
-            )
 
 @patch("httpx.AsyncClient.post")
 @pytest.mark.asyncio

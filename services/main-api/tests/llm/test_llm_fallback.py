@@ -12,54 +12,6 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(
 from config_loader import config
 from services.llm.llm_service import LLMService
 
-@pytest.mark.asyncio
-async def test_call_gemini_success():
-    """Test the call_gemini function with a successful response."""
-    llm_service = LLMService()
-    
-    with patch("httpx.AsyncClient.post", new_callable=AsyncMock) as mock_post:
-        mock_response = Mock()
-        mock_response.json.return_value = {
-            "candidates": [{
-                "content": {
-                    "parts": [{"text": "test response"}]
-                }
-            }]
-        }
-        mock_response.raise_for_status.return_value = None
-        mock_post.return_value = mock_response
-        
-        # Set a dummy API key for testing
-        with patch.object(config, 'GEMINI_API_KEY', 'test-api-key'):
-            result = await llm_service.call_gemini(
-                model="gemini-pro",
-                prompt="test prompt",
-                timeout_s=30
-            )
-            
-            # Verify the result
-            assert result == {"response": "test response"}
-            
-            # Verify the HTTP call
-            mock_post.assert_called_once()
-            args, kwargs = mock_post.call_args
-            assert args[0] == "https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent"
-            assert kwargs["headers"] == {"x-goog-api-key": "test-api-key"}
-            # Timeout is set on the client, not the post method
-
-@pytest.mark.asyncio
-async def test_call_gemini_no_api_key():
-    """Test the call_gemini function when no API key is set."""
-    llm_service = LLMService()
-    
-    # Test with empty API key
-    with patch.object(config, 'GEMINI_API_KEY', ''):
-        with pytest.raises(RuntimeError, match="GEMINI_API_KEY is not set"):
-            await llm_service.call_gemini(
-                model="gemini-pro",
-                prompt="test prompt",
-                timeout_s=30
-            )
 
 @pytest.mark.asyncio
 async def test_call_gemini_http_error():

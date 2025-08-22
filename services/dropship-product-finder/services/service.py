@@ -2,16 +2,14 @@ import uuid
 from typing import Dict, Any, List, Optional
 from common_py.database import DatabaseManager
 from common_py.messaging import MessageBroker
-from common_py.crud import ProductCRUD, ProductImageCRUD
-from common_py.models import Product, ProductImage
 from common_py.logging_config import configure_logging
 from collectors.base_product_collector import BaseProductCollector
-from collectors.mock_product_collector import MockProductCollector
 from collectors.amazon_product_collector import AmazonProductCollector
 from collectors.ebay_product_collector import EbayProductCollector
 from config_loader import config
 from .product_collection_manager import ProductCollectionManager
 from .image_storage_manager import ImageStorageManager
+from collectors.mock_ebay_collector import MockEbayCollector
 
 logger = configure_logging("dropship-product-finder")
 
@@ -27,10 +25,9 @@ class DropshipProductFinderService:
         # Initialize collectors based on configuration
         if config.USE_MOCK_FINDERS:
             logger.info("Using mock product finders for development")
-            # Import here to avoid circular imports
-            from collectors.mock_ebay_collector import MockEbayCollector
+            
             self.collectors: Dict[str, BaseProductCollector] = {
-                "amazon": AmazonProductCollector(data_root),  # Now implements abstract methods
+                "amazon": AmazonProductCollector(data_root), 
                 "ebay": MockEbayCollector(data_root)
             }
         else:

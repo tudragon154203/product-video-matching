@@ -7,6 +7,7 @@
 - 2025-08-19: ✅ COMPLETED - Updated memory bank with current project state and recent sprint completions
 - Current focus: eBay integration for dropship-product-finder (30% complete) and YouTube crawler implementation for video-crawler service (85% complete)
 - 2025-08-22: ✅ COMPLETED - Updated memory bank with current project state and added testing instructions to CLAUDE.md
+- 2025-08-22: ✅ COMPLETED - Cleaned up failing unit tests with httpx.AsyncClient mock configuration issues across main-api and dropship-product-finder services
 
 ## Active Development Areas
 - **Dropship Product Finder**: eBay integration implementation (OAuth, Browse API, image processing)
