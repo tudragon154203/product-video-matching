@@ -6,6 +6,7 @@
 - 2025-08-18: Completed removal of published_at column from database schema and YouTube crawler
 - 2025-08-19: ✅ COMPLETED - Updated memory bank with current project state and recent sprint completions
 - Current focus: eBay integration for dropship-product-finder (30% complete) and YouTube crawler implementation for video-crawler service (85% complete)
+- 2025-08-22: ✅ COMPLETED - Updated memory bank with current project state and added testing instructions to CLAUDE.md
 
 ## Active Development Areas
 - **Dropship Product Finder**: eBay integration implementation (OAuth, Browse API, image processing)

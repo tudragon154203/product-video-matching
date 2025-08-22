@@ -53,3 +53,31 @@ The microservice path is automatically added to PYTHONPATH when executing from i
 - Correct module resolution
 - Proper configuration loading
 - Access to local test fixtures
+### Testing Philosophy
+- Write only essential tests that verify core functionality
+- Focus on integration tests over unit tests where appropriate
+- Use mocks to avoid external dependencies
+- Test only critical paths and edge cases
+- Skip exhaustive testing of all code paths
+- Use fixtures for common setup and teardown
+- Implement basic smoke tests for API endpoints
+- Mock external services like Playwright browser
+
+### Test Structure
+- Create minimal test files that mirror the application structure
+- Include basic imports and setup in each test file
+- Add placeholder test functions with descriptive names
+- Test files follow naming convention `test_*.py`
+- Keep tests close to features and in root `tests/` for integrations
+
+### Test Coverage Goals
+- Ensure basic API contract is tested
+- Verify error handling for critical paths
+- Test configuration loading
+- Skip exhaustive browser automation testing
+
+### Test Execution Requirements
+- Always run tests after writing them to verify they pass
+- Adjust the codebase and tests if they fail
+- A test writing task can only be marked as completed when all tests pass
+- Use `python -m pytest` to run tests with appropriate flags

@@ -7,6 +7,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 This is an event-driven microservices system for matching e-commerce products with video content using computer vision and deep learning techniques. The system uses an image-first approach combining CLIP embeddings with traditional computer vision (AKAZE/SIFT + RANSAC) for high-precision matching.
 
 ### Core Architecture
+
 - **Event-driven**: RabbitMQ message broker for service communication
 - **State machine**: Main API manages job orchestration and transitions
 - **Vector search**: PostgreSQL + pgvector for embedding similarity search
@@ -14,6 +15,7 @@ This is an event-driven microservices system for matching e-commerce products wi
 - **Dual approach**: Deep learning embeddings (CLIP) + traditional CV features (keypoints)
 
 ### Service Dependencies
+
 ```
 Main API (orchestrator)
     ↓
@@ -27,6 +29,7 @@ Video Crawler → Keyframe Extraction → Matcher → Evidence Builder → Resul
 ## Development Commands
 
 ### Quick Start
+
 ```bash
 # Start entire development environment
 ./up-dev.ps1               # Windows PowerShell
@@ -50,6 +53,7 @@ python tests/manual_smoke_test.py
 ```
 
 ### Individual Commands
+
 ```bash
 # Build specific service
 docker compose -f infra/pvm/docker-compose.dev.yml build --no-cache <service-name>
@@ -63,6 +67,25 @@ curl http://localhost:8080/health  # Results API
 ```
 
 ### Testing
+
+#### Proper Test Execution Workflow
+
+**Always navigate to the microservice directory first before running tests:**
+
+```cmd
+cd services\your-microservice-name
+python -m pytest tests\ -v
+```
+
+**Why this matters:**
+The microservice path is automatically added to PYTHONPATH when executing from its root directory, ensuring:
+
+- Correct module resolution
+- Proper configuration loading
+- Access to local test fixtures
+
+#### Test Commands
+
 ```bash
 # Run integration tests
 python scripts/run_tests.py
@@ -74,22 +97,62 @@ docker compose -f infra/pvm/docker-compose.dev.yml run --rm main-api python -m p
 
 # API integration tests
 pytest tests/test_api_integration.py
+
+# Run tests from microservice directory (recommended)
+cd services\main-api
+python -m pytest tests\ -v
 ```
+
+#### Testing Philosophy
+
+- Write only essential tests that verify core functionality
+- Focus on integration tests over unit tests where appropriate
+- Use mocks to avoid external dependencies
+- Test only critical paths and edge cases
+- Skip exhaustive testing of all code paths
+- Use fixtures for common setup and teardown
+- Implement basic smoke tests for API endpoints
+- Mock external services like Playwright browser
+
+#### Test Structure
+
+- Create minimal test files that mirror the application structure
+- Include basic imports and setup in each test file
+- Add placeholder test functions with descriptive names
+- Test files follow naming convention `test_*.py`
+- Keep tests close to features and in root `tests/` for integrations
+
+#### Test Coverage Goals
+
+- Ensure basic API contract is tested
+- Verify error handling for critical paths
+- Test configuration loading
+- Skip exhaustive browser automation testing
+
+#### Test Execution Requirements
+
+- Always run tests after writing them to verify they pass
+- Adjust the codebase and tests if they fail
+- A test writing task can only be marked as completed when all tests pass
+- Use `python -m pytest` to run tests with appropriate flags in microservice's directory
 
 ## Key Technologies & Libraries
 
 ### Shared Libraries
+
 - `libs/common-py/`: Common utilities for logging, monitoring, CRUD operations
 - `libs/contracts/`: Event schemas and validation
 - `libs/vision-common/`: Vision processing utilities
 
 ### Vision Processing
+
 - **Embeddings**: CLIP (OpenAI), GPU/CPU support
 - **Segmentation**: RMBG (Remove Background) and YOLO models
 - **Keypoints**: AKAZE, SIFT, ORB feature extraction
 - **Matching**: Cosine similarity + RANSAC geometric verification
 
 ### Infrastructure
+
 - **Database**: PostgreSQL with pgvector extension
 - **Message Broker**: RabbitMQ with topic exchange
 - **Caching**: Redis for job progress tracking
@@ -125,7 +188,9 @@ pytest tests/test_api_integration.py
 ## Service Development Patterns
 
 ### Service Template
+
 Each service follows this structure:
+
 - `app/main.py`: Entry point
 - `handlers/`: Event handlers for RabbitMQ
 - `services/`: Business logic layer
@@ -134,19 +199,23 @@ Each service follows this structure:
 - `.env`: Service environment variables
 
 ### Event Contracts
+
 Events are defined in `libs/contracts/contracts/schemas/` with:
+
 - JSON schema validation
 - Dotted routing keys (e.g., `image.embeddings.completed`)
 - Topic exchange routing
 - Required `event_id` for idempotency
 
 ### Configuration
+
 - Shared environment in `.env` (ports, database, etc.)
 - Service-specific in `services/<service>/.env`
 - Python path includes shared libraries
 - Volume mounts for live development
 
 ### Data Flow
+
 1. **Job Start**: Main API creates job, triggers product/video collection
 2. **Segmentation**: Products/videos masked for background removal
 3. **Feature Extraction**: Embeddings (CLIP) + keypoints (AKAZE/SIFT)
@@ -157,6 +226,7 @@ Events are defined in `libs/contracts/contracts/schemas/` with:
 ## Environment Configuration
 
 ### Required Environment Variables
+
 ```bash
 # Database credentials should be set in production
 POSTGRES_USER=postgres
@@ -181,7 +251,9 @@ MODEL_CACHE=model_cache
 ```
 
 ### Model Cache
+
 Hugging Face models are cached in `model_cache/` to avoid repeated downloads:
+
 - CLIP models for embeddings
 - RMBG for background removal
 - YOLO for segmentation
@@ -189,6 +261,7 @@ Hugging Face models are cached in `model_cache/` to avoid repeated downloads:
 ## Development Tips
 
 ### Adding New Services
+
 1. Create service directory in `services/`
 2. Add Dockerfile and requirements.txt
 3. Implement event handlers following existing patterns
@@ -196,11 +269,13 @@ Hugging Face models are cached in `model_cache/` to avoid repeated downloads:
 5. Update CONTRACTS.md for event schemas
 
 ### Building Services
+
 - Services mount shared libraries as volumes for live updates
 - Use `--no-cache` for clean builds
 - GPU support available for vision services (uncomment in docker-compose)
 
 ### Debugging
+
 - Use health endpoints for service status
 - Check RabbitMQ management UI (localhost:15672)
 - View pgAdmin for database inspection (localhost:8081)
@@ -208,6 +283,7 @@ Hugging Face models are cached in `model_cache/` to avoid repeated downloads:
 - Use Docker Compose logs: `docker compose -f infra/pvm/docker-compose.dev.yml logs -f <service>`
 
 ### Testing API Endpoints
+
 ```bash
 # Start matching job
 curl -X POST http://localhost:8000/start-job \

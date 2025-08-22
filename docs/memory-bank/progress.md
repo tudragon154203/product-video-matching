@@ -30,6 +30,7 @@
 - 2025-08-18: Removed published_at column from database schema and YouTube crawler
 - 2025-08-19: ✅ COMPLETED - Updated memory bank with current project state and recent sprint completions
 - 2025-08-21: ✅ COMPLETED - Updated testing guidance documentation with proper pytest execution workflow in techContext.md and AGENTS.md
+- 2025-08-22: ✅ COMPLETED - Updated memory bank with current project state and added testing instructions to CLAUDE.md
 
 ## In Progress
 - **Dropship Product Finder**: eBay integration implementation (Phase 2: OAuth, Phase 3: Browse API)
