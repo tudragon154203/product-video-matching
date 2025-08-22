@@ -131,3 +131,41 @@ class EbayBrowseApiClient:
                    query=q)
         
         return result
+    
+    async def get_item(self, item_id: str, fieldgroups: str = "ITEM") -> Dict[str, Any]:
+        """Get detailed item information including additional images"""
+        
+        # Get fresh token
+        token = await self.auth_service.get_access_token()
+        
+        # Build URL
+        item_url = f"{self.base_url}/item/{item_id}"
+        
+        # Build query parameters
+        params = {
+            "fieldgroups": fieldgroups
+        }
+        
+        # Build headers
+        headers = {
+            "Authorization": f"Bearer {token}",
+            "X-EBAY-C-MARKETPLACE-ID": self.marketplace_id,
+            "Content-Type": "application/json"
+        }
+        
+        logger.info(f"eBay get item", 
+                   marketplace=self.marketplace_id, 
+                   item_id=item_id,
+                   fieldgroups=fieldgroups)
+        
+        # Make request
+        start_time = time.time()
+        result = await self._make_request_with_retry(item_url, headers, params)
+        
+        latency = time.time() - start_time
+        logger.info("eBay get item completed", 
+                   marketplace=self.marketplace_id,
+                   latency=latency,
+                   item_id=item_id)
+        
+        return result

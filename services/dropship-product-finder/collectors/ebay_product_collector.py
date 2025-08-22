@@ -84,14 +84,29 @@ class EbayProductCollector(BaseProductCollector):
                 
                 browse_client = self.browse_clients[marketplace]
                 
-                results = await browse_client.search(
+                # First, search for items
+                search_results = await browse_client.search(
                     q=query,
                     limit=top_k,
                     offset=0
                 )
                 
-                marketplace_products = self._map_ebay_results(
-                    results.get("itemSummaries", []),
+                # Then get detailed item information for additional images
+                item_details = []
+                for item_summary in search_results.get("itemSummaries", [])[:top_k]:
+                    item_id = item_summary["itemId"]
+                    try:
+                        detailed_item = await browse_client.get_item(item_id, fieldgroups="ITEM")
+                        item_details.append(detailed_item)
+                    except Exception as e:
+                        logger.warning(f"Failed to get details for item {item_id}: {e}")
+                        # Use summary as fallback
+                        item_details.append({"item": item_summary})
+                
+                # Map results with detailed item information
+                marketplace_products = self._map_ebay_results_with_details(
+                    search_results.get("itemSummaries", []),
+                    item_details,
                     marketplace
                 )
                 
@@ -125,24 +140,78 @@ class EbayProductCollector(BaseProductCollector):
         
         return products
     
+    def _map_ebay_results_with_details(self, summaries: List[Dict[str, Any]], 
+                                       item_details: List[Dict[str, Any]], 
+                                       marketplace: str) -> List[Dict[str, Any]]:
+        """Map eBay search results with detailed item information"""
+        products = []
+        
+        for i, item_summary in enumerate(summaries):
+            if i < len(item_details):
+                detailed_item = item_details[i]
+                # For detailed response, extract from detailed_item
+                if "item" in detailed_item:
+                    item_data = detailed_item["item"]
+                else:
+                    item_data = item_summary
+            else:
+                item_data = item_summary
+            
+            product = self._normalize_ebay_item(item_data, marketplace)
+            if product:
+                products.append(product)
+        
+        return products
+    
     def _normalize_ebay_item(self, item: Dict[str, Any], marketplace: str) -> Optional[Dict[str, Any]]:
         """Normalize a single eBay item to internal product shape"""
         try:
             # Extract EPID (optional eBay Product ID)
             epid = item.get("epid")
             
-            # Extract primary and additional images
+            # Extract images - handle both search response and detailed item response
             images = []
-            primary_image = item.get("image", {}).get("imageUrl")
+            
+            # Try to get image from different possible sources
+            primary_image = None
+            
+            # Option 1: From detailed item response
+            if "image" in item and isinstance(item["image"], dict):
+                primary_image = item["image"].get("imageUrl")
+            
+            # Option 2: From item gallery images (in detailed response)
+            if not primary_image and "galleryInfo" in item:
+                gallery_images = item["galleryInfo"].get("imageVariations", [])
+                if gallery_images:
+                    primary_image = gallery_images[0].get("imageUrl")
+            
+            # Option 3: From search response fallback
+            if not primary_image:
+                primary_image = item.get("image", {}).get("imageUrl")
+            
             if primary_image:
                 images.append(primary_image)
             
-            # Additional images (up to 6 total)
-            additional_images = item.get("additionalImages", [])
-            additional_count = min(5, 6 - len(images))  # Max 5 additional
-            for img in additional_images[:additional_count]:
-                if img.get("imageUrl"):
-                    images.append(img["imageUrl"])
+            # Extract additional images from multiple possible sources
+            additional_images = []
+            
+            # Option 1: From detailed item gallery images
+            if "galleryInfo" in item:
+                gallery_images = item["galleryInfo"].get("imageVariations", [])
+                for img in gallery_images[1:]:  # Skip first (already added as primary)
+                    if img.get("imageUrl"):
+                        additional_images.append(img["imageUrl"])
+            
+            # Option 2: From item.images array (if available in detailed response)
+            if not additional_images and "images" in item and isinstance(item["images"], list):
+                for img in item["images"][1:]:  # Skip first
+                    if img.get("imageUrl"):
+                        additional_images.append(img["imageUrl"])
+            
+            # Limit additional images to 5 total
+            additional_count = min(5, 6 - len(images))
+            additional_images = additional_images[:additional_count]
+            images.extend(additional_images)
             
             # Extract shipping cost from EXTENDED fieldgroup
             shipping_cost = 0

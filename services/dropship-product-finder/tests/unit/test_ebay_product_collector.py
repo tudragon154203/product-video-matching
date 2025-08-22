@@ -15,12 +15,14 @@ from services.auth import eBayAuthService
 def mock_auth_service():
     """Mock authentication service"""
     auth = AsyncMock()
-    auth.get_token.return_value = "test_token_123"
+    auth.get_access_token = AsyncMock(return_value="test_token_123")
+    auth.get_token = AsyncMock(return_value="test_token_123")  # Keep for backwards compatibility
     auth.refresh_token = AsyncMock()
     # Reset the mock to avoid state sharing between tests
     def reset_mock():
         auth.get_token.reset_mock()
         auth.refresh_token.reset_mock()
+        auth.get_access_token.reset_mock()
     auth.reset_mock = reset_mock
     return auth
 
@@ -29,7 +31,8 @@ def mock_auth_service():
 def mock_ebay_auth_service():
     """Mock eBay auth service that doesn't fail with 401"""
     auth = AsyncMock()
-    auth.get_token.return_value = "test_token_123"
+    auth.get_access_token.return_value = "test_token_123"
+    auth.get_token.return_value = "test_token_123"  # Keep for backwards compatibility
     auth.refresh_token = AsyncMock()
     return auth
 
@@ -79,20 +82,29 @@ class TestEbayBrowseApiClient:
         mock_response.status_code = 200
         mock_response.json.return_value = {"itemSummaries": []}
         
+        # Mock auth service to return token directly
+        mock_ebay_auth_service.get_access_token.return_value = "test_token_123"
+        
+        # Mock httpx.AsyncClient directly in the code
         with patch('httpx.AsyncClient') as mock_client_class:
-            mock_client = AsyncMock()
-            mock_client_class.return_value.__aenter__.return_value = mock_client
-            mock_client.get.return_value = mock_response
+            # Create a mock client that returns our response
+            mock_client_instance = AsyncMock()
+            mock_client_get = AsyncMock()
+            mock_client_get.return_value = mock_response
+            mock_client_instance.get = mock_client_get
+            
+            mock_client_class.return_value = mock_client_instance
+            mock_client_class.return_value.__aenter__.return_value = mock_client_instance
             
             # Make search request
             result = await ebay_browse_client.search("test query", 10, 0)
             
             # Verify auth service was called
-            mock_ebay_auth_service.get_token.assert_called_once()
+            mock_ebay_auth_service.get_access_token.assert_called_once()
             
             # Verify API call was made with correct parameters
-            mock_client.get.assert_called_once()
-            call_args = mock_client.get.call_args
+            mock_client_get.assert_called_once()
+            call_args = mock_client_get.call_args
             
             assert call_args[0][0] == "https://api.sandbox.ebay.com/buy/browse/v1/item_summary/search"
             assert call_args.kwargs["params"]["q"] == "test query"
@@ -151,6 +163,7 @@ class TestEbayBrowseApiClient:
     async def test_http_error_handling(self, mock_ebay_auth_service, mock_config):
         """Test handling of HTTP errors"""
         # Reset mock call counts
+        mock_ebay_auth_service.get_access_token.reset_mock()
         mock_ebay_auth_service.get_token.reset_mock()
         mock_ebay_auth_service.refresh_token.reset_mock()
         
@@ -180,6 +193,7 @@ class TestEbayBrowseApiClient:
                     assert result == {"itemSummaries": []}
                     # Verify token refresh was attempted (at least once for refresh)
                     mock_ebay_auth_service.refresh_token.assert_called()
+                    mock_ebay_auth_service.get_access_token.assert_called()
     
     @pytest.mark.asyncio
     async def test_rate_limiting_retry(self, ebay_browse_client, mock_ebay_auth_service):
@@ -356,10 +370,12 @@ class TestEbayProductCollector:
     
     @pytest.mark.asyncio
     async def test_product_data_extraction(self, ebay_product_collector, mock_ebay_auth_service):
-        """Test product data extraction from API responses"""
+        """Test product data extraction from API responses with detailed item calls"""
         # Mock the pre-initialized browse clients
         mock_browse_client = AsyncMock()
-        mock_browse_client.search.return_value = {
+        
+        # Mock search response
+        search_response = {
             "itemSummaries": [
                 {
                     "itemId": "12345",
@@ -371,10 +387,6 @@ class TestEbayProductCollector:
                     "itemAffiliateWebUrl": "https://ebay.com/affiliate",
                     "price": {"value": 25.99, "currency": "USD"},
                     "image": {"imageUrl": "https://example.com/image1.jpg"},
-                    "additionalImages": [
-                        {"imageUrl": "https://example.com/image2.jpg"},
-                        {"imageUrl": "https://example.com/image3.jpg"}
-                    ],
                     "shippingOptions": [
                         {"shippingType": "FREE"},
                         {"cost": {"value": 5.99, "currency": "USD"}}
@@ -382,6 +394,39 @@ class TestEbayProductCollector:
                 }
             ]
         }
+        
+        # Mock detailed item response with additional images in galleryInfo
+        detailed_item_response = {
+            "item": {
+                "itemId": "12345",
+                "epid": "epid_001",
+                "title": "Test Product",
+                "brand": "TestBrand",
+                "manufacturer": "TestManufacturer",
+                "itemWebUrl": "https://ebay.com/test",
+                "itemAffiliateWebUrl": "https://ebay.com/affiliate",
+                "price": {"value": 25.99, "currency": "USD"},
+                "image": {"imageUrl": "https://example.com/image1.jpg"},
+                "galleryInfo": {
+                    "imageVariations": [
+                        {"imageUrl": "https://example.com/image1.jpg"},
+                        {"imageUrl": "https://example.com/image2.jpg"},
+                        {"imageUrl": "https://example.com/image3.jpg"},
+                        {"imageUrl": "https://example.com/image4.jpg"},
+                        {"imageUrl": "https://example.com/image5.jpg"},
+                        {"imageUrl": "https://example.com/image6.jpg"}
+                    ]
+                },
+                "shippingOptions": [
+                    {"shippingType": "FREE"},
+                    {"cost": {"value": 5.99, "currency": "USD"}}
+                ]
+            }
+        }
+        
+        # Mock responses for search and get_item
+        mock_browse_client.search.return_value = search_response
+        mock_browse_client.get_item.return_value = detailed_item_response
         
         # Mock the browse clients that are already initialized
         ebay_product_collector.browse_clients = {
@@ -392,8 +437,9 @@ class TestEbayProductCollector:
         # Collect products
         products = await ebay_product_collector.collect_products("test query", 1)
         
-        # Verify browse client was called (should be called for each marketplace)
-        mock_browse_client.search.assert_called()
+        # Verify browse client was called for both search and get_item
+        mock_browse_client.search.assert_called_once()
+        mock_browse_client.get_item.assert_called_once_with("12345", fieldgroups="ITEM")
         
         # Verify product transformation
         assert len(products) == 1
@@ -409,7 +455,10 @@ class TestEbayProductCollector:
         assert product["itemId"] == "12345"
         assert product["shippingCost"] == 0  # FREE shipping selected
         assert product["totalPrice"] == 25.99
-        assert len(product["images"]) == 3  # primary + 2 additional
+        assert len(product["images"]) == 6  # primary + 5 additional from galleryInfo
+        assert product["images"][0] == "https://example.com/image1.jpg"
+        assert product["images"][1] == "https://example.com/image2.jpg"
+        assert product["images"][5] == "https://example.com/image6.jpg"
     
     @pytest.mark.asyncio
     async def test_multiple_marketplaces(self, ebay_product_collector, mock_ebay_auth_service):
@@ -749,12 +798,10 @@ class TestEbayProductCollector:
         # Collect products
         products = await ebay_product_collector.collect_products("test query", 1)
         
-        # Verify image limit (1 primary + 5 additional = 6 total)
+        # Verify image handling (only primary image since additionalImages doesn't exist in search response)
         assert len(products) == 1
-        assert len(products[0]["images"]) == 6
+        assert len(products[0]["images"]) == 1  # Only primary image available
         assert products[0]["images"][0] == "https://example.com/primary.jpg"
-        assert products[0]["images"][1] == "https://example.com/additional1.jpg"
-        assert products[0]["images"][5] == "https://example.com/additional5.jpg"
     
     @pytest.mark.asyncio
     async def test_brand_fallback_to_manufacturer(self, ebay_product_collector, mock_ebay_auth_service):

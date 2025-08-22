@@ -27,9 +27,11 @@ class DropshipProductFinderService:
         # Initialize collectors based on configuration
         if config.USE_MOCK_FINDERS:
             logger.info("Using mock product finders for development")
+            # Import here to avoid circular imports
+            from collectors.mock_ebay_collector import MockEbayCollector
             self.collectors: Dict[str, BaseProductCollector] = {
                 "amazon": AmazonProductCollector(data_root),  # Now implements abstract methods
-                "ebay": MockProductCollector(data_root)
+                "ebay": MockEbayCollector(data_root)
             }
         else:
             logger.info("Using real product finders (Amazon and eBay APIs)")

@@ -81,13 +81,18 @@ class TestCollectorConfiguration:
     @pytest.fixture
     def mock_auth_service(self):
         """Create a mock auth service for testing"""
-        return MagicMock(spec=eBayAuthService)
+        # Create an async mock with the required Redis methods
+        auth = AsyncMock(spec=eBayAuthService)
+        auth.redis_client = AsyncMock()
+        auth.redis_client.get = AsyncMock(return_value=b'{"access_token": "test_token", "expires_in": 7200}')
+        auth.redis_client.setex = AsyncMock()
+        return auth
     
     def test_amazon_collector_inherits_from_mock(self):
         """Test that AmazonProductCollector inherits from MockProductCollector"""
-        collector = AmazonProductCollector("/tmp/test")
-        assert isinstance(collector, MockProductCollector)
-        assert collector.get_source_name() == "amazon"
+        from collectors.mock_product_collector import MockProductCollector
+        assert issubclass(AmazonProductCollector, MockProductCollector)
+        assert AmazonProductCollector("/tmp/test").get_source_name() == "amazon"
     
     def test_ebay_collector_inherits_from_mock(self, mock_auth_service):
         """Test that EbayProductCollector inherits from BaseProductCollector"""
@@ -98,18 +103,27 @@ class TestCollectorConfiguration:
     @pytest.mark.asyncio
     async def test_all_collectors_use_mock_data(self, mock_auth_service):
         """Test that all collectors return mock data when USE_MOCK_FINDERS is true"""
-        collectors = {
-            "amazon": AmazonProductCollector("/tmp/test"),
-            "ebay": EbayProductCollector("/tmp/test", redis_client=mock_auth_service)
-        }
+        # Force mock mode for this test
+        from config_loader import config
+        from services.service import DropshipProductFinderService
+        from common_py.database import DatabaseManager
+        from common_py.messaging import MessageBroker
         
-        for source_name, collector in collectors.items():
-            products = await collector.collect_products("test query", 2)
+        original_value = config.USE_MOCK_FINDERS
+        config.USE_MOCK_FINDERS = True
+        
+        # Create mock database and broker
+        mock_db = MagicMock(spec=DatabaseManager)
+        mock_broker = MagicMock(spec=MessageBroker)
+        
+        try:
+            # Create service with mock collectors
+            service = DropshipProductFinderService(mock_db, mock_broker, "/tmp/test", mock_auth_service)
+            collectors = service.collectors
             
-            # For eBay, we expect 0 products because the mock auth service doesn't have get_token
-            if source_name == "ebay":
-                assert len(products) == 0
-            else:
+            for source_name, collector in collectors.items():
+                products = await collector.collect_products("test query", 2)
+                
                 # Verify we get mock products
                 assert len(products) == 2
                 
@@ -118,6 +132,9 @@ class TestCollectorConfiguration:
                     assert source_name in product["id"]
                     assert product["url"].startswith(f"https://{source_name}.com/")
                     assert "mock" in product["title"].lower()
+        finally:
+            # Restore original value
+            config.USE_MOCK_FINDERS = original_value
 
 
 class TestServiceIntegration:
@@ -132,18 +149,38 @@ class TestServiceIntegration:
         """Test that service uses mock collectors when USE_MOCK_FINDERS is true"""
         # This test verifies the configuration logic
         from config_loader import config
+        from services.service import DropshipProductFinderService
+        from common_py.database import DatabaseManager
+        from common_py.messaging import MessageBroker
         
-        # Verify the configuration is set correctly
-        assert config.USE_MOCK_FINDERS == True
+        # Force mock mode for this test
+        original_value = config.USE_MOCK_FINDERS
+        config.USE_MOCK_FINDERS = True
         
-        # Test that we can create mock collectors
-        amazon_collector = AmazonProductCollector("/tmp/test")
-        ebay_collector = EbayProductCollector("/tmp/test", redis_client=mock_auth_service)
+        # Create mock database and broker
+        mock_db = MagicMock(spec=DatabaseManager)
+        mock_broker = MagicMock(spec=MessageBroker)
         
-        # Both should inherit from their respective base classes
-        assert isinstance(amazon_collector, MockProductCollector)
-        assert isinstance(ebay_collector, BaseProductCollector)
-        
-        # Both should return mock data
-        assert amazon_collector.get_source_name() == "amazon"
-        assert ebay_collector.get_source_name() == "ebay"
+        try:
+            # Create service with mock collectors
+            service = DropshipProductFinderService(mock_db, mock_broker, "/tmp/test", mock_auth_service)
+            collectors = service.collectors
+            
+            # Verify the configuration is set correctly
+            assert config.USE_MOCK_FINDERS == True
+            
+            # Verify collectors exist
+            assert "amazon" in collectors
+            assert "ebay" in collectors
+            
+            # Both should inherit from their respective base classes
+            assert isinstance(collectors["amazon"], MockProductCollector)
+            # For eBay, when in mock mode, it should also use MockProductCollector
+            assert isinstance(collectors["ebay"], MockProductCollector) or isinstance(collectors["ebay"], BaseProductCollector)
+            
+            # Both should return mock data
+            assert collectors["amazon"].get_source_name() == "amazon"
+            assert collectors["ebay"].get_source_name() == "ebay"
+        finally:
+            # Restore original value
+            config.USE_MOCK_FINDERS = original_value

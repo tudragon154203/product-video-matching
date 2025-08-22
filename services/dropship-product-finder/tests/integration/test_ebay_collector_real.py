@@ -182,17 +182,21 @@ async def test_multiple_queries(ebay_collector):
     for query in test_queries:
         logger.info(f"Searching for: {query}")
         products = await ebay_collector.collect_products(query, 3)
-        all_products.extend(products)
+        
+        # Verify results per query
+        assert isinstance(products, list)
+        if products:  # Some queries might return empty results
+            # Verify products have unique IDs within this query
+            product_ids = [p["id"] for p in products]
+            assert len(product_ids) == len(set(product_ids)), f"Found duplicate product IDs in query: {query}"
+            
+            all_products.extend(products)
         
         # Small delay to avoid rate limiting
         await asyncio.sleep(1)
     
-    # Verify results
-    assert len(all_products) > 0
-    
-    # Verify all products have unique IDs (within query)
-    product_ids = [p["id"] for p in all_products]
-    assert len(product_ids) == len(set(product_ids)), "Found duplicate product IDs"
+    # Verify we got some results overall
+    assert len(all_products) > 0, "No products collected across all queries"
     
     logger.info(f"Collected {len(all_products)} products across {len(test_queries)} queries")
 

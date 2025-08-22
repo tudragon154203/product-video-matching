@@ -34,4 +34,5 @@ class MockProductCollector(BaseProductCollector):
     
     def get_source_name(self) -> str:
         """Return the source name"""
+        # Return "mock" by default, but subclasses can override this
         return "mock"

@@ -26,6 +26,7 @@ CLAUDE.md
 .kilocode*
 .claude*
 .clinerules*
+.mcp.json
 
 # Environment variables
 .env
