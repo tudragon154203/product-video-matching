@@ -43,6 +43,9 @@ class VideoCrawlerConfig:
     # Number of videos to search for per query
     NUM_VIDEOS: int = int(os.getenv("NUM_VIDEOS", "5"))
     
+    # Number of concurrent video downloads
+    NUM_PARALLEL_DOWNLOADS: int = int(os.getenv("NUM_PARALLEL_DOWNLOADS", "5"))
+    
     # Logging (from .env first, then global config)
     LOG_LEVEL: str = os.getenv("LOG_LEVEL", global_config.LOG_LEVEL)
 

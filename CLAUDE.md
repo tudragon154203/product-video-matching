@@ -1,4 +1,4 @@
-# CLAUDE.md
+# ìCLAUDE.md
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
@@ -308,3 +308,4 @@ curl http://localhost:8080/results?min_score=0.8
 - Event schemas enforce validation and forward compatibility
 - Development environment uses mock data for testing
 - Production deployment requires real API integrations
+- Don't rebuild container if not needed. Just restart

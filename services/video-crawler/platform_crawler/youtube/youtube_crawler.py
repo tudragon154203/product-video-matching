@@ -9,6 +9,7 @@ from platform_crawler.interface import PlatformCrawlerInterface
 from platform_crawler.youtube.youtube_searcher import YoutubeSearcher
 from platform_crawler.youtube.youtube_downloader import YoutubeDownloader
 from utils.youtube_utils import is_url_like, sanitize_filename
+from config_loader import config
 
 logger = configure_logging("video-crawler")
 
@@ -78,19 +79,54 @@ class YoutubeCrawler(PlatformCrawlerInterface):
         return unique_videos
 
     async def _download_unique_videos(self, unique_videos: Dict[str, Any], download_dir: str) -> List[Dict[str, Any]]:
+        videos_list = list(unique_videos.values())
         downloaded_videos = []
-        for video in unique_videos.values():
+        
+        # Process videos in parallel with semaphore to limit concurrent downloads
+        semaphore = asyncio.Semaphore(config.NUM_PARALLEL_DOWNLOADS)
+        
+        # Track concurrency for debugging
+        active_downloads = 0
+        max_concurrent = 0
+        
+        async def download_single_video(video):
+            nonlocal active_downloads, max_concurrent
+            
+            # Track when semaphore is acquired
+            active_downloads += 1
+            max_concurrent = max(max_concurrent, active_downloads)
+            logger.info(f"[CONCURRENCY] Active downloads: {active_downloads} | Max so far: {max_concurrent} | Starting: {video['title']}")
+            
             try:
-                logger.info(f"Attempting to download video: {video['title']} ({video['video_id']})")
                 downloaded_video = await self.downloader.download_video(video, download_dir)
                 if downloaded_video:
-                    downloaded_videos.append(downloaded_video)
-                    logger.info(f"Successfully downloaded video: {video['title']} ({video['video_id']})")
+                    logger.info(f"[CONCURRENCY] Active downloads: {active_downloads} | Completed: {video['title']}")
+                    return downloaded_video
                 else:
-                    logger.warning(f"Failed to download video: {video['title']} ({video['video_id']})")
+                    logger.warning(f"[CONCURRENCY] Active downloads: {active_downloads} | Failed: {video['title']}")
+                    return None
             except Exception as e:
-                logger.error(f"Failed to download video {video['video_id']}: {str(e)}")
-                continue
+                logger.error(f"[CONCURRENCY] Active downloads: {active_downloads} | Exception: {video['title']} | Error: {str(e)}")
+                return None
+            finally:
+                active_downloads -= 1
+                logger.info(f"[CONCURRENCY] Active downloads: {active_downloads} | Finished: {video['title']}")
+        
+        # Run all downloads in parallel
+        logger.info(f"[PARALLEL-START] Starting {len(videos_list)} video downloads with {config.NUM_PARALLEL_DOWNLOADS} concurrent limit")
+        start_time = asyncio.get_event_loop().time()
+        
+        tasks = [download_single_video(video) for video in videos_list]
+        results = await asyncio.gather(*tasks, return_exceptions=False)
+        
+        # Filter out failed downloads
+        downloaded_videos = [result for result in results if result is not None]
+        
+        total_time = asyncio.get_event_loop().time() - start_time
+        logger.info(f"[PARALLEL-FINISH] Completed {len(downloaded_videos)}/{len(videos_list)} downloads | "
+                   f"Max concurrent: {max_concurrent} | Total time: {total_time:.2f}s | "
+                   f"Average per download: {total_time/len(videos_list):.2f}s")
+        
         return downloaded_videos
     
     
