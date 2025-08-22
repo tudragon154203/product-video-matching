@@ -430,6 +430,152 @@ async def test_marketplace_configuration(ebay_collector):
     logger.info("Marketplace configuration test passed")
 
 
+@pytest.mark.asyncio
+async def test_phone_search_returns_real_data(ebay_collector):
+    """Test that searching for 'phone' returns real, non-empty data from eBay API"""
+    logger.info("Testing phone search returns real data...")
+    
+    query = "phone"
+    top_k = 10
+    
+    products = await ebay_collector.collect_products(query, top_k)
+    
+    # Verify results are not empty
+    assert len(products) > 0, f"No products found for query '{query}'"
+    
+    # Verify we got real data with proper structure
+    for product in products:
+        # Verify all required fields are present and have valid data
+        assert "id" in product and product["id"], "Product ID is missing or empty"
+        assert "title" in product and product["title"].strip(), "Product title is missing or empty"
+        assert "price" in product and product["price"] > 0, f"Invalid price for product: {product.get('price')}"
+        assert "currency" in product and product["currency"], "Currency is missing or empty"
+        assert "url" in product and product["url"].startswith(("http://", "https://")), "Product URL is invalid"
+        assert "marketplace" in product and product["marketplace"], "Marketplace is missing or empty"
+        assert "totalPrice" in product and product["totalPrice"] > 0, "Total price is invalid"
+        assert "shippingCost" in product and product["shippingCost"] >= 0, "Shipping cost is invalid"
+        
+        # Verify the product is actually related to phones (check title contains relevant keywords)
+        title_lower = product["title"].lower()
+        phone_keywords = ["phone", "phones", "smartphone", "smartphones", "mobile", "iphone", "samsung", "android", "cell"]
+        has_phone_keyword = any(keyword in title_lower for keyword in phone_keywords)
+        
+        logger.info(f"Product: {product['title'][:60]}... (${product['price']}) - Has phone keyword: {has_phone_keyword}")
+        
+        # At least some products should be related to phones
+        if len(products) <= 3 or products.index(product) < 3:  # Check first 3 products
+            assert has_phone_keyword, f"Product '{product['title']}' doesn't appear to be related to phones"
+    
+    logger.info(f"Successfully found {len(products)} real products for 'phone' search")
+
+
+@pytest.mark.asyncio
+async def test_hat_search_returns_real_data(ebay_collector):
+    """Test that searching for 'hat' returns real, non-empty data from eBay API"""
+    logger.info("Testing hat search returns real data...")
+    
+    query = "hat"
+    top_k = 10
+    
+    products = await ebay_collector.collect_products(query, top_k)
+    
+    # Verify results are not empty
+    assert len(products) > 0, f"No products found for query '{query}'"
+    
+    # Verify we got real data with proper structure
+    for product in products:
+        # Verify all required fields are present and have valid data
+        assert "id" in product and product["id"], "Product ID is missing or empty"
+        assert "title" in product and product["title"].strip(), "Product title is missing or empty"
+        assert "price" in product and product["price"] > 0, f"Invalid price for product: {product.get('price')}"
+        assert "currency" in product and product["currency"], "Currency is missing or empty"
+        assert "url" in product and product["url"].startswith(("http://", "https://")), "Product URL is invalid"
+        assert "marketplace" in product and product["marketplace"], "Marketplace is missing or empty"
+        assert "totalPrice" in product and product["totalPrice"] > 0, "Total price is invalid"
+        assert "shippingCost" in product and product["shippingCost"] >= 0, "Shipping cost is invalid"
+        
+        # Verify the product is actually related to hats (check title contains relevant keywords)
+        title_lower = product["title"].lower()
+        hat_keywords = ["hat", "hats", "cap", "caps", "beanie", "fedora", "sun hat", "baseball cap"]
+        has_hat_keyword = any(keyword in title_lower for keyword in hat_keywords)
+        
+        logger.info(f"Product: {product['title'][:60]}... (${product['price']}) - Has hat keyword: {has_hat_keyword}")
+        
+        # At least some products should be related to hats
+        if len(products) <= 3 or products.index(product) < 3:  # Check first 3 products
+            assert has_hat_keyword, f"Product '{product['title']}' doesn't appear to be related to hats"
+    
+    logger.info(f"Successfully found {len(products)} real products for 'hat' search")
+
+
+@pytest.mark.asyncio
+async def test_phone_and_hat_search_has_images(ebay_collector):
+    """Test that phone and hat searches return products with main and additional images"""
+    logger.info("Testing phone and hat searches have images...")
+    
+    test_queries = [
+        ("phone", 5),
+        ("hat", 5)
+    ]
+    
+    total_products_with_images = 0
+    total_products = 0
+    
+    for query, limit in test_queries:
+        logger.info(f"Testing image handling for query: '{query}' with limit: {limit}")
+        
+        products = await ebay_collector.collect_products(query, limit)
+        total_products += len(products)
+        
+        # Verify results are not empty
+        assert len(products) > 0, f"No products found for query '{query}'"
+        
+        # Check products with images
+        products_with_images = [p for p in products if p["images"]]
+        
+        for product in products:
+            # Verify all required fields
+            assert "id" in product and product["id"], f"Product ID missing for query '{query}'"
+            assert "title" in product and product["title"].strip(), f"Product title missing for query '{query}'"
+            assert "price" in product and product["price"] > 0, f"Invalid price for query '{query}'"
+            assert "currency" in product and product["currency"], f"Currency missing for query '{query}'"
+            assert "url" in product and product["url"].startswith(("http://", "https://")), f"Invalid URL for query '{query}'"
+            
+            # Check image handling
+            if product["images"]:
+                total_products_with_images += 1
+                
+                # Verify image URLs
+                for img_url in product["images"]:
+                    assert isinstance(img_url, str), f"Image URL must be string for query '{query}'"
+                    assert img_url.startswith(("http://", "https://")), f"Invalid image URL for query '{query}': {img_url}"
+                    assert len(img_url) > 0, f"Empty image URL for query '{query}'"
+                
+                # Verify image count (should be 1-6 images)
+                assert 1 <= len(product["images"]) <= 6, f"Invalid image count for query '{query}': {len(product['images'])}"
+                
+                # Log product with images
+                logger.info(f"  - {product['title'][:40]}... ({len(product['images'])} images, ${product['price']})")
+            else:
+                logger.warning(f"  - {product['title'][:40]}... (no images)")
+        
+        logger.info(f"Query '{query}' returned {len(products_with_images)}/{len(products)} products with images")
+        
+        # Small delay to avoid rate limiting
+        await asyncio.sleep(0.5)
+    
+    # Overall verification
+    assert total_products > 0, "No products found across both queries"
+    assert total_products_with_images > 0, f"No products with images found across both queries ({total_products_with_images}/{total_products})"
+    
+    # At least 50% of products should have images
+    image_percentage = (total_products_with_images / total_products) * 100
+    logger.info(f"Image coverage: {total_products_with_images}/{total_products} products ({image_percentage:.1f}%)")
+    assert image_percentage >= 50, f"Low image coverage: {image_percentage:.1f}%"
+    
+    logger.info("Phone and hat searches successfully returned products with images")
+
+
 async def run_comprehensive_test():
     """Run comprehensive integration test with detailed reporting"""
     logger.info("Starting comprehensive eBay collector integration test...")
