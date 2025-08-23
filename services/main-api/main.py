@@ -36,6 +36,7 @@ from api.job_endpoints import router as job_router
 from api.health_endpoints import router as health_router
 from api.video_endpoints import router as video_router
 from api.image_endpoints import router as image_router
+from api.features_endpoints import router as features_router
 
 # Global instances
 # Use configuration from the config object
@@ -61,6 +62,8 @@ app = FastAPI(title="Main API Service", version="1.0.0")
 import api.job_endpoints
 import api.health_endpoints
 import api.video_endpoints
+import api.image_endpoints
+import api.features_endpoints
 api.job_endpoints.job_service_instance = job_service
 api.health_endpoints.db_instance = db
 api.health_endpoints.broker_instance = broker
@@ -68,6 +71,16 @@ api.video_endpoints.db_instance = db
 api.video_endpoints.video_crud_instance = video_crud
 api.video_endpoints.video_frame_crud_instance = video_frame_crud
 api.video_endpoints.match_crud_instance = match_crud
+api.image_endpoints.db_instance = db
+api.image_endpoints.job_service_instance = job_service
+api.image_endpoints.product_image_crud_instance = product_image_crud
+api.image_endpoints.product_crud_instance = product_crud
+api.features_endpoints.db_instance = db
+api.features_endpoints.job_service_instance = job_service
+api.features_endpoints.product_image_crud_instance = product_image_crud
+api.features_endpoints.video_frame_crud_instance = video_frame_crud
+api.features_endpoints.product_crud_instance = product_crud
+api.features_endpoints.video_crud_instance = video_crud
 
 # Set instances for image endpoints
 import api.image_endpoints
@@ -81,6 +94,7 @@ app.include_router(job_router)
 app.include_router(health_router)
 app.include_router(video_router)
 app.include_router(image_router)
+app.include_router(features_router)
 
 @app.on_event("startup")
 async def startup():
