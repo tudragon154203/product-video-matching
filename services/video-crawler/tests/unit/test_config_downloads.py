@@ -8,9 +8,9 @@ import os
 import sys
 import os
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from config_loader import config
-sys.path.append(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'platform_crawler', 'youtube'))
-from youtube_crawler import YoutubeCrawler
+from config_loader import VideoCrawlerConfig
+config = VideoCrawlerConfig()
+from platform_crawler.youtube.youtube_crawler import YoutubeCrawler
 
 class MockYoutubeDownloader:
     """Mock downloader for testing"""

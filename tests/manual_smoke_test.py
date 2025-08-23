@@ -86,7 +86,7 @@ async def start_job(client):
         "query": "gối",
         "top_amz": 3,
         "top_ebay": 2,
-        "platforms": ["youtube"],
+        "platforms": ["youtube", "tiktok"],
         "recency_days": 365
     }
     

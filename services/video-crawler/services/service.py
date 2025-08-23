@@ -11,6 +11,7 @@ from fetcher.keyframe_extractor import KeyframeExtractor
 from platform_crawler.interface import PlatformCrawlerInterface
 from platform_crawler.mock_crawler import MockPlatformCrawler
 from platform_crawler.youtube.youtube_crawler import YoutubeCrawler
+from platform_crawler.tiktok.tiktok_crawler import TikTokCrawler
 from handlers.event_emitter import EventEmitter
 from common_py.logging_config import configure_logging
 from config_loader import config
@@ -90,6 +91,8 @@ class VideoCrawlerService:
         for platform in platforms:
             if platform == "youtube":
                 download_dir = os.path.join(config.VIDEO_DIR, "youtube")
+            elif platform == "tiktok":
+                download_dir = os.path.join(config.VIDEO_DIR, "tiktok")
             else:
                 download_dir = str(self.keyframe_extractor.videos_dir / platform)
             
@@ -178,10 +181,12 @@ class VideoCrawlerService:
         # Use real YouTube crawler
         crawlers["youtube"] = YoutubeCrawler()
         
+        # Use real TikTok crawler
+        crawlers["tiktok"] = TikTokCrawler()
+        
         # Use mock crawlers for other platforms (not implemented yet)
         crawlers["bilibili"] = MockPlatformCrawler("bilibili")
         crawlers["douyin"] = MockPlatformCrawler("douyin")
-        crawlers["tiktok"] = MockPlatformCrawler("tiktok")
         
         return crawlers
     

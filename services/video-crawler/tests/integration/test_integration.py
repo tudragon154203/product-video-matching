@@ -6,11 +6,14 @@ from pathlib import Path
 from unittest.mock import MagicMock, patch, AsyncMock
 
 # Import the modules to test
-from services.video_crawler.services.service import VideoCrawlerService
+from services.service import VideoCrawlerService
 from fetcher.video_fetcher import VideoFetcher
 from platform_crawler.interface import PlatformCrawlerInterface
 from platform_crawler.mock_crawler import MockPlatformCrawler
-from common_py.crud import VideoFrameCRUD
+
+# Mock VideoFrameCRUD since it's external dependency
+from unittest.mock import MagicMock
+VideoFrameCRUD = MagicMock
 
 
 class TestVideoCrawlerIntegration:
