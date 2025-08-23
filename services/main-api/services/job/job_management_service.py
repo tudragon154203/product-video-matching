@@ -50,8 +50,10 @@ class JobManagementService:
                     counts={
                         "products": 0,
                         "videos": 0,
-                        "matches": 0
-                    }
+                        "images": 0,
+                        "frames": 0
+                    },
+                    updated_at=None
                 )
             
             phase_progress = {
@@ -63,7 +65,9 @@ class JobManagementService:
                 "failed": 0.0
             }
             
-            product_count, video_count, match_count = await self.db_handler.get_job_counts(job_id)
+            # Get comprehensive counts including frames
+            product_count, video_count, image_count, frame_count, match_count = await self.db_handler.get_job_counts_with_frames(job_id)
+            updated_at = await self.db_handler.get_job_updated_at(job_id)
             
             return JobStatusResponse(
                 job_id=job_id,
@@ -72,8 +76,10 @@ class JobManagementService:
                 counts={
                     "products": product_count,
                     "videos": video_count,
-                    "matches": match_count
-                }
+                    "images": image_count,
+                    "frames": frame_count
+                },
+                updated_at=updated_at
             )
             
         except HTTPException:

@@ -11,11 +11,14 @@ class StartJobResponse(BaseModel):
     job_id: str
     status: str
 
+from datetime import datetime
+
 class JobStatusResponse(BaseModel):
     job_id: str
     phase: str
     percent: float
     counts: dict
+    updated_at: datetime
 
 class JobAssetTypes(BaseModel):
     """Schema for job asset types indicating which media types are present"""
@@ -33,3 +36,55 @@ class JobAssetTypes(BaseModel):
             return "video-only"
         else:
             return "zero-asset"
+
+
+class VideoItem(BaseModel):
+    """Schema for video item in list response"""
+    video_id: str
+    platform: str
+    url: str
+    title: str
+    duration_s: float
+    frames_count: int
+    updated_at: datetime
+
+
+class VideoListResponse(BaseModel):
+    """Schema for video list response with pagination"""
+    items: list[VideoItem]
+    total: int
+    limit: int
+    offset: int
+
+
+class FrameItem(BaseModel):
+    """Schema for frame item in list response"""
+    frame_id: str
+    ts: float
+    local_path: str
+    updated_at: datetime
+
+
+class FrameListResponse(BaseModel):
+    """Schema for frame list response with pagination"""
+    items: list[FrameItem]
+    total: int
+    limit: int
+    offset: int
+
+
+class ImageItem(BaseModel):
+    """Schema for image item in list response"""
+    img_id: str
+    product_id: str
+    local_path: str
+    product_title: str
+    updated_at: datetime
+
+
+class ImageListResponse(BaseModel):
+    """Schema for image list response with pagination"""
+    items: list[ImageItem]
+    total: int
+    limit: int
+    offset: int

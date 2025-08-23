@@ -29,3 +29,83 @@ class VideoCRUD:
         query = "SELECT * FROM videos ORDER BY created_at DESC LIMIT $1 OFFSET $2"
         rows = await self.db.fetch_all(query, limit, offset)
         return [Video(**row) for row in rows]
+    
+    async def list_videos_by_job(self, job_id: str, limit: int = 100, offset: int = 0,
+                                search_query: Optional[str] = None, platform: Optional[str] = None,
+                                min_frames: Optional[int] = None, sort_by: str = "updated_at",
+                                order: str = "DESC") -> List[Video]:
+        """List videos by job ID with filtering and pagination"""
+        conditions = ["job_id = $1"]
+        params = [job_id]
+        param_count = 1
+        
+        if search_query:
+            param_count += 1
+            conditions.append(f"title ILIKE ${param_count}")
+            params.append(f"%{search_query}%")
+        
+        if platform:
+            param_count += 1
+            conditions.append(f"platform = ${param_count}")
+            params.append(platform)
+        
+        if min_frames is not None:
+            param_count += 1
+            conditions.append(f"EXISTS (SELECT 1 FROM video_frames vf WHERE vf.video_id = videos.video_id AND vf.created_at >= NOW() - INTERVAL '1 day' GROUP BY vf.video_id HAVING COUNT(*) >= ${param_count})")
+            params.append(min_frames)
+        
+        where_clause = "WHERE " + " AND ".join(conditions)
+        
+        # Validate sort_by field
+        valid_sort_fields = ["updated_at", "duration_s", "frames_count", "title"]
+        if sort_by not in valid_sort_fields:
+            sort_by = "updated_at"
+        
+        # Validate order
+        order = order.upper() if order.upper() in ["ASC", "DESC"] else "DESC"
+        
+        param_count += 1
+        params.append(limit)
+        param_count += 1
+        params.append(offset)
+        
+        query = f"""
+        SELECT v.* FROM videos v
+        {where_clause}
+        ORDER BY v.{sort_by} {order}
+        LIMIT ${param_count-1} OFFSET ${param_count}
+        """
+        
+        rows = await self.db.fetch_all(query, *params)
+        return [Video(**row) for row in rows]
+    
+    async def count_videos_by_job(self, job_id: str, search_query: Optional[str] = None,
+                                 platform: Optional[str] = None, min_frames: Optional[int] = None) -> int:
+        """Count videos by job ID with filtering"""
+        conditions = ["job_id = $1"]
+        params = [job_id]
+        param_count = 1
+        
+        if search_query:
+            param_count += 1
+            conditions.append(f"title ILIKE ${param_count}")
+            params.append(f"%{search_query}%")
+        
+        if platform:
+            param_count += 1
+            conditions.append(f"platform = ${param_count}")
+            params.append(platform)
+        
+        if min_frames is not None:
+            param_count += 1
+            conditions.append(f"EXISTS (SELECT 1 FROM video_frames vf WHERE vf.video_id = videos.video_id AND vf.created_at >= NOW() - INTERVAL '1 day' GROUP BY vf.video_id HAVING COUNT(*) >= ${param_count})")
+            params.append(min_frames)
+        
+        where_clause = "WHERE " + " AND ".join(conditions)
+        
+        query = f"""
+        SELECT COUNT(*) FROM videos
+        {where_clause}
+        """
+        
+        return await self.db.fetch_val(query, *params)

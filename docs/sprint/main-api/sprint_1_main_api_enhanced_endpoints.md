@@ -196,4 +196,4 @@ Query: `product_id`, `q`, `limit`, `offset`, `sort_by=img_id|updated_at`, `order
 - All timestamps in `+07:00`.
 - Pagination + sorting unified across endpoints.
 - No SSE; client polls these endpoints.
-
+- No authentiation

@@ -18,6 +18,11 @@ from config_loader import config
 # Import services
 from services.job.job_service import JobService
 
+# Import CRUD operations
+from common_py.crud.video_crud import VideoCRUD
+from common_py.crud.video_frame_crud import VideoFrameCRUD
+from common_py.crud.match_crud import MatchCRUD
+
 # Import models
 from models.schemas import StartJobRequest, StartJobResponse, JobStatusResponse
 
@@ -27,6 +32,7 @@ from handlers.lifecycle_handler import LifecycleHandler
 # Import API endpoints
 from api.job_endpoints import router as job_router
 from api.health_endpoints import router as health_router
+from api.video_endpoints import router as video_router
 
 # Global instances
 # Use configuration from the config object
@@ -36,6 +42,11 @@ broker = MessageBroker(config.BUS_BROKER)
 # Initialize services
 job_service = JobService(db, broker)
 
+# Initialize CRUD instances
+video_crud = VideoCRUD(db)
+video_frame_crud = VideoFrameCRUD(db)
+match_crud = MatchCRUD(db)
+
 # Initialize lifecycle handler
 lifecycle_handler = LifecycleHandler(db, broker, job_service)
 
@@ -44,13 +55,19 @@ app = FastAPI(title="Main API Service", version="1.0.0")
 # Set the instances in the routers
 import api.job_endpoints
 import api.health_endpoints
+import api.video_endpoints
 api.job_endpoints.job_service_instance = job_service
 api.health_endpoints.db_instance = db
 api.health_endpoints.broker_instance = broker
+api.video_endpoints.db_instance = db
+api.video_endpoints.video_crud_instance = video_crud
+api.video_endpoints.video_frame_crud_instance = video_frame_crud
+api.video_endpoints.match_crud_instance = match_crud
 
 # Include API routers
 app.include_router(job_router)
 app.include_router(health_router)
+app.include_router(video_router)
 
 @app.on_event("startup")
 async def startup():

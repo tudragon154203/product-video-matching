@@ -47,6 +47,49 @@ class DatabaseHandler:
             logger.warning(f"Failed to fetch counts from database: {e}")
             return 0, 0, 0
 
+    async def get_job_updated_at(self, job_id: str):
+        """Get the updated_at timestamp of a job."""
+        try:
+            result = await self.db.fetch_one(
+                "SELECT updated_at FROM jobs WHERE job_id = $1", job_id
+            )
+            return result["updated_at"] if result else None
+        except Exception as e:
+            logger.error(f"Failed to fetch job updated_at: {e}")
+            return None
+
+    async def get_job_counts_with_frames(self, job_id: str):
+        """Get counts for a job from the database including frames."""
+        try:
+            product_count = await self.db.fetch_val(
+                "SELECT COUNT(*) FROM products WHERE job_id = $1", job_id
+            ) or 0
+            
+            video_count = await self.db.fetch_val(
+                "SELECT COUNT(*) FROM videos WHERE job_id = $1", job_id
+            ) or 0
+            
+            # Count images (product_images)
+            image_count = await self.db.fetch_val(
+                "SELECT COUNT(*) FROM product_images WHERE product_id IN (SELECT product_id FROM products WHERE job_id = $1)",
+                job_id
+            ) or 0
+            
+            # Count frames (video_frames)
+            frame_count = await self.db.fetch_val(
+                "SELECT COUNT(*) FROM video_frames WHERE video_id IN (SELECT video_id FROM videos WHERE job_id = $1)",
+                job_id
+            ) or 0
+            
+            match_count = await self.db.fetch_val(
+                "SELECT COUNT(*) FROM matches WHERE job_id = $1", job_id
+            ) or 0
+            
+            return product_count, video_count, image_count, frame_count, match_count
+        except Exception as e:
+            logger.warning(f"Failed to fetch counts with frames from database: {e}")
+            return 0, 0, 0, 0, 0
+
     async def update_job_phase(self, job_id: str, new_phase: str):
         """Update the phase of a job."""
         try:

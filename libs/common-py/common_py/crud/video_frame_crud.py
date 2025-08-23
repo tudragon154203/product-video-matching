@@ -42,3 +42,34 @@ class VideoFrameCRUD:
         query = "SELECT * FROM video_frames WHERE video_id = $1 ORDER BY ts"
         rows = await self.db.fetch_all(query, video_id)
         return [VideoFrame(**row) for row in rows]
+    
+    async def list_video_frames_by_video(self, video_id: str, limit: int = 100, offset: int = 0,
+                                       sort_by: str = "ts", order: str = "ASC") -> List[VideoFrame]:
+        """List frames for a video with pagination and sorting"""
+        # Validate sort_by field
+        valid_sort_fields = ["ts", "frame_id"]
+        if sort_by not in valid_sort_fields:
+            sort_by = "ts"
+        
+        # Validate order
+        order = order.upper() if order.upper() in ["ASC", "DESC"] else "ASC"
+        
+        query = f"""
+        SELECT * FROM video_frames
+        WHERE video_id = $1
+        ORDER BY {sort_by} {order}
+        LIMIT $2 OFFSET $3
+        """
+        
+        rows = await self.db.fetch_all(query, video_id, limit, offset)
+        return [VideoFrame(**row) for row in rows]
+    
+    async def count_video_frames_by_video(self, video_id: str) -> int:
+        """Count frames for a video"""
+        query = "SELECT COUNT(*) FROM video_frames WHERE video_id = $1"
+        return await self.db.fetch_val(query, video_id)
+    
+    async def get_video_frames_count(self, video_id: str) -> int:
+        """Get the total count of frames for a video"""
+        query = "SELECT COUNT(*) FROM video_frames WHERE video_id = $1"
+        return await self.db.fetch_val(query, video_id)
