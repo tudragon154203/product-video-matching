@@ -8,10 +8,23 @@
         "run",
         "server.py"
       ],
-      "timeout": 6000,
       "disabled": false,
       "autoApprove": [
         "interactive_feedback"
+      ]
+    },
+    "brave-search": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-brave-search"
+      ],
+      "env": {
+        "BRAVE_API_KEY": "BSA5rRrTbbvXnmTq8zu3UrAr_qfiQX6"
+      },
+      "disabled": false,
+      "autoApprove": [
+        "brave_web_search"
       ]
     }
   }

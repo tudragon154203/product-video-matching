@@ -1,6 +1,18 @@
+# Core FastAPI dependencies
 fastapi==0.111.0
 uvicorn==0.30.1
 pydantic==2.8.2
+pydantic-settings>=2.5.2
+
+# Database dependencies
 asyncpg==0.29.0
+
+# Utility dependencies
 python-multipart==0.0.9
 python-dotenv==1.0.1
+
+# MCP server integration
+fastapi-mcp==0.4.0
+
+# Additional dependencies for improved functionality
+python-json-logger==2.0.7

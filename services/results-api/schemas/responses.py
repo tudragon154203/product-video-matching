@@ -1,96 +1,95 @@
-from typing import Optional, List, Dict
-from pydantic import BaseModel
-
-
-class Pagination(BaseModel):
-    """Pagination metadata for list responses"""
-    total: int
-    limit: int
-    offset: int
-    has_next: bool
-    has_previous: bool
-
-
-class BaseResponse(BaseModel):
-    """Base response structure"""
-    success: bool
-    data: Optional[Dict] = None
-    error: Optional[str] = None
+"""
+Response schema definitions for the Results API.
+Contains Pydantic models for response validation and documentation.
+"""
+from typing import Optional, List, Dict, Any
+from datetime import datetime
+from pydantic import BaseModel, Field
 
 
 class ProductResponse(BaseModel):
     """Product response schema"""
-    id: str
-    name: str
-    category: str
-    price: Optional[float] = None
-    url: Optional[str] = None
-    image_url: Optional[str] = None
-    description: Optional[str] = None
-    created_at: str
+    product_id: str = Field(..., description="Unique product identifier")
+    src: Optional[str] = Field(None, description="Product source (amazon, ebay, etc.)")
+    asin_or_itemid: Optional[str] = Field(None, description="ASIN or item ID from source")
+    title: Optional[str] = Field(None, description="Product title")
+    brand: Optional[str] = Field(None, description="Product brand")
+    url: Optional[str] = Field(None, description="Product URL")
+    created_at: str = Field(..., description="Product creation timestamp")
+    image_count: int = Field(..., description="Number of product images")
 
 
 class VideoResponse(BaseModel):
     """Video response schema"""
-    id: str
-    title: str
-    url: str
-    platform: str
-    thumbnail_url: Optional[str] = None
-    duration: Optional[int] = None
-    view_count: Optional[int] = None
-    published_at: str
+    video_id: str = Field(..., description="Unique video identifier")
+    platform: Optional[str] = Field(None, description="Video platform (youtube, etc.)")
+    url: Optional[str] = Field(None, description="Video URL")
+    title: Optional[str] = Field(None, description="Video title")
+    duration_s: Optional[int] = Field(None, description="Video duration in seconds")
+    published_at: Optional[str] = Field(None, description="Video publication timestamp")
+    created_at: str = Field(..., description="Video creation timestamp")
+    frame_count: int = Field(..., description="Number of video frames")
 
 
 class MatchResponse(BaseModel):
-    """Match response schema"""
-    id: str
-    product_id: str
-    video_id: str
-    similarity_score: float
-    platform: str
-    match_type: str
-    evidence_path: Optional[str] = None
-    created_at: str
+    """Match response schema for results list"""
+    match_id: str = Field(..., description="Unique match identifier")
+    job_id: str = Field(..., description="Job identifier")
+    product_id: str = Field(..., description="Product identifier")
+    video_id: str = Field(..., description="Video identifier")
+    best_img_id: Optional[str] = Field(None, description="Best matching image ID")
+    best_frame_id: Optional[str] = Field(None, description="Best matching frame ID")
+    ts: Optional[float] = Field(None, description="Timestamp in video")
+    score: float = Field(..., description="Match confidence score")
+    evidence_path: Optional[str] = Field(None, description="Path to evidence image")
+    created_at: str = Field(..., description="Match creation timestamp")
     
     # Enriched fields
-    product: Optional[ProductResponse] = None
-    video: Optional[VideoResponse] = None
+    product_title: Optional[str] = Field(None, description="Product title")
+    video_title: Optional[str] = Field(None, description="Video title")
+    video_platform: Optional[str] = Field(None, description="Video platform")
 
 
-class ResultsListResponse(BaseModel):
-    """Response for list of matching results"""
-    success: bool
-    data: List[MatchResponse]
-    pagination: Pagination
-    total_count: int
+class MatchDetailResponse(BaseModel):
+    """Detailed match response schema"""
+    match_id: str = Field(..., description="Unique match identifier")
+    job_id: str = Field(..., description="Job identifier")
+    best_img_id: Optional[str] = Field(None, description="Best matching image ID")
+    best_frame_id: Optional[str] = Field(None, description="Best matching frame ID")
+    ts: Optional[float] = Field(None, description="Timestamp in video")
+    score: float = Field(..., description="Match confidence score")
+    evidence_path: Optional[str] = Field(None, description="Path to evidence image")
+    created_at: str = Field(..., description="Match creation timestamp")
+    
+    product: ProductResponse = Field(..., description="Product details")
+    video: VideoResponse = Field(..., description="Video details")
+
+
+class EvidenceResponse(BaseModel):
+    """Evidence image response schema"""
+    evidence_path: str = Field(..., description="Path to evidence image file")
 
 
 class StatsResponse(BaseModel):
-    """Stats response schema"""
-    total_products: int
-    total_videos: int
-    total_matches: int
-    average_similarity_score: float
-    top_industries: List[Dict[str, int]]
+    """System statistics response schema"""
+    products: int = Field(..., description="Total number of products")
+    product_images: int = Field(..., description="Total number of product images")
+    videos: int = Field(..., description="Total number of videos")
+    video_frames: int = Field(..., description="Total number of video frames")
+    matches: int = Field(..., description="Total number of matches")
+    jobs: int = Field(..., description="Total number of jobs")
 
 
 class HealthResponse(BaseModel):
     """Health check response schema"""
-    status: str
-    timestamp: str
-    services: Dict[str, str]
+    status: str = Field(..., description="Service health status")
+    message: Optional[str] = Field(None, description="Additional health information")
 
 
-class NotFoundResponse(BaseModel):
-    """Not found error response"""
-    success: bool = False
-    error: str
-    detail: str
-
-
-class ServerErrorResponse(BaseModel):
-    """Server error response schema"""
-    success: bool = False
-    error: str
-    detail: str
+class ErrorResponse(BaseModel):
+    """Error response schema"""
+    correlation_id: str = Field(..., description="Request correlation ID")
+    error_code: str = Field(..., description="Error code")
+    message: str = Field(..., description="Error message")
+    timestamp: str = Field(..., description="Error timestamp")
+    details: List[Dict[str, Any]] = Field(default_factory=list, description="Error details")
