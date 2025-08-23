@@ -12,13 +12,14 @@ class StartJobResponse(BaseModel):
     status: str
 
 from datetime import datetime
+from typing import Optional
 
 class JobStatusResponse(BaseModel):
     job_id: str
     phase: str
     percent: float
     counts: dict
-    updated_at: datetime
+    updated_at: Optional[datetime] = None
 
 class JobAssetTypes(BaseModel):
     """Schema for job asset types indicating which media types are present"""

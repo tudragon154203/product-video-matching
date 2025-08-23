@@ -22,6 +22,8 @@ from services.job.job_service import JobService
 from common_py.crud.video_crud import VideoCRUD
 from common_py.crud.video_frame_crud import VideoFrameCRUD
 from common_py.crud.match_crud import MatchCRUD
+from common_py.crud.product_crud import ProductCRUD
+from common_py.crud.product_image_crud import ProductImageCRUD
 
 # Import models
 from models.schemas import StartJobRequest, StartJobResponse, JobStatusResponse
@@ -33,6 +35,7 @@ from handlers.lifecycle_handler import LifecycleHandler
 from api.job_endpoints import router as job_router
 from api.health_endpoints import router as health_router
 from api.video_endpoints import router as video_router
+from api.image_endpoints import router as image_router
 
 # Global instances
 # Use configuration from the config object
@@ -46,6 +49,8 @@ job_service = JobService(db, broker)
 video_crud = VideoCRUD(db)
 video_frame_crud = VideoFrameCRUD(db)
 match_crud = MatchCRUD(db)
+product_crud = ProductCRUD(db)
+product_image_crud = ProductImageCRUD(db)
 
 # Initialize lifecycle handler
 lifecycle_handler = LifecycleHandler(db, broker, job_service)
@@ -64,10 +69,18 @@ api.video_endpoints.video_crud_instance = video_crud
 api.video_endpoints.video_frame_crud_instance = video_frame_crud
 api.video_endpoints.match_crud_instance = match_crud
 
+# Set instances for image endpoints
+import api.image_endpoints
+api.image_endpoints.db_instance = db
+api.image_endpoints.job_service_instance = job_service
+api.image_endpoints.product_image_crud_instance = product_image_crud
+api.image_endpoints.product_crud_instance = product_crud
+
 # Include API routers
 app.include_router(job_router)
 app.include_router(health_router)
 app.include_router(video_router)
+app.include_router(image_router)
 
 @app.on_event("startup")
 async def startup():
