@@ -12,6 +12,7 @@ model_cache/
 data/
 .crush/
 *.ps1
+*.sh
 mcp.json
 infra/qdrant/data
 .stfolder
