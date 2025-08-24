@@ -15,12 +15,16 @@ import { useTranslations, useLocale } from 'next-intl'
 
 export function StartJobForm() {
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [selectAllPlatforms, setSelectAllPlatforms] = useState(true)
   const queryClient = useQueryClient()
   const t = useTranslations('jobs')
   const tForm = useTranslations('form')
   const tCommon = useTranslations('common')
   const tToast = useTranslations('toast')
   const locale = useLocale()
+
+  const availablePlatforms = ['youtube', 'douyin', 'tiktok', 'bilibili']
+
 
   const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter') {
@@ -32,21 +36,58 @@ export function StartJobForm() {
     }
   }
 
+
+  const handlePlatformChange = (platform: string, checked: boolean) => {
+    const currentPlatforms = watchedPlatforms || []
+    let newPlatforms
+    
+    if (checked) {
+      newPlatforms = [...currentPlatforms, platform]
+    } else {
+      newPlatforms = currentPlatforms.filter(p => p !== platform)
+    }
+    
+    setValue('platforms', newPlatforms)
+    
+    if (newPlatforms.length === 0) {
+      setSelectAllPlatforms(false)
+    } else if (newPlatforms.length === availablePlatforms.length) {
+      setSelectAllPlatforms(true)
+    }
+  }
+
+  const handleSelectAllChange = (checked: boolean) => {
+    setSelectAllPlatforms(checked)
+    if (checked) {
+      setValue('platforms', [...availablePlatforms])
+    } else {
+      setValue('platforms', [])
+    }
+  }
+
+  const isPlatformChecked = (platform: string) => {
+    return watchedPlatforms?.includes(platform) || false
+  }
+
   const {
     register,
     handleSubmit,
     formState: { errors },
     reset,
+    setValue,
+    watch,
   } = useForm<StartJobRequest>({
     resolver: zodResolver(StartJobRequest),
     defaultValues: {
       query: '',
       top_amz: 10,
       top_ebay: 5,
-      platforms: ['youtube'],
+      platforms: ['youtube', 'douyin', 'tiktok', 'bilibili'],
       recency_days: 365,
     },
   })
+
+  const watchedPlatforms = watch('platforms')
 
   const onSubmit = async (data: StartJobRequest) => {
     setIsSubmitting(true)
@@ -73,37 +114,32 @@ export function StartJobForm() {
 
   return (
     <Card>
-      <CardHeader>
+      <CardHeader className="text-center">
         <CardTitle>{t('startNew')}</CardTitle>
-        <CardDescription>
-          {t('startNewDescription')}
-        </CardDescription>
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
           {/* Search Bar with Button */}
           <div className="flex space-x-2">
-            <div className="flex-1 space-y-2">
-              <Label htmlFor="query">{t('query')}</Label>
-              <Input
-                id="query"
-                {...register('query')}
-                placeholder={t('queryPlaceholder')}
-                required
-                onKeyPress={handleKeyPress}
-              />
-              {errors.query && (
-                <p className="text-sm text-red-500">{errors.query.message}</p>
-              )}
-            </div>
-            <Button 
-              type="submit" 
+            <Input
+              id="query"
+              {...register('query')}
+              placeholder={t('queryPlaceholder')}
+              required
+              onKeyPress={handleKeyPress}
+              className="flex-1"
+            />
+            <Button
+              type="submit"
               disabled={isSubmitting}
               className="h-10 px-6"
             >
               {isSubmitting ? t('startingJob') : tCommon('search')}
             </Button>
           </div>
+          {errors.query && (
+            <p className="text-sm text-red-500">{errors.query.message}</p>
+          )}
 
           {/* Advanced Options */}
           <div className="space-y-3">
@@ -166,14 +202,32 @@ export function StartJobForm() {
 
                 <div className="space-y-2">
                   <Label htmlFor="platforms">{t('videoPlatforms')}</Label>
+                  
+                  {/* "All" checkbox centered above platform list */}
+                  <div className="flex justify-center mb-2">
+                    <label className="flex items-center space-x-2 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={selectAllPlatforms}
+                        onChange={(e) => handleSelectAllChange(e.target.checked)}
+                        className="rounded border-gray-300"
+                      />
+                      <span className="font-medium">All</span>
+                    </label>
+                  </div>
+                  
                   <div className="grid grid-cols-2 gap-2">
-                    {['youtube', 'douyin', 'tiktok', 'bilibili'].map((platform) => (
-                      <label key={platform} className="flex items-center space-x-2">
+                    {availablePlatforms.map((platform) => (
+                      <label
+                        key={platform}
+                        className={`flex items-center space-x-2 ${selectAllPlatforms ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+                      >
                         <input
                           type="checkbox"
                           value={platform}
-                          {...register('platforms')}
-                          defaultChecked={platform === 'youtube'}
+                          checked={isPlatformChecked(platform)}
+                          onChange={(e) => handlePlatformChange(platform, e.target.checked)}
+                          disabled={selectAllPlatforms}
                           className="rounded border-gray-300"
                         />
                         <span className="capitalize">{platform}</span>
