@@ -58,7 +58,13 @@
     "progress": "Tiến trình",
     "running": "Đang chạy",
     "completed": "Hoàn thành",
-    "totalJobs": "Tổng số Công việc"
+    "totalJobs": "Tổng số Công việc",
+    "showAdvancedOptions": "Hiển thị Tùy chọn Nâng cao",
+    "hideAdvancedOptions": "Ẩn Tùy chọn Nâng cao",
+    "topAmazonProductsTooltip": "Số lượng sản phẩm Amazon hàng đầu để tìm kiếm theo từ khóa của bạn",
+    "topEbayProductsTooltip": "Số lượng sản phẩm eBay hàng đầu để tìm kiếm theo từ khóa của bạn",
+    "videoPlatformsTooltip": "Chọn các nền tảng video để tìm kiếm nội dung phù hợp",
+    "recencyDaysTooltip": "Chỉ tìm kiếm video được xuất bản trong vòng số ngày này (1-365)"
   },
   "form": {
     "required": "Bắt buộc",

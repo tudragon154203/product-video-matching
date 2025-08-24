@@ -58,7 +58,13 @@
     "progress": "Progress",
     "running": "Running",
     "completed": "Completed",
-    "totalJobs": "Total Jobs"
+    "totalJobs": "Total Jobs",
+    "showAdvancedOptions": "Show Advanced Options",
+    "hideAdvancedOptions": "Hide Advanced Options",
+    "topAmazonProductsTooltip": "Number of top-ranked Amazon products to search for your query",
+    "topEbayProductsTooltip": "Number of top-ranked eBay products to search for your query",
+    "videoPlatformsTooltip": "Select which video platforms to search for matching content",
+    "recencyDaysTooltip": "Only search videos published within this many days (1-365)"
   },
   "form": {
     "required": "Required",

@@ -23,31 +23,34 @@ export function StartJobForm() {
   const tToast = useTranslations('toast')
   const locale = useLocale()
 
-  const availablePlatforms = ['youtube', 'douyin', 'tiktok', 'bilibili']
-
+  const availablePlatforms = ['youtube', 'douyin', 'tiktok', 'bilibili'] as const;
 
   const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter') {
-      e.preventDefault()
-      const form = (e.target as HTMLInputElement).form
+      e.preventDefault();
+      const form = (e.target as HTMLInputElement).form;
       if (form) {
-        form.dispatchEvent(new Event('submit', { cancelable: true }))
+        form.dispatchEvent(new Event('submit', { cancelable: true }));
       }
     }
-  }
+  };
 
+  const handlePlatformChange = (
+    platform: (typeof availablePlatforms)[number],
+    checked: boolean
+  ) => {
+    const currentPlatforms = watchedPlatforms || [];
+    let newPlatforms: (typeof availablePlatforms)[number][];
 
-  const handlePlatformChange = (platform: string, checked: boolean) => {
-    const currentPlatforms = watchedPlatforms || []
-    let newPlatforms
-    
     if (checked) {
-      newPlatforms = [...currentPlatforms, platform]
+      newPlatforms = [...currentPlatforms, platform];
     } else {
-      newPlatforms = currentPlatforms.filter(p => p !== platform)
+      newPlatforms = currentPlatforms.filter(
+        (p) => p !== platform
+      ) as (typeof availablePlatforms)[number][];
     }
-    
-    setValue('platforms', newPlatforms)
+
+    setValue('platforms', newPlatforms);
     
     if (newPlatforms.length === 0) {
       setSelectAllPlatforms(false)
@@ -65,9 +68,9 @@ export function StartJobForm() {
     }
   }
 
-  const isPlatformChecked = (platform: string) => {
-    return watchedPlatforms?.includes(platform) || false
-  }
+  const isPlatformChecked = (platform: (typeof availablePlatforms)[number]) => {
+    return watchedPlatforms?.includes(platform) || false;
+  };
 
   const {
     register,
@@ -115,7 +118,7 @@ export function StartJobForm() {
   return (
     <Card>
       <CardHeader className="text-center">
-        <CardTitle>{t('startNew')}</CardTitle>
+        <CardTitle className="text-2xl font-bold">{t('startNew')}</CardTitle>
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
@@ -127,12 +130,12 @@ export function StartJobForm() {
               placeholder={t('queryPlaceholder')}
               required
               onKeyPress={handleKeyPress}
-              className="flex-1"
+              className="flex-1 text-lg h-12"
             />
             <Button
               type="submit"
               disabled={isSubmitting}
-              className="h-10 px-6"
+              className="h-12 px-6 text-lg"
             >
               {isSubmitting ? t('startingJob') : tCommon('search')}
             </Button>
@@ -148,7 +151,7 @@ export function StartJobForm() {
               onClick={() => setShowAdvanced(!showAdvanced)}
               className="flex items-center space-x-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
             >
-              <span>{showAdvanced ? 'Hide' : 'Show'} Advanced Options</span>
+              <span>{showAdvanced ? t('hideAdvancedOptions') : t('showAdvancedOptions')}</span>
               <svg
                 className={`w-4 h-4 transition-transform ${
                   showAdvanced ? 'rotate-180' : ''
@@ -170,14 +173,31 @@ export function StartJobForm() {
               <div className="space-y-4 pt-3 border-t">
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="top_amz">{t('topAmazonProducts')}</Label>
+                    <div className="flex items-center gap-2">
+                      <Label htmlFor="top_amz">{t('topAmazonProducts')}</Label>
+                      <div className="group relative">
+                        <svg
+                          className="w-4 h-4 text-gray-400 hover:text-gray-600 cursor-help"
+                          fill="currentColor"
+                          viewBox="0 0 20 20"
+                        >
+                          <path
+                            fillRule="evenodd"
+                            d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-3a1 1 0 00-.867.5 1 1 0 11-1.731-1A3 3 0 0113 8a3.001 3.001 0 01-2 2.83V11a1 1 0 11-2 0v-1a1 1 0 011-1 1 1 0 100-2zm0 8a1 1 0 100-2 1 1 0 000 2z"
+                            clipRule="evenodd"
+                          />
+                        </svg>
+                        <div className="absolute bottom-full left-full ml-2 mb-2 px-3 py-2 bg-black text-white text-sm rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-[9999]">
+                          {t('topAmazonProductsTooltip')}
+                        </div>
+                      </div>
+                    </div>
                     <Input
                       id="top_amz"
                       type="number"
                       {...register('top_amz', { valueAsNumber: true })}
                       min="1"
                       max="100"
-                      defaultValue={10}
                     />
                     {errors.top_amz && (
                       <p className="text-sm text-red-500">{errors.top_amz.message}</p>
@@ -185,14 +205,31 @@ export function StartJobForm() {
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="top_ebay">{t('topEbayProducts')}</Label>
+                    <div className="flex items-center gap-2">
+                      <Label htmlFor="top_ebay">{t('topEbayProducts')}</Label>
+                      <div className="group relative">
+                        <svg
+                          className="w-4 h-4 text-gray-400 hover:text-gray-600 cursor-help"
+                          fill="currentColor"
+                          viewBox="0 0 20 20"
+                        >
+                          <path
+                            fillRule="evenodd"
+                            d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-3a1 1 0 00-.867.5 1 1 0 11-1.731-1A3 3 0 0113 8a3.001 3.001 0 01-2 2.83V11a1 1 0 11-2 0v-1a1 1 0 011-1 1 1 0 100-2zm0 8a1 1 0 100-2 1 1 0 000 2z"
+                            clipRule="evenodd"
+                          />
+                        </svg>
+                        <div className="absolute bottom-full left-full ml-2 mb-2 px-3 py-2 bg-black text-white text-sm rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-[9999]">
+                          {t('topEbayProductsTooltip')}
+                        </div>
+                      </div>
+                    </div>
                     <Input
                       id="top_ebay"
                       type="number"
                       {...register('top_ebay', { valueAsNumber: true })}
                       min="1"
                       max="100"
-                      defaultValue={5}
                     />
                     {errors.top_ebay && (
                       <p className="text-sm text-red-500">{errors.top_ebay.message}</p>
@@ -201,10 +238,27 @@ export function StartJobForm() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="platforms">{t('videoPlatforms')}</Label>
-                  
-                  {/* "All" checkbox centered above platform list */}
-                  <div className="flex justify-center mb-2">
+                  {/* Video Platforms label and "All" checkbox in same row */}
+                  <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-2">
+                      <Label htmlFor="platforms">{t('videoPlatforms')}</Label>
+                      <div className="group relative">
+                        <svg
+                          className="w-4 h-4 text-gray-400 hover:text-gray-600 cursor-help"
+                          fill="currentColor"
+                          viewBox="0 0 20 20"
+                        >
+                          <path
+                            fillRule="evenodd"
+                            d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-3a1 1 0 00-.867.5 1 1 0 11-1.731-1A3 3 0 0113 8a3.001 3.001 0 01-2 2.83V11a1 1 0 11-2 0v-1a1 1 0 011-1 1 1 0 100-2zm0 8a1 1 0 100-2 1 1 0 000 2z"
+                            clipRule="evenodd"
+                          />
+                        </svg>
+                        <div className="absolute bottom-full left-full ml-2 mb-2 px-3 py-2 bg-black text-white text-sm rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-[9999]">
+                          {t('videoPlatformsTooltip')}
+                        </div>
+                      </div>
+                    </div>
                     <label className="flex items-center space-x-2 cursor-pointer">
                       <input
                         type="checkbox"
@@ -216,38 +270,57 @@ export function StartJobForm() {
                     </label>
                   </div>
                   
-                  <div className="grid grid-cols-2 gap-2">
-                    {availablePlatforms.map((platform) => (
-                      <label
-                        key={platform}
-                        className={`flex items-center space-x-2 ${selectAllPlatforms ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
-                      >
-                        <input
-                          type="checkbox"
-                          value={platform}
-                          checked={isPlatformChecked(platform)}
-                          onChange={(e) => handlePlatformChange(platform, e.target.checked)}
-                          disabled={selectAllPlatforms}
-                          className="rounded border-gray-300"
-                        />
-                        <span className="capitalize">{platform}</span>
-                      </label>
-                    ))}
-                  </div>
+                  {/* Individual platforms only shown when "All" is unchecked */}
+                  {!selectAllPlatforms && (
+                    <div className="grid grid-cols-2 gap-2 mt-2">
+                      {availablePlatforms.map((platform) => (
+                        <label
+                          key={platform}
+                          className="flex items-center space-x-2 cursor-pointer"
+                        >
+                          <input
+                            type="checkbox"
+                            value={platform}
+                            checked={isPlatformChecked(platform)}
+                            onChange={(e) => handlePlatformChange(platform, e.target.checked)}
+                            className="rounded border-gray-300"
+                          />
+                          <span className="capitalize">{platform}</span>
+                        </label>
+                      ))}
+                    </div>
+                  )}
                   {errors.platforms && (
                     <p className="text-sm text-red-500">{errors.platforms.message}</p>
                   )}
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="recency_days">{t('recencyDays')}</Label>
+                  <div className="flex items-center gap-2">
+                    <Label htmlFor="recency_days">{t('recencyDays')}</Label>
+                    <div className="group relative">
+                      <svg
+                        className="w-4 h-4 text-gray-400 hover:text-gray-600 cursor-help"
+                        fill="currentColor"
+                        viewBox="0 0 20 20"
+                      >
+                        <path
+                          fillRule="evenodd"
+                          d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-3a1 1 0 00-.867.5 1 1 0 11-1.731-1A3 3 0 0113 8a3.001 3.001 0 01-2 2.83V11a1 1 0 11-2 0v-1a1 1 0 011-1 1 1 0 100-2zm0 8a1 1 0 100-2 1 1 0 000 2z"
+                          clipRule="evenodd"
+                        />
+                      </svg>
+                      <div className="absolute bottom-full left-full ml-2 mb-2 px-3 py-2 bg-black text-white text-sm rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-[9999]">
+                        {t('recencyDaysTooltip')}
+                      </div>
+                    </div>
+                  </div>
                   <Input
                     id="recency_days"
                     type="number"
                     {...register('recency_days', { valueAsNumber: true })}
                     min="1"
                     max="365"
-                    defaultValue={365}
                   />
                   {errors.recency_days && (
                     <p className="text-sm text-red-500">{errors.recency_days.message}</p>
