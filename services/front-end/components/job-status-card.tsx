@@ -7,7 +7,8 @@ import { jobApi, getPhaseInfo } from '@/lib/api'
 import { formatToGMT7 } from '@/lib/time'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Link } from 'next/link'
+import Link from 'next/link'
+import { useTranslations, useLocale } from 'next-intl'
 
 const RECENT_JOBS_LIMIT = 5
 
@@ -17,6 +18,8 @@ interface JobStatusCardProps {
 
 export function JobStatusCard({ jobId }: JobStatusCardProps = {}) {
   const [limit] = useState(RECENT_JOBS_LIMIT)
+  const t = useTranslations('jobs')
+  const tCommon = useTranslations('common')
 
   const { data: jobs, isLoading, error } = useQuery({
     queryKey: ['recent-jobs', limit],
@@ -36,26 +39,28 @@ export function JobStatusCard({ jobId }: JobStatusCardProps = {}) {
     })
 
     if (isJobLoading) {
-      return <Card><CardContent><p>Loading job status...</p></CardContent></Card>
+      return <Card><CardContent><p>{tCommon('loading')}</p></CardContent></Card>
     }
 
     if (jobError) {
-      return <Card><CardContent><p className="text-red-500">Error loading job status</p></CardContent></Card>
+      return <Card><CardContent><p className="text-red-500">{tCommon('error')} loading job status</p></CardContent></Card>
     }
 
     if (!jobStatus || jobStatus.phase === 'unknown') {
       return (
         <Card>
           <CardHeader>
-            <CardTitle>Job Not Found</CardTitle>
+            <CardTitle>{t('jobNotFound')}</CardTitle>
             <CardDescription>
-              The job you're looking for doesn't exist or hasn't started yet.
+              {t('jobNotFoundDescription')}
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <Button asChild>
-              <Link href="/jobs">Browse All Jobs</Link>
-            </Button>
+            <div>
+              <Link href="/jobs">
+                <Button className="w-full">{t('browseAllJobs')}</Button>
+              </Link>
+            </div>
           </CardContent>
         </Card>
       )
@@ -67,7 +72,7 @@ export function JobStatusCard({ jobId }: JobStatusCardProps = {}) {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center justify-between">
-            Job Status
+            {t('jobStatus')}
             <div className="flex items-center space-x-2">
               <div
                 className={`h-3 w-3 rounded-full ${
@@ -86,24 +91,24 @@ export function JobStatusCard({ jobId }: JobStatusCardProps = {}) {
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <div className="text-center">
               <div className="text-2xl font-bold">{jobStatus.counts.products}</div>
-              <div className="text-sm text-muted-foreground">Products</div>
+              <div className="text-sm text-muted-foreground">{t('products')}</div>
             </div>
             <div className="text-center">
               <div className="text-2xl font-bold">{jobStatus.counts.videos}</div>
-              <div className="text-sm text-muted-foreground">Videos</div>
+              <div className="text-sm text-muted-foreground">{t('videos')}</div>
             </div>
             <div className="text-center">
               <div className="text-2xl font-bold">{jobStatus.counts.images}</div>
-              <div className="text-sm text-muted-foreground">Images</div>
+              <div className="text-sm text-muted-foreground">{t('images')}</div>
             </div>
             <div className="text-center">
               <div className="text-2xl font-bold">{jobStatus.counts.frames}</div>
-              <div className="text-sm text-muted-foreground">Frames</div>
+              <div className="text-sm text-muted-foreground">{t('frames')}</div>
             </div>
           </div>
 
           <div className="space-y-2">
-            <div className="text-sm font-medium">Progress</div>
+            <div className="text-sm font-medium">{t('progress')}</div>
             <div className="w-full bg-gray-200 rounded-full h-2">
               <div
                 className="bg-blue-600 h-2 rounded-full transition-all duration-300"
@@ -114,15 +119,17 @@ export function JobStatusCard({ jobId }: JobStatusCardProps = {}) {
           </div>
 
           <div className="space-y-2">
-            <div className="text-sm font-medium">Last Updated</div>
+            <div className="text-sm font-medium">{t('lastUpdated')}</div>
             <div className="text-sm text-muted-foreground">
               {formatToGMT7(jobStatus.updated_at)}
             </div>
           </div>
 
-          <Button asChild className="w-full">
-            <Link href={`/jobs/${jobId}`}>View Full Details</Link>
-          </Button>
+          <div className="mt-4">
+            <Link href={`/jobs/${jobId}`}>
+              <Button className="w-full">{t('viewFullDetails')}</Button>
+            </Link>
+          </div>
         </CardContent>
       </Card>
     )
@@ -133,10 +140,10 @@ export function JobStatusCard({ jobId }: JobStatusCardProps = {}) {
     return (
       <Card>
         <CardHeader>
-          <CardTitle>Recent Jobs</CardTitle>
+          <CardTitle>{t('recentJobs')}</CardTitle>
         </CardHeader>
         <CardContent>
-          <p>Loading recent jobs...</p>
+          <p>{tCommon('loading')} recent jobs...</p>
         </CardContent>
       </Card>
     )
@@ -146,10 +153,10 @@ export function JobStatusCard({ jobId }: JobStatusCardProps = {}) {
     return (
       <Card>
         <CardHeader>
-          <CardTitle>Recent Jobs</CardTitle>
+          <CardTitle>{t('recentJobs')}</CardTitle>
         </CardHeader>
         <CardContent>
-          <p className="text-red-500">Failed to load recent jobs</p>
+          <p className="text-red-500">{t('failedToLoadJobs')}</p>
         </CardContent>
       </Card>
     )
@@ -158,11 +165,11 @@ export function JobStatusCard({ jobId }: JobStatusCardProps = {}) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Recent Jobs</CardTitle>
+        <CardTitle>{t('recentJobs')}</CardTitle>
       </CardHeader>
       <CardContent>
         {jobs.length === 0 ? (
-          <p className="text-muted-foreground">No recent jobs found.</p>
+          <p className="text-muted-foreground">{t('noRecentJobs')}</p>
         ) : (
           <div className="space-y-4">
             {jobs.map((job: JobStatus) => (
@@ -174,16 +181,18 @@ export function JobStatusCard({ jobId }: JobStatusCardProps = {}) {
                   </span>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-sm">{job.percent}% complete</span>
+                  <span className="text-sm">{t('percentComplete', { percent: job.percent })}</span>
                   <Link href={`/jobs/${job.job_id}`}>
-                    <Button variant="outline" size="sm">View</Button>
+                    <Button variant="outline" size="sm">{tCommon('view')}</Button>
                   </Link>
                 </div>
               </div>
             ))}
-            <Button asChild variant="outline" className="w-full">
-              <Link href="/jobs">View All Jobs</Link>
-            </Button>
+            <div className="mt-4">
+            <Link href="/jobs">
+              <Button variant="outline" className="w-full">{t('browseAllJobs')}</Button>
+            </Link>
+          </div>
           </div>
         )}
       </CardContent>

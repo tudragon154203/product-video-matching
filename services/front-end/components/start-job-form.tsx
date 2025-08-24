@@ -11,10 +11,26 @@ import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { toast } from '@/components/ui/use-toast'
 import { useQueryClient } from '@tanstack/react-query'
+import { useTranslations, useLocale } from 'next-intl'
 
 export function StartJobForm() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const queryClient = useQueryClient()
+  const t = useTranslations('jobs')
+  const tForm = useTranslations('form')
+  const tCommon = useTranslations('common')
+  const tToast = useTranslations('toast')
+  const locale = useLocale()
+
+  const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      e.preventDefault()
+      const form = (e.target as HTMLInputElement).form
+      if (form) {
+        form.dispatchEvent(new Event('submit', { cancelable: true }))
+      }
+    }
+  }
 
   const {
     register,
@@ -37,15 +53,15 @@ export function StartJobForm() {
     try {
       const response = await jobApi.startJob(data)
       toast({
-        title: 'Job Started Successfully',
-        description: `Job ID: ${response.job_id}`,
+        title: tToast('jobStarted'),
+        description: tToast('jobStartedDescription', { jobId: response.job_id }),
       })
       reset()
       queryClient.invalidateQueries({ queryKey: ['jobs'] })
     } catch (error) {
       toast({
-        title: 'Failed to Start Job',
-        description: error instanceof Error ? error.message : 'Unknown error',
+        title: tToast('failedToStartJob'),
+        description: error instanceof Error ? error.message : tToast('unknownError'),
         variant: 'destructive',
       })
     } finally {
@@ -53,99 +69,139 @@ export function StartJobForm() {
     }
   }
 
+  const [showAdvanced, setShowAdvanced] = useState(false)
+
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Start New Job</CardTitle>
+        <CardTitle>{t('startNew')}</CardTitle>
         <CardDescription>
-          Create a new product video matching job
+          {t('startNewDescription')}
         </CardDescription>
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="query">Query</Label>
-            <Input
-              id="query"
-              {...register('query')}
-              placeholder="e.g., ergonomic pillows"
-              required
-            />
-            {errors.query && (
-              <p className="text-sm text-red-500">{errors.query.message}</p>
-            )}
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="top_amz">Top Amazon Products</Label>
+          {/* Search Bar with Button */}
+          <div className="flex space-x-2">
+            <div className="flex-1 space-y-2">
+              <Label htmlFor="query">{t('query')}</Label>
               <Input
-                id="top_amz"
-                type="number"
-                {...register('top_amz', { valueAsNumber: true })}
-                min="1"
-                max="100"
+                id="query"
+                {...register('query')}
+                placeholder={t('queryPlaceholder')}
                 required
+                onKeyPress={handleKeyPress}
               />
-              {errors.top_amz && (
-                <p className="text-sm text-red-500">{errors.top_amz.message}</p>
+              {errors.query && (
+                <p className="text-sm text-red-500">{errors.query.message}</p>
               )}
             </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="top_ebay">Top eBay Products</Label>
-              <Input
-                id="top_ebay"
-                type="number"
-                {...register('top_ebay', { valueAsNumber: true })}
-                min="1"
-                max="100"
-                required
-              />
-              {errors.top_ebay && (
-                <p className="text-sm text-red-500">{errors.top_ebay.message}</p>
-              )}
-            </div>
+            <Button 
+              type="submit" 
+              disabled={isSubmitting}
+              className="h-10 px-6"
+            >
+              {isSubmitting ? t('startingJob') : tCommon('search')}
+            </Button>
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="platforms">Video Platforms</Label>
-            <div className="grid grid-cols-2 gap-2">
-              {['youtube', 'douyin', 'tiktok', 'bilibili'].map((platform) => (
-                <label key={platform} className="flex items-center space-x-2">
-                  <input
-                    type="checkbox"
-                    value={platform}
-                    {...register('platforms')}
-                    className="rounded border-gray-300"
+          {/* Advanced Options */}
+          <div className="space-y-3">
+            <button
+              type="button"
+              onClick={() => setShowAdvanced(!showAdvanced)}
+              className="flex items-center space-x-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+            >
+              <span>{showAdvanced ? 'Hide' : 'Show'} Advanced Options</span>
+              <svg
+                className={`w-4 h-4 transition-transform ${
+                  showAdvanced ? 'rotate-180' : ''
+                }`}
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M19 9l-7 7-7-7"
+                />
+              </svg>
+            </button>
+
+            {showAdvanced && (
+              <div className="space-y-4 pt-3 border-t">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="top_amz">{t('topAmazonProducts')}</Label>
+                    <Input
+                      id="top_amz"
+                      type="number"
+                      {...register('top_amz', { valueAsNumber: true })}
+                      min="1"
+                      max="100"
+                      defaultValue={10}
+                    />
+                    {errors.top_amz && (
+                      <p className="text-sm text-red-500">{errors.top_amz.message}</p>
+                    )}
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="top_ebay">{t('topEbayProducts')}</Label>
+                    <Input
+                      id="top_ebay"
+                      type="number"
+                      {...register('top_ebay', { valueAsNumber: true })}
+                      min="1"
+                      max="100"
+                      defaultValue={5}
+                    />
+                    {errors.top_ebay && (
+                      <p className="text-sm text-red-500">{errors.top_ebay.message}</p>
+                    )}
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="platforms">{t('videoPlatforms')}</Label>
+                  <div className="grid grid-cols-2 gap-2">
+                    {['youtube', 'douyin', 'tiktok', 'bilibili'].map((platform) => (
+                      <label key={platform} className="flex items-center space-x-2">
+                        <input
+                          type="checkbox"
+                          value={platform}
+                          {...register('platforms')}
+                          defaultChecked={platform === 'youtube'}
+                          className="rounded border-gray-300"
+                        />
+                        <span className="capitalize">{platform}</span>
+                      </label>
+                    ))}
+                  </div>
+                  {errors.platforms && (
+                    <p className="text-sm text-red-500">{errors.platforms.message}</p>
+                  )}
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="recency_days">{t('recencyDays')}</Label>
+                  <Input
+                    id="recency_days"
+                    type="number"
+                    {...register('recency_days', { valueAsNumber: true })}
+                    min="1"
+                    max="365"
+                    defaultValue={365}
                   />
-                  <span className="capitalize">{platform}</span>
-                </label>
-              ))}
-            </div>
-            {errors.platforms && (
-              <p className="text-sm text-red-500">{errors.platforms.message}</p>
+                  {errors.recency_days && (
+                    <p className="text-sm text-red-500">{errors.recency_days.message}</p>
+                  )}
+                </div>
+              </div>
             )}
           </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="recency_days">Recency Days</Label>
-            <Input
-              id="recency_days"
-              type="number"
-              {...register('recency_days', { valueAsNumber: true })}
-              min="1"
-              max="365"
-              required
-            />
-            {errors.recency_days && (
-              <p className="text-sm text-red-500">{errors.recency_days.message}</p>
-            )}
-          </div>
-
-          <Button type="submit" disabled={isSubmitting} className="w-full">
-            {isSubmitting ? 'Starting Job...' : 'Start Job'}
-          </Button>
         </form>
       </CardContent>
     </Card>

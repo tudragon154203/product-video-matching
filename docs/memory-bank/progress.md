@@ -7,6 +7,7 @@
 - eBay integration: Initial OAuth implementation (30% complete)
 - Architectural simplification: Retired vector-index service
 - Vision services: Completed refactoring of embedding/keypoint services
+- Job listing feature: ✅ COMPLETED - Implemented GET /api/jobs endpoint with pagination, status filtering, and comprehensive test coverage
 
 ## Completed
 - Sprint 1: Defined microservice specs and the end-to-end video→product matching pipeline boundaries
@@ -33,6 +34,7 @@
 - 2025-08-22: ✅ COMPLETED - Updated memory bank with current project state and added testing instructions to CLAUDE.md
 - 2025-08-22: ✅ COMPLETED - Marked eBay browse search minimal code guide as completed in memory bank
 - 2025-08-24: ✅ COMPLETED - Fixed failing unit tests in services/main-api/tests/unit/test_event_handling.py and services/main-api/tests/unit/test_phase_transitions.py
+- 2025-08-24: ✅ COMPLETED - Implemented job listing feature with GET /api/jobs endpoint, pagination, status filtering, and comprehensive test coverage
 
 ## In Progress
 - **Dropship Product Finder**: eBay integration implementation (Phase 2: OAuth, Phase 3: Browse API)

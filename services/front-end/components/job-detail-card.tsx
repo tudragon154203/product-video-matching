@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useQuery } from '@tanstack/react-query'
+import Link from 'next/link'
 import { JobStatus, Phase } from '@/lib/zod/job'
 import { jobApi, getPhaseInfo, shouldPoll } from '@/lib/api'
 import { formatToGMT7 } from '@/lib/time'
@@ -9,11 +10,6 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Progress } from '@/components/ui/progress'
 import { toast } from '@/components/ui/use-toast'
-'use client'
-
-import dynamic from 'next/dynamic'
-
-const Link = dynamic(() => import('next/link').then(mod => mod.Link), { ssr: false })
 
 interface JobDetailCardProps {
   jobId: string
@@ -25,7 +21,7 @@ export function JobDetailCard({ jobId }: JobDetailCardProps) {
   const { data: jobStatus, error, isLoading } = useQuery({
     queryKey: ['job', jobId],
     queryFn: () => jobApi.getJobStatus(jobId),
-    refetchInterval: (data) => {
+    refetchInterval: (data: any) => {
       if (!shouldPoll(data?.phase)) {
         return false
       }
@@ -44,7 +40,7 @@ export function JobDetailCard({ jobId }: JobDetailCardProps) {
         })
       }
     }
-  }, [jobStatus, toast])
+  }, [jobStatus])
 
   if (isLoading) {
     return (
@@ -69,9 +65,11 @@ export function JobDetailCard({ jobId }: JobDetailCardProps) {
           <p className="text-red-500">
             {error instanceof Error ? error.message : 'Failed to load job status'}
           </p>
-          <Button asChild className="mt-4">
-            <Link href="/jobs">Back to Jobs</Link>
-          </Button>
+          <div className="mt-4">
+            <Link href="/jobs">
+              <Button className="w-full">Back to Jobs</Button>
+            </Link>
+          </div>
         </CardContent>
       </Card>
     )
@@ -87,9 +85,11 @@ export function JobDetailCard({ jobId }: JobDetailCardProps) {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <Button asChild>
-            <Link href="/jobs">Browse All Jobs</Link>
-          </Button>
+          <div>
+            <Link href="/jobs">
+              <Button className="w-full">Browse All Jobs</Button>
+            </Link>
+          </div>
         </CardContent>
       </Card>
     )
@@ -163,12 +163,14 @@ export function JobDetailCard({ jobId }: JobDetailCardProps) {
         </div>
 
         <div className="flex justify-between">
-          <Button variant="outline" asChild>
-            <Link href="/jobs">Back to Jobs</Link>
-          </Button>
-          <Button asChild>
-            <Link href={`/jobs/${jobId}`}>Refresh</Link>
-          </Button>
+          <div className="flex gap-2">
+            <Link href="/jobs">
+              <Button variant="outline" className="flex-1">Back to Jobs</Button>
+            </Link>
+            <Link href={`/jobs/${jobId}`}>
+              <Button className="flex-1">Refresh</Button>
+            </Link>
+          </div>
         </div>
       </CardContent>
     </Card>

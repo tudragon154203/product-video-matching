@@ -2,19 +2,21 @@
 
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Link } from 'next/link'
+import Link from 'next/link'
+import { useTranslations } from 'next-intl'
 
 interface JobNotFoundProps {
   jobId: string
 }
 
 export function JobNotFound({ jobId }: JobNotFoundProps) {
+  const t = useTranslations('jobs')
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Job Not Found</CardTitle>
+        <CardTitle>{t('jobNotFound')}</CardTitle>
         <CardDescription>
-          The job you're looking for doesn't exist or hasn't started yet.
+          {t('jobNotFoundDescription')}
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -23,12 +25,12 @@ export function JobNotFound({ jobId }: JobNotFoundProps) {
             Job ID: {jobId}
           </p>
           <div className="flex space-x-2">
-            <Button asChild>
-              <Link href="/jobs">Browse All Jobs</Link>
-            </Button>
-            <Button variant="outline" asChild>
-              <Link href="/">Go Home</Link>
-            </Button>
+            <Link href="/jobs">
+              <Button className="flex-1">{t('browseAllJobs')}</Button>
+            </Link>
+            <Link href="/">
+              <Button variant="outline" className="flex-1">{t('navigation.goHome')}</Button>
+            </Link>
           </div>
         </div>
       </CardContent>

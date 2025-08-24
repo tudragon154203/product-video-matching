@@ -309,3 +309,4 @@ curl http://localhost:8080/results?min_score=0.8
 - Development environment uses mock data for testing
 - Production deployment requires real API integrations
 - Don't rebuild container if not needed. Just restart
+- DO NOT use tools that require ability to read images

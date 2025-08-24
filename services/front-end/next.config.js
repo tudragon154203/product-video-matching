@@ -1,3 +1,8 @@
+const withNextIntl = require('next-intl/plugin')(
+  // This is the default path to your i18n.ts file
+  './i18n.ts'
+);
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
@@ -8,10 +13,6 @@ const nextConfig = {
   env: {
     NEXT_PUBLIC_API_BASE_URL: process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8888',
   },
-  // Disable SWC for macOS compatibility
-  experimental: {
-    swcPlugins: [],
-  },
 }
 
-module.exports = nextConfig
+module.exports = withNextIntl(nextConfig)

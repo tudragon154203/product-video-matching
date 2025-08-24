@@ -6,6 +6,7 @@ import { jobApi } from '@/lib/api'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { RefreshCw, CheckCircle, XCircle, AlertTriangle } from 'lucide-react'
+import Link from 'next/link'
 
 export function HealthCheckCard() {
   const [isRefreshing, setIsRefreshing] = useState(false)
@@ -112,10 +113,12 @@ export function HealthCheckCard() {
               <Button variant="outline" size="sm" onClick={handleRefresh}>
                 Refresh Status
               </Button>
-              <Button variant="outline" size="sm" asChild>
-                <a href="/jobs" target="_blank" rel="noopener noreferrer">
-                  View Jobs
-                </a>
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={() => window.open('/jobs', '_blank')}
+              >
+                View Jobs
               </Button>
             </div>
           </div>

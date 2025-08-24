@@ -28,3 +28,4 @@
 - Event-Driven Communication: Services communicate via RabbitMQ with strict JSON Schema contracts
 - Batch Processing: Multiple events and pre-announce patterns for improved throughput
 - Direct Database Access: Matcher reads embeddings directly from Postgres (no vector-index service)
+- API Consistency: Job listing endpoints follow established patterns for dependency injection, query validation, and response schemas

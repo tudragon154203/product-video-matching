@@ -7,9 +7,11 @@ import { jobApi, getPhaseInfo } from '@/lib/api'
 import { formatToGMT7 } from '@/lib/time'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Link } from 'next/link'
+import Link from 'next/link'
+import { useTranslations } from 'next-intl'
 
 export function JobHistoryList() {
+  const t = useTranslations('jobs')
   const [jobs, setJobs] = useState<JobStatus[]>([])
 
   const { data } = useQuery({
@@ -35,10 +37,12 @@ export function JobHistoryList() {
     return (
       <Card>
         <CardContent className="text-center py-8">
-          <p className="text-muted-foreground">No job history available.</p>
-          <Button asChild className="mt-4">
-            <Link href="/jobs">Start Your First Job</Link>
-          </Button>
+          <p className="text-muted-foreground">{t('noJobHistory')}</p>
+          <div className="mt-4">
+            <Link href="/jobs">
+              <Button className="w-full">{t('startFirstJob')}</Button>
+            </Link>
+          </div>
         </CardContent>
       </Card>
     )
@@ -47,9 +51,9 @@ export function JobHistoryList() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Job History</CardTitle>
+        <CardTitle>{t('jobHistory')}</CardTitle>
         <CardDescription>
-          Your recently created and executed jobs
+          {t('jobHistoryDescription')}
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -88,11 +92,16 @@ export function JobHistoryList() {
                 </div>
                 <div className="mt-3 flex justify-between items-center">
                   <div className="text-xs text-muted-foreground">
-                    Products: {job.counts.products} | Videos: {job.counts.videos}
+                    {t('productsAndVideos', { 
+                      products: job.counts.products, 
+                      videos: job.counts.videos 
+                    })}
                   </div>
-                  <Button variant="outline" size="sm" asChild>
-                    <Link href={`/jobs/${job.job_id}`}>View Details</Link>
-                  </Button>
+                  <div className="flex gap-2">
+                    <Link href={`/jobs/${job.job_id}`}>
+                      <Button variant="outline" size="sm">{t('viewDetails')}</Button>
+                    </Link>
+                  </div>
                 </div>
               </div>
             )
