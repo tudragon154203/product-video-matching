@@ -38,7 +38,7 @@ CLAUDE.md
 
 # Nodejs
 *node_modules/
-*/.next/
+.next/
 
 # Python
 *.npz
