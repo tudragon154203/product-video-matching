@@ -28,7 +28,6 @@ export default async function LocaleLayout({
   if (!locales.includes(locale as any)) notFound()
 
   const messages = await getMessages({ locale })
-  const t = await getTranslations('jobs')
 
   return (
     <html lang={locale} suppressHydrationWarning>
@@ -47,9 +46,6 @@ export default async function LocaleLayout({
               <div className="flex-1 overflow-auto">
                 <div className="container mx-auto px-4 py-8">
                   <div className="flex justify-between items-start mb-8">
-                    <div>
-                      <h1 className="text-2xl font-bold">{t('title')}</h1>
-                    </div>
                     <LanguageToggle />
                   </div>
                   {children}

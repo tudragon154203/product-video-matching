@@ -16,18 +16,19 @@ export function LanguageToggle() {
   const router = useRouter()
   const pathname = usePathname()
   const [isOpen, setIsOpen] = useState(false)
+  const [currentLocale, setCurrentLocale] = useState(locale)
 
-  // Get current locale from URL as fallback
-  const getCurrentLocale = () => {
-    if (typeof window !== 'undefined') {
-      const path = window.location.pathname
-      if (path.startsWith('/en')) return 'en'
-      if (path.startsWith('/vi')) return 'vi'
+  // Update current locale when URL changes
+  useEffect(() => {
+    const path = window.location.pathname
+    if (path.startsWith('/en')) {
+      setCurrentLocale('en')
+    } else if (path.startsWith('/vi')) {
+      setCurrentLocale('vi')
+    } else {
+      setCurrentLocale(locale || 'vi')
     }
-    return locale || 'vi' // fallback to locale hook or default 'vi'
-  }
-
-  const currentLocale = getCurrentLocale()
+  }, [locale, pathname])
 
   const handleLanguageChange = (newLocale: string) => {
     // Construct the new path more reliably

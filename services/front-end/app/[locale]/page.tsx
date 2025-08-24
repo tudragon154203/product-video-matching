@@ -1,10 +1,10 @@
 import { JobStatsCard } from '@/components/job-stats-card'
 import { StartJobForm } from '@/components/start-job-form'
 import { JobStatusCard } from '@/components/job-status-card'
-import { useTranslations } from 'next-intl'
+import { getTranslations } from 'next-intl/server'
 
-export default function Home() {
-  const t = useTranslations('jobs')
+export default async function Home({ params }: { params: { locale: string } }) {
+  const t = await getTranslations({ locale: params.locale, namespace: 'jobs' })
 
   return (
     <div className="space-y-6">

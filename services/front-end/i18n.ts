@@ -1,7 +1,7 @@
 import {getRequestConfig} from 'next-intl/server'
 import {notFound} from 'next/navigation'
 
-const locales = ['en', 'vi']
+const locales = ['vi', 'en']
 
 export default getRequestConfig(async ({locale}) => {
   // Handle undefined locale case by defaulting to 'vi'
