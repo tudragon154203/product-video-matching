@@ -89,3 +89,21 @@ class ImageListResponse(BaseModel):
     total: int
     limit: int
     offset: int
+
+
+class JobItem(BaseModel):
+    """Schema for job item in list response"""
+    job_id: str
+    query: str
+    industry: str
+    phase: str
+    created_at: datetime
+    updated_at: Optional[datetime] = None
+
+
+class JobListResponse(BaseModel):
+    """Schema for job list response with pagination"""
+    items: list[JobItem]
+    total: int
+    limit: int
+    offset: int

@@ -231,3 +231,54 @@ class DatabaseHandler:
         except Exception as e:
             logger.error(f"Failed to clear phase events: {e}")
             raise
+
+    async def list_jobs(self, limit: int = 50, offset: int = 0, status: str = None):
+        """List jobs with pagination and optional status filtering.
+        
+        Args:
+            limit: Maximum number of jobs to return (default: 50)
+            offset: Number of jobs to skip for pagination (default: 0)
+            status: Filter by job phase/status (e.g., 'completed', 'failed', 'in_progress')
+        
+        Returns:
+            tuple: (list of jobs, total count)
+        """
+        try:
+            # Build base query
+            base_query = "SELECT job_id, query, industry, phase, created_at, updated_at FROM jobs"
+            count_query = "SELECT COUNT(*) FROM jobs"
+            
+            # Add WHERE clause if status filter is provided
+            where_conditions = []
+            params = []
+            param_count = 0
+            
+            if status:
+                param_count += 1
+                where_conditions.append(f"phase = ${param_count}")
+                params.append(status)
+            
+            # Add WHERE conditions to queries
+            if where_conditions:
+                where_clause = " WHERE " + " AND ".join(where_conditions)
+                base_query += where_clause
+                count_query += where_clause
+            
+            # Add ORDER BY and LIMIT/OFFSET for pagination
+            param_count += 1
+            base_query += f" ORDER BY created_at DESC LIMIT ${param_count}"
+            params.append(limit)
+            
+            param_count += 1
+            base_query += f" OFFSET ${param_count}"
+            params.append(offset)
+            
+            # Execute queries
+            jobs = await self.db.fetch_all(base_query, *params)
+            total = await self.db.fetch_val(count_query, *params[:-2]) if where_conditions else await self.db.fetch_val(count_query)
+            
+            return jobs, total or 0
+            
+        except Exception as e:
+            logger.error(f"Failed to list jobs: {e}")
+            return [], 0

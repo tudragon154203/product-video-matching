@@ -25,3 +25,7 @@ class JobService:
     async def handle_phase_event(self, event_type: str, event_data: dict):
         """Handle a phase event"""
         return await self.phase_event_service.handle_phase_event(event_type, event_data)
+
+    async def list_jobs(self, limit: int = 50, offset: int = 0, status: str = None):
+        """List jobs with pagination and optional status filtering"""
+        return await self.job_management_service.list_jobs(limit, offset, status)

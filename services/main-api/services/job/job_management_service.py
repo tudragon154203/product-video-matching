@@ -87,3 +87,20 @@ class JobManagementService:
         except Exception as e:
             logger.error(f"Failed to get job status (job_id: {job_id}, error: {str(e)})")
             raise HTTPException(status_code=500, detail=str(e))
+
+    async def list_jobs(self, limit: int = 50, offset: int = 0, status: str = None):
+        """List jobs with pagination and optional status filtering.
+        
+        Args:
+            limit: Maximum number of jobs to return (default: 50)
+            offset: Number of jobs to skip for pagination (default: 0)
+            status: Filter by job phase/status (e.g., 'completed', 'failed', 'in_progress')
+        
+        Returns:
+            tuple: (list of jobs, total count)
+        """
+        try:
+            return await self.db_handler.list_jobs(limit, offset, status)
+        except Exception as e:
+            logger.error(f"Failed to list jobs: {e}")
+            raise HTTPException(status_code=500, detail=str(e))
