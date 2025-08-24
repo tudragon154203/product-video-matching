@@ -56,9 +56,13 @@ def get_gmt7_time(dt: Optional[datetime]) -> Optional[datetime]:
 
 async def get_job_or_404(job_id: str, job_service: JobService = Depends(get_job_service)):
     """Get job or raise 404 if not found"""
-    job = await job_service.get_job(job_id)
-    if not job:
+    job_status = await job_service.get_job_status(job_id)
+    
+    # If job_status.phase is "unknown", it means the job was not found in the database
+    if job_status.phase == "unknown":
         raise HTTPException(status_code=404, detail=f"Job {job_id} not found")
+    
+    job = {"job_id": job_status.job_id, "updated_at": job_status.updated_at, "phase": job_status.phase, "percent": job_status.percent, "counts": job_status.counts}
     return job
 
 
@@ -292,7 +296,8 @@ async def get_job_video_frames_features(
 @router.get("/features/product-images/{img_id}", response_model=ProductImageFeatureItem)
 async def get_product_image_feature(
     img_id: str,
-    product_image_crud: ProductImageCRUD = Depends(get_product_image_crud)
+    product_image_crud: ProductImageCRUD = Depends(get_product_image_crud),
+    job_service: JobService = Depends(get_job_service)
 ):
     """
     Get a single product image feature by ID.
@@ -334,7 +339,8 @@ async def get_product_image_feature(
 @router.get("/features/video-frames/{frame_id}", response_model=VideoFrameFeatureItem)
 async def get_video_frame_feature(
     frame_id: str,
-    video_frame_crud: VideoFrameCRUD = Depends(get_video_frame_crud)
+    video_frame_crud: VideoFrameCRUD = Depends(get_video_frame_crud),
+    job_service: JobService = Depends(get_job_service)
 ):
     """
     Get a single video frame feature by ID.

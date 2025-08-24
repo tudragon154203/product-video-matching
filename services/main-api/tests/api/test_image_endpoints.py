@@ -1,6 +1,6 @@
 import pytest
 import asyncio
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock, patch, MagicMock
 from datetime import datetime, timedelta, timezone
 import json
 import pytz
@@ -14,6 +14,7 @@ from common_py.crud.product_image_crud import ProductImageCRUD
 from common_py.crud.product_crud import ProductCRUD
 from common_py.database import DatabaseManager
 from common_py.messaging import MessageBroker
+from handlers.database_handler import DatabaseHandler # Import DatabaseHandler
 import os # Import os for environment variables
 
 # Mock data
@@ -44,7 +45,7 @@ job_service_mock: JobService
 job_management_service_mock: JobManagementService # New mock for JobManagementService
 product_image_crud_mock: ProductImageCRUD
 product_crud_mock: ProductCRUD
-db_mock: DatabaseManager
+db_mock: DatabaseHandler
 broker_mock: MessageBroker
 
 @pytest.fixture(autouse=True)
@@ -79,15 +80,28 @@ def setup_mocks(monkeypatch): # Add monkeypatch as an argument
     # Set job_service_mock's job_management_service attribute to the mock
     job_service_mock.job_management_service = job_management_service_mock
 
-    # Override dependencies in the FastAPI app
-    app.dependency_overrides[JobService] = lambda: job_service_mock
-    app.dependency_overrides[ProductImageCRUD] = lambda: product_image_crud_mock
-    app.dependency_overrides[ProductCRUD] = lambda: product_crud_mock
-    app.dependency_overrides[DatabaseManager] = lambda: db_mock
-    app.dependency_overrides[MessageBroker] = lambda: broker_mock
+    # Import dependency functions from the endpoint modules
+    from api.image_endpoints import get_db, get_message_broker, get_job_service, get_product_image_crud, get_product_crud
+    
+    # Override dependencies in the FastAPI app by replacing the dependency functions
+    app.dependency_overrides[get_db] = lambda: db_mock
+    app.dependency_overrides[get_message_broker] = lambda: broker_mock
+    app.dependency_overrides[get_job_service] = lambda: job_service_mock
+    app.dependency_overrides[get_product_image_crud] = lambda: product_image_crud_mock
+    app.dependency_overrides[get_product_crud] = lambda: product_crud_mock
 
-    # Configure mock job management service
-    job_management_service_mock.get_job.return_value = {"job_id": MOCK_JOB_ID}  # Job exists
+    # Configure mock job service and job management service
+    # Create mock job status return value
+    from models.schemas import JobStatusResponse
+    mock_job_status = JobStatusResponse(
+        job_id=MOCK_JOB_ID,
+        phase="completed",
+        percent=100.0,
+        counts={"products": 0, "videos": 0, "images": 0, "frames": 0},
+        updated_at=datetime.now(timezone.utc)
+    )
+    job_service_mock.get_job_status = AsyncMock(return_value=mock_job_status)
+    job_management_service_mock.get_job_status = AsyncMock(return_value=mock_job_status)
     
     # Configure mock product image CRUD (specific for test_image_endpoints)
     product_image_crud_mock.list_product_images_by_job.return_value = [
@@ -101,151 +115,159 @@ def setup_mocks(monkeypatch): # Add monkeypatch as an argument
     # Clear overrides after the test
     app.dependency_overrides = {}
 
-# @pytest.mark.asyncio
-# async def test_get_job_images_success():
-#     """Test GET /jobs/{job_id}/images with success."""
-#     async with AsyncClient(app=app, base_url="http://test") as ac:
-#         response = await ac.get(f"/jobs/{MOCK_JOB_ID}/images")
-#     
-#     if response.status_code != 200:
-#         print(f"Error Response: {response.json()}")
-#     assert response.status_code == 200
-#     data = response.json()
-#     assert data["total"] == 2
-#     assert len(data["items"]) == 2
-#     assert data["items"][0]["img_id"] == MOCK_IMAGE_ID_1
-#     assert "updated_at" in data["items"][0]
-#     # Check if updated_at is in GMT+7 (Asia/Saigon)
-#     assert data["items"][0]["updated_at"].endswith("+07:00")
-#     print("✓ test_get_job_images_success passed")
-# 
-# @pytest.mark.asyncio
-# async def test_get_job_images_not_found():
-#     """Test GET /jobs/{job_id}/images for job not found."""
-#     job_management_service_mock.get_job.return_value = None  # Mock job_service_instance.job_management_service.get_job
-#     async with AsyncClient(app=app, base_url="http://test") as ac:
-#         response = await ac.get(f"/jobs/nonexistent_job/images")
-#     
-#     if response.status_code != 404:
-#         print(f"Error Response: {response.json()}")
-#     assert response.status_code == 404
-#     assert "Job nonexistent_job not found" in response.json()["detail"]
-#     print("✓ test_get_job_images_not_found passed")
-# 
-# @pytest.mark.asyncio
-# async def test_get_job_images_with_product_id_filter():
-#     """Test GET /jobs/{job_id}/images with product_id filter."""
-#     product_image_crud_mock.list_product_images_by_job.return_value = [
-#         MockProductImage(MOCK_IMAGE_ID_1, MOCK_PRODUCT_ID_1, "/path/to/image1.jpg", "Product Title 1", datetime.now())
-#     ]
-#     product_image_crud_mock.count_product_images_by_job.return_value = 1
-#     
-#     params = {
-#         "product_id": MOCK_PRODUCT_ID_1
-#     }
-#     async with AsyncClient(app=app, base_url="http://test") as ac:
-#         response = await ac.get(f"/jobs/{MOCK_JOB_ID}/images", params=params)
-#     
-#     if response.status_code != 200:
-#         print(f"Error Response: {response.json()}")
-#     assert response.status_code == 200
-#     data = response.json()
-#     assert data["total"] == 1
-#     assert data["items"][0]["product_id"] == MOCK_PRODUCT_ID_1
-#     print("✓ test_get_job_images_with_product_id_filter passed")
-# 
-# @pytest.mark.asyncio
-# async def test_get_job_images_with_search_query():
-#     """Test GET /jobs/{job_id}/images with search query."""
-#     product_image_crud_mock.list_product_images_by_job.return_value = [
-#         MockProductImage(MOCK_IMAGE_ID_1, MOCK_PRODUCT_ID_1, "/path/to/image1.jpg", "Specific Product Title", datetime.now())
-#     ]
-#     product_image_crud_mock.count_product_images_by_job.return_value = 1
-#     
-#     params = {
-#         "q": "Specific"
-#     }
-#     async with AsyncClient(app=app, base_url="http://test") as ac:
-#         response = await ac.get(f"/jobs/{MOCK_JOB_ID}/images", params=params)
-#     
-#     if response.status_code != 200:
-#         print(f"Error Response: {response.json()}")
-#     assert response.status_code == 200
-#     data = response.json()
-#     assert data["total"] == 1
-#     assert data["items"][0]["product_title"] == "Specific Product Title"
-#     print("✓ test_get_job_images_with_search_query passed")
-# 
-# @pytest.mark.asyncio
-# async def test_get_job_images_with_pagination():
-#     """Test GET /jobs/{job_id}/images with pagination."""
-#     product_image_crud_mock.list_product_images_by_job.return_value = [
-#         MockProductImage(MOCK_IMAGE_ID_1, MOCK_PRODUCT_ID_1, "/path/to/image1.jpg", "Product Title 1", datetime.now())
-#     ]
-#     product_image_crud_mock.count_product_images_by_job.return_value = 1
-#     
-#     params = {
-#         "limit": 1,
-#         "offset": 0
-#     }
-#     async with AsyncClient(app=app, base_url="http://test") as ac:
-#         response = await ac.get(f"/jobs/{MOCK_JOB_ID}/images", params=params)
-#     
-#     if response.status_code != 200:
-#         print(f"Error Response: {response.json()}")
-#     assert response.status_code == 200
-#     data = response.json()
-#     assert data["total"] == 1
-#     assert data["limit"] == 1
-#     assert data["offset"] == 0
-#     print("✓ test_get_job_images_with_pagination passed")
-# 
-# @pytest.mark.asyncio
-# async def test_get_job_images_with_sorting():
-#     """Test GET /jobs/{job_id}/images with sorting."""
-#     product_image_crud_mock.list_product_images_by_job.return_value = [
-#         MockProductImage(MOCK_IMAGE_ID_1, MOCK_PRODUCT_ID_1, "/path/to/image1.jpg", "Product Title 1", datetime.now())
-#     ]
-#     product_image_crud_mock.count_product_images_by_job.return_value = 1
-#     
-#     params = {
-#         "sort_by": "img_id",
-#         "order": "ASC"
-#     }
-#     async with AsyncClient(app=app, base_url="http://test") as ac:
-#         response = await ac.get(f"/jobs/{MOCK_JOB_ID}/images", params=params)
-#     
-#     if response.status_code != 200:
-#         print(f"Error Response: {response.json()}")
-#     assert response.status_code == 200
-#     data = response.json()
-#     assert data["total"] == 1
-#     print("✓ test_get_job_images_with_sorting passed")
-# 
-# @pytest.mark.asyncio
-# async def test_get_job_images_invalid_sort_by():
-#     """Test GET /jobs/{job_id}/images with invalid sort_by parameter."""
-#     params = {
-#         "sort_by": "invalid_field",
-#         "order": "ASC"
-#     }
-#     async with AsyncClient(app=app, base_url="http://test") as ac:
-#         response = await ac.get(f"/jobs/{MOCK_JOB_ID}/images", params=params)
-#     
-#     # Should return 422 due to validation error
-#     assert response.status_code == 422
-#     print("✓ test_get_job_images_invalid_sort_by passed")
-# 
-# @pytest.mark.asyncio
-# async def test_get_job_images_invalid_order():
-#     """Test GET /jobs/{job_id}/images with invalid order parameter."""
-#     params = {
-#         "sort_by": "img_id",
-#         "order": "INVALID"
-#     }
-#     async with AsyncClient(app=app, base_url="http://test") as ac:
-#         response = await ac.get(f"/jobs/{MOCK_JOB_ID}/images", params=params)
-#     
-#     # Should return 422 due to validation error
-#     assert response.status_code == 422
-#     print("✓ test_get_job_images_invalid_order passed")
+@pytest.mark.asyncio
+async def test_get_job_images_success():
+    """Test GET /jobs/{job_id}/images with success."""
+    async with AsyncClient(app=app, base_url="http://test") as ac:
+        response = await ac.get(f"/jobs/{MOCK_JOB_ID}/images")
+    
+    if response.status_code != 200:
+        print(f"Error Response: {response.json()}")
+    assert response.status_code == 200
+    data = response.json()
+    assert data["total"] == 2
+    assert len(data["items"]) == 2
+    assert data["items"][0]["img_id"] == MOCK_IMAGE_ID_1
+    assert "updated_at" in data["items"][0]
+    # Check if updated_at is in GMT+7 (Asia/Saigon)
+    assert data["items"][0]["updated_at"].endswith("+07:00")
+    print("✓ test_get_job_images_success passed")
+
+@pytest.mark.asyncio
+async def test_get_job_images_not_found():
+    """Test GET /jobs/{job_id}/images for job not found."""
+    from models.schemas import JobStatusResponse
+    mock_job_status = JobStatusResponse(
+        job_id="nonexistent_job",
+        phase="unknown",
+        percent=0.0,
+        counts={"products": 0, "videos": 0, "images": 0, "frames": 0},
+        updated_at=None
+    )
+    job_service_mock.get_job_status.return_value = mock_job_status
+    async with AsyncClient(app=app, base_url="http://test") as ac:
+        response = await ac.get(f"/jobs/nonexistent_job/images")
+    
+    if response.status_code != 404:
+        print(f"Error Response: {response.json()}")
+    assert response.status_code == 404
+    assert "Job nonexistent_job not found" in response.json()["detail"]
+    print("✓ test_get_job_images_not_found passed")
+
+@pytest.mark.asyncio
+async def test_get_job_images_with_product_id_filter():
+    """Test GET /jobs/{job_id}/images with product_id filter."""
+    product_image_crud_mock.list_product_images_by_job.return_value = [
+        MockProductImage(MOCK_IMAGE_ID_1, MOCK_PRODUCT_ID_1, "/path/to/image1.jpg", "Product Title 1", datetime.now())
+    ]
+    product_image_crud_mock.count_product_images_by_job.return_value = 1
+    
+    params = {
+        "product_id": MOCK_PRODUCT_ID_1
+    }
+    async with AsyncClient(app=app, base_url="http://test") as ac:
+        response = await ac.get(f"/jobs/{MOCK_JOB_ID}/images", params=params)
+    
+    if response.status_code != 200:
+        print(f"Error Response: {response.json()}")
+    assert response.status_code == 200
+    data = response.json()
+    assert data["total"] == 1
+    assert data["items"][0]["product_id"] == MOCK_PRODUCT_ID_1
+    print("✓ test_get_job_images_with_product_id_filter passed")
+
+@pytest.mark.asyncio
+async def test_get_job_images_with_search_query():
+    """Test GET /jobs/{job_id}/images with search query."""
+    product_image_crud_mock.list_product_images_by_job.return_value = [
+        MockProductImage(MOCK_IMAGE_ID_1, MOCK_PRODUCT_ID_1, "/path/to/image1.jpg", "Specific Product Title", datetime.now())
+    ]
+    product_image_crud_mock.count_product_images_by_job.return_value = 1
+    
+    params = {
+        "q": "Specific"
+    }
+    async with AsyncClient(app=app, base_url="http://test") as ac:
+        response = await ac.get(f"/jobs/{MOCK_JOB_ID}/images", params=params)
+    
+    if response.status_code != 200:
+        print(f"Error Response: {response.json()}")
+    assert response.status_code == 200
+    data = response.json()
+    assert data["total"] == 1
+    assert data["items"][0]["product_title"] == "Specific Product Title"
+    print("✓ test_get_job_images_with_search_query passed")
+
+@pytest.mark.asyncio
+async def test_get_job_images_with_pagination():
+    """Test GET /jobs/{job_id}/images with pagination."""
+    product_image_crud_mock.list_product_images_by_job.return_value = [
+        MockProductImage(MOCK_IMAGE_ID_1, MOCK_PRODUCT_ID_1, "/path/to/image1.jpg", "Product Title 1", datetime.now())
+    ]
+    product_image_crud_mock.count_product_images_by_job.return_value = 1
+    
+    params = {
+        "limit": 1,
+        "offset": 0
+    }
+    async with AsyncClient(app=app, base_url="http://test") as ac:
+        response = await ac.get(f"/jobs/{MOCK_JOB_ID}/images", params=params)
+    
+    if response.status_code != 200:
+        print(f"Error Response: {response.json()}")
+    assert response.status_code == 200
+    data = response.json()
+    assert data["total"] == 1
+    assert data["limit"] == 1
+    assert data["offset"] == 0
+    print("✓ test_get_job_images_with_pagination passed")
+
+@pytest.mark.asyncio
+async def test_get_job_images_with_sorting():
+    """Test GET /jobs/{job_id}/images with sorting."""
+    product_image_crud_mock.list_product_images_by_job.return_value = [
+        MockProductImage(MOCK_IMAGE_ID_1, MOCK_PRODUCT_ID_1, "/path/to/image1.jpg", "Product Title 1", datetime.now())
+    ]
+    product_image_crud_mock.count_product_images_by_job.return_value = 1
+    
+    params = {
+        "sort_by": "img_id",
+        "order": "ASC"
+    }
+    async with AsyncClient(app=app, base_url="http://test") as ac:
+        response = await ac.get(f"/jobs/{MOCK_JOB_ID}/images", params=params)
+    
+    if response.status_code != 200:
+        print(f"Error Response: {response.json()}")
+    assert response.status_code == 200
+    data = response.json()
+    assert data["total"] == 1
+    print("✓ test_get_job_images_with_sorting passed")
+
+@pytest.mark.asyncio
+async def test_get_job_images_invalid_sort_by():
+    """Test GET /jobs/{job_id}/images with invalid sort_by parameter."""
+    params = {
+        "sort_by": "invalid_field",
+        "order": "ASC"
+    }
+    async with AsyncClient(app=app, base_url="http://test") as ac:
+        response = await ac.get(f"/jobs/{MOCK_JOB_ID}/images", params=params)
+    
+    # Should return 422 due to validation error
+    assert response.status_code == 422
+    print("✓ test_get_job_images_invalid_sort_by passed")
+
+@pytest.mark.asyncio
+async def test_get_job_images_invalid_order():
+    """Test GET /jobs/{job_id}/images with invalid order parameter."""
+    params = {
+        "sort_by": "img_id",
+        "order": "INVALID"
+    }
+    async with AsyncClient(app=app, base_url="http://test") as ac:
+        response = await ac.get(f"/jobs/{MOCK_JOB_ID}/images", params=params)
+    
+    # Should return 422 due to validation error
+    assert response.status_code == 422
+    print("✓ test_get_job_images_invalid_order passed")

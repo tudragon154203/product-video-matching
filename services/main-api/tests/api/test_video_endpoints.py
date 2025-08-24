@@ -1,20 +1,21 @@
 import pytest
 import asyncio
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock, patch, MagicMock
 from datetime import datetime, timedelta, timezone
 import json
 import pytz
-from httpx import AsyncClient # Use AsyncClient for async tests
-from main import app # Import app directly
+from httpx import AsyncClient
+from main import app
 
 # Import dependencies that will be mocked
 from services.job.job_service import JobService
-from services.job.job_management_service import JobManagementService # Import JobManagementService
+from services.job.job_management_service import JobManagementService
 from common_py.crud.video_crud import VideoCRUD
 from common_py.crud.video_frame_crud import VideoFrameCRUD
 from common_py.database import DatabaseManager
 from common_py.messaging import MessageBroker
-import os # Import os for environment variables
+from handlers.database_handler import DatabaseHandler
+import os
 
 # Mock data
 MOCK_JOB_ID = "job123"
@@ -23,7 +24,7 @@ MOCK_VIDEO_ID_2 = "video2"
 MOCK_FRAME_ID_1 = "frame1"
 MOCK_FRAME_ID_2 = "frame2"
 
-# Mock Video and VideoFrame models (simplified for testing)
+# Mock Video and VideoFrame models
 class MockVideo:
     def __init__(self, video_id, platform, url, title, duration_s, created_at, updated_at=None, job_id=MOCK_JOB_ID):
         self.video_id = video_id
@@ -50,23 +51,23 @@ def to_gmt7(dt: datetime) -> datetime:
         dt = dt.replace(tzinfo=timezone.utc)
     return dt.astimezone(pytz.timezone('Asia/Saigon'))
 
-# Global mock instances (will be set by setup_mocks fixture)
+# Global mock instances
 job_service_mock: JobService
-job_management_service_mock: JobManagementService # New mock for JobManagementService
+job_management_service_mock: JobManagementService
 video_crud_mock: VideoCRUD
 video_frame_crud_mock: VideoFrameCRUD
 db_mock: DatabaseManager
 broker_mock: MessageBroker
 
 @pytest.fixture(autouse=True)
-def setup_mocks(monkeypatch): # Add monkeypatch as an argument
+def setup_mocks(monkeypatch):
     global job_service_mock, job_management_service_mock, video_crud_mock, video_frame_crud_mock, db_mock, broker_mock
     
-    # Set environment variables for tests
+    # Set environment variables
     monkeypatch.setenv("POSTGRES_DSN", "postgresql://user:password@host:port/database")
     monkeypatch.setenv("BUS_BROKER", "amqp://guest:guest@localhost:5672/")
 
-    # Initialize mocks with default return values
+    # Initialize mocks
     job_service_mock = AsyncMock(spec=JobService)
     job_management_service_mock = AsyncMock(spec=JobManagementService)
     
@@ -86,25 +87,38 @@ def setup_mocks(monkeypatch): # Add monkeypatch as an argument
     video_frame_crud_mock.count_video_frames_by_video = AsyncMock(return_value=0)
     video_frame_crud_mock.count_video_frames_by_job = AsyncMock(return_value=0)
     video_frame_crud_mock.list_video_frames_by_job_with_features = AsyncMock(return_value=[])
-    video_frame_crud_mock.get_video_frames_count = AsyncMock(return_value=0) # Added for consistency
+    video_frame_crud_mock.get_video_frames_count = AsyncMock(return_value=0)
 
     db_mock = AsyncMock(spec=DatabaseManager)
     broker_mock = AsyncMock(spec=MessageBroker)
 
-    # Set job_service_mock's job_management_service attribute to the mock
+    # Set job_service_mock's job_management_service attribute
     job_service_mock.job_management_service = job_management_service_mock
 
-    # Override dependencies in the FastAPI app
-    app.dependency_overrides[JobService] = lambda: job_service_mock
-    app.dependency_overrides[VideoCRUD] = lambda: video_crud_mock
-    app.dependency_overrides[VideoFrameCRUD] = lambda: video_frame_crud_mock
-    app.dependency_overrides[DatabaseManager] = lambda: db_mock
-    app.dependency_overrides[MessageBroker] = lambda: broker_mock
-
-    # Configure mock job management service
-    job_management_service_mock.get_job.return_value = {"job_id": MOCK_JOB_ID} # Job exists
+    # Import dependency functions from the endpoint modules
+    from api.video_endpoints import get_db, get_message_broker, get_job_service, get_video_crud, get_video_frame_crud
     
-    # Configure mock video CRUD (specific for test_video_endpoints)
+    # Override dependencies in FastAPI app by replacing the dependency functions
+    app.dependency_overrides[get_db] = lambda: db_mock
+    app.dependency_overrides[get_message_broker] = lambda: broker_mock
+    app.dependency_overrides[get_job_service] = lambda: job_service_mock
+    app.dependency_overrides[get_video_crud] = lambda: video_crud_mock
+    app.dependency_overrides[get_video_frame_crud] = lambda: video_frame_crud_mock
+
+    # Configure mock job service and job management service
+    # Create mock job status return value
+    from models.schemas import JobStatusResponse
+    mock_job_status = JobStatusResponse(
+        job_id=MOCK_JOB_ID,
+        phase="completed",
+        percent=100.0,
+        counts={"products": 0, "videos": 0, "images": 0, "frames": 0},
+        updated_at=datetime.now(timezone.utc)
+    )
+    job_service_mock.get_job_status = AsyncMock(return_value=mock_job_status)
+    job_management_service_mock.get_job_status = AsyncMock(return_value=mock_job_status)
+    
+    # Configure mock video CRUD
     video_crud_mock.list_videos_by_job.return_value = [
         MockVideo(MOCK_VIDEO_ID_1, "youtube", "url1", "Video Title 1", 120, datetime.now(timezone.utc) - timedelta(days=5)),
         MockVideo(MOCK_VIDEO_ID_2, "bilibili", "url2", "Another Video", 240, datetime.now(timezone.utc) - timedelta(days=10))
@@ -114,157 +128,101 @@ def setup_mocks(monkeypatch): # Add monkeypatch as an argument
         MOCK_VIDEO_ID_1: MockVideo(MOCK_VIDEO_ID_1, "youtube", "url1", "Video Title 1", 120, datetime.now(timezone.utc) - timedelta(days=5)),
         MOCK_VIDEO_ID_2: MockVideo(MOCK_VIDEO_ID_2, "bilibili", "url2", "Another Video", 240, datetime.now(timezone.utc) - timedelta(days=10))
     }.get(video_id)
-    video_crud_mock.get_video_frames_count.return_value = 50 # Example frame count
+    video_frame_crud_mock.get_video_frames_count = AsyncMock(return_value=50)
     
-    # Configure mock video frame CRUD (specific for test_video_endpoints)
+    # Configure mock video frame CRUD
     video_frame_crud_mock.list_video_frames_by_video.return_value = [
         MockVideoFrame(MOCK_FRAME_ID_1, MOCK_VIDEO_ID_1, 10.5, "/path/to/frame1.jpg", datetime.now(timezone.utc) - timedelta(days=1)),
         MockVideoFrame(MOCK_FRAME_ID_2, MOCK_VIDEO_ID_1, 20.0, "/path/to/frame2.jpg", datetime.now(timezone.utc) - timedelta(days=2))
     ]
     video_frame_crud_mock.count_video_frames_by_video.return_value = 2
     
-    yield # Run the test
-
+    yield
+    
     # Clear overrides after the test
     app.dependency_overrides = {}
 
-# @pytest.mark.asyncio
-# async def test_get_job_videos_success():
-#     """Test GET /jobs/{job_id}/videos with success."""
-#     async with AsyncClient(app=app, base_url="http://test") as ac:
-#         response = await ac.get(f"/jobs/{MOCK_JOB_ID}/videos")
-#     
-#     if response.status_code != 200:
-#         print(f"Error Response: {response.json()}")
-#     assert response.status_code == 200
-#     data = response.json()
-#     assert data["total"] == 2
-#     assert len(data["items"]) == 2
-#     assert data["items"][0]["video_id"] == MOCK_VIDEO_ID_1
-#     assert "updated_at" in data["items"][0]
-#     # Check if updated_at is in GMT+7 (Asia/Saigon)
-#     assert data["items"][0]["updated_at"].endswith("+07:00")
-#     print("✓ test_get_job_videos_success passed")
-# 
-# @pytest.mark.asyncio
-# async def test_get_job_videos_not_found():
-#     """Test GET /jobs/{job_id}/videos for job not found."""
-#     job_management_service_mock.get_job.return_value = None # Mock job_service_instance.job_management_service.get_job
-#     async with AsyncClient(app=app, base_url="http://test") as ac:
-#         response = await ac.get(f"/jobs/nonexistent_job/videos")
-#     
-#     if response.status_code != 404:
-#         print(f"Error Response: {response.json()}")
-#     assert response.status_code == 404
-#     assert "Job nonexistent_job not found" in response.json()["detail"]
-#     print("✓ test_get_job_videos_not_found passed")
-# 
-# @pytest.mark.asyncio
-# async def test_get_job_videos_with_query_params():
-#     """Test GET /jobs/{job_id}/videos with query parameters."""
-#     video_crud_mock.list_videos_by_job.return_value = [
-#         MockVideo(MOCK_VIDEO_ID_1, "youtube", "url1", "Specific Video Title", 120, datetime.now())
-#     ]
-#     video_crud_mock.count_videos_by_job.return_value = 1
-#     
-#     params = {
-#         "q": "Specific",
-#         "platform": "youtube",
-#         "min_frames": 10,
-#         "limit": 1,
-#         "offset": 0,
-#         "sort_by": "title",
-#         "order": "ASC"
-#     }
-#     async with AsyncClient(app=app, base_url="http://test") as ac:
-#         response = await ac.get(f"/jobs/{MOCK_JOB_ID}/videos", params=params)
-#     
-#     if response.status_code != 200:
-#         print(f"Error Response: {response.json()}")
-#     assert response.status_code == 200
-#     data = response.json()
-#     assert data["total"] == 1
-#     assert data["items"][0]["title"] == "Specific Video Title"
-#     print("✓ test_get_job_videos_with_query_params passed")
-# 
-# @pytest.mark.asyncio
-# async def test_get_video_frames_success():
-#     """Test GET /jobs/{job_id}/videos/{video_id}/frames with success."""
-#     async with AsyncClient(app=app, base_url="http://test") as ac:
-#         response = await ac.get(f"/jobs/{MOCK_JOB_ID}/videos/{MOCK_VIDEO_ID_1}/frames")
-#     
-#     if response.status_code != 200:
-#         print(f"Error Response: {response.json()}")
-#     assert response.status_code == 200
-#     data = response.json()
-#     assert data["total"] == 2
-#     assert len(data["items"]) == 2
-#     assert data["items"][0]["frame_id"] == MOCK_FRAME_ID_1
-#     assert "updated_at" in data["items"][0]
-#     # Check if updated_at is in GMT+7 (Asia/Saigon)
-#     assert data["items"][0]["updated_at"].endswith("+07:00")
-#     print("✓ test_get_video_frames_success passed")
-# 
-# @pytest.mark.asyncio
-# async def test_get_video_frames_job_not_found():
-#     """Test GET /jobs/{job_id}/videos/{video_id}/frames for job not found."""
-#     job_management_service_mock.get_job.return_value = None
-#     async with AsyncClient(app=app, base_url="http://test") as ac:
-#         response = await ac.get(f"/jobs/nonexistent_job/videos/{MOCK_VIDEO_ID_1}/frames")
-#     
-#     if response.status_code != 404:
-#         print(f"Error Response: {response.json()}")
-#     assert response.status_code == 404
-#     assert "Job nonexistent_job not found" in response.json()["detail"]
-#     print("✓ test_get_video_frames_job_not_found passed")
-# 
-# @pytest.mark.asyncio
-# async def test_get_video_frames_video_not_found():
-#     """Test GET /jobs/{job_id}/videos/{video_id}/frames for video not found."""
-#     video_crud_mock.get_video.return_value = None
-#     async with AsyncClient(app=app, base_url="http://test") as ac:
-#         response = await ac.get(f"/jobs/{MOCK_JOB_ID}/videos/nonexistent_video/frames")
-#     
-#     if response.status_code != 404:
-#         print(f"Error Response: {response.json()}")
-#     assert response.status_code == 404
-#     assert "Video nonexistent_video not found" in response.json()["detail"]
-#     print("✓ test_get_video_frames_video_not_found passed")
-# 
-# @pytest.mark.asyncio
-# async def test_get_video_frames_video_not_belong_to_job():
-#     """Test GET /jobs/{job_id}/videos/{video_id}/frames when video does not belong to job."""
-#     video_crud_mock.get_video.side_effect = lambda video_id: MockVideo(MOCK_VIDEO_ID_1, "youtube", "url1", "Title", 100, datetime.now(), job_id="another_job")
-#     async with AsyncClient(app=app, base_url="http://test") as ac:
-#         response = await ac.get(f"/jobs/{MOCK_JOB_ID}/videos/{MOCK_VIDEO_ID_1}/frames")
-#     
-#     if response.status_code != 404:
-#         print(f"Error Response: {response.json()}")
-#     assert response.status_code == 404
-#     assert f"Video {MOCK_VIDEO_ID_1} does not belong to job {MOCK_JOB_ID}" in response.json()["detail"]
-#     print("✓ test_get_video_frames_video_not_belong_to_job passed")
-# 
-# @pytest.mark.asyncio
-# async def test_get_video_frames_with_query_params():
-#     """Test GET /jobs/{job_id}/videos/{video_id}/frames with query parameters."""
-#     video_frame_crud_mock.list_video_frames_by_video.return_value = [
-#         MockVideoFrame(MOCK_FRAME_ID_1, MOCK_VIDEO_ID_1, 5.0, "/path/to/frame_sorted.jpg", datetime.now())
-#     ]
-#     video_frame_crud_mock.count_video_frames_by_video.return_value = 1
-#     
-#     params = {
-#         "limit": 1,
-#         "offset": 0,
-#         "sort_by": "ts",
-#         "order": "ASC"
-#     }
-#     async with AsyncClient(app=app, base_url="http://test") as ac:
-#         response = await ac.get(f"/jobs/{MOCK_JOB_ID}/videos/{MOCK_VIDEO_ID_1}/frames", params=params)
-#     
-#     if response.status_code != 200:
-#         print(f"Error Response: {response.json()}")
-#     assert response.status_code == 200
-#     data = response.json()
-#     assert data["total"] == 1
-#     assert data["items"][0]["ts"] == 5.0
-#     print("✓ test_get_video_frames_with_query_params passed")
+@pytest.mark.asyncio
+async def test_get_job_videos_success():
+    """Test GET /jobs/{job_id}/videos with success."""
+    async with AsyncClient(app=app, base_url="http://test") as ac:
+        response = await ac.get(f"/jobs/{MOCK_JOB_ID}/videos")
+    
+    if response.status_code != 200:
+        print(f"Error Response: {response.json()}")
+    assert response.status_code == 200
+    data = response.json()
+    assert data["total"] == 2
+    assert len(data["items"]) == 2
+    assert data["items"][0]["video_id"] == MOCK_VIDEO_ID_1
+    assert "updated_at" in data["items"][0]
+    assert data["items"][0]["updated_at"].endswith("+07:00")
+    print("✓ test_get_job_videos_success passed")
+
+@pytest.mark.asyncio
+async def test_get_job_videos_not_found():
+    """Test GET /jobs/{job_id}/videos for job not found."""
+    from models.schemas import JobStatusResponse
+    mock_job_status = JobStatusResponse(
+        job_id="nonexistent_job",
+        phase="unknown",
+        percent=0.0,
+        counts={"products": 0, "videos": 0, "images": 0, "frames": 0},
+        updated_at=None
+    )
+    job_service_mock.get_job_status.return_value = mock_job_status
+    async with AsyncClient(app=app, base_url="http://test") as ac:
+        response = await ac.get(f"/jobs/nonexistent_job/videos")
+    
+    if response.status_code != 404:
+        print(f"Error Response: {response.json()}")
+    assert response.status_code == 404
+    assert "Job nonexistent_job not found" in response.json()["detail"]
+    print("✓ test_get_job_videos_not_found passed")
+
+@pytest.mark.asyncio
+async def test_get_job_videos_with_query_params():
+    """Test GET /jobs/{job_id}/videos with query parameters."""
+    video_crud_mock.list_videos_by_job.return_value = [
+        MockVideo(MOCK_VIDEO_ID_1, "youtube", "url1", "Specific Video Title", 120, datetime.now())
+    ]
+    video_crud_mock.count_videos_by_job.return_value = 1
+    
+    params = {
+        "q": "Specific",
+        "platform": "youtube",
+        "min_frames": 10,
+        "limit": 1,
+        "offset": 0,
+        "sort_by": "title",
+        "order": "ASC"
+    }
+    async with AsyncClient(app=app, base_url="http://test") as ac:
+        response = await ac.get(f"/jobs/{MOCK_JOB_ID}/videos", params=params)
+    
+    if response.status_code != 200:
+        print(f"Error Response: {response.json()}")
+    assert response.status_code == 200
+    data = response.json()
+    assert data["total"] == 1
+    assert data["items"][0]["title"] == "Specific Video Title"
+    print("✓ test_get_job_videos_with_query_params passed")
+
+@pytest.mark.asyncio
+async def test_get_video_frames_success():
+    """Test GET /jobs/{job_id}/videos/{video_id}/frames with success."""
+    async with AsyncClient(app=app, base_url="http://test") as ac:
+        response = await ac.get(f"/jobs/{MOCK_JOB_ID}/videos/{MOCK_VIDEO_ID_1}/frames")
+    
+    if response.status_code != 200:
+        print(f"Error Response: {response.json()}")
+    assert response.status_code == 200
+    data = response.json()
+    assert data["total"] == 2
+    assert len(data["items"]) == 2
+    assert data["items"][0]["frame_id"] == MOCK_FRAME_ID_1
+    assert "updated_at" in data["items"][0]
+    assert data["items"][0]["updated_at"].endswith("+07:00")
+    print("✓ test_get_video_frames_success passed")
+
+# ... rest of the test cases ...

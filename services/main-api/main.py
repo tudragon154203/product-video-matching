@@ -38,7 +38,19 @@ job_service = JobService(db, broker)
 # Initialize lifecycle handler
 lifecycle_handler = LifecycleHandler(db, broker, job_service)
 
-app = FastAPI(title="Main API Service", version="1.0.0")
+from contextlib import asynccontextmanager
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """
+    Context manager for managing the lifespan of the FastAPI application.
+    Initializes connections and services on startup, and cleans up on shutdown.
+    """
+    await lifecycle_handler.startup()
+    yield
+    await lifecycle_handler.shutdown()
+
+app = FastAPI(title="Main API Service", version="1.0.0", lifespan=lifespan)
 
 # Include API routers
 app.include_router(job_router)
@@ -46,24 +58,6 @@ app.include_router(health_router)
 app.include_router(video_router)
 app.include_router(image_router)
 app.include_router(features_router)
-
-
-@app.on_event("startup")
-async def startup() -> None:
-    """
-    Initialize connections and services on application startup.
-    This function is called by FastAPI when the application starts.
-    """
-    await lifecycle_handler.startup()
-
-
-@app.on_event("shutdown")
-async def shutdown() -> None:
-    """
-    Clean up connections and resources on application shutdown.
-    This function is called by FastAPI when the application is shutting down.
-    """
-    await lifecycle_handler.shutdown()
 
 if __name__ == "__main__":
     import uvicorn

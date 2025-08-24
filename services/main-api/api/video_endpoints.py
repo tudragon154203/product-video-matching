@@ -55,7 +55,8 @@ async def get_job_videos(
     sort_by: str = Query("updated_at", pattern="^(updated_at|duration_s|frames_count|title)$", description="Field to sort by"),
     order: str = Query("DESC", pattern="^(ASC|DESC)$", description="Sort order"),
     job_service: JobService = Depends(get_job_service),
-    video_crud: VideoCRUD = Depends(get_video_crud)
+    video_crud: VideoCRUD = Depends(get_video_crud),
+    video_frame_crud: VideoFrameCRUD = Depends(get_video_frame_crud)
 ):
     """
     Get videos for a specific job with filtering and pagination.
@@ -75,9 +76,13 @@ async def get_job_videos(
     """
     try:
         # Validate job exists
-        job = await job_service.get_job(job_id)
-        if not job:
+        job_status = await job_service.get_job_status(job_id)
+        
+        # If job_status.phase is "unknown", it means the job was not found in the database
+        if job_status.phase == "unknown":
             raise HTTPException(status_code=404, detail=f"Job {job_id} not found")
+        
+        job = {"job_id": job_status.job_id, "updated_at": job_status.updated_at, "phase": job_status.phase, "percent": job_status.percent, "counts": job_status.counts}
         
         # Get videos with filtering and pagination
         videos = await video_crud.list_videos_by_job(
@@ -102,7 +107,7 @@ async def get_job_videos(
         # Convert to response format and ensure datetime is in GMT+7
         video_items = []
         for video in videos:
-            frames_count = await video_crud.get_video_frames_count(video.video_id)
+            frames_count = await video_frame_crud.get_video_frames_count(video.video_id)
             video_item = VideoItem(
                 video_id=video.video_id,
                 platform=video.platform,
@@ -155,9 +160,13 @@ async def get_video_frames(
     """
     try:
         # Validate job exists
-        job = await job_service.get_job(job_id)
-        if not job:
+        job_status = await job_service.get_job_status(job_id)
+        
+        # If job_status.phase is "unknown", it means the job was not found in the database
+        if job_status.phase == "unknown":
             raise HTTPException(status_code=404, detail=f"Job {job_id} not found")
+        
+        job = {"job_id": job_status.job_id, "updated_at": job_status.updated_at, "phase": job_status.phase, "percent": job_status.percent, "counts": job_status.counts}
         
         # Validate video exists and belongs to the job
         video = await video_crud.get_video(video_id)

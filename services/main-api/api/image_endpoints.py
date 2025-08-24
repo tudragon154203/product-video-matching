@@ -71,9 +71,13 @@ async def get_job_images(
     """
     try:
         # Validate job exists
-        job = await job_service.get_job(job_id)
-        if not job:
+        job_status = await job_service.get_job_status(job_id)
+        
+        # If job_status.phase is "unknown", it means the job was not found in the database
+        if job_status.phase == "unknown":
             raise HTTPException(status_code=404, detail=f"Job {job_id} not found")
+        
+        job = {"job_id": job_status.job_id, "updated_at": job_status.updated_at, "phase": job_status.phase, "percent": job_status.percent, "counts": job_status.counts}
         
         # Get images with filtering and pagination
         images = await product_image_crud.list_product_images_by_job(
