@@ -26,6 +26,21 @@
       "autoApprove": [
         "brave_web_search"
       ]
+    },
+    "playwright": {
+      "command": "npx",
+      "args": [
+        "@playwright/mcp@latest"
+      ],
+      "disabled": false,
+      "autoApprove": [
+        "browser_navigate",
+        "browser_console_messages",
+        "browser_network_requests",
+        "browser_take_screenshot",
+        "browser_evaluate",
+        "browser_wait_for"
+      ]
     }
   }
 }

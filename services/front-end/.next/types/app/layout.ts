@@ -1,4 +1,4 @@
-// File: /Users/mylinh/product-video-matching/services/front-end/app/layout.tsx
+// File: /app/app/layout.tsx
 import * as entry from '../../../app/layout.js'
 import type { ResolvingMetadata } from 'next/dist/lib/metadata/types/metadata-interface.js'
 

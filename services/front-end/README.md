@@ -28,11 +28,19 @@ npm install
 # Run development server
 npm run dev
 
+# Stop the development server
+# Press Ctrl+C in the terminal where npm run dev is running
+
 # Build for production
 npm run build
 
 # Start production server
 npm start
+
+# Stop the production server
+# Press Ctrl+C in the terminal where npm start is running
+# OR send SIGTERM: kill <process_id>
+# OR send SIGKILL: kill -9 <process_id> (force stop)
 ```
 
 ## API Integration

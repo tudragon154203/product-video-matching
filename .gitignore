@@ -29,6 +29,7 @@ CLAUDE.md
 .claude*
 .clinerules*
 .mcp.json
+.playwright-mcp
 
 # Environment variables
 .env
@@ -37,6 +38,7 @@ CLAUDE.md
 
 # Nodejs
 *node_modules/
+*/.next/
 
 # Python
 *.npz
