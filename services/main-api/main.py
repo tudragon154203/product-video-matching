@@ -1,6 +1,5 @@
-import os
 import sys
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI
 
 # Add the app directory to the Python path for bind mount setup
 sys.path.append("/app/app")
@@ -17,16 +16,6 @@ from config_loader import config
 
 # Import services
 from services.job.job_service import JobService
-
-# Import CRUD operations
-from common_py.crud.video_crud import VideoCRUD
-from common_py.crud.video_frame_crud import VideoFrameCRUD
-from common_py.crud.match_crud import MatchCRUD
-from common_py.crud.product_crud import ProductCRUD
-from common_py.crud.product_image_crud import ProductImageCRUD
-
-# Import models
-from models.schemas import StartJobRequest, StartJobResponse, JobStatusResponse
 
 # Import handlers
 from handlers.lifecycle_handler import LifecycleHandler
@@ -46,48 +35,10 @@ broker = MessageBroker(config.BUS_BROKER)
 # Initialize services
 job_service = JobService(db, broker)
 
-# Initialize CRUD instances
-video_crud = VideoCRUD(db)
-video_frame_crud = VideoFrameCRUD(db)
-match_crud = MatchCRUD(db)
-product_crud = ProductCRUD(db)
-product_image_crud = ProductImageCRUD(db)
-
 # Initialize lifecycle handler
 lifecycle_handler = LifecycleHandler(db, broker, job_service)
 
 app = FastAPI(title="Main API Service", version="1.0.0")
-
-# Set the instances in the routers
-import api.job_endpoints
-import api.health_endpoints
-import api.video_endpoints
-import api.image_endpoints
-import api.features_endpoints
-api.job_endpoints.job_service_instance = job_service
-api.health_endpoints.db_instance = db
-api.health_endpoints.broker_instance = broker
-api.video_endpoints.db_instance = db
-api.video_endpoints.video_crud_instance = video_crud
-api.video_endpoints.video_frame_crud_instance = video_frame_crud
-api.video_endpoints.match_crud_instance = match_crud
-api.image_endpoints.db_instance = db
-api.image_endpoints.job_service_instance = job_service
-api.image_endpoints.product_image_crud_instance = product_image_crud
-api.image_endpoints.product_crud_instance = product_crud
-api.features_endpoints.db_instance = db
-api.features_endpoints.job_service_instance = job_service
-api.features_endpoints.product_image_crud_instance = product_image_crud
-api.features_endpoints.video_frame_crud_instance = video_frame_crud
-api.features_endpoints.product_crud_instance = product_crud
-api.features_endpoints.video_crud_instance = video_crud
-
-# Set instances for image endpoints
-import api.image_endpoints
-api.image_endpoints.db_instance = db
-api.image_endpoints.job_service_instance = job_service
-api.image_endpoints.product_image_crud_instance = product_image_crud
-api.image_endpoints.product_crud_instance = product_crud
 
 # Include API routers
 app.include_router(job_router)
@@ -96,14 +47,22 @@ app.include_router(video_router)
 app.include_router(image_router)
 app.include_router(features_router)
 
+
 @app.on_event("startup")
-async def startup():
-    """Initialize connections on startup"""
+async def startup() -> None:
+    """
+    Initialize connections and services on application startup.
+    This function is called by FastAPI when the application starts.
+    """
     await lifecycle_handler.startup()
 
+
 @app.on_event("shutdown")
-async def shutdown():
-    """Clean up connections on shutdown"""
+async def shutdown() -> None:
+    """
+    Clean up connections and resources on application shutdown.
+    This function is called by FastAPI when the application is shutting down.
+    """
     await lifecycle_handler.shutdown()
 
 if __name__ == "__main__":

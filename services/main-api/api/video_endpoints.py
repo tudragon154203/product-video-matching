@@ -1,4 +1,5 @@
-from fastapi import APIRouter, HTTPException, Query
+import os
+from fastapi import APIRouter, HTTPException, Query, Depends
 from typing import Optional, List
 from datetime import datetime, timezone
 import pytz
@@ -12,14 +13,26 @@ from models.schemas import (
 from services.job.job_service import JobService
 from common_py.crud.video_crud import VideoCRUD
 from common_py.crud.video_frame_crud import VideoFrameCRUD
+from common_py.database import DatabaseManager # Import DatabaseManager
+from common_py.messaging import MessageBroker # Import MessageBroker
 
 router = APIRouter()
 
-# Global instances (will be set in main.py)
-db_instance = None
-job_service_instance = None
-video_crud_instance = None
-video_frame_crud_instance = None
+# Dependency functions
+def get_db() -> DatabaseManager:
+    return DatabaseManager(os.getenv("POSTGRES_DSN"))
+
+def get_message_broker() -> MessageBroker:
+    return MessageBroker(os.getenv("BUS_BROKER"))
+
+def get_job_service(db: DatabaseManager = Depends(get_db), broker: MessageBroker = Depends(get_message_broker)) -> JobService:
+    return JobService(db, broker)
+
+def get_video_crud(db: DatabaseManager = Depends(get_db)) -> VideoCRUD:
+    return VideoCRUD(db)
+
+def get_video_frame_crud(db: DatabaseManager = Depends(get_db)) -> VideoFrameCRUD:
+    return VideoFrameCRUD(db)
 
 
 def get_gmt7_time(dt: Optional[datetime]) -> Optional[datetime]:
@@ -40,7 +53,9 @@ async def get_job_videos(
     limit: int = Query(100, ge=1, le=1000, description="Maximum number of items to return"),
     offset: int = Query(0, ge=0, description="Number of items to skip"),
     sort_by: str = Query("updated_at", pattern="^(updated_at|duration_s|frames_count|title)$", description="Field to sort by"),
-    order: str = Query("DESC", pattern="^(ASC|DESC)$", description="Sort order")
+    order: str = Query("DESC", pattern="^(ASC|DESC)$", description="Sort order"),
+    job_service: JobService = Depends(get_job_service),
+    video_crud: VideoCRUD = Depends(get_video_crud)
 ):
     """
     Get videos for a specific job with filtering and pagination.
@@ -60,12 +75,12 @@ async def get_job_videos(
     """
     try:
         # Validate job exists
-        job = await job_service_instance.get_job(job_id)
+        job = await job_service.get_job(job_id)
         if not job:
             raise HTTPException(status_code=404, detail=f"Job {job_id} not found")
         
         # Get videos with filtering and pagination
-        videos = await video_crud_instance.list_videos_by_job(
+        videos = await video_crud.list_videos_by_job(
             job_id=job_id,
             search_query=q,
             platform=platform,
@@ -77,7 +92,7 @@ async def get_job_videos(
         )
         
         # Get total count for pagination
-        total = await video_crud_instance.count_videos_by_job(
+        total = await video_crud.count_videos_by_job(
             job_id=job_id,
             search_query=q,
             platform=platform,
@@ -87,7 +102,7 @@ async def get_job_videos(
         # Convert to response format and ensure datetime is in GMT+7
         video_items = []
         for video in videos:
-            frames_count = await video_crud_instance.get_video_frames_count(video.video_id)
+            frames_count = await video_crud.get_video_frames_count(video.video_id)
             video_item = VideoItem(
                 video_id=video.video_id,
                 platform=video.platform,
@@ -108,8 +123,6 @@ async def get_job_videos(
         
     except HTTPException:
         raise
-    except HTTPException:
-        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
 
@@ -121,7 +134,10 @@ async def get_video_frames(
     limit: int = Query(100, ge=1, le=1000, description="Maximum number of items to return"),
     offset: int = Query(0, ge=0, description="Number of items to skip"),
     sort_by: str = Query("ts", pattern="^(ts|frame_id)$", description="Field to sort by"),
-    order: str = Query("ASC", pattern="^(ASC|DESC)$", description="Sort order")
+    order: str = Query("ASC", pattern="^(ASC|DESC)$", description="Sort order"),
+    job_service: JobService = Depends(get_job_service),
+    video_crud: VideoCRUD = Depends(get_video_crud),
+    video_frame_crud: VideoFrameCRUD = Depends(get_video_frame_crud)
 ):
     """
     Get frames for a specific video with pagination and sorting.
@@ -139,12 +155,12 @@ async def get_video_frames(
     """
     try:
         # Validate job exists
-        job = await job_service_instance.get_job(job_id)
+        job = await job_service.get_job(job_id)
         if not job:
             raise HTTPException(status_code=404, detail=f"Job {job_id} not found")
         
         # Validate video exists and belongs to the job
-        video = await video_crud_instance.get_video(video_id)
+        video = await video_crud.get_video(video_id)
         if not video:
             raise HTTPException(status_code=404, detail=f"Video {video_id} not found")
         
@@ -152,7 +168,7 @@ async def get_video_frames(
             raise HTTPException(status_code=404, detail=f"Video {video_id} does not belong to job {job_id}")
         
         # Get frames with pagination and sorting
-        frames = await video_frame_crud_instance.list_video_frames_by_video(
+        frames = await video_frame_crud.list_video_frames_by_video(
             video_id=video_id,
             limit=limit,
             offset=offset,
@@ -161,7 +177,7 @@ async def get_video_frames(
         )
         
         # Get total count for pagination
-        total = await video_frame_crud_instance.count_video_frames_by_video(video_id)
+        total = await video_frame_crud.count_video_frames_by_video(video_id)
         
         # Convert to response format and ensure datetime is in GMT+7
         frame_items = []

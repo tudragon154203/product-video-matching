@@ -1,4 +1,5 @@
-from fastapi import APIRouter, HTTPException, Query
+import os
+from fastapi import APIRouter, HTTPException, Query, Depends
 from typing import Optional, List
 from datetime import datetime, timezone
 import pytz
@@ -10,14 +11,26 @@ from models.schemas import (
 from services.job.job_service import JobService
 from common_py.crud.product_image_crud import ProductImageCRUD
 from common_py.crud.product_crud import ProductCRUD
+from common_py.database import DatabaseManager # Import DatabaseManager
+from common_py.messaging import MessageBroker # Import MessageBroker
 
 router = APIRouter()
 
-# Global instances (will be set in main.py)
-db_instance = None
-job_service_instance = None
-product_image_crud_instance = None
-product_crud_instance = None
+# Dependency functions
+def get_db() -> DatabaseManager:
+    return DatabaseManager(os.getenv("POSTGRES_DSN"))
+
+def get_message_broker() -> MessageBroker:
+    return MessageBroker(os.getenv("BUS_BROKER"))
+
+def get_job_service(db: DatabaseManager = Depends(get_db), broker: MessageBroker = Depends(get_message_broker)) -> JobService:
+    return JobService(db, broker)
+
+def get_product_image_crud(db: DatabaseManager = Depends(get_db)) -> ProductImageCRUD:
+    return ProductImageCRUD(db)
+
+def get_product_crud(db: DatabaseManager = Depends(get_db)) -> ProductCRUD:
+    return ProductCRUD(db)
 
 
 def get_gmt7_time(dt: Optional[datetime]) -> Optional[datetime]:
@@ -37,7 +50,9 @@ async def get_job_images(
     limit: int = Query(100, ge=1, le=1000, description="Maximum number of items to return"),
     offset: int = Query(0, ge=0, description="Number of items to skip"),
     sort_by: str = Query("updated_at", pattern="^(img_id|updated_at)$", description="Field to sort by"),
-    order: str = Query("DESC", pattern="^(ASC|DESC)$", description="Sort order")
+    order: str = Query("DESC", pattern="^(ASC|DESC)$", description="Sort order"),
+    job_service: JobService = Depends(get_job_service),
+    product_image_crud: ProductImageCRUD = Depends(get_product_image_crud)
 ):
     """
     Get images for a specific job with filtering and pagination.
@@ -56,12 +71,12 @@ async def get_job_images(
     """
     try:
         # Validate job exists
-        job = await job_service_instance.get_job(job_id)
+        job = await job_service.get_job(job_id)
         if not job:
             raise HTTPException(status_code=404, detail=f"Job {job_id} not found")
         
         # Get images with filtering and pagination
-        images = await product_image_crud_instance.list_product_images_by_job(
+        images = await product_image_crud.list_product_images_by_job(
             job_id=job_id,
             product_id=product_id,
             search_query=q,
@@ -72,7 +87,7 @@ async def get_job_images(
         )
         
         # Get total count for pagination
-        total = await product_image_crud_instance.count_product_images_by_job(
+        total = await product_image_crud.count_product_images_by_job(
             job_id=job_id,
             product_id=product_id,
             search_query=q

@@ -155,3 +155,26 @@ async def test_status_endpoint_invalid_job():
     except Exception as e:
         print(f"✗ Status endpoint test for invalid job failed: {e}")
         assert False, str(e)
+@pytest.mark.asyncio
+async def test_start_job_success():
+    """Test the /start-job endpoint with a valid request."""
+    print("Testing /start-job endpoint for successful job creation...")
+    test_data = {
+        "query": "minimal test query",
+        "top_amz": 1,
+        "top_ebay": 1,
+        "platforms": ["youtube"],
+        "recency_days": 1
+    }
+    async with httpx.AsyncClient() as client:
+        response = await client.post(
+            "http://localhost:8888/start-job",
+            json=test_data,
+            timeout=30
+        )
+        print(f"Start job status code: {response.status_code}")
+        assert response.status_code == 200
+        data = response.json()
+        assert "job_id" in data
+        assert isinstance(data["job_id"], str)
+        print(f"✓ /start-job endpoint test passed. Job ID: {data['job_id']}")

@@ -1,4 +1,5 @@
-from fastapi import APIRouter, HTTPException, Query
+import os
+from fastapi import APIRouter, HTTPException, Query, Depends
 from typing import Optional, List
 from datetime import datetime, timezone
 import pytz
@@ -15,17 +16,33 @@ from common_py.crud.product_image_crud import ProductImageCRUD
 from common_py.crud.video_frame_crud import VideoFrameCRUD
 from common_py.crud.product_crud import ProductCRUD
 from common_py.crud.video_crud import VideoCRUD
+from common_py.database import DatabaseManager # Import DatabaseManager
+from common_py.messaging import MessageBroker # Import MessageBroker
 
 
 router = APIRouter()
 
-# Global instances (will be set in main.py)
-db_instance = None
-job_service_instance = None
-product_image_crud_instance = None
-video_frame_crud_instance = None
-product_crud_instance = None
-video_crud_instance = None
+# Dependency functions
+def get_db() -> DatabaseManager:
+    return DatabaseManager(os.getenv("POSTGRES_DSN"))
+
+def get_message_broker() -> MessageBroker:
+    return MessageBroker(os.getenv("BUS_BROKER"))
+
+def get_job_service(db: DatabaseManager = Depends(get_db), broker: MessageBroker = Depends(get_message_broker)) -> JobService:
+    return JobService(db, broker)
+
+def get_product_image_crud(db: DatabaseManager = Depends(get_db)) -> ProductImageCRUD:
+    return ProductImageCRUD(db)
+
+def get_video_frame_crud(db: DatabaseManager = Depends(get_db)) -> VideoFrameCRUD:
+    return VideoFrameCRUD(db)
+
+def get_product_crud(db: DatabaseManager = Depends(get_db)) -> ProductCRUD:
+    return ProductCRUD(db)
+
+def get_video_crud(db: DatabaseManager = Depends(get_db)) -> VideoCRUD:
+    return VideoCRUD(db)
 
 
 def get_gmt7_time(dt: Optional[datetime]) -> Optional[datetime]:
@@ -37,9 +54,9 @@ def get_gmt7_time(dt: Optional[datetime]) -> Optional[datetime]:
     return dt.astimezone(pytz.timezone('Asia/Saigon'))
 
 
-async def get_job_or_404(job_id: str):
+async def get_job_or_404(job_id: str, job_service: JobService = Depends(get_job_service)):
     """Get job or raise 404 if not found"""
-    job = await job_service_instance.get_job(job_id)
+    job = await job_service.get_job(job_id)
     if not job:
         raise HTTPException(status_code=404, detail=f"Job {job_id} not found")
     return job
@@ -53,44 +70,50 @@ def calculate_feature_progress(done: int, total: int) -> dict:
 
 
 @router.get("/jobs/{job_id}/features/summary", response_model=FeaturesSummaryResponse)
-async def get_features_summary(job_id: str):
+async def get_features_summary(
+    job_id: str,
+    db: DatabaseManager = Depends(get_db),
+    product_image_crud: ProductImageCRUD = Depends(get_product_image_crud),
+    video_frame_crud: VideoFrameCRUD = Depends(get_video_frame_crud),
+    job_service: JobService = Depends(get_job_service)
+):
     """
     Get features summary for a job including counts and progress for product images and video frames.
     """
     try:
         # Validate job exists
-        await get_job_or_404(job_id)
+        await get_job_or_404(job_id, job_service)
         
         # Get product images counts
-        product_images_total = await product_image_crud_instance.count_product_images_by_job(job_id)
+        product_images_total = await product_image_crud.count_product_images_by_job(job_id)
         
         # Count product images with features
-        product_images_with_segment = await product_image_crud_instance.count_product_images_by_job(
+        product_images_with_segment = await product_image_crud.count_product_images_by_job(
             job_id, has_feature="segment"
         )
-        product_images_with_embedding = await product_image_crud_instance.count_product_images_by_job(
+        product_images_with_embedding = await product_image_crud.count_product_images_by_job(
             job_id, has_feature="embedding"
         )
-        product_images_with_keypoints = await product_image_crud_instance.count_product_images_by_job(
+        product_images_with_keypoints = await product_image_crud.count_product_images_by_job(
             job_id, has_feature="keypoints"
         )
         
         # Get video frames counts
-        video_frames_total = await video_frame_crud_instance.count_video_frames_by_job(job_id)
+        video_frames_total = await video_frame_crud.count_video_frames_by_job(job_id)
         
         # Count video frames with features
-        video_frames_with_segment = await video_frame_crud_instance.count_video_frames_by_job(
+        video_frames_with_segment = await video_frame_crud.count_video_frames_by_job(
             job_id, has_feature="segment"
         )
-        video_frames_with_embedding = await video_frame_crud_instance.count_video_frames_by_job(
+        video_frames_with_embedding = await video_frame_crud.count_video_frames_by_job(
             job_id, has_feature="embedding"
         )
-        video_frames_with_keypoints = await video_frame_crud_instance.count_video_frames_by_job(
+        video_frames_with_keypoints = await video_frame_crud.count_video_frames_by_job(
             job_id, has_feature="keypoints"
         )
         
         # Get job updated_at
-        job_record = await db_instance.fetch_one("SELECT updated_at FROM jobs WHERE job_id = $1", job_id)
+        job_record = await db.fetch_one("SELECT updated_at FROM jobs WHERE job_id = $1", job_id)
         updated_at = get_gmt7_time(job_record["updated_at"] if job_record else None)
         
         return FeaturesSummaryResponse(
@@ -123,17 +146,19 @@ async def get_job_product_images_features(
     limit: int = Query(100, ge=1, le=1000, description="Maximum number of items to return"),
     offset: int = Query(0, ge=0, description="Number of items to skip"),
     sort_by: str = Query("updated_at", pattern="^(updated_at|img_id)$", description="Field to sort by"),
-    order: str = Query("DESC", pattern="^(ASC|DESC)$", description="Sort order")
+    order: str = Query("DESC", pattern="^(ASC|DESC)$", description="Sort order"),
+    product_image_crud: ProductImageCRUD = Depends(get_product_image_crud),
+    job_service: JobService = Depends(get_job_service)
 ):
     """
     Get product images features for a job with filtering and pagination.
     """
     try:
         # Validate job exists
-        await get_job_or_404(job_id)
+        await get_job_or_404(job_id, job_service)
         
         # Get images with filtering and pagination
-        images = await product_image_crud_instance.list_product_images_by_job_with_features(
+        images = await product_image_crud.list_product_images_by_job_with_features(
             job_id=job_id,
             has_feature=has,
             limit=limit,
@@ -143,7 +168,7 @@ async def get_job_product_images_features(
         )
         
         # Get total count for pagination
-        total = await product_image_crud_instance.count_product_images_by_job(
+        total = await product_image_crud.count_product_images_by_job(
             job_id=job_id,
             has_feature=has
         )
@@ -195,17 +220,19 @@ async def get_job_video_frames_features(
     limit: int = Query(100, ge=1, le=1000, description="Maximum number of items to return"),
     offset: int = Query(0, ge=0, description="Number of items to skip"),
     sort_by: str = Query("updated_at", pattern="^(updated_at|frame_id|ts)$", description="Field to sort by"),
-    order: str = Query("DESC", pattern="^(ASC|DESC)$", description="Sort order")
+    order: str = Query("DESC", pattern="^(ASC|DESC)$", description="Sort order"),
+    video_frame_crud: VideoFrameCRUD = Depends(get_video_frame_crud),
+    job_service: JobService = Depends(get_job_service)
 ):
     """
     Get video frames features for a job with filtering and pagination.
     """
     try:
         # Validate job exists
-        await get_job_or_404(job_id)
+        await get_job_or_404(job_id, job_service)
         
         # Get frames with filtering and pagination
-        frames = await video_frame_crud_instance.list_video_frames_by_job_with_features(
+        frames = await video_frame_crud.list_video_frames_by_job_with_features(
             job_id=job_id,
             video_id=video_id,
             has_feature=has,
@@ -216,7 +243,7 @@ async def get_job_video_frames_features(
         )
         
         # Get total count for pagination
-        total = await video_frame_crud_instance.count_video_frames_by_job(
+        total = await video_frame_crud.count_video_frames_by_job(
             job_id=job_id,
             video_id=video_id,
             has_feature=has
@@ -263,13 +290,16 @@ async def get_job_video_frames_features(
 
 
 @router.get("/features/product-images/{img_id}", response_model=ProductImageFeatureItem)
-async def get_product_image_feature(img_id: str):
+async def get_product_image_feature(
+    img_id: str,
+    product_image_crud: ProductImageCRUD = Depends(get_product_image_crud)
+):
     """
     Get a single product image feature by ID.
     """
     try:
         # Get image
-        image = await product_image_crud_instance.get_product_image(img_id)
+        image = await product_image_crud.get_product_image(img_id)
         if not image:
             raise HTTPException(status_code=404, detail=f"Product image {img_id} not found")
         
@@ -302,13 +332,16 @@ async def get_product_image_feature(img_id: str):
 
 
 @router.get("/features/video-frames/{frame_id}", response_model=VideoFrameFeatureItem)
-async def get_video_frame_feature(frame_id: str):
+async def get_video_frame_feature(
+    frame_id: str,
+    video_frame_crud: VideoFrameCRUD = Depends(get_video_frame_crud)
+):
     """
     Get a single video frame feature by ID.
     """
     try:
         # Get frame
-        frame = await video_frame_crud_instance.get_video_frame(frame_id)
+        frame = await video_frame_crud.get_video_frame(frame_id)
         if not frame:
             raise HTTPException(status_code=404, detail=f"Video frame {frame_id} not found")
         

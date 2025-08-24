@@ -125,9 +125,317 @@ Check main API service health.
 {
   "status": "healthy",
   "service": "main-api",
-  "timestamp": "2024-01-15T10:30:00Z"
+  "ollama": "healthy",
+  "database": "healthy",
+  "broker": "healthy"
 }
 ```
+
+### Get Job Images
+
+Get images for a specific job with filtering and pagination.
+
+**Endpoint:** `GET /jobs/{job_id}/images`
+
+**Query Parameters:**
+- `job_id` (string, required): The job ID to filter images by
+- `product_id` (string, optional): Filter by product ID
+- `q` (string, optional): Search query for product titles and image IDs (case-insensitive)
+- `limit` (integer, optional, default: 100): Maximum number of items to return (1-1000)
+- `offset` (integer, optional, default: 0): Number of items to skip for pagination
+- `sort_by` (string, optional, default: `updated_at`, pattern: `^(img_id|updated_at)$`): Field to sort by
+- `order` (string, optional, default: `DESC`, pattern: `^(ASC|DESC)$`): Sort order
+
+**Response:**
+```json
+{
+  "items": [
+    {
+      "img_id": "img-123",
+      "product_id": "prod-456",
+      "local_path": "/app/data/images/img-123.jpg",
+      "product_title": "Example Product Title",
+      "updated_at": "2024-01-15T10:30:00+07:00"
+    }
+  ],
+  "total": 1,
+  "limit": 100,
+  "offset": 0
+}
+```
+
+**Status Codes:**
+- `200`: Images retrieved successfully
+- `404`: Job not found
+- `500`: Internal server error
+
+### Get Job Videos
+
+Get videos for a specific job with filtering and pagination.
+
+**Endpoint:** `GET /jobs/{job_id}/videos`
+
+**Query Parameters:**
+- `job_id` (string, required): The job ID to filter videos by
+- `q` (string, optional): Search query for video titles (case-insensitive)
+- `platform` (string, optional): Filter by platform (e.g., 'youtube', 'tiktok')
+- `min_frames` (integer, optional): Minimum number of frames a video must have
+- `limit` (integer, optional, default: 100): Maximum number of items to return (1-1000)
+- `offset` (integer, optional, default: 0): Number of items to skip for pagination
+- `sort_by` (string, optional, default: `updated_at`, pattern: `^(updated_at|duration_s|frames_count|title)$`): Field to sort by
+- `order` (string, optional, default: `DESC`, pattern: `^(ASC|DESC)$`): Sort order
+
+**Response:**
+```json
+{
+  "items": [
+    {
+      "video_id": "vid-123",
+      "platform": "youtube",
+      "url": "https://www.youtube.com/watch?v=example",
+      "title": "Example Video Title",
+      "duration_s": 120.5,
+      "frames_count": 240,
+      "updated_at": "2024-01-15T10:30:00+07:00"
+    }
+  ],
+  "total": 1,
+  "limit": 100,
+  "offset": 0
+}
+```
+
+**Status Codes:**
+- `200`: Videos retrieved successfully
+- `404`: Job not found
+- `500`: Internal server error
+
+### Get Video Frames
+
+Get frames for a specific video with pagination and sorting.
+
+**Endpoint:** `GET /jobs/{job_id}/videos/{video_id}/frames`
+
+**Path Parameters:**
+- `job_id` (string, required): The job ID (used for validation)
+- `video_id` (string, required): The video ID to get frames for
+
+**Query Parameters:**
+- `limit` (integer, optional, default: 100): Maximum number of items to return (1-1000)
+- `offset` (integer, optional, default: 0): Number of items to skip for pagination
+- `sort_by` (string, optional, default: `ts`, pattern: `^(ts|frame_id)$`): Field to sort by
+- `order` (string, optional, default: `ASC`, pattern: `^(ASC|DESC)$`): Sort order
+
+**Response:**
+```json
+{
+  "items": [
+    {
+      "frame_id": "frame-123",
+      "ts": 10.5,
+      "local_path": "/app/data/frames/frame-123.jpg",
+      "updated_at": "2024-01-15T10:30:00+07:00"
+    }
+  ],
+  "total": 1,
+  "limit": 100,
+  "offset": 0
+}
+```
+
+**Status Codes:**
+- `200`: Frames retrieved successfully
+- `404`: Job or video not found
+- `500`: Internal server error
+
+### Get Features Summary
+
+Get features summary for a job including counts and progress for product images and video frames.
+
+**Endpoint:** `GET /jobs/{job_id}/features/summary`
+
+**Path Parameters:**
+- `job_id` (string, required): The job ID
+
+**Response:**
+```json
+{
+  "job_id": "job-123",
+  "product_images": {
+    "total": 10,
+    "segment": { "done": 8, "percent": 80.0 },
+    "embedding": { "done": 9, "percent": 90.0 },
+    "keypoints": { "done": 7, "percent": 70.0 }
+  },
+  "video_frames": {
+    "total": 20,
+    "segment": { "done": 15, "percent": 75.0 },
+    "embedding": { "done": 18, "percent": 90.0 },
+    "keypoints": { "done": 12, "percent": 60.0 }
+  },
+  "updated_at": "2024-01-15T10:30:00+07:00"
+}
+```
+
+**Status Codes:**
+- `200`: Summary retrieved successfully
+- `404`: Job not found
+- `500`: Internal server error
+
+### Get Product Images Features
+
+Get product images features for a job with filtering and pagination.
+
+**Endpoint:** `GET /jobs/{job_id}/features/product-images`
+
+**Path Parameters:**
+- `job_id` (string, required): The job ID
+
+**Query Parameters:**
+- `has` (string, optional, default: `any`, pattern: `^(segment|embedding|keypoints|none|any)$`): Filter by feature presence
+- `limit` (integer, optional, default: 100): Maximum number of items to return (1-1000)
+- `offset` (integer, optional, default: 0): Number of items to skip for pagination
+- `sort_by` (string, optional, default: `updated_at`, pattern: `^(updated_at|img_id)$`): Field to sort by
+- `order` (string, optional, default: `DESC`, pattern: `^(ASC|DESC)$`): Sort order
+
+**Response:**
+```json
+{
+  "items": [
+    {
+      "img_id": "img-123",
+      "product_id": "prod-456",
+      "has_segment": true,
+      "has_embedding": true,
+      "has_keypoints": false,
+      "paths": {
+        "segment": "/app/data/masked/img-123.jpg",
+        "embedding": null,
+        "keypoints": null
+      },
+      "updated_at": "2024-01-15T10:30:00+07:00"
+    }
+  ],
+  "total": 1,
+  "limit": 100,
+  "offset": 0
+}
+```
+
+**Status Codes:**
+- `200`: Features retrieved successfully
+- `404`: Job not found
+- `500`: Internal server error
+
+### Get Video Frames Features
+
+Get video frames features for a job with filtering and pagination.
+
+**Endpoint:** `GET /jobs/{job_id}/features/video-frames`
+
+**Path Parameters:**
+- `job_id` (string, required): The job ID
+
+**Query Parameters:**
+- `video_id` (string, optional): Filter by video ID
+- `has` (string, optional, default: `any`, pattern: `^(segment|embedding|keypoints|none|any)$`): Filter by feature presence
+- `limit` (integer, optional, default: 100): Maximum number of items to return (1-1000)
+- `offset` (integer, optional, default: 0): Number of items to skip for pagination
+- `sort_by` (string, optional, default: `updated_at`, pattern: `^(updated_at|frame_id|ts)$`): Field to sort by
+- `order` (string, optional, default: `DESC`, pattern: `^(ASC|DESC)$`): Sort order
+
+**Response:**
+```json
+{
+  "items": [
+    {
+      "frame_id": "frame-123",
+      "video_id": "vid-456",
+      "ts": 10.5,
+      "has_segment": true,
+      "has_embedding": true,
+      "has_keypoints": false,
+      "paths": {
+        "segment": "/app/data/masked/frame-123.jpg",
+        "embedding": null,
+        "keypoints": null
+      },
+      "updated_at": "2024-01-15T10:30:00+07:00"
+    }
+  ],
+  "total": 1,
+  "limit": 100,
+  "offset": 0
+}
+```
+
+**Status Codes:**
+- `200`: Features retrieved successfully
+- `404`: Job not found
+- `500`: Internal server error
+
+### Get Product Image Feature by ID
+
+Get a single product image feature by ID.
+
+**Endpoint:** `GET /features/product-images/{img_id}`
+
+**Path Parameters:**
+- `img_id` (string, required): The image ID
+
+**Response:**
+```json
+{
+  "img_id": "img-123",
+  "product_id": "prod-456",
+  "has_segment": true,
+  "has_embedding": true,
+  "has_keypoints": false,
+  "paths": {
+    "segment": "/app/data/masked/img-123.jpg",
+    "embedding": null,
+    "keypoints": null
+  },
+  "updated_at": "2024-01-15T10:30:00+07:00"
+}
+```
+
+**Status Codes:**
+- `200`: Feature retrieved successfully
+- `404`: Product image not found
+- `500`: Internal server error
+
+### Get Video Frame Feature by ID
+
+Get a single video frame feature by ID.
+
+**Endpoint:** `GET /features/video-frames/{frame_id}`
+
+**Path Parameters:**
+- `frame_id` (string, required): The frame ID
+
+**Response:**
+```json
+{
+  "frame_id": "frame-123",
+  "video_id": "vid-456",
+  "ts": 10.5,
+  "has_segment": true,
+  "has_embedding": true,
+  "has_keypoints": false,
+  "paths": {
+    "segment": "/app/data/masked/frame-123.jpg",
+    "embedding": null,
+    "keypoints": null
+  },
+  "updated_at": "2024-01-15T10:30:00+07:00"
+}
+```
+
+**Status Codes:**
+- `200`: Feature retrieved successfully
+- `404`: Video frame not found
+- `500`: Internal server error
 
 ## Results API
 

@@ -32,6 +32,7 @@
 - 2025-08-21: ✅ COMPLETED - Updated testing guidance documentation with proper pytest execution workflow in techContext.md and AGENTS.md
 - 2025-08-22: ✅ COMPLETED - Updated memory bank with current project state and added testing instructions to CLAUDE.md
 - 2025-08-22: ✅ COMPLETED - Marked eBay browse search minimal code guide as completed in memory bank
+- 2025-08-24: ✅ COMPLETED - Fixed failing unit tests in services/main-api/tests/unit/test_event_handling.py and services/main-api/tests/unit/test_phase_transitions.py
 
 ## In Progress
 - **Dropship Product Finder**: eBay integration implementation (Phase 2: OAuth, Phase 3: Browse API)
@@ -47,7 +48,7 @@
 - Monitor performance after vector-index service removal
 - Documentation updates for simplified matcher service
 - Performance benchmarking for YouTube crawler
-- 2025-08-22: ✅ COMPLETED - Cleaned up failing unit tests with httpx.AsyncClient mock configuration issues
+- Cleaned up failing unit tests with httpx.AsyncClient mock configuration issues
   - Removed 14 failing tests across multiple services
   - Preserved critical functionality coverage in remaining tests
   - All remaining tests now pass successfully

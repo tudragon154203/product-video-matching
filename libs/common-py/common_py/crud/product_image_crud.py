@@ -51,7 +51,8 @@ class ProductImageCRUD:
         limit: int = 100,
         offset: int = 0,
         sort_by: str = "updated_at",
-        order: str = "DESC"
+        order: str = "DESC",
+        has_feature: Optional[str] = None
     ) -> List[ProductImage]:
         """List images for a job with filtering, search, pagination and sorting."""
         # Validate sort_by parameter
@@ -86,6 +87,19 @@ class ProductImageCRUD:
             params.append(f"%{search_query}%")
             param_index += 1
         
+        # Add feature filter if provided
+        if has_feature:
+            if has_feature == "segment":
+                query += f" AND pi.masked_local_path IS NOT NULL"
+            elif has_feature == "embedding":
+                query += f" AND (pi.emb_rgb IS NOT NULL OR pi.emb_gray IS NOT NULL)"
+            elif has_feature == "keypoints":
+                query += f" AND pi.kp_blob_path IS NOT NULL"
+            elif has_feature == "none":
+                query += f" AND pi.masked_local_path IS NULL AND pi.emb_rgb IS NULL AND pi.emb_gray IS NULL AND pi.kp_blob_path IS NULL"
+            elif has_feature == "any":
+                query += f" AND (pi.masked_local_path IS NOT NULL OR pi.emb_rgb IS NOT NULL OR pi.emb_gray IS NOT NULL OR pi.kp_blob_path IS NOT NULL)"
+        
         # Add sorting and pagination
         query += f" ORDER BY pi.{sort_by} {order} LIMIT ${param_index} OFFSET ${param_index + 1}"
         params.extend([limit, offset])
@@ -97,7 +111,8 @@ class ProductImageCRUD:
         self,
         job_id: str,
         product_id: Optional[str] = None,
-        search_query: Optional[str] = None
+        search_query: Optional[str] = None,
+        has_feature: Optional[str] = None
     ) -> int:
         """Count images for a job with filtering and search."""
         query = """
@@ -121,5 +136,68 @@ class ProductImageCRUD:
             params.append(f"%{search_query}%")
             param_index += 1
         
+        # Add feature filter if provided
+        if has_feature:
+            if has_feature == "segment":
+                query += f" AND pi.masked_local_path IS NOT NULL"
+            elif has_feature == "embedding":
+                query += f" AND (pi.emb_rgb IS NOT NULL OR pi.emb_gray IS NOT NULL)"
+            elif has_feature == "keypoints":
+                query += f" AND pi.kp_blob_path IS NOT NULL"
+            elif has_feature == "none":
+                query += f" AND pi.masked_local_path IS NULL AND pi.emb_rgb IS NULL AND pi.emb_gray IS NULL AND pi.kp_blob_path IS NULL"
+            elif has_feature == "any":
+                query += f" AND (pi.masked_local_path IS NOT NULL OR pi.emb_rgb IS NOT NULL OR pi.emb_gray IS NOT NULL OR pi.kp_blob_path IS NOT NULL)"
+        
         count = await self.db.fetch_val(query, *params)
         return count or 0
+    
+    async def list_product_images_by_job_with_features(
+        self,
+        job_id: str,
+        has_feature: Optional[str] = None,
+        limit: int = 100,
+        offset: int = 0,
+        sort_by: str = "updated_at",
+        order: str = "DESC"
+    ) -> List[ProductImage]:
+        """List images for a job with feature filtering, pagination and sorting."""
+        # Validate sort_by parameter
+        valid_sort_fields = {"img_id", "updated_at"}
+        if sort_by not in valid_sort_fields:
+            sort_by = "updated_at"
+        
+        # Validate order parameter
+        order = order.upper()
+        if order not in {"ASC", "DESC"}:
+            order = "DESC"
+        
+        # Build query with filters
+        query = """
+            SELECT pi.*, p.title as product_title
+            FROM product_images pi
+            JOIN products p ON pi.product_id = p.product_id
+            WHERE p.job_id = $1
+        """
+        params = [job_id]
+        param_index = 2
+        
+        # Add feature filter if provided
+        if has_feature:
+            if has_feature == "segment":
+                query += f" AND pi.masked_local_path IS NOT NULL"
+            elif has_feature == "embedding":
+                query += f" AND (pi.emb_rgb IS NOT NULL OR pi.emb_gray IS NOT NULL)"
+            elif has_feature == "keypoints":
+                query += f" AND pi.kp_blob_path IS NOT NULL"
+            elif has_feature == "none":
+                query += f" AND pi.masked_local_path IS NULL AND pi.emb_rgb IS NULL AND pi.emb_gray IS NULL AND pi.kp_blob_path IS NULL"
+            elif has_feature == "any":
+                query += f" AND (pi.masked_local_path IS NOT NULL OR pi.emb_rgb IS NOT NULL OR pi.emb_gray IS NOT NULL OR pi.kp_blob_path IS NOT NULL)"
+        
+        # Add sorting and pagination
+        query += f" ORDER BY pi.{sort_by} {order} LIMIT ${param_index} OFFSET ${param_index + 1}"
+        params.extend([limit, offset])
+        
+        rows = await self.db.fetch_all(query, *params)
+        return [ProductImage(**row) for row in rows]

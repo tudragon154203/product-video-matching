@@ -1,0 +1,31 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "JobFailed",
+  "description": "Schema for a job failed event",
+  "type": "object",
+  "required": [
+    "job_id",
+    "event_id",
+    "reason"
+  ],
+  "properties": {
+    "job_id": {
+      "type": "string",
+      "description": "Unique identifier for the job"
+    },
+    "event_id": {
+      "type": "string",
+      "description": "Unique identifier for this event"
+    },
+    "reason": {
+      "type": "string",
+      "description": "Reason for the job failure"
+    },
+    "details": {
+      "type": "object",
+      "description": "Optional additional details about the failure",
+      "additionalProperties": true
+    }
+  },
+  "additionalProperties": true
+}
