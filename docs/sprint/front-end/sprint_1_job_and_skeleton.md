@@ -1,6 +1,6 @@
 # Frontend Microservice – Product Spec (Sprint 1)
 
-**Name:** `frontend`
+**Name:** `front-end`
 
 **Tech Stack:** Next.js (App Router) • TypeScript • TailwindCSS • shadcn/ui (Radix UI) • TanStack Query • Zod • ESLint/Prettier • Jest/RTL • Playwright
 

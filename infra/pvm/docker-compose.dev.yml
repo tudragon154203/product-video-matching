@@ -97,6 +97,28 @@ services:
         condition: service_healthy
     restart: unless-stopped
     command: ["python", "-m", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  front-end:
+    build:
+      context: ../../services/front-end
+      dockerfile: Dockerfile
+    env_file:
+      - .env
+    ports:
+      - "${PORT_UI}:3000"
+    volumes:
+      - ../../services/front-end:/app
+    depends_on:
+      main-api:
+        condition: service_healthy
+    restart: unless-stopped
+    command: ["npm", "run", "dev"]
 
   results-api:
     build:

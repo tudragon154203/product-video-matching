@@ -35,6 +35,9 @@ CLAUDE.md
 .env.local
 .env.*.local
 
+# Nodejs
+*node_modules/
+
 # Python
 *.npz
 __pycache__/
