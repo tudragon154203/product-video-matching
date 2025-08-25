@@ -117,5 +117,25 @@
       "loadFailed": "Không thể tải dữ liệu.",
       "retry": "Thử lại"
     }
+  },
+  "products": {
+    "panelTitle": "Sản phẩm",
+    "empty": "Không có sản phẩm nào được thu thập.",
+    "source": "Nguồn",
+    "openLinkAria": "Mở sản phẩm trên {src}",
+    "paginatePrev": "Trước",
+    "paginateNext": "Tiếp"
+  },
+  "videos": {
+    "panelTitle": "Video", 
+    "empty": "Không có video nào được thu thập.",
+    "platform": "Nền tảng",
+    "openLinkAria": "Mở video trên {platform}",
+    "paginatePrev": "Trước",
+    "paginateNext": "Tiếp"
+  },
+  "errors": {
+    "loadFailed": "Không thể tải dữ liệu.",
+    "retry": "Thử lại"
   }
 }

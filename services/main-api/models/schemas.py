@@ -107,3 +107,23 @@ class JobListResponse(BaseModel):
     total: int
     limit: int
     offset: int
+
+
+class ProductItem(BaseModel):
+    """Schema for product item in list response"""
+    product_id: str
+    src: str
+    asin_or_itemid: str
+    title: Optional[str] = None
+    brand: Optional[str] = None
+    url: Optional[str] = None
+    image_count: int
+    updated_at: datetime
+
+
+class ProductListResponse(BaseModel):
+    """Schema for product list response with pagination"""
+    items: list[ProductItem]
+    total: int
+    limit: int
+    offset: int

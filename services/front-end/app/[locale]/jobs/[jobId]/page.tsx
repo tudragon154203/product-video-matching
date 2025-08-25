@@ -9,11 +9,11 @@ import { VideosPanel } from '@/components/jobs/VideosPanel';
 import { ProductDetail, VideoDetail } from '@/lib/zod/result';
 
 interface JobDetailsPageProps {
-  params: Promise<{ jobId: string; locale: string }>;
+  params: { jobId: string; locale: string };
 }
 
 export default function JobDetailsPage({ params }: JobDetailsPageProps) {
-  const { jobId } = React.use(params);
+  const { jobId } = params;
   const t = useTranslations();
   
   // Use job status polling to auto-refresh while collecting
