@@ -1,13 +1,11 @@
 import { 
-  ResultsListResponse,
-  ProductDetail,
-  VideoDetail,
-  MatchDetail,
-  SystemStats,
+  MatchResponse,
+  ProductResponse,
+  VideoResponse,
+  MatchDetailResponse,
+  EvidenceResponse,
+  StatsResponse,
   HealthResponse,
-  PaginatedProductListResponse,
-  PaginatedVideoListResponse,
-  JobStatusResponse,
 } from '@/lib/zod/result';
 import { resultsApiClient, apiRequest } from '../client';
 import { handleApiError } from '../utils/error-handling';
@@ -25,7 +23,7 @@ export class ResultsApiService {
     job_id?: string;
     limit?: number;
     offset?: number;
-  }): Promise<ResultsListResponse> {
+  }): Promise<MatchResponse[]> {
     try {
       const searchParams = new URLSearchParams();
       
@@ -47,12 +45,12 @@ export class ResultsApiService {
       
       const url = `/results${searchParams.toString() ? `?${searchParams.toString()}` : ''}`;
       
-      const response = await apiRequest<ResultsListResponse>(resultsApiClient, {
+      const response = await apiRequest<MatchResponse[]>(resultsApiClient, {
         method: 'GET',
         url,
       });
       
-      return ResultsListResponse.parse(response);
+      return response.map(item => MatchResponse.parse(item));
     } catch (error) {
       throw handleApiError(error);
     }
@@ -61,14 +59,14 @@ export class ResultsApiService {
   /**
    * Get detailed information about a specific product
    */
-  async getProduct(productId: string): Promise<ProductDetail> {
+  async getProduct(productId: string): Promise<ProductResponse> {
     try {
-      const response = await apiRequest<ProductDetail>(resultsApiClient, {
+      const response = await apiRequest<ProductResponse>(resultsApiClient, {
         method: 'GET',
         url: `/products/${productId}`,
       });
       
-      return ProductDetail.parse(response);
+      return ProductResponse.parse(response);
     } catch (error) {
       throw handleApiError(error);
     }
@@ -77,14 +75,14 @@ export class ResultsApiService {
   /**
    * Get detailed information about a specific video
    */
-  async getVideo(videoId: string): Promise<VideoDetail> {
+  async getVideo(videoId: string): Promise<VideoResponse> {
     try {
-      const response = await apiRequest<VideoDetail>(resultsApiClient, {
+      const response = await apiRequest<VideoResponse>(resultsApiClient, {
         method: 'GET',
         url: `/videos/${videoId}`,
       });
       
-      return VideoDetail.parse(response);
+      return VideoResponse.parse(response);
     } catch (error) {
       throw handleApiError(error);
     }
@@ -93,29 +91,30 @@ export class ResultsApiService {
   /**
    * Get detailed information about a specific match
    */
-  async getMatch(matchId: string): Promise<MatchDetail> {
+  async getMatch(matchId: string): Promise<MatchDetailResponse> {
     try {
-      const response = await apiRequest<MatchDetail>(resultsApiClient, {
+      const response = await apiRequest<MatchDetailResponse>(resultsApiClient, {
         method: 'GET',
         url: `/matches/${matchId}`,
       });
       
-      return MatchDetail.parse(response);
+      return MatchDetailResponse.parse(response);
     } catch (error) {
       throw handleApiError(error);
     }
   }
 
   /**
-   * Get evidence image for a specific match
+   * Get evidence image path for a specific match
    */
-  async getEvidence(matchId: string): Promise<Blob> {
+  async getEvidence(matchId: string): Promise<EvidenceResponse> {
     try {
-      const response = await resultsApiClient.get(`/evidence/${matchId}`, {
-        responseType: 'blob',
+      const response = await apiRequest<EvidenceResponse>(resultsApiClient, {
+        method: 'GET',
+        url: `/evidence/${matchId}`,
       });
       
-      return response.data;
+      return EvidenceResponse.parse(response);
     } catch (error) {
       throw handleApiError(error);
     }
@@ -124,14 +123,14 @@ export class ResultsApiService {
   /**
    * Get system statistics
    */
-  async getStats(): Promise<SystemStats> {
+  async getStats(): Promise<StatsResponse> {
     try {
-      const response = await apiRequest<SystemStats>(resultsApiClient, {
+      const response = await apiRequest<StatsResponse>(resultsApiClient, {
         method: 'GET',
         url: '/stats',
       });
       
-      return SystemStats.parse(response);
+      return StatsResponse.parse(response);
     } catch (error) {
       throw handleApiError(error);
     }
@@ -148,84 +147,6 @@ export class ResultsApiService {
       });
       
       return HealthResponse.parse(response);
-    } catch (error) {
-      throw handleApiError(error);
-    }
-  }
-
-  /**
-   * Get paginated list of products for a specific job
-   */
-  async getJobProducts(jobId: string, params?: {
-    limit?: number;
-    offset?: number;
-  }): Promise<PaginatedProductListResponse> {
-    try {
-      const searchParams = new URLSearchParams();
-      
-      if (params?.limit) {
-        searchParams.append('limit', params.limit.toString());
-      }
-      if (params?.offset) {
-        searchParams.append('offset', params.offset.toString());
-      }
-      
-      const url = `/jobs/${jobId}/products${searchParams.toString() ? `?${searchParams.toString()}` : ''}`;
-      
-      const response = await apiRequest<PaginatedProductListResponse>(resultsApiClient, {
-        method: 'GET',
-        url,
-      });
-      
-      return PaginatedProductListResponse.parse(response);
-    } catch (error) {
-      throw handleApiError(error);
-    }
-  }
-
-  /**
-   * Get paginated list of videos for a specific job
-   */
-  async getJobVideos(jobId: string, params?: {
-    limit?: number;
-    offset?: number;
-  }): Promise<PaginatedVideoListResponse> {
-    try {
-      const searchParams = new URLSearchParams();
-      
-      if (params?.limit) {
-        searchParams.append('limit', params.limit.toString());
-      }
-      if (params?.offset) {
-        searchParams.append('offset', params.offset.toString());
-      }
-      
-      const url = `/jobs/${jobId}/videos${searchParams.toString() ? `?${searchParams.toString()}` : ''}`;
-      
-      const response = await apiRequest<PaginatedVideoListResponse>(resultsApiClient, {
-        method: 'GET',
-        url,
-      });
-      
-      return PaginatedVideoListResponse.parse(response);
-    } catch (error) {
-      throw handleApiError(error);
-    }
-  }
-
-  /**
-   * Get status for a specific job
-   */
-  async getJobStatus(jobId: string): Promise<JobStatusResponse> {
-    try {
-      const url = `/status/${jobId}`;
-      
-      const response = await apiRequest<JobStatusResponse>(resultsApiClient, {
-        method: 'GET',
-        url,
-      });
-      
-      return JobStatusResponse.parse(response);
     } catch (error) {
       throw handleApiError(error);
     }

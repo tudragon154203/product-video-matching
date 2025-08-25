@@ -27,6 +27,7 @@ from api.job_endpoints import router as job_router
 from api.health_endpoints import router as health_router
 from api.video_endpoints import router as video_router
 from api.image_endpoints import router as image_router
+from api.product_endpoints import router as product_router
 from api.features_endpoints import router as features_router
 
 # Import middleware
@@ -64,6 +65,7 @@ app.include_router(job_router)
 app.include_router(health_router)
 app.include_router(video_router)
 app.include_router(image_router)
+app.include_router(product_router)
 app.include_router(features_router)
 
 if __name__ == "__main__":

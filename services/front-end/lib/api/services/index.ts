@@ -4,19 +4,32 @@ export {
   jobApiService, 
 } from './job.api';
 
-// Results API service
+// Product API service
 export { 
-  ResultsApiService, 
-  resultsApiService 
-} from './result.api';
+  ProductApiService, 
+  productApiService, 
+} from './product.api';
+
+// Video API service
+export { 
+  VideoApiService, 
+  videoApiService, 
+} from './video.api';
+
+// Image API service
+export { 
+  ImageApiService, 
+  imageApiService, 
+} from './image.api';
 
 // Feature API service
 export { 
   FeatureApiService, 
   featureApiService,
-  type FeatureSummary,
-  type ProductImageFeature,
-  type VideoFrameFeature,
-  type ProductImageFeaturesResponse,
-  type VideoFrameFeaturesResponse,
 } from './feature.api';
+
+// Results API service
+export { 
+  ResultsApiService, 
+  resultsApiService 
+} from './result.api';

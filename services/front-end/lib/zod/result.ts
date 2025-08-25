@@ -1,84 +1,80 @@
 import { z } from 'zod';
 
 /**
- * Match result schema
+ * Product response schema (from results-api)
  */
-export const MatchResult = z.object({
-  match_id: z.string(),
-  job_id: z.string(),
+export const ProductResponse = z.object({
   product_id: z.string(),
-  video_id: z.string(),
-  best_img_id: z.string(),
-  best_frame_id: z.string(),
-  ts: z.number(),
-  score: z.number(),
-  evidence_path: z.string(),
+  src: z.string().nullable(),
+  asin_or_itemid: z.string().nullable(),
+  title: z.string().nullable(),
+  brand: z.string().nullable(),
+  url: z.string().nullable(),
   created_at: z.string(),
-  product_title: z.string(),
-  video_title: z.string(),
-  video_platform: z.string(),
-});
-
-/**
- * Results list response schema
- */
-export const ResultsListResponse = z.object({
-  items: z.array(MatchResult),
-  total: z.number(),
-  limit: z.number(),
-  offset: z.number(),
-});
-
-/**
- * Product detail schema
- */
-export const ProductDetail = z.object({
-  product_id: z.string(),
-  src: z.string(),
-  asin_or_itemid: z.string(),
-  title: z.string(),
-  brand: z.string(),
-  url: z.string(),
-  created_at: z.string(),
-  image_url_main: z.string().optional(),
   image_count: z.number(),
 });
 
 /**
- * Video detail schema
+ * Video response schema (from results-api)
  */
-export const VideoDetail = z.object({
+export const VideoResponse = z.object({
   video_id: z.string(),
-  platform: z.string(),
-  url: z.string(),
-  title: z.string(),
-  duration_s: z.number(),
-  published_at: z.string(),
+  platform: z.string().nullable(),
+  url: z.string().nullable(),
+  title: z.string().nullable(),
+  duration_s: z.number().nullable(),
+  published_at: z.string().nullable(),
   created_at: z.string(),
-  thumbnail_url: z.string().optional(),
   frame_count: z.number(),
 });
 
 /**
- * Match detail schema (includes product and video details)
+ * Match response schema (from results-api)
  */
-export const MatchDetail = z.object({
+export const MatchResponse = z.object({
   match_id: z.string(),
   job_id: z.string(),
-  product: ProductDetail,
-  video: VideoDetail,
-  best_img_id: z.string(),
-  best_frame_id: z.string(),
-  ts: z.number(),
+  product_id: z.string(),
+  video_id: z.string(),
+  best_img_id: z.string().nullable(),
+  best_frame_id: z.string().nullable(),
+  ts: z.number().nullable(),
   score: z.number(),
-  evidence_path: z.string(),
+  evidence_path: z.string().nullable(),
   created_at: z.string(),
+  // Enriched fields
+  product_title: z.string().nullable(),
+  video_title: z.string().nullable(),
+  video_platform: z.string().nullable(),
 });
 
 /**
- * System statistics schema
+ * Match detail response schema (from results-api)
  */
-export const SystemStats = z.object({
+export const MatchDetailResponse = z.object({
+  match_id: z.string(),
+  job_id: z.string(),
+  best_img_id: z.string().nullable(),
+  best_frame_id: z.string().nullable(),
+  ts: z.number().nullable(),
+  score: z.number(),
+  evidence_path: z.string().nullable(),
+  created_at: z.string(),
+  product: ProductResponse,
+  video: VideoResponse,
+});
+
+/**
+ * Evidence response schema (from results-api)
+ */
+export const EvidenceResponse = z.object({
+  evidence_path: z.string(),
+});
+
+/**
+ * System statistics response schema (from results-api)
+ */
+export const StatsResponse = z.object({
   products: z.number(),
   product_images: z.number(),
   videos: z.number(),
@@ -88,52 +84,18 @@ export const SystemStats = z.object({
 });
 
 /**
- * Products list response schema (paginated)
- */
-export const PaginatedProductListResponse = z.object({
-  items: z.array(ProductDetail),
-  total: z.number(),
-  limit: z.number(),
-  offset: z.number(),
-});
-
-/**
- * Videos list response schema (paginated)
- */
-export const PaginatedVideoListResponse = z.object({
-  items: z.array(VideoDetail),
-  total: z.number(),
-  limit: z.number(),
-  offset: z.number(),
-});
-
-/**
- * Job status response schema
- */
-export const JobStatusResponse = z.object({
-  phase: z.string(),
-  percent: z.number().optional(),
-  status: z.string().optional(),
-  message: z.string().optional(),
-});
-
-/**
- * Health check response schema
+ * Health response schema (from results-api)
  */
 export const HealthResponse = z.object({
   status: z.string(),
-  service: z.string(),
-  timestamp: z.string(),
+  message: z.string().nullable(),
 });
 
 // Export types
-export type MatchResult = z.infer<typeof MatchResult>;
-export type ResultsListResponse = z.infer<typeof ResultsListResponse>;
-export type ProductDetail = z.infer<typeof ProductDetail>;
-export type VideoDetail = z.infer<typeof VideoDetail>;
-export type MatchDetail = z.infer<typeof MatchDetail>;
-export type SystemStats = z.infer<typeof SystemStats>;
+export type ProductResponse = z.infer<typeof ProductResponse>;
+export type VideoResponse = z.infer<typeof VideoResponse>;
+export type MatchResponse = z.infer<typeof MatchResponse>;
+export type MatchDetailResponse = z.infer<typeof MatchDetailResponse>;
+export type EvidenceResponse = z.infer<typeof EvidenceResponse>;
+export type StatsResponse = z.infer<typeof StatsResponse>;
 export type HealthResponse = z.infer<typeof HealthResponse>;
-export type PaginatedProductListResponse = z.infer<typeof PaginatedProductListResponse>;
-export type PaginatedVideoListResponse = z.infer<typeof PaginatedVideoListResponse>;
-export type JobStatusResponse = z.infer<typeof JobStatusResponse>;

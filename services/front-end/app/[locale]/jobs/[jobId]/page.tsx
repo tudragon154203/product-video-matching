@@ -6,7 +6,7 @@ import { useJobStatusPolling } from '@/lib/hooks/useJobStatusPolling';
 import { JobSplitView } from '@/components/jobs/JobSplitView';
 import { ProductsPanel } from '@/components/jobs/ProductsPanel';
 import { VideosPanel } from '@/components/jobs/VideosPanel';
-import { ProductDetail, VideoDetail } from '@/lib/zod/result';
+
 
 interface JobDetailsPageProps {
   params: { jobId: string; locale: string };

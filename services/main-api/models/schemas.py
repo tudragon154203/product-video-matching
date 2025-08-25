@@ -118,7 +118,7 @@ class ProductItem(BaseModel):
     brand: Optional[str] = None
     url: Optional[str] = None
     image_count: int
-    updated_at: datetime
+    created_at: datetime
 
 
 class ProductListResponse(BaseModel):

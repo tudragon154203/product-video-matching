@@ -2,8 +2,8 @@
 
 import React, { useState, useEffect } from 'react';
 import { usePaginatedList } from '@/lib/hooks/usePaginatedList';
-import { resultsApiService } from '@/lib/api/services/result.api';
-import { ProductDetail } from '@/lib/zod/result';
+import { productApiService } from '@/lib/api/services/product.api';
+import { ProductItem } from '@/lib/zod/product';
 import { groupBy } from '@/lib/utils/groupBy';
 import { useTranslations } from 'next-intl';
 
@@ -23,7 +23,7 @@ interface ProductsPanelProps {
 
 export function ProductsPanel({ jobId, isCollecting = false }: ProductsPanelProps) {
   const t = useTranslations();
-  const [products, setProducts] = useState<ProductDetail[]>([]);
+  const [products, setProducts] = useState<ProductItem[]>([]);
   const [total, setTotal] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -37,7 +37,7 @@ export function ProductsPanel({ jobId, isCollecting = false }: ProductsPanelProp
       setIsLoading(true);
       setError(null);
       
-      const response = await resultsApiService.getJobProducts(jobId, {
+      const response = await productApiService.getJobProducts(jobId, {
         limit: pagination.limit,
         offset: pagination.offset,
       });

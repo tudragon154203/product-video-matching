@@ -1,65 +1,12 @@
-import { z } from 'zod';
+import { 
+  FeaturesSummaryResponse,
+  ProductImageFeaturesResponse,
+  VideoFrameFeaturesResponse,
+  ProductImageFeatureItem,
+  VideoFrameFeatureItem
+} from '@/lib/zod/features';
 import { mainApiClient, apiRequest } from '../client';
 import { handleApiError } from '../utils/error-handling';
-
-// Feature-related schemas
-export const FeatureSummary = z.object({
-  job_id: z.string(),
-  total_product_images: z.number(),
-  total_video_frames: z.number(),
-  processed_product_images: z.number(),
-  processed_video_frames: z.number(),
-  feature_progress: z.object({
-    segmentation: z.number(),
-    embeddings: z.number(),
-    keypoints: z.number(),
-  }),
-});
-
-export const ProductImageFeature = z.object({
-  img_id: z.string(),
-  product_id: z.string(),
-  local_path: z.string(),
-  masked_local_path: z.string().nullable(),
-  product_title: z.string(),
-  has_segmentation: z.boolean(),
-  has_embeddings: z.boolean(),
-  has_keypoints: z.boolean(),
-  updated_at: z.string(),
-});
-
-export const VideoFrameFeature = z.object({
-  frame_id: z.string(),
-  video_id: z.string(),
-  ts: z.number(),
-  local_path: z.string(),
-  video_title: z.string(),
-  has_segmentation: z.boolean(),
-  has_embeddings: z.boolean(),
-  has_keypoints: z.boolean(),
-  updated_at: z.string(),
-});
-
-export const ProductImageFeaturesResponse = z.object({
-  items: z.array(ProductImageFeature),
-  total: z.number(),
-  limit: z.number(),
-  offset: z.number(),
-});
-
-export const VideoFrameFeaturesResponse = z.object({
-  items: z.array(VideoFrameFeature),
-  total: z.number(),
-  limit: z.number(),
-  offset: z.number(),
-});
-
-// Export types
-export type FeatureSummary = z.infer<typeof FeatureSummary>;
-export type ProductImageFeature = z.infer<typeof ProductImageFeature>;
-export type VideoFrameFeature = z.infer<typeof VideoFrameFeature>;
-export type ProductImageFeaturesResponse = z.infer<typeof ProductImageFeaturesResponse>;
-export type VideoFrameFeaturesResponse = z.infer<typeof VideoFrameFeaturesResponse>;
 
 /**
  * Feature API service for main-api feature endpoints
@@ -68,14 +15,14 @@ export class FeatureApiService {
   /**
    * Get feature extraction summary for a job
    */
-  async getFeatureSummary(jobId: string): Promise<FeatureSummary> {
+  async getFeatureSummary(jobId: string): Promise<FeaturesSummaryResponse> {
     try {
-      const response = await apiRequest<FeatureSummary>(mainApiClient, {
+      const response = await apiRequest<FeaturesSummaryResponse>(mainApiClient, {
         method: 'GET',
         url: `/jobs/${jobId}/features/summary`,
       });
       
-      return FeatureSummary.parse(response);
+      return FeaturesSummaryResponse.parse(response);
     } catch (error) {
       throw handleApiError(error);
     }
@@ -87,18 +34,30 @@ export class FeatureApiService {
   async getProductImageFeatures(
     jobId: string,
     params?: {
+      has?: string;
       limit?: number;
       offset?: number;
+      sort_by?: string;
+      order?: string;
     }
   ): Promise<ProductImageFeaturesResponse> {
     try {
       const searchParams = new URLSearchParams();
       
+      if (params?.has) {
+        searchParams.append('has', params.has);
+      }
       if (params?.limit) {
         searchParams.append('limit', params.limit.toString());
       }
       if (params?.offset) {
         searchParams.append('offset', params.offset.toString());
+      }
+      if (params?.sort_by) {
+        searchParams.append('sort_by', params.sort_by);
+      }
+      if (params?.order) {
+        searchParams.append('order', params.order);
       }
       
       const url = `/jobs/${jobId}/features/product-images${
@@ -122,18 +81,34 @@ export class FeatureApiService {
   async getVideoFrameFeatures(
     jobId: string,
     params?: {
+      video_id?: string;
+      has?: string;
       limit?: number;
       offset?: number;
+      sort_by?: string;
+      order?: string;
     }
   ): Promise<VideoFrameFeaturesResponse> {
     try {
       const searchParams = new URLSearchParams();
       
+      if (params?.video_id) {
+        searchParams.append('video_id', params.video_id);
+      }
+      if (params?.has) {
+        searchParams.append('has', params.has);
+      }
       if (params?.limit) {
         searchParams.append('limit', params.limit.toString());
       }
       if (params?.offset) {
         searchParams.append('offset', params.offset.toString());
+      }
+      if (params?.sort_by) {
+        searchParams.append('sort_by', params.sort_by);
+      }
+      if (params?.order) {
+        searchParams.append('order', params.order);
       }
       
       const url = `/jobs/${jobId}/features/video-frames${
@@ -154,14 +129,14 @@ export class FeatureApiService {
   /**
    * Get individual product image feature details
    */
-  async getProductImageFeature(imgId: string): Promise<ProductImageFeature> {
+  async getProductImageFeature(imgId: string): Promise<ProductImageFeatureItem> {
     try {
-      const response = await apiRequest<ProductImageFeature>(mainApiClient, {
+      const response = await apiRequest<ProductImageFeatureItem>(mainApiClient, {
         method: 'GET',
         url: `/features/product-images/${imgId}`,
       });
       
-      return ProductImageFeature.parse(response);
+      return ProductImageFeatureItem.parse(response);
     } catch (error) {
       throw handleApiError(error);
     }
@@ -170,14 +145,14 @@ export class FeatureApiService {
   /**
    * Get individual video frame feature details
    */
-  async getVideoFrameFeature(frameId: string): Promise<VideoFrameFeature> {
+  async getVideoFrameFeature(frameId: string): Promise<VideoFrameFeatureItem> {
     try {
-      const response = await apiRequest<VideoFrameFeature>(mainApiClient, {
+      const response = await apiRequest<VideoFrameFeatureItem>(mainApiClient, {
         method: 'GET',
         url: `/features/video-frames/${frameId}`,
       });
       
-      return VideoFrameFeature.parse(response);
+      return VideoFrameFeatureItem.parse(response);
     } catch (error) {
       throw handleApiError(error);
     }

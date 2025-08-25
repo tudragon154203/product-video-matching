@@ -52,9 +52,21 @@ export const JobListResponse = z.object({
   offset: z.number(),
 });
 
+export const JobAssetTypes = z.object({
+  images: z.boolean(),
+  videos: z.boolean(),
+}).transform((data) => ({
+  ...data,
+  job_type: data.images && data.videos ? "mixed" : 
+           data.images ? "product-only" : 
+           data.videos ? "video-only" : 
+           "zero-asset"
+}));
+
 export type Phase = z.infer<typeof Phase>;
 export type JobStatus = z.infer<typeof JobStatus>;
 export type StartJobResponse = z.infer<typeof StartJobResponse>;
 export type StartJobRequest = z.infer<typeof StartJobRequest>;
 export type JobItem = z.infer<typeof JobItem>;
 export type JobListResponse = z.infer<typeof JobListResponse>;
+export type JobAssetTypes = z.infer<typeof JobAssetTypes>;

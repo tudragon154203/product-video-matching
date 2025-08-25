@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { usePaginatedList } from '@/lib/hooks/usePaginatedList';
 import { resultsApiService } from '@/lib/api/services/result.api';
-import { VideoDetail } from '@/lib/zod/result';
+import { VideoResponse } from '@/lib/zod/result';
 import { groupBy } from '@/lib/utils/groupBy';
 import { formatDuration } from '@/lib/utils/formatDuration';
 import { useTranslations } from 'next-intl';

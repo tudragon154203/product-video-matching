@@ -1,4 +1,4 @@
-// Export API clients
+// API clients
 export { 
   createApiClient, 
   mainApiClient, 
@@ -6,15 +6,23 @@ export {
   apiRequest 
 } from './client';
 
-// Export all services
+// API services
 export * from './services';
 
-// Export utilities
-export * from './utils';
+// API endpoints
+export { API_ENDPOINTS, MAIN_API_ENDPOINTS, RESULTS_API_ENDPOINTS } from './endpoints';
 
-// Export phase utilities for backward compatibility
+// API validation utilities
 export { 
-  getPhaseInfo, 
-  getPhasePercent, 
-  shouldPoll 
-} from './utils/phase';
+  ApiResponse, 
+  ApiErrorResponse, 
+  PaginatedResponse, 
+  validateApiResponse, 
+  safeValidateApiResponse 
+} from './validation';
+
+// React Query hooks
+export * from './hooks';
+
+// Error handling utilities
+export * from './utils/error-handling';
