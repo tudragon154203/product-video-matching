@@ -40,6 +40,7 @@ export const ProductDetail = z.object({
   brand: z.string(),
   url: z.string(),
   created_at: z.string(),
+  image_url_main: z.string().optional(),
   image_count: z.number(),
 });
 
@@ -54,6 +55,7 @@ export const VideoDetail = z.object({
   duration_s: z.number(),
   published_at: z.string(),
   created_at: z.string(),
+  thumbnail_url: z.string().optional(),
   frame_count: z.number(),
 });
 
@@ -86,6 +88,36 @@ export const SystemStats = z.object({
 });
 
 /**
+ * Products list response schema (paginated)
+ */
+export const PaginatedProductListResponse = z.object({
+  items: z.array(ProductDetail),
+  total: z.number(),
+  limit: z.number(),
+  offset: z.number(),
+});
+
+/**
+ * Videos list response schema (paginated)
+ */
+export const PaginatedVideoListResponse = z.object({
+  items: z.array(VideoDetail),
+  total: z.number(),
+  limit: z.number(),
+  offset: z.number(),
+});
+
+/**
+ * Job status response schema
+ */
+export const JobStatusResponse = z.object({
+  phase: z.string(),
+  percent: z.number().optional(),
+  status: z.string().optional(),
+  message: z.string().optional(),
+});
+
+/**
  * Health check response schema
  */
 export const HealthResponse = z.object({
@@ -102,3 +134,6 @@ export type VideoDetail = z.infer<typeof VideoDetail>;
 export type MatchDetail = z.infer<typeof MatchDetail>;
 export type SystemStats = z.infer<typeof SystemStats>;
 export type HealthResponse = z.infer<typeof HealthResponse>;
+export type PaginatedProductListResponse = z.infer<typeof PaginatedProductListResponse>;
+export type PaginatedVideoListResponse = z.infer<typeof PaginatedVideoListResponse>;
+export type JobStatusResponse = z.infer<typeof JobStatusResponse>;

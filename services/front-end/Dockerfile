@@ -1,14 +1,9 @@
-FROM node:18-alpine
+FROM node:22.18.0-alpine
 
 WORKDIR /app
 
 # Install dependencies
 COPY package.json package-lock.json* ./
-RUN npm ci
-
-# Copy source code
-COPY . .
+RUN npm install
 
 EXPOSE 3000
-
-CMD ["npm", "run", "dev"]

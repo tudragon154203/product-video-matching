@@ -51,7 +51,7 @@ export function transformAxiosError(error: AxiosError): ApiError {
     switch (status) {
       case 400:
         return {
-          message: data?.message || 'Invalid request. Please check your input.',
+          message: (data as any)?.message || 'Invalid request. Please check your input.',
           code: ErrorCodes.VALIDATION_ERROR,
           status,
           details: data,
@@ -73,7 +73,7 @@ export function transformAxiosError(error: AxiosError): ApiError {
         
       case 404:
         return {
-          message: data?.message || 'Resource not found.',
+          message: (data as any)?.message || 'Resource not found.',
           code: ErrorCodes.NOT_FOUND,
           status,
         };
@@ -88,7 +88,7 @@ export function transformAxiosError(error: AxiosError): ApiError {
       default:
         if (status >= 500) {
           return {
-            message: data?.message || 'Server error. Please try again later.',
+            message: (data as any)?.message || 'Server error. Please try again later.',
             code: ErrorCodes.SERVER_ERROR,
             status,
             details: data,

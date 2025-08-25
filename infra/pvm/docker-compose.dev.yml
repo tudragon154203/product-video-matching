@@ -121,6 +121,7 @@ services:
       main-api:
         condition: service_healthy
     restart: unless-stopped
+    command: ["npm", "run", "dev"]
 
   results-api:
     build:

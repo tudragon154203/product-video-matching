@@ -5,6 +5,7 @@ import { useQuery } from '@tanstack/react-query'
 import { JobListResponse, JobItem } from '@/lib/zod/job'
 import { jobApiService } from '@/lib/api/services/job.api'
 import { getPhaseInfo } from '@/lib/api/utils/phase'
+import type { Phase } from '@/lib/zod/job'
 import { formatToGMT7 } from '@/lib/time'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -144,7 +145,7 @@ export function JobSidebar() {
       <div key={groupKey}>
         <TimeSeparator label={timeLabels[groupKey]} />
         {jobs.map((job) => {
-          const phaseInfo = getPhaseInfo(job.phase)
+          const phaseInfo = getPhaseInfo(job.phase as Phase)
           const displayDate = job.updated_at || job.created_at
           return (
             <Link 

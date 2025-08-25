@@ -84,5 +84,38 @@
     "jobStartedDescription": "ID Công việc: {jobId}",
     "failedToStartJob": "Không thể bắt đầu Công việc",
     "unknownError": "Lỗi không xác định"
+  },
+  "jobResults": {
+    "title": "Kết quả Công việc",
+    "products": {
+      "panelTitle": "Sản phẩm",
+      "empty": "Không có sản phẩm nào được thu thập.",
+      "source": "Nguồn",
+      "openLinkAria": "Mở sản phẩm trên {src}",
+      "paginatePrev": "Trước",
+      "paginateNext": "Tiếp"
+    },
+    "videos": {
+      "panelTitle": "Video", 
+      "empty": "Không có video nào được thu thập.",
+      "platform": "Nền tảng",
+      "openLinkAria": "Mở video trên {platform}",
+      "paginatePrev": "Trước",
+      "paginateNext": "Tiếp"
+    },
+    "meta": {
+      "product": "sản phẩm",
+      "products": "sản phẩm",
+      "video": "video",
+      "videos": "video",
+      "brand": "Thương hiệu",
+      "asin": "ASIN/Mã sản phẩm",
+      "publishedAt": "Đã xuất bản",
+      "createdAt": "Đã tạo"
+    },
+    "errors": {
+      "loadFailed": "Không thể tải dữ liệu.",
+      "retry": "Thử lại"
+    }
   }
 }

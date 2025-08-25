@@ -84,5 +84,38 @@
     "jobStartedDescription": "Job ID: {jobId}",
     "failedToStartJob": "Failed to Start Job",
     "unknownError": "Unknown error"
+  },
+  "jobResults": {
+    "title": "Job Results",
+    "products": {
+      "panelTitle": "Products",
+      "empty": "No products collected.",
+      "source": "Source",
+      "openLinkAria": "Open product on {src}",
+      "paginatePrev": "Previous",
+      "paginateNext": "Next"
+    },
+    "videos": {
+      "panelTitle": "Videos", 
+      "empty": "No videos collected.",
+      "platform": "Platform",
+      "openLinkAria": "Open video on {platform}",
+      "paginatePrev": "Previous",
+      "paginateNext": "Next"
+    },
+    "meta": {
+      "product": "product",
+      "products": "products",
+      "video": "video",
+      "videos": "videos",
+      "brand": "Brand",
+      "asin": "ASIN/Item ID",
+      "publishedAt": "Published",
+      "createdAt": "Created"
+    },
+    "errors": {
+      "loadFailed": "Failed to load data.",
+      "retry": "Retry"
+    }
   }
 }
