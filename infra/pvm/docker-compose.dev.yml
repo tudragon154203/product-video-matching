@@ -114,11 +114,11 @@ services:
       - "${PORT_UI}:3000"
     volumes:
       - ../../services/front-end:/app
+      - /app/node_modules
     depends_on:
       main-api:
         condition: service_healthy
     restart: unless-stopped
-    command: ["npm", "run", "dev"]
 
   results-api:
     build:

@@ -64,7 +64,12 @@
     "topAmazonProductsTooltip": "Số lượng sản phẩm Amazon hàng đầu để tìm kiếm theo từ khóa của bạn",
     "topEbayProductsTooltip": "Số lượng sản phẩm eBay hàng đầu để tìm kiếm theo từ khóa của bạn",
     "videoPlatformsTooltip": "Chọn các nền tảng video để tìm kiếm nội dung phù hợp",
-    "recencyDaysTooltip": "Chỉ tìm kiếm video được xuất bản trong vòng số ngày này (1-365)"
+    "recencyDaysTooltip": "Chỉ tìm kiếm video được xuất bản trong vòng số ngày này (1-365)",
+    "today": "Hôm nay",
+    "yesterday": "Hôm qua",
+    "last7Days": "7 ngày qua",
+    "lastMonth": "Tháng trước",
+    "older": "Cũ hơn"
   },
   "form": {
     "required": "Bắt buộc",

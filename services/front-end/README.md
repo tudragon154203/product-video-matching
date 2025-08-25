@@ -62,6 +62,31 @@ Base URL: `NEXT_PUBLIC_API_BASE_URL` (environment variable)
 
 See `Dockerfile` for container configuration.
 
+### Switching Between Development and Production
+
+The Dockerfile supports multi-stage builds with separate `development` and `production` targets.
+
+**Development Mode (with hot reloading):**
+```bash
+# Uses target: development from Dockerfile
+docker compose -f infra/pvm/docker-compose.dev.yml up front-end
+```
+
+**Production Mode (optimized build):**
+```bash
+# Override target to production
+docker compose -f infra/pvm/docker-compose.dev.yml up front-end \
+  --build-arg target=production
+
+# Or build with production target
+docker compose -f infra/pvm/docker-compose.dev.yml build \
+  --target production front-end
+```
+
+**Key Differences:**
+- **Development**: Hot reloading, source code mounted as volumes, faster startup
+- **Production**: Optimized build, standalone output, smaller image size, no volumes
+
 ## Testing
 
 ```bash

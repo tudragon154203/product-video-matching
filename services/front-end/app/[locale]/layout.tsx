@@ -6,6 +6,7 @@ import { Providers } from '@/components/ui/providers'
 import { Toaster } from '@/components/ui/toaster'
 import { LanguageToggle } from '@/components/language-toggle'
 import { JobSidebar } from '@/components/job-sidebar'
+import { HydrationErrorSuppressor } from '@/components/hydration-error-suppressor'
 import { notFound } from 'next/navigation'
 import './globals.css'
 
@@ -32,6 +33,7 @@ export default async function LocaleLayout({
   return (
     <html lang={locale} suppressHydrationWarning>
       <body className={inter.className}>
+        <HydrationErrorSuppressor />
         <NextIntlClientProvider messages={messages}>
           <Providers>
             <div className="flex h-screen bg-background">

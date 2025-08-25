@@ -105,19 +105,20 @@ services:
       start_period: 30s
 
   front-end:
-    image: node:18-alpine
+    build:
+      context: ../../services/front-end
+      dockerfile: Dockerfile
     env_file:
       - .env
-    working_dir: /app
     ports:
       - "${PORT_UI}:3000"
     volumes:
       - ../../services/front-end:/app
+      - /app/node_modules
     depends_on:
       main-api:
         condition: service_healthy
     restart: unless-stopped
-    command: ["npm", "run", "dev"]
 
 volumes:
   postgres_data:
