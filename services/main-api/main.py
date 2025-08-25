@@ -29,6 +29,9 @@ from api.video_endpoints import router as video_router
 from api.image_endpoints import router as image_router
 from api.features_endpoints import router as features_router
 
+# Import middleware
+from middleware.cors import add_cors_middleware
+
 # Get shared instances only for lifecycle handler
 db = get_db()
 broker = get_broker()
@@ -52,6 +55,9 @@ async def lifespan(app: FastAPI):
     await lifecycle_handler.shutdown()
 
 app = FastAPI(title="Main API Service", version="1.0.0", lifespan=lifespan)
+
+# Configure middleware
+add_cors_middleware(app)
 
 # Include API routers
 app.include_router(job_router)
