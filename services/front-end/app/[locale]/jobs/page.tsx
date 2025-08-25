@@ -1,5 +1,4 @@
 import { StartJobForm } from '@/components/start-job-form'
-import { JobHistoryList } from '@/components/job-history-list'
 import { useTranslations } from 'next-intl'
 
 export default function JobsPage() {
@@ -21,10 +20,6 @@ export default function JobsPage() {
             <StartJobForm />
           </div>
 
-          <div>
-            <h2 className="text-xl font-semibold mb-4">{t('jobHistory')}</h2>
-            <JobHistoryList />
-          </div>
         </div>
       </div>
     </div>

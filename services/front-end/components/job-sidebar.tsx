@@ -1,113 +1,16 @@
 'use client'
 
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { JobStatus } from '@/lib/zod/job'
-import { jobApi, getPhaseInfo } from '@/lib/api'
+import { JobListResponse, JobItem } from '@/lib/zod/job'
+import { jobApiService } from '@/lib/api/services/job.api'
+import { getPhaseInfo } from '@/lib/api/utils/phase'
 import { formatToGMT7 } from '@/lib/time'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { useTranslations } from 'next-intl'
 import Link from 'next/link'
-
-// Generate mock jobs with relative timestamps
-function generateMockJobs() {
-  const now = new Date()
-  
-  // Helper function to create a date relative to now
-  const getRelativeDate = (daysAgo: number, hoursAgo: number = 0) => {
-    return new Date(now.getTime() - (daysAgo * 24 * 60 * 60 * 1000) - (hoursAgo * 60 * 60 * 1000)).toISOString()
-  }
-  
-  return [
-    // Today
-    {
-      job_id: 'job-today-1',
-      query: 'ergonomic pillows',
-      phase: 'completed' as const,
-      percent: 100,
-      counts: { products: 50, videos: 120, images: 300, frames: 600 },
-      updated_at: getRelativeDate(0, 2), // 2 hours ago
-    },
-    {
-      job_id: 'job-today-2',
-      query: 'standing desk',
-      phase: 'matching' as const,
-      percent: 80,
-      counts: { products: 30, videos: 80, images: 200, frames: 400 },
-      updated_at: getRelativeDate(0, 5), // 5 hours ago
-    },
-    // Yesterday
-    {
-      job_id: 'job-yesterday-1',
-      query: 'gaming chair',
-      phase: 'collection' as const,
-      percent: 20,
-      counts: { products: 10, videos: 25, images: 50, frames: 100 },
-      updated_at: getRelativeDate(1, 4), // 1 day and 4 hours ago
-    },
-    {
-      job_id: 'job-yesterday-2',
-      query: 'wireless headphones',
-      phase: 'completed' as const,
-      percent: 100,
-      counts: { products: 25, videos: 60, images: 150, frames: 300 },
-      updated_at: getRelativeDate(1, 10), // 1 day and 10 hours ago
-    },
-    // Last 7 days
-    {
-      job_id: 'job-week-1',
-      query: 'laptop cooling pad',
-      phase: 'completed' as const,
-      percent: 100,
-      counts: { products: 20, videos: 45, images: 100, frames: 200 },
-      updated_at: getRelativeDate(3), // 3 days ago
-    },
-    {
-      job_id: 'job-week-2',
-      query: 'mechanical keyboard',
-      phase: 'failed' as const,
-      percent: 45,
-      counts: { products: 15, videos: 30, images: 75, frames: 150 },
-      updated_at: getRelativeDate(5), // 5 days ago
-    },
-    // Last month
-    {
-      job_id: 'job-month-1',
-      query: 'smart watch',
-      phase: 'completed' as const,
-      percent: 100,
-      counts: { products: 40, videos: 90, images: 200, frames: 400 },
-      updated_at: getRelativeDate(15), // 15 days ago
-    },
-    {
-      job_id: 'job-month-2',
-      query: 'coffee maker',
-      phase: 'completed' as const,
-      percent: 100,
-      counts: { products: 35, videos: 70, images: 180, frames: 350 },
-      updated_at: getRelativeDate(20), // 20 days ago
-    },
-    // Older
-    {
-      job_id: 'job-old-1',
-      query: 'bluetooth speaker',
-      phase: 'completed' as const,
-      percent: 100,
-      counts: { products: 30, videos: 65, images: 160, frames: 320 },
-      updated_at: getRelativeDate(45), // 45 days ago
-    },
-    {
-      job_id: 'job-old-2',
-      query: 'fitness tracker',
-      phase: 'completed' as const,
-      percent: 100,
-      counts: { products: 28, videos: 55, images: 140, frames: 280 },
-      updated_at: getRelativeDate(60), // 60 days ago
-    },
-  ]
-}
 
 interface JobStats {
   totalJobs: number
@@ -117,14 +20,16 @@ interface JobStats {
 }
 
 interface GroupedJobs {
-  today: any[]
-  yesterday: any[]
-  last7Days: any[]
-  lastMonth: any[]
-  older: any[]
+  today: JobItem[]
+  yesterday: JobItem[]
+  last7Days: JobItem[]
+  lastMonth: JobItem[]
+  older: JobItem[]
 }
 
-function getTimeCategory(dateString: string): keyof GroupedJobs {
+function getTimeCategory(dateString: string | null): keyof GroupedJobs {
+  if (!dateString) return 'older'
+  
   const now = new Date()
   const date = new Date(dateString)
   
@@ -148,7 +53,7 @@ function getTimeCategory(dateString: string): keyof GroupedJobs {
   }
 }
 
-function groupJobsByTime(jobs: any[]): GroupedJobs {
+function groupJobsByTime(jobs: JobItem[]): GroupedJobs {
   const groups: GroupedJobs = {
     today: [],
     yesterday: [],
@@ -184,43 +89,47 @@ export function JobSidebar() {
     failedJobs: 0,
   })
 
-  // Generate mock data on client side to avoid hydration issues
-  const mockJobs = useMemo(() => generateMockJobs(), [])
-
-  const { data: recentJobs } = useQuery({
-    queryKey: ['job-stats'],
+  // Fetch jobs using real API
+  const { data: jobsResponse, isLoading, error } = useQuery({
+    queryKey: ['jobs-list'],
     queryFn: async () => {
-      // For this sprint, we'll use mock data since we don't have a backend endpoint
-      return mockJobs
+      return await jobApiService.listJobs({ limit: 100 })
     },
-    initialData: mockJobs,
+    refetchInterval: 30000, // Refresh every 30 seconds
   })
 
+  const jobs = jobsResponse?.items || []
+
   useEffect(() => {
-    if (recentJobs) {
-      const running = (recentJobs as any[]).filter(job => 
-        job.phase === 'collection' || job.phase === 'feature_extraction' || job.phase === 'matching' || job.phase === 'evidence'
+    if (jobs.length > 0) {
+      const running = jobs.filter(job => 
+        job.phase === 'collection' || 
+        job.phase === 'feature_extraction' || 
+        job.phase === 'matching' || 
+        job.phase === 'evidence'
       ).length
       
-      const completed = (recentJobs as any[]).filter(job => job.phase === 'completed').length
-      const failed = (recentJobs as any[]).filter(job => job.phase === 'failed').length
+      const completed = jobs.filter(job => job.phase === 'completed').length
+      const failed = jobs.filter(job => job.phase === 'failed').length
       
       setStats({
-        totalJobs: recentJobs.length,
+        totalJobs: jobs.length,
         runningJobs: running,
         completedJobs: completed,
         failedJobs: failed,
       })
     }
-  }, [recentJobs])
+  }, [jobs])
 
-  const sortedJobs = [...(recentJobs as any[])].sort((a, b) => 
-    new Date(b.updated_at || 0).getTime() - new Date(a.updated_at || 0).getTime()
-  )
+  const sortedJobs = [...jobs].sort((a, b) => {
+    const aDate = a.updated_at ? new Date(a.updated_at).getTime() : new Date(a.created_at).getTime()
+    const bDate = b.updated_at ? new Date(b.updated_at).getTime() : new Date(b.created_at).getTime()
+    return bDate - aDate
+  })
   
   const groupedJobs = groupJobsByTime(sortedJobs)
 
-  const renderJobGroup = (jobs: any[], groupKey: keyof GroupedJobs) => {
+  const renderJobGroup = (jobs: JobItem[], groupKey: keyof GroupedJobs) => {
     if (jobs.length === 0) return null
     
     const timeLabels = {
@@ -236,6 +145,7 @@ export function JobSidebar() {
         <TimeSeparator label={timeLabels[groupKey]} />
         {jobs.map((job) => {
           const phaseInfo = getPhaseInfo(job.phase)
+          const displayDate = job.updated_at || job.created_at
           return (
             <Link 
               key={job.job_id} 
@@ -255,14 +165,14 @@ export function JobSidebar() {
                           : 'bg-yellow-500'
                       }`}
                     />
-                    <span className="text-xs text-muted-foreground">
-                      {job.percent}%
-                    </span>
+                    <Badge variant="secondary" className="text-xs">
+                      {phaseInfo.label}
+                    </Badge>
                   </div>
                 </div>
                 <div className="flex items-center justify-between text-xs text-muted-foreground">
-                  <span>{formatToGMT7(job.updated_at)}</span>
-                  <span>{phaseInfo.label}</span>
+                  <span>{formatToGMT7(displayDate)}</span>
+                  <span className="capitalize">{job.industry}</span>
                 </div>
               </div>
             </Link>
@@ -282,24 +192,26 @@ export function JobSidebar() {
         <CardContent className="space-y-3">
           <div className="flex justify-between items-center">
             <span className="text-sm font-medium">{t('total')}</span>
-            <Badge variant="secondary">{stats.totalJobs}</Badge>
+            <Badge variant="secondary">
+              {isLoading ? '...' : stats.totalJobs}
+            </Badge>
           </div>
           <div className="flex justify-between items-center">
             <span className="text-sm font-medium">{t('running')}</span>
             <Badge variant="default" className="bg-yellow-500 text-yellow-50">
-              {stats.runningJobs}
+              {isLoading ? '...' : stats.runningJobs}
             </Badge>
           </div>
           <div className="flex justify-between items-center">
             <span className="text-sm font-medium">{t('completed')}</span>
             <Badge variant="default" className="bg-green-500 text-green-50">
-              {stats.completedJobs}
+              {isLoading ? '...' : stats.completedJobs}
             </Badge>
           </div>
           <div className="flex justify-between items-center">
             <span className="text-sm font-medium">{t('failed')}</span>
             <Badge variant="destructive">
-              {stats.failedJobs}
+              {isLoading ? '...' : stats.failedJobs}
             </Badge>
           </div>
         </CardContent>
@@ -311,19 +223,35 @@ export function JobSidebar() {
           <CardTitle className="text-lg">{t('history')}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-2 overflow-y-auto max-h-96">
-          {Object.keys(groupedJobs).map(groupKey => 
-            renderJobGroup(groupedJobs[groupKey as keyof GroupedJobs], groupKey as keyof GroupedJobs)
+          {isLoading && (
+            <div className="text-center py-8 text-muted-foreground">
+              <p className="text-sm">{t('loadingJobs')}</p>
+            </div>
           )}
           
-          {sortedJobs.length === 0 && (
-            <div className="text-center py-8 text-muted-foreground">
-              <p className="text-sm">{t('noRecentJobs')}</p>
-              <div className="mt-2">
-                <Link href="/">
-                  <Button variant="outline" size="sm" className="w-full">{t('navigation.goHome')}</Button>
-                </Link>
-              </div>
+          {error && (
+            <div className="text-center py-8 text-red-500">
+              <p className="text-sm">{t('failedToLoadJobsError')}</p>
             </div>
+          )}
+          
+          {!isLoading && !error && (
+            <>
+              {Object.keys(groupedJobs).map(groupKey => 
+                renderJobGroup(groupedJobs[groupKey as keyof GroupedJobs], groupKey as keyof GroupedJobs)
+              )}
+              
+              {sortedJobs.length === 0 && (
+                <div className="text-center py-8 text-muted-foreground">
+                  <p className="text-sm">{t('noRecentJobs')}</p>
+                  <div className="mt-2">
+                    <Link href="/">
+                      <Button variant="outline" size="sm" className="w-full">{t('navigation.goHome')}</Button>
+                    </Link>
+                  </div>
+                </div>
+              )}
+            </>
           )}
         </CardContent>
       </Card>

@@ -42,6 +42,8 @@
     "jobStatus": "Trạng thái Công việc",
     "viewFullDetails": "Xem Chi tiết Đầy đủ",
     "failedToLoadJobs": "Không thể tải công việc gần đây",
+    "loadingJobs": "Đang tải công việc...",
+    "failedToLoadJobsError": "Không thể tải công việc",
     "noRecentJobs": "Không tìm thấy công việc gần đây.",
     "percentComplete": "% hoàn thành",
     "jobHistory": "Lịch sử Công việc",

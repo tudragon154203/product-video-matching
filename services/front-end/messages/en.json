@@ -42,6 +42,8 @@
     "jobStatus": "Job Status",
     "viewFullDetails": "View Full Details",
     "failedToLoadJobs": "Failed to load recent jobs",
+    "loadingJobs": "Loading jobs...",
+    "failedToLoadJobsError": "Failed to load jobs",
     "noRecentJobs": "No recent jobs found.",
     "percentComplete": "% complete",
     "jobHistory": "Job History",

@@ -1,10 +1,10 @@
 'use client'
 
-import { useState } from 'react'
+import React, { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { StartJobRequest } from '@/lib/zod/job'
-import { jobApi } from '@/lib/api'
+import { jobApiService } from '@/lib/api/services/job.api'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -52,13 +52,13 @@ export function StartJobForm() {
   const onSubmit = async (data: StartJobRequest) => {
     setIsSubmitting(true)
     try {
-      const response = await jobApi.startJob(data)
+      const response = await jobApiService.startJob(data)
       toast({
         title: tToast('jobStarted'),
         description: tToast('jobStartedDescription', { jobId: response.job_id }),
       })
       reset()
-      queryClient.invalidateQueries({ queryKey: ['jobs'] })
+      queryClient.invalidateQueries({ queryKey: ['jobs-list'] })
     } catch (error) {
       toast({
         title: tToast('failedToStartJob'),

@@ -5,14 +5,16 @@ from fastapi import FastAPI
 sys.path.append("/app/app")
 
 from common_py.logging_config import configure_logging
-from common_py.database import DatabaseManager
-from common_py.messaging import MessageBroker
 
 # Configure logging
 logger = configure_logging("main-api")
 
 # Load service-specific configuration
 from config_loader import config
+
+# Initialize dependencies for the entire application
+from api.dependency import init_dependencies, get_db, get_broker
+init_dependencies()
 
 # Import services
 from services.job.job_service import JobService
@@ -27,10 +29,9 @@ from api.video_endpoints import router as video_router
 from api.image_endpoints import router as image_router
 from api.features_endpoints import router as features_router
 
-# Global instances
-# Use configuration from the config object
-db = DatabaseManager(config.POSTGRES_DSN)
-broker = MessageBroker(config.BUS_BROKER)
+# Get shared instances only for lifecycle handler
+db = get_db()
+broker = get_broker()
 
 # Initialize services
 job_service = JobService(db, broker)

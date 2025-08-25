@@ -5,19 +5,14 @@ from models.schemas import StartJobRequest, StartJobResponse, JobStatusResponse,
 from common_py.database import DatabaseManager
 from common_py.messaging import MessageBroker
 from datetime import datetime
+from api.dependency import get_db, get_broker
 
 
 # Create router for job endpoints (no prefix)
 router = APIRouter()
 
-# Dependency functions
-def get_db() -> DatabaseManager:
-    return DatabaseManager(os.getenv("POSTGRES_DSN"))
-
-def get_message_broker() -> MessageBroker:
-    return MessageBroker(os.getenv("BUS_BROKER"))
-
-def get_job_service(db: DatabaseManager = Depends(get_db), broker: MessageBroker = Depends(get_message_broker)) -> JobService:
+# Dependency functions use the centralized dependency module
+def get_job_service(db: DatabaseManager = Depends(get_db), broker: MessageBroker = Depends(get_broker)) -> JobService:
     return JobService(db, broker)
 
 @router.post("/start-job", response_model=StartJobResponse)

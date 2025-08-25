@@ -4,6 +4,7 @@ from common_py.database import DatabaseManager
 from common_py.messaging import MessageBroker
 from config_loader import config
 from common_py.logging_config import configure_logging
+from api.dependency import get_db, get_broker
 
 # Configure logger
 logger = configure_logging("main-api")
@@ -11,14 +12,13 @@ logger = configure_logging("main-api")
 # Create router for health endpoints (no prefix)
 router = APIRouter()
 
-# We'll set these when including the router in main.py
-db_instance = None
-broker_instance = None
-
 @router.get("/health")
 async def health_check():
     """Health check endpoint"""
     try:
+        # Get instances from dependency module
+        db_instance = get_db()
+        broker_instance = get_broker()
         # Check database connection (if available)
         db_status = "unavailable"
         try:
