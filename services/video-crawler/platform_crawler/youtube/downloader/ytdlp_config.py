@@ -8,7 +8,7 @@ class YTDLPOptionsBuilder:
     @staticmethod
     def build_options(user_agent: str, format_selection: str, proxy_config: str = None) -> Dict[str, Any]:
         """
-        Build yt-dlp options
+        Build yt-dlp options with enhanced reliability settings
         
         Args:
             user_agent: User agent string
@@ -37,10 +37,21 @@ class YTDLPOptionsBuilder:
                 'Accept-Encoding': 'gzip, deflate',
                 'Connection': 'keep-alive',
             },
+            # Enhanced reliability settings
+            'socket_timeout': 60,  # Increased timeout for slow connections
+            'retries': 10,  # More retries for transient errors
+            'fragment_retries': 10,  # More retries for fragment downloads
+            'file_access_retries': 5,  # More retries for file access errors
+            'retry_sleep': 'http:exp=1:300',  # Exponential backoff for HTTP errors, up to 300 seconds
             'sleep_interval': 1,  # Add delay between requests
-            'max_sleep_interval': 3,
-            'socket_timeout': 30,  # Increase timeout
-            'retries': 3,  # Retry on network errors
+            'max_sleep_interval': 5,  # Increase max sleep interval
+            'sleep_requests': 1,  # Sleep between requests during data extraction
+            # Additional reliability options
+            'throttled_rate': '100K',  # Minimum download rate before re-extracting
+            'buffersize': 10240,  # Larger buffer size (10KB)
+            'noresizebuffer': False,  # Allow automatic buffer resizing
+            'http_chunk_size': 10485760,  # 10MB chunks for bypassing throttling
+            'concurrent_fragment_downloads': 3,  # Concurrent fragment downloads
         }
         
         # Add proxy configuration if specified

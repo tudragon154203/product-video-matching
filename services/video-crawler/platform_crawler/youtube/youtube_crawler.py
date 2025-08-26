@@ -135,9 +135,10 @@ class YoutubeCrawler(PlatformCrawlerInterface):
         downloaded_videos = [result for result in results if result is not None]
         
         total_time = asyncio.get_event_loop().time() - start_time
+        avg_time = total_time / len(videos_list) if len(videos_list) > 0 else 0
         logger.info(f"[PARALLEL-FINISH] Completed {len(downloaded_videos)}/{len(videos_list)} downloads | "
                    f"Max concurrent: {max_concurrent} | Total time: {total_time:.2f}s | "
-                   f"Average per download: {total_time/len(videos_list):.2f}s")
+                   f"Average per download: {avg_time:.2f}s")
         
         return downloaded_videos
     

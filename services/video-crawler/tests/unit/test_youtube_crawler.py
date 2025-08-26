@@ -8,6 +8,7 @@ from pathlib import Path
 from unittest.mock import patch, AsyncMock
 from datetime import datetime, timedelta
 from platform_crawler.youtube.youtube_crawler import YoutubeCrawler
+from platform_crawler.youtube.youtube_utils import is_url_like, sanitize_filename
 
 
 class TestYoutubeCrawler:
@@ -35,7 +36,7 @@ class TestYoutubeCrawler:
         ]
         
         for query in url_queries:
-            assert self.crawler._is_url_like(query) == True
+            assert is_url_like(query) == True
         
         # Valid keyword queries that should NOT be skipped
         keyword_queries = [
@@ -47,7 +48,7 @@ class TestYoutubeCrawler:
         ]
         
         for query in keyword_queries:
-            assert self.crawler._is_url_like(query) == False
+            assert is_url_like(query) == False
     
     def test_sanitize_filename(self):
         """Test filename sanitization"""
@@ -65,7 +66,7 @@ class TestYoutubeCrawler:
         ]
         
         for input_name, expected in test_cases:
-            result = self.crawler._sanitize_filename(input_name)
+            result = sanitize_filename(input_name)
             assert result == expected
     
     @pytest.mark.asyncio
@@ -74,17 +75,17 @@ class TestYoutubeCrawler:
         queries = ["https://youtube.com/watch?v=abc123", "cat videos", "www.youtube.com"]
         recency_days = 30
         download_dir = self.temp_dir
-        num_ytb_videos = 3
+        num_videos = 3
         
-        with patch.object(self.crawler, '_search_youtube') as mock_search:
+        with patch.object(self.crawler, '_search_videos_for_queries') as mock_search:
             mock_search.return_value = []
             
             result = await self.crawler.search_and_download_videos(
-                queries, recency_days, download_dir, num_ytb_videos
+                queries, recency_days, download_dir, num_videos
             )
             
             # Should only search for non-URL queries
-            mock_search.assert_called_once_with("cat videos", 30, 10)
+            mock_search.assert_called_once_with(["cat videos"], 30, 3)
             assert result == []
     
     @pytest.mark.asyncio
@@ -93,7 +94,7 @@ class TestYoutubeCrawler:
         queries = ["cat videos"]
         recency_days = 7
         download_dir = self.temp_dir
-        num_ytb_videos = 3
+        num_videos = 3
         
         # Mock search results with different dates
         old_date = datetime.utcnow() - timedelta(days=30)
@@ -114,15 +115,15 @@ class TestYoutubeCrawler:
             }
         ]
         
-        with patch.object(self.crawler, '_search_youtube') as mock_search:
+        with patch.object(self.crawler, '_search_videos_for_queries') as mock_search:
             # The search method should filter by recency, so return only recent videos
             mock_search.return_value = [mock_videos[1]]  # Only recent video
             
-            with patch.object(self.crawler, '_download_video') as mock_download:
-                mock_download.return_value = mock_videos[1]  # Only recent video
+            with patch.object(self.crawler, '_download_unique_videos') as mock_download:
+                mock_download.return_value = mock_videos[1:]  # Only recent video
                 
                 result = await self.crawler.search_and_download_videos(
-                    queries, recency_days, download_dir, num_ytb_videos
+                    queries, recency_days, download_dir, num_videos
                 )
                 
                 # Should only return recent video
@@ -135,7 +136,7 @@ class TestYoutubeCrawler:
         queries = ["cat videos", "funny cats"]
         recency_days = 30
         download_dir = self.temp_dir
-        num_ytb_videos = 3
+        num_videos = 3
         
         # Duplicate video across queries
         duplicate_video = {
@@ -151,24 +152,28 @@ class TestYoutubeCrawler:
             [duplicate_video, {'video_id': 'video2', 'title': 'Video 2'}]
         ]
         
-        with patch.object(self.crawler, '_search_youtube') as mock_search:
-            mock_search.side_effect = mock_results
+        with patch.object(self.crawler, '_search_videos_for_queries') as mock_search:
+            mock_search.return_value = [item for sublist in mock_results for item in sublist]
             
-            with patch.object(self.crawler, '_download_video') as mock_download:
+            with patch.object(self.crawler, '_download_unique_videos') as mock_download:
                 # Mock download to return the video with the video_id field
-                def mock_download_side_effect(video, dir):
-                    video['local_path'] = f'/path/to/{video["video_id"]}.mp4'
-                    return video
+                def mock_download_side_effect(videos, dir):
+                    result = []
+                    for video_id, video in videos.items():
+                        video_copy = video.copy()
+                        video_copy['local_path'] = f'/path/to/{video["video_id"]}.mp4'
+                        result.append(video_copy)
+                    return result
                 
                 mock_download.side_effect = mock_download_side_effect
                 
                 result = await self.crawler.search_and_download_videos(
-                    queries, recency_days, download_dir, num_ytb_videos
+                    queries, recency_days, download_dir, num_videos
                 )
                 
                 # Should deduplicate by video_id
-                assert len(result) == 3  # same_video appears twice + video1 + video2, but deduplicated to unique videos
                 video_ids = [v['video_id'] for v in result]
+                assert len(video_ids) == 3  # same_video, video1, video2
                 assert 'same_video' in video_ids
                 assert 'video1' in video_ids
                 assert 'video2' in video_ids
@@ -179,17 +184,17 @@ class TestYoutubeCrawler:
         queries = ["cat videos", "invalid query"]
         recency_days = 30
         download_dir = self.temp_dir
-        num_ytb_videos = 3
+        num_videos = 3
         
-        with patch.object(self.crawler, '_search_youtube') as mock_search:
+        with patch.object(self.crawler, '_search_videos_for_queries') as mock_search:
             # First query succeeds, second fails
             mock_search.side_effect = [[{'video_id': 'vid1'}], Exception("Search failed")]
             
-            with patch.object(self.crawler, '_download_video') as mock_download:
-                mock_download.return_value = {'video_id': 'vid1'}
+            with patch.object(self.crawler, '_download_unique_videos') as mock_download:
+                mock_download.return_value = [{'video_id': 'vid1'}]
                 
                 result = await self.crawler.search_and_download_videos(
-                    queries, recency_days, download_dir, num_ytb_videos
+                    queries, recency_days, download_dir, num_videos
                 )
                 
                 # Should still return successful results
@@ -202,13 +207,13 @@ class TestYoutubeCrawler:
         queries = ["nonexistent videos"]
         recency_days = 30
         download_dir = self.temp_dir
-        num_ytb_videos = 3
+        num_videos = 3
         
-        with patch.object(self.crawler, '_search_youtube') as mock_search:
+        with patch.object(self.crawler, '_search_videos_for_queries') as mock_search:
             mock_search.return_value = []
             
             result = await self.crawler.search_and_download_videos(
-                queries, recency_days, download_dir, num_ytb_videos
+                queries, recency_days, download_dir, num_videos
             )
             
             assert result == []
@@ -252,7 +257,7 @@ async def test_real_video_download_integration():
         try:
             # This will actually search and download real videos
             results = await crawler.search_and_download_videos(
-                queries, recency_days, download_dir, num_ytb_videos=3
+                queries, recency_days, download_dir, num_videos=3
             )
             
             # If no results, it might be due to network restrictions or very specific filters
@@ -330,7 +335,7 @@ async def test_file_reuse_functionality():
         try:
             # First download
             results1 = await crawler.search_and_download_videos(
-                queries, recency_days, download_dir, num_ytb_videos=3
+                queries, recency_days, download_dir, num_videos=3
             )
             
             if not results1:
@@ -349,7 +354,7 @@ async def test_file_reuse_functionality():
             
             # Second download (should reuse the file)
             results2 = await crawler.search_and_download_videos(
-                queries, recency_days, download_dir, num_ytb_videos=3
+                queries, recency_days, download_dir, num_videos=3
             )
             
             # Verify the file still exists and hasn't been modified
