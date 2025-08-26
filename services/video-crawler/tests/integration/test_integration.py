@@ -59,26 +59,30 @@ class TestVideoCrawlerIntegration:
     
     @pytest.mark.asyncio
     async def test_video_fetcher_with_platform_crawlers(self, video_fetcher_with_crawlers, temp_data_root):
-        """Test that VideoFetcher can use platform crawlers"""
+        """Test that VideoFetcher can use platform crawlers with new cross-platform method"""
         queries = ["test query"]
         recency_days = 7
-        download_dir = os.path.join(temp_data_root, "videos")
+        download_dirs = {
+            "youtube": os.path.join(temp_data_root, "videos", "youtube"),
+            "bilibili": os.path.join(temp_data_root, "videos", "bilibili")
+        }
         
-        # Test YouTube search
-        youtube_videos = await video_fetcher_with_crawlers.search_platform_videos(
-            "youtube", queries, recency_days, download_dir
+        # Test cross-platform search
+        all_videos = await video_fetcher_with_crawlers.search_all_platforms_videos_parallel(
+            platforms=["youtube", "bilibili"],
+            queries=queries,
+            recency_days=recency_days,
+            download_dirs=download_dirs,
+            num_videos=5,
+            job_id="test-job-123"
         )
         
-        assert len(youtube_videos) > 0, "YouTube search should return videos"
-        assert all("platform" in video and video["platform"] == "youtube" for video in youtube_videos)
-        
-        # Test Bilibili search
-        bilibili_videos = await video_fetcher_with_crawlers.search_platform_videos(
-            "bilibili", queries, recency_days, download_dir
-        )
-        
-        assert len(bilibili_videos) > 0, "Bilibili search should return videos"
-        assert all("platform" in video and video["platform"] == "bilibili" for video in bilibili_videos)
+        assert len(all_videos) > 0, "Cross-platform search should return videos"
+        # Check that we have videos from both platforms
+        youtube_videos = [v for v in all_videos if v["platform"] == "youtube"]
+        bilibili_videos = [v for v in all_videos if v["platform"] == "bilibili"]
+        assert len(youtube_videos) > 0, "Should have YouTube videos"
+        assert len(bilibili_videos) > 0, "Should have Bilibili videos"
     
     @pytest.mark.asyncio
     async def test_service_initialization(self, video_crawler_service):
@@ -126,14 +130,20 @@ class TestVideoCrawlerIntegration:
     
     @pytest.mark.asyncio
     async def test_unsupported_platform_handling(self, video_crawler_service):
-        """Test handling of unsupported platforms"""
+        """Test handling of unsupported platforms with new method"""
         queries = ["test query"]
         recency_days = 7
-        platform = "unsupported_platform"
-        download_dir = "/tmp/test"
+        download_dirs = {
+            "unsupported_platform": "/tmp/test"
+        }
         
-        videos = await video_crawler_service.video_fetcher.search_platform_videos(
-            platform, queries, recency_days, download_dir
+        videos = await video_crawler_service.video_fetcher.search_all_platforms_videos_parallel(
+            platforms=["unsupported_platform"],
+            queries=queries,
+            recency_days=recency_days,
+            download_dirs=download_dirs,
+            num_videos=5,
+            job_id="test-job-456"
         )
         
         assert len(videos) == 0, "Unsupported platform should return no videos"

@@ -46,6 +46,9 @@ class VideoCrawlerConfig:
     # Number of concurrent video downloads (reduced to avoid 403 errors)
     NUM_PARALLEL_DOWNLOADS: int = int(os.getenv("NUM_PARALLEL_DOWNLOADS", "3"))  # Reduced from 5 to 3
     
+    # Maximum number of concurrent platforms (-1 means no limit, default to len(platforms))
+    MAX_CONCURRENT_PLATFORMS: int = int(os.getenv("MAX_CONCURRENT_PLATFORMS", "-1"))
+    
     # Logging (from .env first, then global config)
     LOG_LEVEL: str = os.getenv("LOG_LEVEL", global_config.LOG_LEVEL)
     

@@ -35,7 +35,7 @@ class VideoCrawlerService:
         self.job_progress_manager = JobProgressManager(broker)
     
     async def handle_videos_search_request(self, event_data: Dict[str, Any]):
-        """Handle video search request"""
+        """Handle video search request with cross-platform parallelism"""
         try:
             job_id = event_data["job_id"]
             industry = event_data["industry"]
@@ -48,7 +48,28 @@ class VideoCrawlerService:
             
             platform_queries = self._extract_platform_queries(queries, platforms)
             
-            all_videos = await self._search_and_collect_all_videos(platform_queries, platforms, recency_days)
+            # Prepare download directories for each platform
+            platform_download_dirs = {}
+            for platform in platforms:
+                if platform == "youtube":
+                    platform_download_dirs[platform] = os.path.join(config.VIDEO_DIR, "youtube")
+                elif platform == "tiktok":
+                    platform_download_dirs[platform] = os.path.join(config.VIDEO_DIR, "tiktok")
+                else:
+                    platform_download_dirs[platform] = str(self.keyframe_extractor.videos_dir / platform)
+                
+                Path(platform_download_dirs[platform]).mkdir(parents=True, exist_ok=True)
+            
+            # Delegate cross-platform parallelism to VideoFetcher
+            all_videos = await self.video_fetcher.search_all_platforms_videos_parallel(
+                platforms=platforms,
+                queries=platform_queries,
+                recency_days=recency_days,
+                download_dirs=platform_download_dirs,
+                num_videos=config.NUM_VIDEOS,
+                job_id=job_id,
+                max_concurrent_platforms=config.MAX_CONCURRENT_PLATFORMS
+            )
             
             if not all_videos:
                 await self._handle_zero_videos_case(job_id)
@@ -85,24 +106,6 @@ class VideoCrawlerService:
         else:
             platform_queries = queries if isinstance(queries, list) else []
         return platform_queries
-
-    async def _search_and_collect_all_videos(self, platform_queries: List[str], platforms: List[str], recency_days: int) -> List[Dict[str, Any]]:
-        all_videos = []
-        for platform in platforms:
-            if platform == "youtube":
-                download_dir = os.path.join(config.VIDEO_DIR, "youtube")
-            elif platform == "tiktok":
-                download_dir = os.path.join(config.VIDEO_DIR, "tiktok")
-            else:
-                download_dir = str(self.keyframe_extractor.videos_dir / platform)
-            
-            Path(download_dir).mkdir(parents=True, exist_ok=True)
-            
-            platform_videos = await self.video_fetcher.search_platform_videos(
-                platform, platform_queries, recency_days, download_dir, num_videos=config.NUM_VIDEOS
-            )
-            all_videos.extend(platform_videos)
-        return all_videos
 
     async def _handle_zero_videos_case(self, job_id: str):
         logger.info("No videos found for job {job_id}", job_id=job_id)
