@@ -5,7 +5,7 @@ from datetime import datetime, timedelta
 import yt_dlp
 from common_py.logging_config import configure_logging
 from utils.filter_chain import FilterChain
-from utils.youtube_filters import (
+from platform_crawler.youtube.youtube_filters import (
     filter_valid_entry,
     filter_duration
 )

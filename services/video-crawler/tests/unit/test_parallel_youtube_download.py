@@ -7,7 +7,6 @@ from pathlib import Path
 
 # Import directly from the files we need to test
 from platform_crawler.youtube.youtube_crawler import YoutubeCrawler
-from platform_crawler.youtube.youtube_downloader import YoutubeDownloader
 
 class MockYoutubeDownloader:
     """Mock downloader for testing"""

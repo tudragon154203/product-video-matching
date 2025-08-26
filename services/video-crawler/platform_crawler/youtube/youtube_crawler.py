@@ -8,8 +8,8 @@ from datetime import datetime, timedelta
 from common_py.logging_config import configure_logging
 from platform_crawler.interface import PlatformCrawlerInterface
 from platform_crawler.youtube.youtube_searcher import YoutubeSearcher
-from platform_crawler.youtube.youtube_downloader import YoutubeDownloader
-from utils.youtube_utils import is_url_like, sanitize_filename
+from platform_crawler.youtube.downloader import YoutubeDownloader
+from platform_crawler.youtube.youtube_utils import is_url_like, sanitize_filename
 from config_loader import config
 
 logger = configure_logging("video-crawler")
