@@ -55,6 +55,16 @@ class YoutubeSearcher:
                     
             except Exception as e:
                 logger.error(f"Failed to search YouTube for '{query}' in attempt {attempts}: {str(e)}")
+                # Add specific handling for common errors
+                error_msg = str(e).lower()
+                if "403" in error_msg or "forbidden" in error_msg:
+                    logger.warning(f"Received 403 Forbidden error. This may be due to rate limiting. Waiting before next attempt.")
+                    if attempts < MAX_ATTEMPTS:
+                        await asyncio.sleep(10)  # Wait longer for 403 errors
+                elif "429" in error_msg or "too many requests" in error_msg:
+                    logger.warning(f"Received 429 Too Many Requests error. Waiting before next attempt.")
+                    if attempts < MAX_ATTEMPTS:
+                        await asyncio.sleep(15)  # Wait even longer for rate limiting
                 break
         
         return final_videos
@@ -62,9 +72,11 @@ class YoutubeSearcher:
     async def _perform_yt_dlp_search(self, query: str, search_limit: int) -> List[Dict[str, Any]]:
         ydl_opts = {
             'quiet': True,
-            'no_warnings': True,
+            'no_warnings': False,  # Changed to see warnings
             'extract_flat': 'discard_in_playlist',
             'playlistend': search_limit,
+            'sleep_interval': 1,  # Add delay between requests
+            'max_sleep_interval': 3,
         }
         search_query = f"ytsearch{search_limit}:{query}"
         logger.debug(f"Performing yt-dlp search with query: '{search_query}' and options: {ydl_opts}")

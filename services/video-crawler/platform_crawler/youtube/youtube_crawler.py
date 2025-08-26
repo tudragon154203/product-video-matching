@@ -1,6 +1,7 @@
 import os
 import re
 import asyncio
+import random
 from typing import List, Dict, Any, Callable, Protocol
 from pathlib import Path
 from datetime import datetime, timedelta
@@ -55,7 +56,7 @@ class YoutubeCrawler(PlatformCrawlerInterface):
     
     async def _search_videos_for_queries(self, queries: List[str], recency_days: int, num_ytb_videos: int) -> List[Dict[str, Any]]:
         all_videos = []
-        for query in queries:
+        for i, query in enumerate(queries):
             try:
                 if is_url_like(query):
                     logger.info(f"Skipping URL-like query: {query}")
@@ -65,8 +66,16 @@ class YoutubeCrawler(PlatformCrawlerInterface):
                 search_results = await self.searcher.search_youtube(query, recency_days, num_ytb_videos)
                 logger.info(f"Found {len(search_results)} videos for query '{query}'")
                 all_videos.extend(search_results)
+                
+                # Add a small delay between queries to avoid rate limiting
+                if i < len(queries) - 1:  # Don't delay after the last query
+                    delay = random.uniform(1.0, 3.0)  # Random delay between 1-3 seconds
+                    logger.info(f"Waiting {delay:.1f}s before next query to avoid rate limiting")
+                    await asyncio.sleep(delay)
             except Exception as e:
                 logger.error(f"Failed to search for query '{query}': {str(e)}")
+                # Log the full traceback for debugging
+                logger.error(f"Full traceback for query '{query}':", exc_info=True)
                 continue
         return all_videos
 
@@ -97,20 +106,23 @@ class YoutubeCrawler(PlatformCrawlerInterface):
             max_concurrent = max(max_concurrent, active_downloads)
             logger.info(f"[CONCURRENCY] Active downloads: {active_downloads} | Max so far: {max_concurrent} | Starting: {video['title']}")
             
-            try:
-                downloaded_video = await self.downloader.download_video(video, download_dir)
-                if downloaded_video:
-                    logger.info(f"[CONCURRENCY] Active downloads: {active_downloads} | Completed: {video['title']}")
-                    return downloaded_video
-                else:
-                    logger.warning(f"[CONCURRENCY] Active downloads: {active_downloads} | Failed: {video['title']}")
+            async with semaphore:  # Acquire semaphore before downloading
+                try:
+                    downloaded_video = await self.downloader.download_video(video, download_dir)
+                    if downloaded_video:
+                        logger.info(f"[CONCURRENCY] Active downloads: {active_downloads} | Completed: {video['title']}")
+                        return downloaded_video
+                    else:
+                        logger.warning(f"[CONCURRENCY] Active downloads: {active_downloads} | Failed: {video['title']}")
+                        return None
+                except Exception as e:
+                    logger.error(f"[CONCURRENCY] Active downloads: {active_downloads} | Exception: {video['title']} | Error: {str(e)}")
+                    # Log full traceback for debugging
+                    logger.error(f"Full traceback for video '{video['title']}':", exc_info=True)
                     return None
-            except Exception as e:
-                logger.error(f"[CONCURRENCY] Active downloads: {active_downloads} | Exception: {video['title']} | Error: {str(e)}")
-                return None
-            finally:
-                active_downloads -= 1
-                logger.info(f"[CONCURRENCY] Active downloads: {active_downloads} | Finished: {video['title']}")
+                finally:
+                    active_downloads -= 1
+                    logger.info(f"[CONCURRENCY] Active downloads: {active_downloads} | Finished: {video['title']}")
         
         # Run all downloads in parallel
         logger.info(f"[PARALLEL-START] Starting {len(videos_list)} video downloads with {config.NUM_PARALLEL_DOWNLOADS} concurrent limit")
@@ -128,5 +140,4 @@ class YoutubeCrawler(PlatformCrawlerInterface):
                    f"Average per download: {total_time/len(videos_list):.2f}s")
         
         return downloaded_videos
-    
     
