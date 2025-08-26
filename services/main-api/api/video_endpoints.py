@@ -47,7 +47,7 @@ async def get_job_videos(
     min_frames: Optional[int] = Query(None, description="Minimum number of frames"),
     limit: int = Query(100, ge=1, le=1000, description="Maximum number of items to return"),
     offset: int = Query(0, ge=0, description="Number of items to skip"),
-    sort_by: str = Query("updated_at", pattern="^(updated_at|duration_s|frames_count|title)$", description="Field to sort by"),
+    sort_by: str = Query("created_at", pattern="^(created_at|duration_s|frames_count|title)$", description="Field to sort by"),
     order: str = Query("DESC", pattern="^(ASC|DESC)$", description="Sort order"),
     job_service: JobService = Depends(get_job_service),
     video_crud: VideoCRUD = Depends(get_video_crud),
@@ -110,7 +110,7 @@ async def get_job_videos(
                 title=video.title or "",
                 duration_s=float(video.duration_s or 0),
                 frames_count=frames_count,
-                updated_at=get_gmt7_time(video.updated_at or video.created_at)
+                updated_at=get_gmt7_time(video.created_at)
             )
             video_items.append(video_item)
         
@@ -190,7 +190,7 @@ async def get_video_frames(
                 frame_id=frame.frame_id,
                 ts=frame.ts,
                 local_path=frame.local_path,
-                updated_at=get_gmt7_time(frame.updated_at or frame.created_at)
+                updated_at=get_gmt7_time(frame.created_at)
             )
             frame_items.append(frame_item)
         

@@ -32,7 +32,7 @@ class VideoCRUD:
     
     async def list_videos_by_job(self, job_id: str, limit: int = 100, offset: int = 0,
                                 search_query: Optional[str] = None, platform: Optional[str] = None,
-                                min_frames: Optional[int] = None, sort_by: str = "updated_at",
+                                min_frames: Optional[int] = None, sort_by: str = "created_at",
                                 order: str = "DESC") -> List[Video]:
         """List videos by job ID with filtering and pagination"""
         conditions = ["job_id = $1"]
@@ -57,9 +57,9 @@ class VideoCRUD:
         where_clause = "WHERE " + " AND ".join(conditions)
         
         # Validate sort_by field
-        valid_sort_fields = ["updated_at", "duration_s", "frames_count", "title"]
+        valid_sort_fields = ["created_at", "duration_s", "frames_count", "title"]
         if sort_by not in valid_sort_fields:
-            sort_by = "updated_at"
+            sort_by = "created_at"
         
         # Validate order
         order = order.upper() if order.upper() in ["ASC", "DESC"] else "DESC"
