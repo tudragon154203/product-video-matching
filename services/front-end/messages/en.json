@@ -105,7 +105,6 @@
     },
     "meta": {
       "product": "product",
-      "products": "products",
       "video": "video",
       "videos": "videos",
       "brand": "Brand",
@@ -116,6 +115,11 @@
     "errors": {
       "loadFailed": "Failed to load data.",
       "retry": "Retry"
+    },
+    "pagination": {
+      "pageInfo": "Page {currentPage} of {totalPages} ({start}-{end} of {totalItems})",
+      "next": "Next",
+      "previous": "Previous"
     }
   },
   "products": {

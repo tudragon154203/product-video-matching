@@ -8,7 +8,7 @@ interface ProductGroupProps {
 }
 
 export function ProductGroup({ src, count }: ProductGroupProps) {
-  const t = useTranslations();
+  const t = useTranslations('jobResults.meta');
   const labelMap: Record<string, string> = {
     'amazon': 'Amazon',
     'ebay': 'eBay',
@@ -21,7 +21,7 @@ export function ProductGroup({ src, count }: ProductGroupProps) {
       <div className="flex items-center gap-2">
         <InlineBadge text={label} />
         <span className="text-sm text-muted-foreground">
-          {count} {count === 1 ? t('meta.product') : t('meta.products')}
+          {count} {t('product')}
         </span>
       </div>
     </div>

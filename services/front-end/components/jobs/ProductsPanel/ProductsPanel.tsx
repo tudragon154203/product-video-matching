@@ -22,7 +22,7 @@ interface ProductsPanelProps {
 }
 
 export function ProductsPanel({ jobId, isCollecting = false }: ProductsPanelProps) {
-  const t = useTranslations();
+  const t = useTranslations('jobResults');
   const [products, setProducts] = useState<ProductItem[]>([]);
   const [total, setTotal] = useState(0);
   const [isLoading, setIsLoading] = useState(false);

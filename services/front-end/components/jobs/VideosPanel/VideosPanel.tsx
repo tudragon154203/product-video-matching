@@ -2,8 +2,8 @@
 
 import React, { useState, useEffect } from 'react';
 import { usePaginatedList } from '@/lib/hooks/usePaginatedList';
-import { resultsApiService } from '@/lib/api/services/result.api';
-import { VideoResponse } from '@/lib/zod/result';
+import { videoApiService } from '@/lib/api/services/video.api';
+import { VideoItem } from '@/lib/zod/video';
 import { groupBy } from '@/lib/utils/groupBy';
 import { formatDuration } from '@/lib/utils/formatDuration';
 import { useTranslations } from 'next-intl';
@@ -23,8 +23,8 @@ interface VideosPanelProps {
 }
 
 export function VideosPanel({ jobId, isCollecting = false }: VideosPanelProps) {
-  const t = useTranslations();
-  const [videos, setVideos] = useState<VideoDetail[]>([]);
+  const t = useTranslations('jobResults');
+  const [videos, setVideos] = useState<VideoItem[]>([]);
   const [total, setTotal] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -38,7 +38,7 @@ export function VideosPanel({ jobId, isCollecting = false }: VideosPanelProps) {
       setIsLoading(true);
       setError(null);
       
-      const response = await resultsApiService.getJobVideos(jobId, {
+      const response = await videoApiService.getJobVideos(jobId, {
         limit: pagination.limit,
         offset: pagination.offset,
       });

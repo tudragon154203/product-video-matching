@@ -81,11 +81,11 @@ def setup_mocks(monkeypatch): # Add monkeypatch as an argument
     job_service_mock.job_management_service = job_management_service_mock
 
     # Import dependency functions from the endpoint modules
-    from api.image_endpoints import get_db, get_message_broker, get_job_service, get_product_image_crud, get_product_crud
+    from api.image_endpoints import get_db, get_broker, get_job_service, get_product_image_crud, get_product_crud
     
     # Override dependencies in the FastAPI app by replacing the dependency functions
     app.dependency_overrides[get_db] = lambda: db_mock
-    app.dependency_overrides[get_message_broker] = lambda: broker_mock
+    app.dependency_overrides[get_broker] = lambda: broker_mock
     app.dependency_overrides[get_job_service] = lambda: job_service_mock
     app.dependency_overrides[get_product_image_crud] = lambda: product_image_crud_mock
     app.dependency_overrides[get_product_crud] = lambda: product_crud_mock
@@ -118,7 +118,7 @@ def setup_mocks(monkeypatch): # Add monkeypatch as an argument
 @pytest.mark.asyncio
 async def test_get_job_images_success():
     """Test GET /jobs/{job_id}/images with success."""
-    async with AsyncClient(app=app, base_url="http://test") as ac:
+    async with AsyncClient(app=app, base_url="http://localhost:8888") as ac:
         response = await ac.get(f"/jobs/{MOCK_JOB_ID}/images")
     
     if response.status_code != 200:
@@ -145,7 +145,7 @@ async def test_get_job_images_not_found():
         updated_at=None
     )
     job_service_mock.get_job_status.return_value = mock_job_status
-    async with AsyncClient(app=app, base_url="http://test") as ac:
+    async with AsyncClient(app=app, base_url="http://localhost:8888") as ac:
         response = await ac.get(f"/jobs/nonexistent_job/images")
     
     if response.status_code != 404:
@@ -165,7 +165,7 @@ async def test_get_job_images_with_product_id_filter():
     params = {
         "product_id": MOCK_PRODUCT_ID_1
     }
-    async with AsyncClient(app=app, base_url="http://test") as ac:
+    async with AsyncClient(app=app, base_url="http://localhost:8888") as ac:
         response = await ac.get(f"/jobs/{MOCK_JOB_ID}/images", params=params)
     
     if response.status_code != 200:
@@ -187,7 +187,7 @@ async def test_get_job_images_with_search_query():
     params = {
         "q": "Specific"
     }
-    async with AsyncClient(app=app, base_url="http://test") as ac:
+    async with AsyncClient(app=app, base_url="http://localhost:8888") as ac:
         response = await ac.get(f"/jobs/{MOCK_JOB_ID}/images", params=params)
     
     if response.status_code != 200:
@@ -210,7 +210,7 @@ async def test_get_job_images_with_pagination():
         "limit": 1,
         "offset": 0
     }
-    async with AsyncClient(app=app, base_url="http://test") as ac:
+    async with AsyncClient(app=app, base_url="http://localhost:8888") as ac:
         response = await ac.get(f"/jobs/{MOCK_JOB_ID}/images", params=params)
     
     if response.status_code != 200:
@@ -234,7 +234,7 @@ async def test_get_job_images_with_sorting():
         "sort_by": "img_id",
         "order": "ASC"
     }
-    async with AsyncClient(app=app, base_url="http://test") as ac:
+    async with AsyncClient(app=app, base_url="http://localhost:8888") as ac:
         response = await ac.get(f"/jobs/{MOCK_JOB_ID}/images", params=params)
     
     if response.status_code != 200:
@@ -251,7 +251,7 @@ async def test_get_job_images_invalid_sort_by():
         "sort_by": "invalid_field",
         "order": "ASC"
     }
-    async with AsyncClient(app=app, base_url="http://test") as ac:
+    async with AsyncClient(app=app, base_url="http://localhost:8888") as ac:
         response = await ac.get(f"/jobs/{MOCK_JOB_ID}/images", params=params)
     
     # Should return 422 due to validation error
@@ -265,7 +265,7 @@ async def test_get_job_images_invalid_order():
         "sort_by": "img_id",
         "order": "INVALID"
     }
-    async with AsyncClient(app=app, base_url="http://test") as ac:
+    async with AsyncClient(app=app, base_url="http://localhost:8888") as ac:
         response = await ac.get(f"/jobs/{MOCK_JOB_ID}/images", params=params)
     
     # Should return 422 due to validation error

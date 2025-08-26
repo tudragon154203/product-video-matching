@@ -105,9 +105,8 @@
     },
     "meta": {
       "product": "sản phẩm",
-      "products": "sản phẩm",
       "video": "video",
-      "videos": "video",
+      "videos": "các video",
       "brand": "Thương hiệu",
       "asin": "ASIN/Mã sản phẩm",
       "publishedAt": "Đã xuất bản",
@@ -116,6 +115,11 @@
     "errors": {
       "loadFailed": "Không thể tải dữ liệu.",
       "retry": "Thử lại"
+    },
+    "pagination": {
+      "pageInfo": "Trang {currentPage} / {totalPages} ({start}-{end} trong tổng {totalItems})",
+      "next": "Tiếp",
+      "previous": "Trước"
     }
   },
   "products": {

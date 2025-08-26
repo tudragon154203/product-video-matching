@@ -87,11 +87,11 @@ def setup_mocks(monkeypatch): # Add monkeypatch as an argument
     job_service_mock.job_management_service = job_management_service_mock
 
     # Import dependency functions from the endpoint modules
-    from api.features_endpoints import get_db, get_message_broker, get_job_service, get_product_image_crud, get_video_frame_crud, get_product_crud, get_video_crud
+    from api.features_endpoints import get_db, get_broker, get_job_service, get_product_image_crud, get_video_frame_crud, get_product_crud, get_video_crud
     
     # Override dependencies in the FastAPI app by replacing the dependency functions
     app.dependency_overrides[get_db] = lambda: db_mock
-    app.dependency_overrides[get_message_broker] = lambda: broker_mock
+    app.dependency_overrides[get_broker] = lambda: broker_mock
     app.dependency_overrides[get_job_service] = lambda: job_service_mock
     app.dependency_overrides[get_product_image_crud] = lambda: product_image_crud_mock
     app.dependency_overrides[get_video_frame_crud] = lambda: video_frame_crud_mock
@@ -150,7 +150,7 @@ async def test_get_features_summary_success():
     video_frame_crud_mock.count_video_frames_by_job.side_effect = [20, 10, 6, 4]
     db_mock.fetch_one.return_value = {"updated_at": mock_updated_at}
 
-    async with AsyncClient(app=app, base_url="http://test") as ac:
+    async with AsyncClient(app=app, base_url="http://localhost:8888") as ac:
         response = await ac.get(f"/jobs/{job_id}/features/summary")
 
     assert response.status_code == 200
@@ -184,7 +184,7 @@ async def test_get_features_summary_job_not_found():
     )
     job_service_mock.get_job_status.return_value = mock_job_status
 
-    async with AsyncClient(app=app, base_url="http://test") as ac:
+    async with AsyncClient(app=app, base_url="http://localhost:8888") as ac:
         response = await ac.get(f"/jobs/{job_id}/features/summary")
 
     assert response.status_code == 404
@@ -217,7 +217,7 @@ async def test_get_job_product_images_features_success():
     # Reset the side_effect and set a direct return value for this test
     product_image_crud_mock.count_product_images_by_job = AsyncMock(return_value=1)
 
-    async with AsyncClient(app=app, base_url="http://test") as ac:
+    async with AsyncClient(app=app, base_url="http://localhost:8888") as ac:
         response = await ac.get(f"/jobs/{job_id}/features/product-images")
 
     assert response.status_code == 200
@@ -247,7 +247,7 @@ async def test_get_job_product_images_features_job_not_found():
     )
     job_service_mock.get_job_status.return_value = mock_job_status
 
-    async with AsyncClient(app=app, base_url="http://test") as ac:
+    async with AsyncClient(app=app, base_url="http://localhost:8888") as ac:
         response = await ac.get(f"/jobs/{job_id}/features/product-images")
 
     assert response.status_code == 404
@@ -280,7 +280,7 @@ async def test_get_job_video_frames_features_success():
     video_frame_crud_mock.list_video_frames_by_job_with_features.return_value = [mock_frame]
     video_frame_crud_mock.count_video_frames_by_job = AsyncMock(return_value=1)
 
-    async with AsyncClient(app=app, base_url="http://test") as ac:
+    async with AsyncClient(app=app, base_url="http://localhost:8888") as ac:
         response = await ac.get(f"/jobs/{job_id}/features/video-frames")
 
     assert response.status_code == 200
@@ -311,7 +311,7 @@ async def test_get_job_video_frames_features_job_not_found():
     )
     job_service_mock.get_job_status.return_value = mock_job_status
 
-    async with AsyncClient(app=app, base_url="http://test") as ac:
+    async with AsyncClient(app=app, base_url="http://localhost:8888") as ac:
         response = await ac.get(f"/jobs/{job_id}/features/video-frames")
 
     assert response.status_code == 404
@@ -333,7 +333,7 @@ async def test_get_product_image_feature_success():
 
     product_image_crud_mock.get_product_image = AsyncMock(return_value=mock_image)
 
-    async with AsyncClient(app=app, base_url="http://test") as ac:
+    async with AsyncClient(app=app, base_url="http://localhost:8888") as ac:
         response = await ac.get(f"/features/product-images/{img_id}")
 
     assert response.status_code == 200
@@ -353,7 +353,7 @@ async def test_get_product_image_feature_not_found():
     img_id = "non_existent_img"
     product_image_crud_mock.get_product_image = AsyncMock(return_value=None)
 
-    async with AsyncClient(app=app, base_url="http://test") as ac:
+    async with AsyncClient(app=app, base_url="http://localhost:8888") as ac:
         response = await ac.get(f"/features/product-images/{img_id}")
 
     assert response.status_code == 404
@@ -376,7 +376,7 @@ async def test_get_video_frame_feature_success():
 
     video_frame_crud_mock.get_video_frame = AsyncMock(return_value=mock_frame)
 
-    async with AsyncClient(app=app, base_url="http://test") as ac:
+    async with AsyncClient(app=app, base_url="http://localhost:8888") as ac:
         response = await ac.get(f"/features/video-frames/{frame_id}")
 
     assert response.status_code == 200
@@ -397,7 +397,7 @@ async def test_get_video_frame_feature_not_found():
     frame_id = "non_existent_frame"
     video_frame_crud_mock.get_video_frame = AsyncMock(return_value=None)
 
-    async with AsyncClient(app=app, base_url="http://test") as ac:
+    async with AsyncClient(app=app, base_url="http://localhost:8888") as ac:
         response = await ac.get(f"/features/video-frames/{frame_id}")
 
     assert response.status_code == 404

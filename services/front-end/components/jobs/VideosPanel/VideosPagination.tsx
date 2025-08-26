@@ -1,6 +1,7 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 
 interface VideosPaginationProps {
   total: number;
@@ -19,10 +20,13 @@ export function VideosPagination({
   onNext,
   isLoading = false,
 }: VideosPaginationProps) {
+  const t = useTranslations('jobResults.pagination');
   const canPrev = offset > 0;
   const canNext = offset + limit < total;
   const currentPage = Math.floor(offset / limit) + 1;
   const totalPages = Math.ceil(total / limit);
+  const startItem = offset + 1;
+  const endItem = Math.min(offset + limit, total);
 
   if (total <= limit) return null;
 
@@ -36,11 +40,17 @@ export function VideosPagination({
         className="flex items-center gap-1"
       >
         <ChevronLeft className="h-4 w-4" />
-        Previous
+        {t('previous')}
       </Button>
       
       <div className="text-sm text-muted-foreground">
-        Page {currentPage} of {totalPages} ({(offset + 1)}-{Math.min(offset + limit, total)} of {total})
+        {t('pageInfo', {
+          currentPage,
+          totalPages,
+          start: startItem,
+          end: endItem,
+          totalItems: total
+        })}
       </div>
       
       <Button
@@ -50,7 +60,7 @@ export function VideosPagination({
         disabled={!canNext || isLoading}
         className="flex items-center gap-1"
       >
-        Next
+        {t('next')}
         <ChevronRight className="h-4 w-4" />
       </Button>
     </div>

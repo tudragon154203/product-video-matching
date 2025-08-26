@@ -117,7 +117,7 @@ async def test_get_job_products_invalid_job():
     try:
         async with httpx.AsyncClient() as client:
             response = await client.get(
-                "http://localhost:8888/api/v1/jobs/invalid-job-id/products",
+                "http://localhost:8888/jobs/invalid-job-id/products",
                 timeout=30
             )
             
