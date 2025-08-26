@@ -11,25 +11,16 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { toast } from '@/components/ui/use-toast'
 import { useQueryClient } from '@tanstack/react-query'
 import { useTranslations, useLocale } from 'next-intl'
+import { useRouter } from 'next/navigation'
 import { AdvancedOptions } from '@/components/advanced-options'
 
 export function StartJobForm() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const queryClient = useQueryClient()
   const t = useTranslations('jobs')
-  const tCommon = useTranslations('common')
   const tToast = useTranslations('toast')
   const locale = useLocale()
-
-  const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter') {
-      e.preventDefault();
-      const form = (e.target as HTMLInputElement).form;
-      if (form) {
-        form.dispatchEvent(new Event('submit', { cancelable: true }));
-      }
-    }
-  };
+  const router = useRouter()
 
   const {
     register,
@@ -57,8 +48,16 @@ export function StartJobForm() {
         title: tToast('jobStarted'),
         description: tToast('jobStartedDescription', { jobId: response.job_id }),
       })
+      
+      // Reset form
       reset()
-      queryClient.invalidateQueries({ queryKey: ['jobs-list'] })
+      
+      // Invalidate and refetch job list to show the new job immediately
+      await queryClient.invalidateQueries({ queryKey: ['jobs-list'] })
+      await queryClient.refetchQueries({ queryKey: ['jobs-list'] })
+      
+      // Navigate to the job detail page
+      router.push(`/${locale}/jobs/${response.job_id}`)
     } catch (error) {
       toast({
         title: tToast('failedToStartJob'),
@@ -84,7 +83,6 @@ export function StartJobForm() {
               {...register('query')}
               placeholder={t('queryPlaceholder')}
               required
-              onKeyPress={handleKeyPress}
               className="flex-1 text-lg h-12"
             />
             <Button
@@ -92,7 +90,7 @@ export function StartJobForm() {
               disabled={isSubmitting}
               className="h-12 px-6 text-lg"
             >
-              {isSubmitting ? t('startingJob') : tCommon('search')}
+              {isSubmitting ? t('startingJob') : t('start')}
             </Button>
           </div>
           {errors.query && (

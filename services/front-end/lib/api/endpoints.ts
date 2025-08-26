@@ -6,6 +6,7 @@ export const MAIN_API_ENDPOINTS = {
   jobs: {
     start: '/start-job',
     status: (jobId: string) => `/status/${jobId}`,
+    get: (jobId: string) => `/jobs/${jobId}`,
     list: '/jobs',
   },
   

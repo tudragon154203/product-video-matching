@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useInterval } from '@mantine/hooks';
-import { resultsApiService } from '@/lib/api/services/result.api';
+import { jobApiService } from '@/lib/api/services/job.api';
 
 interface UseJobStatusPollingResult {
   phase: string;
@@ -35,7 +35,7 @@ export function useJobStatusPolling(
       setIsLoading(true);
       setError(null);
       
-      const status = await resultsApiService.getJobStatus(jobId);
+      const status = await jobApiService.getJobStatus(jobId);
       setPhase(status.phase);
       setPercent(status.percent);
     } catch (err) {
@@ -56,9 +56,11 @@ export function useJobStatusPolling(
     }
   }, [enabled, jobId]);
 
-  // Stop polling if we're no longer in collection phase
+  // Stop polling if the job has reached a terminal state (finished or failed)
+  // NOTE: The TERMINAL_PHASES array might need to be adjusted based on the actual phase names returned by the backend.
   useEffect(() => {
-    if (phase && phase !== COLLECTION_PHASE) {
+    const TERMINAL_PHASES = ['finished', 'completed', 'success', 'failed', 'error'];
+    if (phase && TERMINAL_PHASES.includes(phase)) {
       stop();
     }
   }, [phase, stop]);

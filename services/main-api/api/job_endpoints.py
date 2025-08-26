@@ -1,5 +1,5 @@
 import os
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Query, HTTPException
 from services.job.job_service import JobService
 from models.schemas import StartJobRequest, StartJobResponse, JobStatusResponse, JobListResponse, JobItem
 from common_py.database import DatabaseManager
@@ -25,6 +25,22 @@ async def get_job_status(job_id: str, job_service: JobService = Depends(get_job_
     """Get status of a job"""
     return await job_service.get_job_status(job_id)
 
+@router.get("/jobs/{job_id}", response_model=JobItem)
+async def get_job(job_id: str, job_service: JobService = Depends(get_job_service)):
+    """Get a specific job by ID"""
+    job = await job_service.get_job(job_id)
+    
+    if not job:
+        raise HTTPException(status_code=404, detail="Job not found")
+    
+    return JobItem(
+        job_id=job["job_id"],
+        query=job["query"],
+        industry=job["industry"],
+        phase=job["phase"],
+        created_at=job["created_at"],
+        updated_at=job["updated_at"]
+    )
 
 @router.get("/jobs", response_model=JobListResponse)
 async def list_jobs(

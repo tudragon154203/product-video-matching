@@ -38,6 +38,21 @@ class JobManagementService:
             logger.error(f"Exception traceback: {traceback.format_exc()}")
             raise HTTPException(status_code=500, detail=error_msg)
 
+    async def get_job(self, job_id: str):
+        """Get a complete job record by ID."""
+        try:
+            logger.info(f"Attempting to get job for job_id: {job_id}")
+            job = await self.db_handler.get_job(job_id)
+            logger.info(f"Result of db_handler.get_job for {job_id}: {job}")
+            
+            if not job:
+                return None
+            
+            return job
+        except Exception as e:
+            logger.error(f"Failed to get job (job_id: {job_id}, error: {str(e)})")
+            raise HTTPException(status_code=500, detail=str(e))
+
     async def get_job_status(self, job_id: str) -> JobStatusResponse:
         try:
             logger.info(f"Attempting to get job status for job_id: {job_id}")

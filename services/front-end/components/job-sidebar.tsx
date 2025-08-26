@@ -9,13 +9,15 @@ import { StartNewJobButton } from './job-sidebar/start-new-job-button'
 import { useJobStats, useGroupedJobs, useSortedJobs } from './job-sidebar/hooks'
 
 export function JobSidebar() {
-  // Fetch jobs using real API
+  // Fetch jobs using real API with more frequent polling
   const { data: jobsResponse, isLoading, error } = useQuery<JobListResponse>({
     queryKey: ['jobs-list'],
     queryFn: async () => {
       return await jobApiService.listJobs({ limit: 100 })
     },
-    refetchInterval: 30000, // Refresh every 30 seconds
+    refetchInterval: 5000, // Refresh every 5 seconds instead of 30 seconds for more responsive updates
+    refetchOnWindowFocus: true, // Refetch when window regains focus
+    refetchOnReconnect: true, // Refetch on network reconnect
   })
 
   const jobs = jobsResponse?.items || []

@@ -10,7 +10,7 @@ export {
 export * from './services';
 
 // API endpoints
-export { API_ENDPOINTS, MAIN_API_ENDPOINTS, RESULTS_API_ENDPOINTS } from './endpoints';
+export { API_ENDPOINTS, MAIN_API_ENDPOINTS } from './endpoints';
 
 // API validation utilities
 export { 

@@ -18,6 +18,10 @@ class JobService:
         """Start a new job"""
         return await self.job_management_service.start_job(request)
 
+    async def get_job(self, job_id: str):
+        """Get a complete job record by ID"""
+        return await self.job_management_service.get_job(job_id)
+
     async def get_job_status(self, job_id: str):
         """Get the status of a job"""
         return await self.job_management_service.get_job_status(job_id)
