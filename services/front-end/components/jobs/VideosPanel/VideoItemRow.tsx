@@ -17,18 +17,30 @@ export function VideoItemRow({ video }: VideoItemRowProps) {
     <div className="flex items-center gap-3 p-2 hover:bg-muted rounded-md transition-colors">
       <div className="flex-shrink-0">
         {video.thumbnail_url ? (
-          <img
-            src={video.thumbnail_url}
-            alt={video.title}
-            className="w-20 h-14 object-cover rounded-md"
-            loading="lazy"
-          />
+          <Link
+            href={video.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="block"
+          >
+            <img
+              src={video.thumbnail_url}
+              alt={video.title}
+              className="w-20 h-14 object-cover rounded-md hover:opacity-80 transition-opacity"
+              loading="lazy"
+            />
+          </Link>
         ) : (
-          <div className="w-20 h-14 bg-muted rounded-md flex items-center justify-center">
+          <Link
+            href={video.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="block w-20 h-14 bg-muted rounded-md flex items-center justify-center hover:bg-muted/80 transition-colors"
+          >
             <div className="text-muted-foreground text-xs">
               No Thumbnail
             </div>
-          </div>
+          </Link>
         )}
       </div>
       
@@ -37,7 +49,7 @@ export function VideoItemRow({ video }: VideoItemRowProps) {
           href={video.url}
           target="_blank"
           rel="noopener noreferrer"
-          className="text-sm font-medium hover:text-primary truncate block"
+          className="text-sm font-medium text-primary hover:text-primary/80 hover:underline truncate block transition-colors"
           title={video.title}
         >
           {video.title}
@@ -60,7 +72,14 @@ export function VideoItemRow({ video }: VideoItemRowProps) {
         </div>
       </div>
       
-      <LinkExternalIcon className="flex-shrink-0 text-muted-foreground" />
+      <Link
+        href={video.url}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="flex-shrink-0 text-muted-foreground hover:text-primary transition-colors"
+      >
+        <LinkExternalIcon className="h-4 w-4" />
+      </Link>
     </div>
   );
 }
