@@ -123,28 +123,6 @@ services:
     restart: unless-stopped
     command: ["npm", "run", "dev"]
 
-  results-api:
-    build:
-      context: ../../
-      dockerfile: services/results-api/Dockerfile
-    env_file:
-      - .env
-    environment:
-      DATA_ROOT: /app/data
-      PYTHONPATH: /app/libs:/app/libs/common-py:/app/libs/contracts
-    ports:
-      - "${PORT_RESULTS}:8080"
-    volumes:
-      - ../../libs:/app/libs
-      - ../../data:/app/data:ro
-      - ../../services/results-api:/app/app
-    depends_on:
-      postgres:
-        condition: service_healthy
-      rabbitmq:
-        condition: service_healthy
-    restart: unless-stopped
-    command: ["python", "app/main.py"]
 
   dropship-product-finder:
     build:

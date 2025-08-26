@@ -12,14 +12,17 @@
   - Batching and Pre‑announce: Contracts include multiple‑event and pre‑announce patterns (sprint 6.2) to improve throughput and reduce tail latency.
 
 ## Key Components
-- `main-api`: Request intake, phase orchestration, LLM prompt/query fallback (Gemini-first with Ollama fallback).
-- `results-api`: Aggregation and retrieval of match results and evidence.
+- `main-api`: Request intake, phase orchestration, results aggregation and retrieval, LLM prompt/query fallback (Gemini-first with Ollama fallback).
 - `video-crawler`: Cross-platform media acquisition (YouTube implemented) and keyframe preparation.
 - `vision-keypoint`: Keypoint detection and geometric features.
 - `vision-embedding`: Embedding generation for images/videos.
 - `matcher`: Ranking across product/video embeddings with direct integration with Qdrant vector database; emits matches and completion events.
 - `product-segmentor`: Product region segmentation to improve downstream signal.
-- `evidence-builder`: Builds explainable artifacts tied to matches.
+- `evidence-builder`: Builds explainable visual artifacts tied to matches. This service is crucial for generating a *new* composite image that visually represents a match, often involving:
+    *   **Image Composition:** Combining the original product image and the relevant video frame.
+    *   **Feature Overlay:** Highlighting matched features (e.g., keypoints, bounding boxes) on both source images.
+    *   **Information Overlay:** Adding metadata like match score or timestamp.
+    This specialized image processing distinguishes it from simply retrieving or displaying existing images, ensuring separation of concerns and independent scalability from the `matcher` service.
 - `dropship-product-finder`: Catalog acquisition from marketplaces (eBay US/DE/AU implemented).
 - Shared libs: `contracts` (JSON Schemas), `common-py`, `vision-common` (for job progress tracking).
 

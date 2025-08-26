@@ -12,7 +12,7 @@ All API endpoints and functionality remain unchanged.
 ## Base URLs
 
 - **Main API**: `http://localhost:8000`
-- **Results API**: `http://localhost:8080`
+
 
 ## Authentication
 
@@ -437,202 +437,14 @@ Get a single video frame feature by ID.
 - `404`: Video frame not found
 - `500`: Internal server error
 
-## Results API
 
-### List Results
-
-Get matching results with optional filtering.
-
-**Endpoint:** `GET /results`
-
-**Query Parameters:**
-- `industry` (string, optional): Filter by industry keyword
-- `min_score` (float, optional): Minimum match score (0.0-1.0)
-- `job_id` (string, optional): Filter by specific job
-- `limit` (integer, optional, default: 100): Maximum results to return
-- `offset` (integer, optional, default: 0): Pagination offset
-
-**Response:**
-```json
-[
-  {
-    "match_id": "match-123",
-    "job_id": "job-456",
-    "product_id": "prod-789",
-    "video_id": "vid-101",
-    "best_img_id": "img-202",
-    "best_frame_id": "frame-303",
-    "ts": 45.5,
-    "score": 0.87,
-    "evidence_path": "/app/data/evidence/match-123.jpg",
-    "created_at": "2024-01-15T10:30:00Z",
-    "product_title": "Ergonomic Memory Foam Pillow",
-    "video_title": "Best Pillows for Neck Pain Review",
-    "video_platform": "youtube"
-  }
-]
-```
-
-**Status Codes:**
-- `200`: Results retrieved successfully
-- `400`: Invalid query parameters
-- `500`: Internal server error
-
-### Get Product Details
-
-Get detailed information about a specific product.
-
-**Endpoint:** `GET /products/{product_id}`
-
-**Response:**
-```json
-{
-  "product_id": "prod-789",
-  "src": "amazon",
-  "asin_or_itemid": "B08XYZ123",
-  "title": "Ergonomic Memory Foam Pillow",
-  "brand": "ComfortPlus",
-  "url": "https://amazon.com/ergonomic-pillow",
-  "created_at": "2024-01-15T10:00:00Z",
-  "image_count": 3
-}
-```
-
-**Status Codes:**
-- `200`: Product found
-- `404`: Product not found
-- `500`: Internal server error
-
-### Get Video Details
-
-Get detailed information about a specific video.
-
-**Endpoint:** `GET /videos/{video_id}`
-
-**Response:**
-```json
-{
-  "video_id": "vid-101",
-  "platform": "youtube",
-  "url": "https://youtube.com/watch?v=abc123",
-  "title": "Best Pillows for Neck Pain Review",
-  "duration_s": 180,
-  "published_at": "2024-01-10T15:30:00Z",
-  "created_at": "2024-01-15T10:15:00Z",
-  "frame_count": 6
-}
-```
-
-**Status Codes:**
-- `200`: Video found
-- `404`: Video not found
-- `500`: Internal server error
-
-### Get Match Details
-
-Get detailed information about a specific match.
-
-**Endpoint:** `GET /matches/{match_id}`
-
-**Response:**
-```json
-{
-  "match_id": "match-123",
-  "job_id": "job-456",
-  "product": {
-    "product_id": "prod-789",
-    "src": "amazon",
-    "asin_or_itemid": "B08XYZ123",
-    "title": "Ergonomic Memory Foam Pillow",
-    "brand": "ComfortPlus",
-    "url": "https://amazon.com/ergonomic-pillow",
-    "created_at": "2024-01-15T10:00:00Z",
-    "image_count": 3
-  },
-  "video": {
-    "video_id": "vid-101",
-    "platform": "youtube",
-    "url": "https://youtube.com/watch?v=abc123",
-    "title": "Best Pillows for Neck Pain Review",
-    "duration_s": 180,
-    "published_at": "2024-01-10T15:30:00Z",
-    "created_at": "2024-01-15T10:15:00Z",
-    "frame_count": 6
-  },
-  "best_img_id": "img-202",
-  "best_frame_id": "frame-303",
-  "ts": 45.5,
-  "score": 0.87,
-  "evidence_path": "/app/data/evidence/match-123.jpg",
-  "created_at": "2024-01-15T10:30:00Z"
-}
-```
-
-**Status Codes:**
-- `200`: Match found
-- `404`: Match not found
-- `500`: Internal server error
-
-### Get Evidence Image
-
-Retrieve the evidence image for a match.
-
-**Endpoint:** `GET /evidence/{match_id}`
-
-**Response:** Binary image data (JPEG format)
-
-**Headers:**
-- `Content-Type: image/jpeg`
-- `Content-Disposition: attachment; filename="evidence_{match_id}.jpg"`
-
-**Status Codes:**
-- `200`: Evidence image found
-- `404`: Evidence image not found
-- `500`: Internal server error
-
-### Get System Statistics
-
-Get overall system statistics.
-
-**Endpoint:** `GET /stats`
-
-**Response:**
-```json
-{
-  "products": 1250,
-  "product_images": 3750,
-  "videos": 450,
-  "video_frames": 2700,
-  "matches": 89,
-  "jobs": 25
-}
-```
-
-**Status Codes:**
-- `200`: Statistics retrieved successfully
-- `500`: Internal server error
-
-### Health Check
-
-Check Results API service health.
-
-**Endpoint:** `GET /health`
-
-**Response:**
-```json
-{
-  "status": "healthy",
-  "service": "results-api",
-  "timestamp": "2024-01-15T10:30:00Z"
-}
-```
 
 
 ## Configuration Parameters
 
 ### Port Configuration
 - Main API: `http://localhost:8000`
-- Results API: `http://localhost:8080`
+
 - PostgreSQL UI: `http://localhost:8081`
 
 ### Database Configuration
@@ -757,7 +569,6 @@ import json
 class ProductVideoMatchingClient:
     def __init__(self):
         self.base_url = "http://localhost:8000"
-        self.results_url = "http://localhost:8080"
     
     def start_job(self, industry, top_amz=10, top_ebay=5):
         response = requests.post(f"{self.base_url}/start-job", json={
@@ -773,7 +584,7 @@ class ProductVideoMatchingClient:
         return response.json()
     
     def get_results(self, min_score=0.8, limit=100):
-        response = requests.get(f"{self.results_url}/results", params={
+        response = requests.get(f"{self.base_url}/results", params={
             "min_score": min_score,
             "limit": limit
         })
@@ -799,7 +610,6 @@ print(f"Found {len(results)} matches")
 class ProductVideoMatchingClient {
   constructor() {
     this.baseUrl = 'http://localhost:8000';
-    this.resultsUrl = 'http://localhost:8080';
   }
 
   async startJob(industry, options = {}) {
@@ -827,7 +637,7 @@ class ProductVideoMatchingClient {
       limit: options.limit || 100
     });
     
-    const response = await fetch(`${this.resultsUrl}/results?${params}`);
+    const response = await fetch(`${this.baseUrl}/results?${params}`);
     return response.json();
   }
 }
@@ -857,6 +667,6 @@ async function runExample() {
 
 The complete OpenAPI 3.0 specification is available at:
 - Main API: `http://localhost:8000/docs`
-- Results API: `http://localhost:8080/docs`
+
 
 This provides interactive API documentation and testing capabilities.

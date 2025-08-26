@@ -13,8 +13,7 @@ This is an event-driven microservices system designed for matching e-commerce pr
 *   **Core Functionality:** Image-first matching, GPU acceleration for embedding generation, evidence generation, and REST APIs for results and system management.
 
 The system is composed of several microservices, including:
-*   `main-api`: Job orchestration and state management.
-*   `results-api`: Provides a REST API for accessing matching results.
+*   `main-api`: Job orchestration, state management, and REST API for accessing matching results.
 *   `dropship-product-finder`: Handles product collection.
 *   `video-crawler`: Processes video content.
 *   `vision-embedding`: Generates deep learning features (embeddings).

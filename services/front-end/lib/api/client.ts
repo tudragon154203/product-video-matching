@@ -72,11 +72,11 @@ export function createApiClient(config: Partial<ApiConfig> = {}): AxiosInstance 
 export const mainApiClient = createApiClient();
 
 /**
- * Results API client instance for results-api service
+ * Results API client instance (DEPRECATED)
+ * Results functionality has been merged into main-api
+ * @deprecated Use mainApiClient instead
  */
-export const resultsApiClient = createApiClient({
-  baseURL: process.env.NEXT_PUBLIC_RESULTS_API_BASE_URL || 'http://localhost:8888',
-});
+export const resultsApiClient = mainApiClient;
 
 /**
  * Generic API request function with type safety

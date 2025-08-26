@@ -334,7 +334,4 @@ Note: Some internal completion events like `products.images.masked.completed` an
 - Subscribes: `match.result`, `matchings.process.completed`
 
 
-### results-api
 
-- Publishes: —
-- Subscribes: — (exposes REST endpoints for reads only)

@@ -98,11 +98,6 @@ This system processes industry keywords to find visual matches between products 
    +-------------------+ 
                    |
                    v
-   +-------------------+
-   |    Results API    |
-   +-------------------+
-                   |
-                   v
               [Client]
 
 
@@ -188,20 +183,20 @@ curl http://localhost:8000/status/{job_id}
 
 ```bash
 # All results
-curl http://localhost:8080/results
+curl http://localhost:8000/results
 
 # Filtered results
-curl "http://localhost:8080/results?min_score=0.8&industry=pillows"
+curl "http://localhost:8000/results?min_score=0.8&industry=pillows"
 
 # Specific match details
-curl http://localhost:8080/matches/{match_id}
+curl http://localhost:8000/matches/{match_id}
 ```
 
 ### Viewing Evidence
 
 Evidence images are available at:
 ```
-http://localhost:8080/evidence/{match_id}
+http://localhost:8000/evidence/{match_id}
 ```
 
 ## API Documentation
@@ -210,13 +205,7 @@ http://localhost:8080/evidence/{match_id}
 
 - `POST /start-job` - Start a new matching job
 - `GET /status/{job_id}` - Get job status and progress
-- `GET /health` - Health check
-
-### Results API (Port 8080)
-
 - `GET /results` - List matching results (with filtering)
-- `GET /products/{id}` - Get product details
-- `GET /videos/{id}` - Get video details
 - `GET /matches/{id}` - Get match details
 - `GET /evidence/{match_id}` - Get evidence image
 - `GET /stats` - System statistics
@@ -237,7 +226,7 @@ The Docker build process has been optimized to reduce build times by:
 2. **Optimized Dockerfiles**: Copy only essential files during build
    - Shared libraries are copied first for better caching
    - Requirements are copied before dependencies for layer caching
-   - Unnecessary files (like `infra` directory in results-api) are excluded
+   - Unnecessary files are excluded from Docker context
 
 ### Build Performance
 
@@ -286,8 +275,7 @@ This allows developers to modify shared library code and see changes take effect
 
 ```
 ├── services/           # Microservices
-│   ├── main-api/      # Job orchestration
-│   ├── results-api/    # Results REST API
+│   ├── main-api/      # Job orchestration and results API
 │   ├── dropship-product-finder/  # Product collection
 │   ├── video-crawler/    # Video processing
 │   ├── vision-embedding/   # Deep learning features
@@ -398,7 +386,6 @@ All services expose `/health` endpoints:
 
 ```bash
 curl http://localhost:8000/health  # Main API
-curl http://localhost:8080/health  # Results API
 ```
 
 ### Metrics
@@ -406,7 +393,7 @@ curl http://localhost:8080/health  # Results API
 Basic metrics are available through service endpoints:
 
 ```bash
-curl http://localhost:8080/stats      # System statistics
+curl http://localhost:8000/stats      # System statistics
 ```
 
 ### Logs
@@ -424,7 +411,7 @@ make logs-main-api      # Specific service
 
 1. **Services not starting**
    - Check Docker daemon is running
-   - Verify ports 5435, 5672, 8000, 8080 are available
+   - Verify ports 5435, 5672, 8000 are available
    - Run `make down` then `make up-dev`
 
 2. **Database connection errors**
@@ -452,7 +439,7 @@ Set `LOG_LEVEL=DEBUG` in the service environment in docker-compose.dev.yml
 
 Service startup order:
 1. PostgreSQL, RabbitMQ
-2. Main API, Results API
+2. Main API
 3. All processing services
 
 ## Performance

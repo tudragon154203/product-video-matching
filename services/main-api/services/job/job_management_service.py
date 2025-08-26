@@ -40,7 +40,9 @@ class JobManagementService:
 
     async def get_job_status(self, job_id: str) -> JobStatusResponse:
         try:
+            logger.info(f"Attempting to get job status for job_id: {job_id}")
             job = await self.db_handler.get_job(job_id)
+            logger.info(f"Result of db_handler.get_job for {job_id}: {job}")
             
             if not job:
                 return JobStatusResponse(

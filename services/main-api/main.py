@@ -29,6 +29,7 @@ from api.video_endpoints import router as video_router
 from api.image_endpoints import router as image_router
 from api.product_endpoints import router as product_router
 from api.features_endpoints import router as features_router
+from api.results_endpoints import router as results_router
 
 # Import middleware
 from middleware.cors import add_cors_middleware
@@ -67,6 +68,7 @@ app.include_router(video_router)
 app.include_router(image_router)
 app.include_router(product_router)
 app.include_router(features_router)
+app.include_router(results_router)
 
 if __name__ == "__main__":
     import uvicorn

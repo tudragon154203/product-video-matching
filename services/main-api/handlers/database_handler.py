@@ -15,6 +15,8 @@ class DatabaseHandler:
                 "INSERT INTO jobs (job_id, query, industry, queries, phase) VALUES ($1, $2, $3, $4, $5)",
                 job_id, query, industry, queries, phase
             )
+            await self.db.execute("COMMIT") # Explicitly commit
+            logger.info(f"Successfully stored job {job_id} in database.")
         except Exception as e:
             logger.warning(f"Failed to store job in database: {e}")
             raise
@@ -22,7 +24,12 @@ class DatabaseHandler:
     async def get_job(self, job_id: str):
         """Get a job from the database."""
         try:
-            return await self.db.fetch_one("SELECT * FROM jobs WHERE job_id = $1", job_id)
+            job = await self.db.fetch_one("SELECT * FROM jobs WHERE job_id = $1", job_id)
+            if job:
+                logger.info(f"Successfully fetched job {job_id} from database.")
+            else:
+                logger.info(f"Job {job_id} not found in database.")
+            return job
         except Exception as e:
             logger.warning(f"Failed to fetch job from database: {e}")
             return None

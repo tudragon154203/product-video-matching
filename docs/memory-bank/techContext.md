@@ -26,7 +26,6 @@
   - `python scripts/seed.py` to create basic fixtures if required by tests/dev flows
 - Run services locally (examples):
   - Main API: `python services/main-api/main.py`
-  - Results API: `python services/results-api/main.py`
   - Worker services (crawler, keypoint, embedding, matcher, evidence, segmentor): run their `main.py` or service entry script in each folder
 
 ## Shared Libraries

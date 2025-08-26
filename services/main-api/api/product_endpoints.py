@@ -7,6 +7,9 @@ from services.product.product_service import ProductService
 from common_py.database import DatabaseManager
 from common_py.messaging import MessageBroker
 from api.dependency import get_db, get_broker
+from common_py.logging_config import configure_logging
+
+logger = configure_logging("main-api")
 
 router = APIRouter()
 
@@ -48,6 +51,7 @@ async def get_job_products(
     try:
         # Validate job exists
         job_status = await job_service.get_job_status(job_id)
+        logger.info(f"Inside get_job_products: job_id={job_id}, job_status.phase={job_status.phase}")
         
         # If job_status.phase is "unknown", it means the job was not found in the database
         if job_status.phase == "unknown":

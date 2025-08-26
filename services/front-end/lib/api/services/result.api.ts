@@ -7,11 +7,12 @@ import {
   StatsResponse,
   HealthResponse,
 } from '@/lib/zod/result';
-import { resultsApiClient, apiRequest } from '../client';
+import { mainApiClient, apiRequest } from '../client';
 import { handleApiError } from '../utils/error-handling';
+import { MAIN_API_ENDPOINTS } from '../endpoints';
 
 /**
- * Results API service for results-api interactions
+ * Results API service for main-api results interactions
  */
 export class ResultsApiService {
   /**
@@ -23,7 +24,7 @@ export class ResultsApiService {
     job_id?: string;
     limit?: number;
     offset?: number;
-  }): Promise<MatchResponse[]> {
+  }): Promise<{ items: MatchResponse[], total: number, limit: number, offset: number }> {
     try {
       const searchParams = new URLSearchParams();
       
@@ -43,49 +44,58 @@ export class ResultsApiService {
         searchParams.append('offset', params.offset.toString());
       }
       
-      const url = `/results${searchParams.toString() ? `?${searchParams.toString()}` : ''}`;
+      const url = `${MAIN_API_ENDPOINTS.results}${searchParams.toString() ? `?${searchParams.toString()}` : ''}`;
       
-      const response = await apiRequest<MatchResponse[]>(resultsApiClient, {
+      const response = await apiRequest<{ items: MatchResponse[], total: number, limit: number, offset: number }>(mainApiClient, {
         method: 'GET',
         url,
       });
       
-      return response.map(item => MatchResponse.parse(item));
+      return {
+        ...response,
+        items: response.items.map(item => MatchResponse.parse(item))
+      };
     } catch (error) {
       throw handleApiError(error);
     }
+  }
+
+  /**
+   * Get matching results for a specific job
+   */
+  async getJobResults(
+    jobId: string,
+    params?: {
+      industry?: string;
+      min_score?: number;
+      limit?: number;
+      offset?: number;
+    }
+  ): Promise<{ items: MatchResponse[], total: number, limit: number, offset: number }> {
+    return this.getResults({
+      ...params,
+      job_id: jobId,
+    });
   }
 
   /**
    * Get detailed information about a specific product
+   * Note: Product details are now included in match detail responses
+   * This method is deprecated - use getMatch() instead for full product context
+   * @deprecated Use getMatch() to get product details within match context
    */
   async getProduct(productId: string): Promise<ProductResponse> {
-    try {
-      const response = await apiRequest<ProductResponse>(resultsApiClient, {
-        method: 'GET',
-        url: `/products/${productId}`,
-      });
-      
-      return ProductResponse.parse(response);
-    } catch (error) {
-      throw handleApiError(error);
-    }
+    throw new Error('Product detail endpoint has been consolidated into match details. Use getMatch() instead.');
   }
 
   /**
    * Get detailed information about a specific video
+   * Note: Video details are now included in match detail responses
+   * This method is deprecated - use getMatch() instead for full video context
+   * @deprecated Use getMatch() to get video details within match context
    */
   async getVideo(videoId: string): Promise<VideoResponse> {
-    try {
-      const response = await apiRequest<VideoResponse>(resultsApiClient, {
-        method: 'GET',
-        url: `/videos/${videoId}`,
-      });
-      
-      return VideoResponse.parse(response);
-    } catch (error) {
-      throw handleApiError(error);
-    }
+    throw new Error('Video detail endpoint has been consolidated into match details. Use getMatch() instead.');
   }
 
   /**
@@ -93,9 +103,9 @@ export class ResultsApiService {
    */
   async getMatch(matchId: string): Promise<MatchDetailResponse> {
     try {
-      const response = await apiRequest<MatchDetailResponse>(resultsApiClient, {
+      const response = await apiRequest<MatchDetailResponse>(mainApiClient, {
         method: 'GET',
-        url: `/matches/${matchId}`,
+        url: MAIN_API_ENDPOINTS.matches.detail(matchId),
       });
       
       return MatchDetailResponse.parse(response);
@@ -109,9 +119,9 @@ export class ResultsApiService {
    */
   async getEvidence(matchId: string): Promise<EvidenceResponse> {
     try {
-      const response = await apiRequest<EvidenceResponse>(resultsApiClient, {
+      const response = await apiRequest<EvidenceResponse>(mainApiClient, {
         method: 'GET',
-        url: `/evidence/${matchId}`,
+        url: MAIN_API_ENDPOINTS.evidence(matchId),
       });
       
       return EvidenceResponse.parse(response);
@@ -125,9 +135,9 @@ export class ResultsApiService {
    */
   async getStats(): Promise<StatsResponse> {
     try {
-      const response = await apiRequest<StatsResponse>(resultsApiClient, {
+      const response = await apiRequest<StatsResponse>(mainApiClient, {
         method: 'GET',
-        url: '/stats',
+        url: MAIN_API_ENDPOINTS.stats,
       });
       
       return StatsResponse.parse(response);
@@ -137,13 +147,13 @@ export class ResultsApiService {
   }
 
   /**
-   * Health check for results-api service
+   * Health check for main-api service
    */
   async healthCheck(): Promise<HealthResponse> {
     try {
-      const response = await apiRequest<HealthResponse>(resultsApiClient, {
+      const response = await apiRequest<HealthResponse>(mainApiClient, {
         method: 'GET',
-        url: '/health',
+        url: MAIN_API_ENDPOINTS.health,
       });
       
       return HealthResponse.parse(response);

@@ -11,7 +11,7 @@ lib/api/
 ├── services/               # API service modules
 │   ├── index.ts
 │   ├── job.api.ts         # Job-related APIs (main-api)
-│   ├── result.api.ts      # Results APIs (results-api)
+│   ├── result.api.ts      # Results APIs (main-api)
 │   └── feature.api.ts     # Features APIs (main-api)
 ├── utils/                  # API utilities and helpers
 │   ├── index.ts
@@ -43,7 +43,7 @@ const status = await jobApi.getJobStatus(response.job_id);
 // List all jobs
 const jobs = await jobApi.listJobs({ limit: 20 });
 
-// Get results (from results-api)
+// Get results (from main-api)
 const results = await resultsApiService.getResults({
   min_score: 0.8,
   limit: 50,
@@ -110,7 +110,7 @@ Handles job-related operations with main-api:
 - `healthCheck()` - Health check endpoint
 
 ### ResultsApiService
-Handles results and data retrieval from results-api:
+Handles results and data retrieval from main-api:
 - `getResults(params?)` - Get matching results with filtering
 - `getProduct(productId)` - Get product details
 - `getVideo(videoId)` - Get video details
@@ -150,8 +150,7 @@ Handles feature extraction monitoring from main-api:
 
 ### Environment Variables
 ```env
-NEXT_PUBLIC_API_BASE_URL=http://localhost:8000      # main-api
-NEXT_PUBLIC_RESULTS_API_BASE_URL=http://localhost:8080  # results-api
+NEXT_PUBLIC_API_BASE_URL=http://localhost:8000      # main-api (includes results endpoints)
 ```
 
 ### Client Configuration

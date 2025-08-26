@@ -69,7 +69,6 @@ class Config:
     
     # Port Configuration
     PORT_MAIN: int = field(default_factory=lambda: get_env_int("PORT_MAIN", 8000))
-    PORT_RESULTS: int = field(default_factory=lambda: get_env_int("PORT_RESULTS", 8080))
     
     # Database Configuration
     POSTGRES_USER: str = field(default_factory=lambda: get_env_var("POSTGRES_USER", "postgres"))
@@ -108,7 +107,6 @@ class Config:
     
     # Service URLs (for inter-service communication)
     MAIN_API_URL: str = field(default_factory=lambda: get_env_var("MAIN_API_URL", f"http://localhost:{get_env_int('PORT_MAIN', 8888)}"))
-    RESULTS_API_URL: str = field(default_factory=lambda: get_env_var("RESULTS_API_URL", f"http://localhost:{get_env_int('PORT_RESULTS', 8890)}"))
 
 # Create global config instance
 config = Config()

@@ -34,32 +34,24 @@ export const MAIN_API_ENDPOINTS = {
     videoFrame: (frameId: string) => `/features/video-frames/${frameId}`,
   },
   
-  // Health endpoint
-  health: '/health',
-} as const;
-
-/**
- * API endpoints configuration for results-api service
- */
-export const RESULTS_API_ENDPOINTS = {
-  // Match endpoints
+  // Results endpoints (migrated from results-api)
+  results: '/results',
   matches: {
-    byJob: (jobId: string) => `/jobs/${jobId}/matches`,
     detail: (matchId: string) => `/matches/${matchId}`,
-    evidence: (matchId: string) => `/matches/${matchId}/evidence`,
   },
-  
-  // Statistics endpoint
+  evidence: (matchId: string) => `/evidence/${matchId}`,
   stats: '/stats',
   
   // Health endpoint
   health: '/health',
 } as const;
 
+
+
 /**
  * All API endpoints combined
  */
 export const API_ENDPOINTS = {
   main: MAIN_API_ENDPOINTS,
-  results: RESULTS_API_ENDPOINTS,
+  
 } as const;

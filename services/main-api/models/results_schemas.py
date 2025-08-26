@@ -1,6 +1,6 @@
 """
-Response schema definitions for the Results API.
-Contains Pydantic models for response validation and documentation.
+Results schema definitions for the Main API.
+Contains Pydantic models for results-related response validation and documentation.
 """
 from typing import Optional, List, Dict, Any
 from datetime import datetime
@@ -8,7 +8,7 @@ from pydantic import BaseModel, Field
 
 
 class ProductResponse(BaseModel):
-    """Product response schema"""
+    """Product response schema for results"""
     product_id: str = Field(..., description="Unique product identifier")
     src: Optional[str] = Field(None, description="Product source (amazon, ebay, etc.)")
     asin_or_itemid: Optional[str] = Field(None, description="ASIN or item ID from source")
@@ -20,7 +20,7 @@ class ProductResponse(BaseModel):
 
 
 class VideoResponse(BaseModel):
-    """Video response schema"""
+    """Video response schema for results"""
     video_id: str = Field(..., description="Unique video identifier")
     platform: Optional[str] = Field(None, description="Video platform (youtube, etc.)")
     url: Optional[str] = Field(None, description="Video URL")
@@ -65,11 +65,6 @@ class MatchDetailResponse(BaseModel):
     video: VideoResponse = Field(..., description="Video details")
 
 
-class EvidenceResponse(BaseModel):
-    """Evidence image response schema"""
-    evidence_path: str = Field(..., description="Path to evidence image file")
-
-
 class StatsResponse(BaseModel):
     """System statistics response schema"""
     products: int = Field(..., description="Total number of products")
@@ -80,16 +75,14 @@ class StatsResponse(BaseModel):
     jobs: int = Field(..., description="Total number of jobs")
 
 
-class HealthResponse(BaseModel):
-    """Health check response schema"""
-    status: str = Field(..., description="Service health status")
-    message: Optional[str] = Field(None, description="Additional health information")
+class MatchListResponse(BaseModel):
+    """Schema for match list response with pagination"""
+    items: List[MatchResponse] = Field(..., description="List of matches")
+    total: int = Field(..., description="Total number of matches")
+    limit: int = Field(..., description="Number of items per page")
+    offset: int = Field(..., description="Number of items skipped")
 
 
-class ErrorResponse(BaseModel):
-    """Error response schema"""
-    correlation_id: str = Field(..., description="Request correlation ID")
-    error_code: str = Field(..., description="Error code")
-    message: str = Field(..., description="Error message")
-    timestamp: str = Field(..., description="Error timestamp")
-    details: List[Dict[str, Any]] = Field(default_factory=list, description="Error details")
+class EvidenceResponse(BaseModel):
+    """Evidence image response schema"""
+    evidence_path: str = Field(..., description="Path to evidence image file")

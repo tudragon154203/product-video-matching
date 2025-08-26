@@ -1,7 +1,7 @@
 import { z } from 'zod';
 
 /**
- * Product response schema (from results-api)
+ * Product response schema (from main-api)
  */
 export const ProductResponse = z.object({
   product_id: z.string(),
@@ -15,7 +15,7 @@ export const ProductResponse = z.object({
 });
 
 /**
- * Video response schema (from results-api)
+ * Video response schema (from main-api)
  */
 export const VideoResponse = z.object({
   video_id: z.string(),
@@ -29,7 +29,7 @@ export const VideoResponse = z.object({
 });
 
 /**
- * Match response schema (from results-api)
+ * Match response schema (from main-api)
  */
 export const MatchResponse = z.object({
   match_id: z.string(),
@@ -49,7 +49,7 @@ export const MatchResponse = z.object({
 });
 
 /**
- * Match detail response schema (from results-api)
+ * Match detail response schema (from main-api)
  */
 export const MatchDetailResponse = z.object({
   match_id: z.string(),
@@ -65,14 +65,14 @@ export const MatchDetailResponse = z.object({
 });
 
 /**
- * Evidence response schema (from results-api)
+ * Evidence response schema (from main-api)
  */
 export const EvidenceResponse = z.object({
   evidence_path: z.string(),
 });
 
 /**
- * System statistics response schema (from results-api)
+ * System statistics response schema (from main-api)
  */
 export const StatsResponse = z.object({
   products: z.number(),
@@ -84,7 +84,7 @@ export const StatsResponse = z.object({
 });
 
 /**
- * Health response schema (from results-api)
+ * Health response schema (from main-api)
  */
 export const HealthResponse = z.object({
   status: z.string(),

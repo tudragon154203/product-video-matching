@@ -225,3 +225,46 @@ export const useVideoFrameFeature = (frameId: string, enabled = true) => {
     enabled: enabled && !!frameId,
   });
 };
+
+// Results/Matches hooks
+export const useJobMatches = (
+  jobId: string,
+  params?: {
+    industry?: string;
+    min_score?: number;
+    limit?: number;
+    offset?: number;
+  },
+  enabled = true
+) => {
+  return useQuery({
+    queryKey: queryKeys.results.matches(jobId, params),
+    queryFn: () => resultsApiService.getJobResults(jobId, params),
+    enabled: enabled && !!jobId,
+  });
+};
+
+export const useMatchDetail = (matchId: string, enabled = true) => {
+  return useQuery({
+    queryKey: queryKeys.results.matchDetail(matchId),
+    queryFn: () => resultsApiService.getMatch(matchId),
+    enabled: enabled && !!matchId,
+  });
+};
+
+export const useResults = (
+  params?: {
+    industry?: string;
+    min_score?: number;
+    job_id?: string;
+    limit?: number;
+    offset?: number;
+  },
+  enabled = true
+) => {
+  return useQuery({
+    queryKey: ['results', 'all', params],
+    queryFn: () => resultsApiService.getResults(params),
+    enabled,
+  });
+};

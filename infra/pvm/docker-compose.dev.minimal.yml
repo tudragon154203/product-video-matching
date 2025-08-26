@@ -123,6 +123,7 @@ services:
     restart: unless-stopped
     command: ["npm", "run", "dev"]
 
+
 volumes:
   postgres_data:
   rabbitmq_data:
