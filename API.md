@@ -457,7 +457,7 @@ Get a single video frame feature by ID.
 - `BUS_BROKER`: Message broker connection string (default: amqp://guest:guest@localhost:5672/)
 
 ### Data Storage
-- `DATA_ROOT`: Root directory for data storage (default: ./data)
+- `DATA_ROOT_CONTAINER`: Root directory for data storage (default: /app/data)
 
 ### Vision Models
 - `EMBED_MODEL`: Vision embedding model (default: clip-vit-b32)

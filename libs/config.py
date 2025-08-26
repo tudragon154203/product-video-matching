@@ -84,8 +84,9 @@ class Config:
     BUS_BROKER: str = field(default_factory=lambda: get_env_var("BUS_BROKER", "amqp://guest:guest@localhost:5672/"))
     
     # Data Storage
-    DATA_ROOT: str = field(default_factory=lambda: get_env_var("DATA_ROOT", "./data"))
-    VIDEO_DIR: str = field(default_factory=lambda: get_env_var("VIDEO_DIR", os.path.join(get_env_var("DATA_ROOT", "./data"), "videos")))
+    # DATA_ROOT: str = field(default_factory=lambda: get_env_var("DATA_ROOT", "./data"))
+    DATA_ROOT_CONTAINER: str = field(default_factory=lambda: get_env_var("DATA_ROOT_CONTAINER", "/app/data"))
+    VIDEO_DIR: str = field(default_factory=lambda: get_env_var("VIDEO_DIR", os.path.join(get_env_var("DATA_ROOT_CONTAINER", "/app/data"), "videos")))
     
     # Vision Models
     EMBED_MODEL: str = field(default_factory=lambda: get_env_var("EMBED_MODEL", "clip-vit-b32"))

@@ -79,16 +79,15 @@ services:
       context: ../../
       dockerfile: services/main-api/Dockerfile
     env_file:
-      - .env  # Shared environment variables
-      
+      - .env  # Shared environment variables      
     environment:
       PYTHONPATH: /app/libs:/app/libs/common-py:/app/libs/contracts
     ports:
       - "${PORT_MAIN}:8000"
     volumes:
-      - ../../libs:/app/libs
+      - ../../libs:/app/libs:ro
       - ../../infra:/app/infra:ro
-      - ../../data:/app/data
+      - ../../${DATA_ROOT_HOST}:${DATA_ROOT_CONTAINER}
       - ../../services/main-api:/app/app
     depends_on:
       postgres:
@@ -130,12 +129,11 @@ services:
       dockerfile: services/dropship-product-finder/Dockerfile
     env_file:
       - .env
-    environment:
-      DATA_ROOT: /app/data
+    environment:      
       PYTHONPATH: /app/libs:/app/libs/common-py:/app/libs/contracts
     volumes:
-      - ../../libs:/app/libs
-      - ../../data:/app/data
+      - ../../libs:/app/libs:ro
+      - ../../${DATA_ROOT_HOST}:${DATA_ROOT_CONTAINER}
       - ../../services/dropship-product-finder:/app/app
     depends_on:
       postgres:
@@ -153,12 +151,11 @@ services:
       dockerfile: services/video-crawler/Dockerfile
     env_file:
       - .env
-    environment:
-      DATA_ROOT: /app/data
+    environment:      
       PYTHONPATH: /app/libs:/app/libs/common-py:/app/libs/contracts::/app/libs/vision-common
     volumes:
-      - ../../libs:/app/libs
-      - ../../data:/app/data
+      - ../../libs:/app/libs:ro
+      - ../../${DATA_ROOT_HOST}:${DATA_ROOT_CONTAINER}
       - ../../services/video-crawler:/app/app
     depends_on:
       postgres:
@@ -176,12 +173,11 @@ services:
       - .env
     environment:
       PYTHONPATH: /app/libs:/app/libs/common-py:/app/libs/contracts:/app/libs/vision-common
-      DATA_ROOT: /app/data
       TRANSFORMERS_TRUST_REMOTE_CODE: 1
       HF_HUB_ENABLE_HF_TRANSFER: 1 
     volumes:
-      - ../../libs:/app/libs
-      - ../../data:/app/data
+      - ../../libs:/app/libs:ro
+      - ../../${DATA_ROOT_HOST}:${DATA_ROOT_CONTAINER}
       - ../../services/product-segmentor:/app/app
       - ../../${MODEL_CACHE}:/root/.cache/huggingface
     depends_on:
@@ -207,8 +203,8 @@ services:
     environment:
       PYTHONPATH: /app/libs:/app/libs/common-py:/app/libs/contracts:/app/libs/vision-common
     volumes:
-      - ../../libs:/app/libs
-      - ../../data:/app/data:ro
+      - ../../libs:/app/libs:ro
+      - ../../${DATA_ROOT_HOST}:${DATA_ROOT_CONTAINER}
       - ../../services/vision-embedding:/app/app
       - ../../${MODEL_CACHE}:/root/.cache/huggingface
     depends_on:
@@ -236,8 +232,8 @@ services:
     environment:
       PYTHONPATH: /app/libs:/app/libs/common-py:/app/libs/contracts:/app/libs/vision-common
     volumes:
-      - ../../libs:/app/libs
-      - ../../data:/app/data
+      - ../../libs:/app/libs:ro
+      - ../../${DATA_ROOT_HOST}:${DATA_ROOT_CONTAINER}
       - ../../services/vision-keypoint:/app/app
       - ../../${MODEL_CACHE}:/root/.cache/huggingface
     depends_on:
@@ -256,12 +252,11 @@ services:
       dockerfile: services/matcher/Dockerfile
     env_file:
       - .env
-    environment:
-      DATA_ROOT: /app/data
+    environment:      
       PYTHONPATH: /app/libs:/app/libs/common-py:/app/libs/contracts
     volumes:
-      - ../../libs:/app/libs
-      - ../../data:/app/data:ro
+      - ../../libs:/app/libs:ro
+      - ../../${DATA_ROOT_HOST}:${DATA_ROOT_CONTAINER}
       - ../../services/matcher:/app/app
     depends_on:
       postgres:
@@ -278,11 +273,10 @@ services:
     env_file:
       - .env
     environment:
-      DATA_ROOT: /app/data
       PYTHONPATH: /app/libs:/app/libs/common-py:/app/libs/contracts
     volumes:
-      - ../../libs:/app/libs
-      - ../../data:/app/data
+      - ../../libs:/app/libs:ro
+      - ../../${DATA_ROOT_HOST}:${DATA_ROOT_CONTAINER}
       - ../../services/evidence-builder:/app/app
     depends_on:
       postgres:

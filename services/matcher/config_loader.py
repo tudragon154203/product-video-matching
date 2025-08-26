@@ -35,7 +35,7 @@ class MatcherConfig:
     BUS_BROKER: str = global_config.BUS_BROKER
     
     # Data storage (from global config)
-    DATA_ROOT: str = global_config.DATA_ROOT
+    DATA_ROOT: str = global_config.DATA_ROOT_CONTAINER
     
     # Matching parameters (from global config)
     RETRIEVAL_TOPK: int = global_config.RETRIEVAL_TOPK

@@ -353,7 +353,7 @@ POSTGRES_DSN=postgresql://postgres:dev@localhost:5435/postgres
 BUS_BROKER=amqp://guest:guest@localhost:5672/
 
 # Data Storage
-DATA_ROOT=./data
+DATA_ROOT_CONTAINER=/app/data
 
 # Vision Models
 EMBED_MODEL=clip-vit-b32

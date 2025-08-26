@@ -35,7 +35,7 @@ class VisionKeypointConfig:
     BUS_BROKER: str = global_config.BUS_BROKER
     
     # Data storage (from global config)
-    DATA_ROOT: str = global_config.DATA_ROOT
+    DATA_ROOT: str = global_config.DATA_ROOT_CONTAINER
     IMG_SIZE: tuple[int, int] = global_config.IMG_SIZE
     
     # Logging (from global config)

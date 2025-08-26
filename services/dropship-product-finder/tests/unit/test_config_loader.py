@@ -47,7 +47,7 @@ class TestDropshipProductFinderConfig(DropshipProductFinderConfig):
         self.POSTGRES_PORT = "5432"
         self.POSTGRES_DB = "product_video_matching"
         self.BUS_BROKER = "amqp://guest:guest@localhost:5672/"
-        self.DATA_ROOT = "./data"
+        self.DATA_ROOT = "/app/data"
         self.LOG_LEVEL = "INFO"
         self.TIMEOUT_SECS_BROWSE = float(os.getenv("BROWSE_TIMEOUT_SECS", "30.0"))
         self.MAX_RETRIES_BROWSE = int(os.getenv("BROWSE_MAX_RETRIES", "2"))

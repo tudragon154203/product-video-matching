@@ -49,7 +49,7 @@ class ProductSegmentorConfig:
     BUS_BROKER: str = global_config.BUS_BROKER
     
     # Data root (from global config)
-    DATA_ROOT: str = global_config.DATA_ROOT
+    DATA_ROOT: str = global_config.DATA_ROOT_CONTAINER
     FOREGROUND_SEG_MODEL_CACHE: str = global_config.MODEL_CACHE
     
     # Logging

@@ -79,16 +79,15 @@ services:
       context: ../../
       dockerfile: services/main-api/Dockerfile
     env_file:
-      - .env  # Shared environment variables
-      
+      - .env  # Shared environment variables      
     environment:
       PYTHONPATH: /app/libs:/app/libs/common-py:/app/libs/contracts
     ports:
       - "${PORT_MAIN}:8000"
     volumes:
-      - ../../libs:/app/libs
+      - ../../libs:/app/libs:ro
       - ../../infra:/app/infra:ro
-      - ../../data:/app/data
+      - ../../${DATA_ROOT_HOST}:${DATA_ROOT_CONTAINER}
       - ../../services/main-api:/app/app
     depends_on:
       postgres:
