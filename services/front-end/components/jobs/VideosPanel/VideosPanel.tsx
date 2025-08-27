@@ -27,15 +27,19 @@ export function VideosPanel({ jobId, isCollecting = false }: VideosPanelProps) {
   const [videos, setVideos] = useState<VideoItem[]>([]);
   const [total, setTotal] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
+  const [isNavigationLoading, setIsNavigationLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const pagination = usePaginatedList(0, 10);
 
-  const fetchVideos = useCallback(async () => {
+  const fetchVideos = useCallback(async (showNavigationLoading = false, isAlreadyLoading = false) => {
     if (!jobId) return;
 
     try {
       setIsLoading(true);
+      if (showNavigationLoading && !isAlreadyLoading) {
+        setIsNavigationLoading(true);
+      }
       setError(null);
 
       const response = await videoApiService.getJobVideos(jobId, {
@@ -51,34 +55,44 @@ export function VideosPanel({ jobId, isCollecting = false }: VideosPanelProps) {
       setTotal(0);
     } finally {
       setIsLoading(false);
+      setIsNavigationLoading(false);
     }
   }, [jobId, pagination.limit, pagination.offset, t]);
 
   useEffect(() => {
     if (!isCollecting) {
-      fetchVideos();
+      fetchVideos(true); // Show loading for initial load
     }
   }, [fetchVideos, isCollecting]);
 
-  // Auto-refetch when collecting
+  // Auto-refetch when collecting (without showing navigation loading)
   useEffect(() => {
     if (isCollecting) {
-      const interval = setInterval(fetchVideos, 5000);
+      const interval = setInterval(() => fetchVideos(false), 5000);
       return () => clearInterval(interval);
     }
   }, [isCollecting, fetchVideos]);
 
+  // Handle navigation changes with loading indicators
+  useEffect(() => {
+    if (!isCollecting && isNavigationLoading) {
+      fetchVideos(true, true); // Show loading for pagination navigation, already loading
+    }
+  }, [pagination.offset, fetchVideos, isCollecting, isNavigationLoading]);
+
   const groupedVideos = groupBy(videos, v => v.platform);
 
   const handleRetry = () => {
-    fetchVideos();
+    fetchVideos(true);
   };
 
   const handlePrev = () => {
+    setIsNavigationLoading(true); // Set loading immediately
     pagination.prev();
   };
 
   const handleNext = () => {
+    setIsNavigationLoading(true); // Set loading immediately
     pagination.next(total);
   };
 
@@ -89,7 +103,15 @@ export function VideosPanel({ jobId, isCollecting = false }: VideosPanelProps) {
         count={total}
       />
 
-      <div className="space-y-4">
+      <div className="space-y-4 relative">
+        {isNavigationLoading && videos.length > 0 && (
+          <div className="absolute inset-0 bg-background/50 backdrop-blur-sm z-10 flex items-center justify-center rounded-lg">
+            <div className="bg-background border rounded-lg px-4 py-2 shadow-sm flex items-center gap-2">
+              <div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
+              <span className="text-sm text-muted-foreground">{t('videos.loading')}</span>
+            </div>
+          </div>
+        )}
         {isLoading && videos.length === 0 ? (
           <VideosSkeleton count={10} />
         ) : error ? (
@@ -117,7 +139,7 @@ export function VideosPanel({ jobId, isCollecting = false }: VideosPanelProps) {
           offset={pagination.offset}
           onPrev={handlePrev}
           onNext={handleNext}
-          isLoading={isLoading}
+          isLoading={isNavigationLoading}
         />
       )}
     </PanelSection>

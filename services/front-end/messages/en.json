@@ -45,12 +45,14 @@
     "products": {
       "panelTitle": "Products",
       "empty": "No products collected.",
-      "collecting": "Collecting products..."
+      "collecting": "Collecting products...",
+      "loading": "Loading..."
     },
     "videos": {
       "panelTitle": "Videos",
       "empty": "No videos collected.",
-      "collecting": "Collecting videos..."
+      "collecting": "Collecting videos...",
+      "loading": "Loading..."
     },
     "meta": {
       "product": "product",
@@ -69,11 +71,13 @@
   },
   "products": {
     "empty": "No products collected.",
-    "collecting": "Collecting products..."
+    "collecting": "Collecting products...",
+    "loading": "Loading..."
   },
   "videos": {
     "empty": "No videos collected.",
-    "collecting": "Collecting videos..."
+    "collecting": "Collecting videos...",
+    "loading": "Loading..."
   },
   "errors": {
     "loadFailed": "Failed to load data.",

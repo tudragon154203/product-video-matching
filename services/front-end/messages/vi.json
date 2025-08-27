@@ -45,12 +45,14 @@
     "products": {
       "panelTitle": "Sản phẩm",
       "empty": "Không có sản phẩm nào được thu thập.",
-      "collecting": "Đang thu thập sản phẩm..."
+      "collecting": "Đang thu thập sản phẩm...",
+      "loading": "Đang tải..."
     },
     "videos": {
       "panelTitle": "Video",
       "empty": "Không có video nào được thu thập.",
-      "collecting": "Đang thu thập video..."
+      "collecting": "Đang thu thập video...",
+      "loading": "Đang tải..."
     },
     "meta": {
       "product": "sản phẩm",
@@ -69,11 +71,13 @@
   },
   "products": {
     "empty": "Không có sản phẩm nào được thu thập.",
-    "collecting": "Đang thu thập sản phẩm..."
+    "collecting": "Đang thu thập sản phẩm...",
+    "loading": "Đang tải..."
   },
   "videos": {
     "empty": "Không có video nào được thu thập.",
-    "collecting": "Đang thu thập video..."
+    "collecting": "Đang thu thập video...",
+    "loading": "Đang tải..."
   },
   "errors": {
     "loadFailed": "Không thể tải dữ liệu.",

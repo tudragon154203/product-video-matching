@@ -1,6 +1,6 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Loader2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
 interface VideosPaginationProps {
@@ -39,11 +39,18 @@ export function VideosPagination({
         disabled={!canPrev || isLoading}
         className="flex items-center gap-1"
       >
-        <ChevronLeft className="h-4 w-4" />
+        {isLoading ? (
+          <Loader2 className="h-4 w-4 animate-spin" />
+        ) : (
+          <ChevronLeft className="h-4 w-4" />
+        )}
         {t('previous')}
       </Button>
-      
-      <div className="text-sm text-muted-foreground">
+
+      <div className="text-sm text-muted-foreground flex items-center gap-2">
+        {isLoading && (
+          <Loader2 className="h-4 w-4 animate-spin" />
+        )}
         {t('pageInfo', {
           currentPage,
           totalPages,
@@ -52,7 +59,7 @@ export function VideosPagination({
           totalItems: total
         })}
       </div>
-      
+
       <Button
         variant="outline"
         size="sm"
@@ -61,7 +68,11 @@ export function VideosPagination({
         className="flex items-center gap-1"
       >
         {t('next')}
-        <ChevronRight className="h-4 w-4" />
+        {isLoading ? (
+          <Loader2 className="h-4 w-4 animate-spin" />
+        ) : (
+          <ChevronRight className="h-4 w-4" />
+        )}
       </Button>
     </div>
   );
