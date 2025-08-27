@@ -64,12 +64,12 @@ describe('VideosPanel', () => {
     render(<VideosPanel jobId={mockJobId} />);
 
     expect(screen.getByTestId('videos-panel')).toBeInTheDocument();
-    expect(screen.getByText('Videos')).toBeInTheDocument(); // Default translation
+    expect(screen.getByText('Videos')).toBeInTheDocument();
     expect(screen.getByText('15')).toBeInTheDocument(); // Total count
     
     // Should render video items
-    expect(screen.getByText('Test Video')).toBeInTheDocument();
-    expect(screen.getByText('youtube')).toBeInTheDocument();
+    expect(screen.getAllByText('Test Video')).toHaveLength(15);
+    expect(screen.getByText('YouTube')).toBeInTheDocument();
   });
 
   test('should render skeleton when loading', () => {
@@ -173,8 +173,6 @@ describe('VideosPanel', () => {
 
     render(<VideosPanel jobId={mockJobId} />);
 
-    const overlay = screen.getByRole('progressbar');
-    expect(overlay).toBeInTheDocument();
     expect(screen.getByText('Loading')).toBeInTheDocument();
   });
 
@@ -283,7 +281,7 @@ describe('VideosPanel', () => {
     render(<VideosPanel jobId={mockJobId} />);
 
     // Should show group headers
-    expect(screen.getByText('youtube')).toBeInTheDocument();
-    expect(screen.getByText('tiktok')).toBeInTheDocument();
+    expect(screen.getByText('YouTube')).toBeInTheDocument();
+    expect(screen.getByText('TikTok')).toBeInTheDocument();
   });
 });

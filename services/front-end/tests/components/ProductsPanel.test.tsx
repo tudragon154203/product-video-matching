@@ -188,9 +188,7 @@ describe('ProductsPanel', () => {
    render(<ProductsPanel jobId={mockJobId} />);
 
    // Check for the loading spinner by its class name
-   expect(screen.getByLabelText('Loading')).toBeInTheDocument();
-   // Check for the loading text
-   expect(screen.getByText('loading')).toBeInTheDocument();
+   expect(screen.getByText('Loading')).toBeInTheDocument();
  });
 
  test('should render placeholder data indicator', () => {

@@ -3,6 +3,13 @@
     "jobs": "Công việc",
     "goHome": "Về Trang chủ"
   },
+  "common": {
+    "loading": "Đang tải...",
+    "error": "⚠️ Lỗi khi tải dữ liệu",
+    "empty": "Không tìm thấy mục nào",
+    "retry": "Thử lại",
+    "loadingNewData": "🔄 Đang tải dữ liệu mới..."
+  },
   "jobs": {
     "title": "Phù hợp Video Sản Phẩm",
     "jobs": "Công việc",

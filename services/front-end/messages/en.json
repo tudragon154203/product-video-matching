@@ -3,6 +3,13 @@
     "jobs": "Jobs",
     "goHome": "Go Home"
   },
+  "common": {
+    "loading": "Loading...",
+    "error": "⚠️ Error loading data",
+    "empty": "No items found",
+    "retry": "Retry",
+    "loadingNewData": "🔄 Loading new data..."
+  },
   "jobs": {
     "title": "Product Video Matching",
     "jobs": "Jobs",
@@ -67,7 +74,10 @@
       "pageInfo": "Page {currentPage} of {totalPages} ({start}-{end} of {totalItems})",
       "next": "Next",
       "previous": "Previous"
-    }
+    },
+    "loading": "Loading...",
+    "navigationLoading": "Loading new data...",
+    "placeholderData": "Loading new data..."
   },
   "products": {
     "empty": "No products collected.",

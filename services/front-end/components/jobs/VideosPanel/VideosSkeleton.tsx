@@ -3,11 +3,12 @@ import { cn } from '@/lib/utils';
 
 interface VideosSkeletonProps {
   count: number;
+  'data-testid'?: string;
 }
 
-export function VideosSkeleton({ count }: VideosSkeletonProps) {
+export function VideosSkeleton({ count, ...props }: VideosSkeletonProps) {
   return (
-    <div className="space-y-3">
+    <div className="space-y-3" {...props}>
       {Array.from({ length: count }).map((_, index) => (
         <div
           key={index}
