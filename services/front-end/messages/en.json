@@ -44,11 +44,13 @@
   "jobResults": {
     "products": {
       "panelTitle": "Products",
-      "empty": "No products collected."
+      "empty": "No products collected.",
+      "collecting": "Collecting products..."
     },
     "videos": {
       "panelTitle": "Videos",
-      "empty": "No videos collected."
+      "empty": "No videos collected.",
+      "collecting": "Collecting videos..."
     },
     "meta": {
       "product": "product",
@@ -66,10 +68,12 @@
     }
   },
   "products": {
-    "empty": "No products collected."
+    "empty": "No products collected.",
+    "collecting": "Collecting products..."
   },
   "videos": {
-    "empty": "No videos collected."
+    "empty": "No videos collected.",
+    "collecting": "Collecting videos..."
   },
   "errors": {
     "loadFailed": "Failed to load data.",

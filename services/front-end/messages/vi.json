@@ -44,11 +44,13 @@
   "jobResults": {
     "products": {
       "panelTitle": "Sản phẩm",
-      "empty": "Không có sản phẩm nào được thu thập."
+      "empty": "Không có sản phẩm nào được thu thập.",
+      "collecting": "Đang thu thập sản phẩm..."
     },
     "videos": {
       "panelTitle": "Video",
-      "empty": "Không có video nào được thu thập."
+      "empty": "Không có video nào được thu thập.",
+      "collecting": "Đang thu thập video..."
     },
     "meta": {
       "product": "sản phẩm",
@@ -66,10 +68,12 @@
     }
   },
   "products": {
-    "empty": "Không có sản phẩm nào được thu thập."
+    "empty": "Không có sản phẩm nào được thu thập.",
+    "collecting": "Đang thu thập sản phẩm..."
   },
   "videos": {
-    "empty": "Không có video nào được thu thập."
+    "empty": "Không có video nào được thu thập.",
+    "collecting": "Đang thu thập video..."
   },
   "errors": {
     "loadFailed": "Không thể tải dữ liệu.",

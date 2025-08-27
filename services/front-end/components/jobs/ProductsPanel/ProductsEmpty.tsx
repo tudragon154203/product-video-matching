@@ -1,15 +1,17 @@
 import React from 'react';
 import { useTranslations } from 'next-intl';
 
-interface ProductsEmptyProps {}
+interface ProductsEmptyProps {
+  isCollecting?: boolean;
+}
 
-export function ProductsEmpty({ }: ProductsEmptyProps) {
-  const t = useTranslations();
-  
+export function ProductsEmpty({ isCollecting = false }: ProductsEmptyProps) {
+  const t = useTranslations('jobResults');
+
   return (
     <div className="text-center py-8">
       <div className="text-muted-foreground">
-        {t('products.empty')}
+        {isCollecting ? t('products.collecting') : t('products.empty')}
       </div>
     </div>
   );

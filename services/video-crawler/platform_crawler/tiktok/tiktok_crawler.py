@@ -225,7 +225,7 @@ class TikTokCrawler(PlatformCrawlerInterface):
             
             # Try to search with a simple query as a health check
             health_videos = await self.searcher.search_videos_by_keywords(
-                queries=["test"], recency_days=7, num_videos=1
+                queries=["test"], recency_days=365, num_videos=1
             )
             
             is_healthy = len(health_videos) >= 0  # Even 0 results means API is working

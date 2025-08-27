@@ -4,6 +4,7 @@ This provides a fallback for integration testing on macOS where TikTok API has c
 """
 import asyncio
 import random
+import time
 from typing import List, Dict, Any, Optional
 from common_py.logging_config import configure_logging
 
@@ -74,7 +75,7 @@ class MockTikTokApiClient:
                 "like_count": random.randint(50, 5000),
                 "share_count": random.randint(10, 500),
                 "comment_count": random.randint(5, 200),
-                "create_time": 1692000000 + (i * 3600),  # Mock timestamps
+                "create_time": time.time() - (i * 3600),  # Recent timestamps (decreasing by 1 hour per video)
                 "download_url": f"https://mock.tiktok.com/video/{video_id}.mp4",
                 "platform": "tiktok"
             }

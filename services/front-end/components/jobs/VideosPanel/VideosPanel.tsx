@@ -28,21 +28,21 @@ export function VideosPanel({ jobId, isCollecting = false }: VideosPanelProps) {
   const [total, setTotal] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  
+
   const pagination = usePaginatedList(0, 10);
 
   const fetchVideos = async () => {
     if (!jobId) return;
-    
+
     try {
       setIsLoading(true);
       setError(null);
-      
+
       const response = await videoApiService.getJobVideos(jobId, {
         limit: pagination.limit,
         offset: pagination.offset,
       });
-      
+
       setVideos(response.items);
       setTotal(response.total);
     } catch (err) {
@@ -69,7 +69,7 @@ export function VideosPanel({ jobId, isCollecting = false }: VideosPanelProps) {
   }, [isCollecting, jobId]);
 
   const groupedVideos = groupBy(videos, v => v.platform);
-  
+
   const handleRetry = () => {
     fetchVideos();
   };
@@ -88,14 +88,14 @@ export function VideosPanel({ jobId, isCollecting = false }: VideosPanelProps) {
         title={t('videos.panelTitle')}
         count={total}
       />
-      
+
       <div className="space-y-4">
         {isLoading && videos.length === 0 ? (
           <VideosSkeleton count={10} />
         ) : error ? (
           <VideosError onRetry={handleRetry} />
         ) : videos.length === 0 ? (
-          <VideosEmpty />
+          <VideosEmpty isCollecting={isCollecting} />
         ) : (
           Object.entries(groupedVideos).map(([platform, items]) => (
             <div key={platform}>
@@ -109,7 +109,7 @@ export function VideosPanel({ jobId, isCollecting = false }: VideosPanelProps) {
           ))
         )}
       </div>
-      
+
       {total > 10 && (
         <VideosPagination
           total={total}

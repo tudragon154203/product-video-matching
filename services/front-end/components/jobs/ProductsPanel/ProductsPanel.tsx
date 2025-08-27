@@ -27,21 +27,21 @@ export function ProductsPanel({ jobId, isCollecting = false }: ProductsPanelProp
   const [total, setTotal] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  
+
   const pagination = usePaginatedList(0, 10);
 
   const fetchProducts = async () => {
     if (!jobId) return;
-    
+
     try {
       setIsLoading(true);
       setError(null);
-      
+
       const response = await productApiService.getJobProducts(jobId, {
         limit: pagination.limit,
         offset: pagination.offset,
       });
-      
+
       setProducts(response.items);
       setTotal(response.total);
     } catch (err) {
@@ -68,7 +68,7 @@ export function ProductsPanel({ jobId, isCollecting = false }: ProductsPanelProp
   }, [isCollecting, jobId]);
 
   const groupedProducts = groupBy(products, p => p.src);
-  
+
   const handleRetry = () => {
     fetchProducts();
   };
@@ -87,14 +87,14 @@ export function ProductsPanel({ jobId, isCollecting = false }: ProductsPanelProp
         title={t('products.panelTitle')}
         count={total}
       />
-      
+
       <div className="space-y-4">
         {isLoading && products.length === 0 ? (
           <ProductsSkeleton count={10} />
         ) : error ? (
           <ProductsError onRetry={handleRetry} />
         ) : products.length === 0 ? (
-          <ProductsEmpty />
+          <ProductsEmpty isCollecting={isCollecting} />
         ) : (
           Object.entries(groupedProducts).map(([src, items]) => (
             <div key={src}>
@@ -108,7 +108,7 @@ export function ProductsPanel({ jobId, isCollecting = false }: ProductsPanelProp
           ))
         )}
       </div>
-      
+
       {total > 10 && (
         <ProductsPagination
           total={total}

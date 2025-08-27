@@ -23,7 +23,7 @@ class TikTokSearcher:
     async def search_videos_by_keywords(
         self, 
         queries: List[str], 
-        recency_days: int = 7,
+        recency_days: int = 365,
         num_videos: int = 10,
         min_duration: int = 0,
         max_duration: int = 300
@@ -138,27 +138,55 @@ class TikTokSearcher:
         filtered_videos = []
         cutoff_time = datetime.now().timestamp() - (recency_days * 24 * 60 * 60)
         
+        logger.info("Applying filters to TikTok videos", 
+                   total_videos=len(videos),
+                   recency_days=recency_days,
+                   min_duration=min_duration,
+                   max_duration=max_duration,
+                   cutoff_timestamp=cutoff_time)
+        
         for video in videos:
             try:
+                video_id = video.get('video_id', 'unknown')
+                
                 # Check recency (if create_time is available)
                 create_time = video.get('create_time', 0)
                 if create_time and create_time < cutoff_time:
+                    logger.debug("Video filtered out by recency", 
+                               video_id=video_id,
+                               create_time=create_time,
+                               cutoff_time=cutoff_time)
                     continue
                 
                 # Check duration
                 duration = video.get('duration_s', 0)
                 if duration < min_duration or duration > max_duration:
+                    logger.debug("Video filtered out by duration", 
+                               video_id=video_id,
+                               duration=duration,
+                               min_duration=min_duration,
+                               max_duration=max_duration)
                     continue
                 
                 # Check that essential fields are present
                 if not video.get('video_id') or not video.get('url'):
+                    logger.debug("Video filtered out by missing essential fields", 
+                               video_id=video_id,
+                               has_video_id=bool(video.get('video_id')),
+                               has_url=bool(video.get('url')))
                     continue
                 
                 filtered_videos.append(video)
+                logger.debug("Video passed all filters", video_id=video_id)
                 
             except Exception as e:
                 logger.warning("Error filtering video", video_id=video.get('video_id'), error=str(e))
                 continue
+        
+        logger.info("Filtering completed", 
+                   input_videos=len(videos),
+                   output_videos=len(filtered_videos),
+                   filtered_out=len(videos) - len(filtered_videos))
         
         return filtered_videos
     
@@ -205,7 +233,7 @@ class TikTokSearcher:
     async def search_vietnamese_content(
         self, 
         queries: List[str], 
-        recency_days: int = 7,
+        recency_days: int = 365,
         num_videos: int = 10
     ) -> List[Dict[str, Any]]:
         """
