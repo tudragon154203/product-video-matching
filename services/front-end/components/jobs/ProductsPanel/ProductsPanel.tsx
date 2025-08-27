@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { usePaginatedList } from '@/lib/hooks/usePaginatedList';
 import { productApiService } from '@/lib/api/services/product.api';
 import { ProductItem } from '@/lib/zod/product';
@@ -30,7 +30,7 @@ export function ProductsPanel({ jobId, isCollecting = false }: ProductsPanelProp
 
   const pagination = usePaginatedList(0, 10);
 
-  const fetchProducts = async () => {
+  const fetchProducts = useCallback(async () => {
     if (!jobId) return;
 
     try {
@@ -51,13 +51,13 @@ export function ProductsPanel({ jobId, isCollecting = false }: ProductsPanelProp
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [jobId, pagination.limit, pagination.offset, t]);
 
   useEffect(() => {
     if (!isCollecting) {
       fetchProducts();
     }
-  }, [jobId, pagination.offset, isCollecting]);
+  }, [fetchProducts, isCollecting]);
 
   // Auto-refetch when collecting
   useEffect(() => {
@@ -65,7 +65,7 @@ export function ProductsPanel({ jobId, isCollecting = false }: ProductsPanelProp
       const interval = setInterval(fetchProducts, 5000);
       return () => clearInterval(interval);
     }
-  }, [isCollecting, jobId]);
+  }, [isCollecting, fetchProducts]);
 
   const groupedProducts = groupBy(products, p => p.src);
 

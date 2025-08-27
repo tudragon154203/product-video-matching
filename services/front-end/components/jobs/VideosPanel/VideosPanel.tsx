@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { usePaginatedList } from '@/lib/hooks/usePaginatedList';
 import { videoApiService } from '@/lib/api/services/video.api';
 import { VideoItem } from '@/lib/zod/video';
@@ -31,7 +31,7 @@ export function VideosPanel({ jobId, isCollecting = false }: VideosPanelProps) {
 
   const pagination = usePaginatedList(0, 10);
 
-  const fetchVideos = async () => {
+  const fetchVideos = useCallback(async () => {
     if (!jobId) return;
 
     try {
@@ -52,13 +52,13 @@ export function VideosPanel({ jobId, isCollecting = false }: VideosPanelProps) {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [jobId, pagination.limit, pagination.offset, t]);
 
   useEffect(() => {
     if (!isCollecting) {
       fetchVideos();
     }
-  }, [jobId, pagination.offset, isCollecting]);
+  }, [fetchVideos, isCollecting]);
 
   // Auto-refetch when collecting
   useEffect(() => {
@@ -66,7 +66,7 @@ export function VideosPanel({ jobId, isCollecting = false }: VideosPanelProps) {
       const interval = setInterval(fetchVideos, 5000);
       return () => clearInterval(interval);
     }
-  }, [isCollecting, jobId]);
+  }, [isCollecting, fetchVideos]);
 
   const groupedVideos = groupBy(videos, v => v.platform);
 
