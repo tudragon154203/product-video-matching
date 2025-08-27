@@ -39,6 +39,7 @@ CLAUDE.md
 # Nodejs
 *node_modules/
 .next/
+playwright-report/
 
 # Python
 *.npz

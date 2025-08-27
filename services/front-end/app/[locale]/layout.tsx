@@ -3,7 +3,6 @@ import { Inter } from 'next/font/google'
 import { NextIntlClientProvider } from 'next-intl'
 import { getMessages, getTranslations } from 'next-intl/server'
 import { Providers } from '@/components/ui/providers'
-import { Toaster } from '@/components/ui/toaster'
 import { LanguageToggle } from '@/components/language-toggle'
 import { JobSidebar } from '@/components/job-sidebar'
 import { HydrationErrorSuppressor } from '@/components/hydration-error-suppressor'
@@ -43,7 +42,7 @@ export default async function LocaleLayout({
                   <JobSidebar />
                 </div>
               </div>
-              
+
               {/* Main Content */}
               <div className="flex-1 overflow-auto">
                 <div className="container mx-auto px-4 py-8">
@@ -53,7 +52,6 @@ export default async function LocaleLayout({
                   </div>
                   {children}
                 </div>
-                <Toaster />
               </div>
             </div>
           </Providers>

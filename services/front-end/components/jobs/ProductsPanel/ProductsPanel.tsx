@@ -39,6 +39,7 @@ export function ProductsPanel({ jobId, isCollecting = false }: ProductsPanelProp
     total,
     isLoading,
     isNavigationLoading,
+    isPreloading,
     error,
     handlePrev,
     handleNext,
@@ -46,32 +47,28 @@ export function ProductsPanel({ jobId, isCollecting = false }: ProductsPanelProp
     clearCache,
     fetchFunction: fetchProducts,
     loadFromCacheOrFetch,
+    pollCurrentPage,
     offset,
     limit
   } = usePaginatedListWithPreloading<ProductItem>(fetchProductsData);
 
 
 
+  // Initial load and navigation changes
   useEffect(() => {
     if (!isCollecting) {
+      console.log('Data loading effect triggered for offset:', offset);
       loadFromCacheOrFetch();
     }
-  }, [loadFromCacheOrFetch, isCollecting]);
+  }, [offset, loadFromCacheOrFetch, isCollecting]);
 
   // Auto-refetch when collecting (without showing navigation loading)
   useEffect(() => {
     if (isCollecting) {
-      const interval = setInterval(() => fetchProducts(false), 5000);
+      const interval = setInterval(() => pollCurrentPage(), 5000);
       return () => clearInterval(interval);
     }
-  }, [isCollecting, fetchProducts]);
-
-  // Handle navigation changes with loading indicators
-  useEffect(() => {
-    if (!isCollecting && isNavigationLoading) {
-      loadFromCacheOrFetch();
-    }
-  }, [offset, loadFromCacheOrFetch, isCollecting, isNavigationLoading]);
+  }, [isCollecting, pollCurrentPage]);
 
   // Clear cache when job changes
   useEffect(() => {
@@ -90,6 +87,13 @@ export function ProductsPanel({ jobId, isCollecting = false }: ProductsPanelProp
         title={t('products.panelTitle')}
         count={total}
       />
+
+      {/* Pre-loading indicator */}
+      {isPreloading && (
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-2 mb-4 text-sm text-blue-800">
+          🔄 Pre-loading adjacent pages in background...
+        </div>
+      )}
 
       <div className="space-y-4 relative">
         {isNavigationLoading && products.length > 0 && (
