@@ -1,21 +1,6 @@
 {
-  "common": {
-    "loading": "Đang tải...",
-    "error": "Lỗi",
-    "success": "Thành công",
-    "save": "Lưu",
-    "cancel": "Hủy",
-    "delete": "Xóa",
-    "edit": "Chỉnh sửa",
-    "view": "Xem",
-    "browse": "Duyệt",
-    "search": "Tìm kiếm (Enter)",
-    "filter": "Lọc"
-  },
   "navigation": {
-    "home": "Trang chủ",
     "jobs": "Công việc",
-    "back": "Quay lại",
     "goHome": "Về Trang chủ"
   },
   "jobs": {
@@ -24,43 +9,20 @@
     "total": "Tổng số",
     "failed": "Thất bại",
     "history": "Lịch sử",
-    "subtitle": "Theo dõi và quản lý các công việc phù hợp video sản phẩm",
     "startNew": "Tìm sản phẩm mới",
     "startNewDescription": "Tạo một công việc phù hợp video sản phẩm mới",
-    "query": "Từ khóa",
     "queryPlaceholder": "ví dụ: gối ergonomic",
     "topAmazonProducts": "Sản phẩm Amazon hàng đầu",
     "topEbayProducts": "Sản phẩm eBay hàng đầu",
     "videoPlatforms": "Nền tảng Video",
     "recencyDays": "Số ngày gần đây",
-    "startJob": "Bắt đầu Công việc",
+    "startSearch": "Tìm kiếm",
     "startingJob": "Đang bắt đầu công việc...",
-    "recentJobs": "Công việc Gần đây",
-    "jobNotFound": "Không tìm thấy Công việc",
-    "jobNotFoundDescription": "Công việc bạn đang tìm kiếm không tồn tại hoặc chưa bắt đầu.",
-    "browseAllJobs": "Xem Tất cả Công việc",
-    "jobStatus": "Trạng thái Công việc",
-    "viewFullDetails": "Xem Chi tiết Đầy đủ",
-    "failedToLoadJobs": "Không thể tải công việc gần đây",
     "loadingJobs": "Đang tải công việc...",
     "failedToLoadJobsError": "Không thể tải công việc",
     "noRecentJobs": "Không tìm thấy công việc gần đây.",
-    "percentComplete": "% hoàn thành",
-    "jobHistory": "Lịch sử Công việc",
-    "jobHistoryDescription": "Các công việc được tạo và thực thi gần đây của bạn",
-    "noJobHistory": "Không có lịch sử công việc.",
-    "startFirstJob": "Bắt đầu Công việc Đầu tiên",
-    "viewDetails": "Xem Chi tiết",
-    "productsAndVideos": "Sản phẩm: {products} | Video: {videos}",
-    "lastUpdated": "Cập nhật cuối cùng",
-    "products": "Sản phẩm",
-    "videos": "Video",
-    "images": "Hình ảnh",
-    "frames": "Khung hình",
-    "progress": "Tiến trình",
     "running": "Đang chạy",
     "completed": "Hoàn thành",
-    "totalJobs": "Tổng số Công việc",
     "showAdvancedOptions": "Hiển thị Tùy chọn Nâng cao",
     "hideAdvancedOptions": "Ẩn Tùy chọn Nâng cao",
     "topAmazonProductsTooltip": "Số lượng sản phẩm Amazon hàng đầu để tìm kiếm theo từ khóa của bạn",
@@ -73,12 +35,6 @@
     "lastMonth": "Tháng trước",
     "older": "Cũ hơn"
   },
-  "form": {
-    "required": "Bắt buộc",
-    "invalid": "Giá trị không hợp lệ",
-    "min": "Giá trị tối thiểu là {min}",
-    "max": "Giá trị tối đa là {max}"
-  },
   "toast": {
     "jobStarted": "Bắt đầu Công việc Thành công",
     "jobStartedDescription": "ID Công việc: {jobId}",
@@ -86,31 +42,18 @@
     "unknownError": "Lỗi không xác định"
   },
   "jobResults": {
-    "title": "Kết quả Công việc",
     "products": {
       "panelTitle": "Sản phẩm",
-      "empty": "Không có sản phẩm nào được thu thập.",
-      "source": "Nguồn",
-      "openLinkAria": "Mở sản phẩm trên {src}",
-      "paginatePrev": "Trước",
-      "paginateNext": "Tiếp"
+      "empty": "Không có sản phẩm nào được thu thập."
     },
     "videos": {
-      "panelTitle": "Video", 
-      "empty": "Không có video nào được thu thập.",
-      "platform": "Nền tảng",
-      "openLinkAria": "Mở video trên {platform}",
-      "paginatePrev": "Trước",
-      "paginateNext": "Tiếp"
+      "panelTitle": "Video",
+      "empty": "Không có video nào được thu thập."
     },
     "meta": {
       "product": "sản phẩm",
       "video": "video",
-      "videos": "videos",
-      "brand": "Thương hiệu",
-      "asin": "ASIN/Mã sản phẩm",
-      "publishedAt": "Đã xuất bản",
-      "createdAt": "Đã tạo"
+      "videos": "videos"
     },
     "errors": {
       "loadFailed": "Không thể tải dữ liệu.",
@@ -123,20 +66,10 @@
     }
   },
   "products": {
-    "panelTitle": "Sản phẩm",
-    "empty": "Không có sản phẩm nào được thu thập.",
-    "source": "Nguồn",
-    "openLinkAria": "Mở sản phẩm trên {src}",
-    "paginatePrev": "Trước",
-    "paginateNext": "Tiếp"
+    "empty": "Không có sản phẩm nào được thu thập."
   },
   "videos": {
-    "panelTitle": "Video", 
-    "empty": "Không có video nào được thu thập.",
-    "platform": "Nền tảng",
-    "openLinkAria": "Mở video trên {platform}",
-    "paginatePrev": "Trước",
-    "paginateNext": "Tiếp"
+    "empty": "Không có video nào được thu thập."
   },
   "errors": {
     "loadFailed": "Không thể tải dữ liệu.",

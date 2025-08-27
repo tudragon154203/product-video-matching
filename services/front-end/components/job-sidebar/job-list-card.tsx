@@ -19,10 +19,11 @@ interface JobListCardProps {
 
 export function JobListCard({ jobs, groupedJobs, isLoading, error }: JobListCardProps) {
   const t = useTranslations('jobs')
+  const tNav = useTranslations('navigation')
 
   const renderJobGroup = (jobs: JobItem[], groupKey: keyof GroupedJobs) => {
     if (jobs.length === 0) return null
-    
+
     const timeLabels = {
       today: t('today'),
       yesterday: t('yesterday'),
@@ -30,7 +31,7 @@ export function JobListCard({ jobs, groupedJobs, isLoading, error }: JobListCard
       lastMonth: t('lastMonth'),
       older: t('older')
     }
-    
+
     return (
       <div key={groupKey}>
         <TimeSeparator label={timeLabels[groupKey]} />
@@ -52,25 +53,25 @@ export function JobListCard({ jobs, groupedJobs, isLoading, error }: JobListCard
             <p className="text-sm">{t('loadingJobs')}</p>
           </div>
         )}
-        
+
         {error && (
           <div className="text-center py-8 text-red-500">
             <p className="text-sm">{t('failedToLoadJobsError')}</p>
           </div>
         )}
-        
+
         {!isLoading && !error && (
           <>
-            {Object.keys(groupedJobs).map(groupKey => 
+            {Object.keys(groupedJobs).map(groupKey =>
               renderJobGroup(groupedJobs[groupKey as keyof GroupedJobs], groupKey as keyof GroupedJobs)
             )}
-            
+
             {jobs.length === 0 && (
               <div className="text-center py-8 text-muted-foreground">
                 <p className="text-sm">{t('noRecentJobs')}</p>
                 <div className="mt-2">
                   <Link href="/">
-                    <Button variant="outline" size="sm" className="w-full">{t('navigation.goHome')}</Button>
+                    <Button variant="outline" size="sm" className="w-full">{tNav('goHome')}</Button>
                   </Link>
                 </div>
               </div>

@@ -8,6 +8,7 @@ python-dotenv==1.0.1
 # Computer vision and ML
 # torchvision==0.19.0
 transformers==4.44.0
+hf_transfer==0.1.9
 pillow==10.4.0
 numpy==1.26.4
 opencv-python==4.10.0.84

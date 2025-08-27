@@ -7,6 +7,7 @@ import { StartJobRequest } from '@/lib/zod/job'
 import { jobApiService } from '@/lib/api/services/job.api'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { Search } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { toast } from '@/components/ui/use-toast'
 import { useQueryClient } from '@tanstack/react-query'
@@ -48,14 +49,14 @@ export function StartJobForm() {
         title: tToast('jobStarted'),
         description: tToast('jobStartedDescription', { jobId: response.job_id }),
       })
-      
+
       // Reset form
       reset()
-      
+
       // Invalidate and refetch job list to show the new job immediately
       await queryClient.invalidateQueries({ queryKey: ['jobs-list'] })
       await queryClient.refetchQueries({ queryKey: ['jobs-list'] })
-      
+
       // Navigate to the job detail page
       router.push(`/${locale}/jobs/${response.job_id}`)
     } catch (error) {
@@ -90,7 +91,8 @@ export function StartJobForm() {
               disabled={isSubmitting}
               className="h-12 px-6 text-lg"
             >
-              {isSubmitting ? t('startingJob') : t('start')}
+              <span>{isSubmitting ? t('startingJob') : t('startSearch')}</span>
+              <Search className="ml-2 h-4 w-4" />
             </Button>
           </div>
           {errors.query && (

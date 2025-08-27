@@ -1,21 +1,6 @@
 {
-  "common": {
-    "loading": "Loading...",
-    "error": "Error",
-    "success": "Success",
-    "save": "Save",
-    "cancel": "Cancel",
-    "delete": "Delete",
-    "edit": "Edit",
-    "view": "View",
-    "browse": "Browse",
-    "search": "Search",
-    "filter": "Filter"
-  },
   "navigation": {
-    "home": "Home",
     "jobs": "Jobs",
-    "back": "Back",
     "goHome": "Go Home"
   },
   "jobs": {
@@ -24,43 +9,20 @@
     "total": "Total",
     "failed": "Failed",
     "history": "History",
-    "subtitle": "Monitor and manage your product video matching jobs",
     "startNew": "New Search",
     "startNewDescription": "Create a new product video matching job",
-    "query": "Query",
     "queryPlaceholder": "e.g., ergonomic pillows",
     "topAmazonProducts": "Top Amazon Products",
     "topEbayProducts": "Top eBay Products",
     "videoPlatforms": "Video Platforms",
     "recencyDays": "Recency Days",
-    "startJob": "Start Job",
+    "startSearch": "Search",
     "startingJob": "Starting Job...",
-    "recentJobs": "Recent Jobs",
-    "jobNotFound": "Job Not Found",
-    "jobNotFoundDescription": "The job you're looking for doesn't exist or hasn't started yet.",
-    "browseAllJobs": "View All Jobs",
-    "jobStatus": "Job Status",
-    "viewFullDetails": "View Full Details",
-    "failedToLoadJobs": "Failed to load recent jobs",
     "loadingJobs": "Loading jobs...",
     "failedToLoadJobsError": "Failed to load jobs",
     "noRecentJobs": "No recent jobs found.",
-    "percentComplete": "% complete",
-    "jobHistory": "Job History",
-    "jobHistoryDescription": "Your recently created and executed jobs",
-    "noJobHistory": "No job history available.",
-    "startFirstJob": "Start Your First Job",
-    "viewDetails": "View Details",
-    "productsAndVideos": "Products: {products} | Videos: {videos}",
-    "lastUpdated": "Last Updated",
-    "products": "Products",
-    "videos": "Videos",
-    "images": "Images",
-    "frames": "Frames",
-    "progress": "Progress",
     "running": "Running",
     "completed": "Completed",
-    "totalJobs": "Total Jobs",
     "showAdvancedOptions": "Show Advanced Options",
     "hideAdvancedOptions": "Hide Advanced Options",
     "topAmazonProductsTooltip": "Number of top-ranked Amazon products to search for your query",
@@ -73,12 +35,6 @@
     "lastMonth": "Last month",
     "older": "Older"
   },
-  "form": {
-    "required": "Required",
-    "invalid": "Invalid value",
-    "min": "Minimum value is {min}",
-    "max": "Maximum value is {max}"
-  },
   "toast": {
     "jobStarted": "Job Started Successfully",
     "jobStartedDescription": "Job ID: {jobId}",
@@ -86,31 +42,18 @@
     "unknownError": "Unknown error"
   },
   "jobResults": {
-    "title": "Job Results",
     "products": {
       "panelTitle": "Products",
-      "empty": "No products collected.",
-      "source": "Source",
-      "openLinkAria": "Open product on {src}",
-      "paginatePrev": "Previous",
-      "paginateNext": "Next"
+      "empty": "No products collected."
     },
     "videos": {
-      "panelTitle": "Videos", 
-      "empty": "No videos collected.",
-      "platform": "Platform",
-      "openLinkAria": "Open video on {platform}",
-      "paginatePrev": "Previous",
-      "paginateNext": "Next"
+      "panelTitle": "Videos",
+      "empty": "No videos collected."
     },
     "meta": {
       "product": "product",
       "video": "video",
-      "videos": "videos",
-      "brand": "Brand",
-      "asin": "ASIN/Item ID",
-      "publishedAt": "Published",
-      "createdAt": "Created"
+      "videos": "videos"
     },
     "errors": {
       "loadFailed": "Failed to load data.",
@@ -123,20 +66,10 @@
     }
   },
   "products": {
-    "panelTitle": "Products",
-    "empty": "No products collected.",
-    "source": "Source",
-    "openLinkAria": "Open product on {src}",
-    "paginatePrev": "Previous",
-    "paginateNext": "Next"
+    "empty": "No products collected."
   },
   "videos": {
-    "panelTitle": "Videos", 
-    "empty": "No videos collected.",
-    "platform": "Platform",
-    "openLinkAria": "Open video on {platform}",
-    "paginatePrev": "Previous",
-    "paginateNext": "Next"
+    "empty": "No videos collected."
   },
   "errors": {
     "loadFailed": "Failed to load data.",
