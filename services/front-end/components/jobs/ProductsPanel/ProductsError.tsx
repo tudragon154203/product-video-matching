@@ -8,13 +8,13 @@ interface ProductsErrorProps {
 
 export function ProductsError({ onRetry }: ProductsErrorProps) {
   const t = useTranslations();
-  
+
   return (
     <div className="text-center py-8">
       <div className="text-destructive font-medium mb-2">
         {t('errors.loadFailed')}
       </div>
-      <Button onClick={onRetry} variant="outline" size="sm">
+      <Button onClick={onRetry} variant="outline" size="sm" data-testid="products-retry">
         {t('errors.retry')}
       </Button>
     </div>

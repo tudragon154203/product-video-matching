@@ -1,7 +1,7 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
-import { usePaginatedList } from '@/lib/hooks/usePaginatedList';
+import React, { useEffect, useCallback } from 'react';
+import { usePaginatedListWithPreloading } from '@/lib/hooks/usePaginatedListWithPreloading';
 import { videoApiService } from '@/lib/api/services/video.api';
 import { VideoItem } from '@/lib/zod/video';
 import { groupBy } from '@/lib/utils/groupBy';
@@ -24,46 +24,40 @@ interface VideosPanelProps {
 
 export function VideosPanel({ jobId, isCollecting = false }: VideosPanelProps) {
   const t = useTranslations('jobResults');
-  const [videos, setVideos] = useState<VideoItem[]>([]);
-  const [total, setTotal] = useState(0);
-  const [isLoading, setIsLoading] = useState(false);
-  const [isNavigationLoading, setIsNavigationLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
-  const pagination = usePaginatedList(0, 10);
+  // Fetch function for the hook
+  const fetchVideosData = useCallback(async (offset: number, limit: number) => {
+    if (!jobId) throw new Error('Job ID is required');
 
-  const fetchVideos = useCallback(async (showNavigationLoading = false, isAlreadyLoading = false) => {
-    if (!jobId) return;
+    return await videoApiService.getJobVideos(jobId, {
+      limit,
+      offset,
+    });
+  }, [jobId]);
 
-    try {
-      setIsLoading(true);
-      if (showNavigationLoading && !isAlreadyLoading) {
-        setIsNavigationLoading(true);
-      }
-      setError(null);
+  const {
+    items: videos,
+    total,
+    isLoading,
+    isNavigationLoading,
+    error,
+    handlePrev,
+    handleNext,
+    handleRetry,
+    clearCache,
+    fetchFunction: fetchVideos,
+    loadFromCacheOrFetch,
+    offset,
+    limit
+  } = usePaginatedListWithPreloading<VideoItem>(fetchVideosData);
 
-      const response = await videoApiService.getJobVideos(jobId, {
-        limit: pagination.limit,
-        offset: pagination.offset,
-      });
 
-      setVideos(response.items);
-      setTotal(response.total);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : t('errors.loadFailed'));
-      setVideos([]);
-      setTotal(0);
-    } finally {
-      setIsLoading(false);
-      setIsNavigationLoading(false);
-    }
-  }, [jobId, pagination.limit, pagination.offset, t]);
 
   useEffect(() => {
     if (!isCollecting) {
-      fetchVideos(true); // Show loading for initial load
+      loadFromCacheOrFetch();
     }
-  }, [fetchVideos, isCollecting]);
+  }, [loadFromCacheOrFetch, isCollecting]);
 
   // Auto-refetch when collecting (without showing navigation loading)
   useEffect(() => {
@@ -76,28 +70,23 @@ export function VideosPanel({ jobId, isCollecting = false }: VideosPanelProps) {
   // Handle navigation changes with loading indicators
   useEffect(() => {
     if (!isCollecting && isNavigationLoading) {
-      fetchVideos(true, true); // Show loading for pagination navigation, already loading
+      loadFromCacheOrFetch();
     }
-  }, [pagination.offset, fetchVideos, isCollecting, isNavigationLoading]);
+  }, [offset, loadFromCacheOrFetch, isCollecting, isNavigationLoading]);
+
+  // Clear cache when job changes
+  useEffect(() => {
+    clearCache();
+  }, [jobId, clearCache]);
 
   const groupedVideos = groupBy(videos, v => v.platform);
 
-  const handleRetry = () => {
-    fetchVideos(true);
-  };
-
-  const handlePrev = () => {
-    setIsNavigationLoading(true); // Set loading immediately
-    pagination.prev();
-  };
-
-  const handleNext = () => {
-    setIsNavigationLoading(true); // Set loading immediately
-    pagination.next(total);
+  const handleRetryClick = () => {
+    handleRetry();
   };
 
   return (
-    <PanelSection>
+    <PanelSection data-testid="videos-panel">
       <PanelHeader
         title={t('videos.panelTitle')}
         count={total}
@@ -113,11 +102,11 @@ export function VideosPanel({ jobId, isCollecting = false }: VideosPanelProps) {
           </div>
         )}
         {isLoading && videos.length === 0 ? (
-          <VideosSkeleton count={10} />
+          <VideosSkeleton count={10} data-testid="videos-skeleton" />
         ) : error ? (
-          <VideosError onRetry={handleRetry} />
+          <VideosError onRetry={handleRetryClick} data-testid="videos-error" />
         ) : videos.length === 0 ? (
-          <VideosEmpty isCollecting={isCollecting} />
+          <VideosEmpty isCollecting={isCollecting} data-testid="videos-empty" />
         ) : (
           Object.entries(groupedVideos).map(([platform, items]) => (
             <div key={platform}>
@@ -135,11 +124,12 @@ export function VideosPanel({ jobId, isCollecting = false }: VideosPanelProps) {
       {total > 10 && (
         <VideosPagination
           total={total}
-          limit={pagination.limit}
-          offset={pagination.offset}
+          limit={limit}
+          offset={offset}
           onPrev={handlePrev}
           onNext={handleNext}
           isLoading={isNavigationLoading}
+          data-testid="videos-pagination"
         />
       )}
     </PanelSection>

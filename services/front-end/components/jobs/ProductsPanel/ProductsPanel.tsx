@@ -1,7 +1,7 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
-import { usePaginatedList } from '@/lib/hooks/usePaginatedList';
+import React, { useEffect, useCallback } from 'react';
+import { usePaginatedListWithPreloading } from '@/lib/hooks/usePaginatedListWithPreloading';
 import { productApiService } from '@/lib/api/services/product.api';
 import { ProductItem } from '@/lib/zod/product';
 import { groupBy } from '@/lib/utils/groupBy';
@@ -23,46 +23,40 @@ interface ProductsPanelProps {
 
 export function ProductsPanel({ jobId, isCollecting = false }: ProductsPanelProps) {
   const t = useTranslations('jobResults');
-  const [products, setProducts] = useState<ProductItem[]>([]);
-  const [total, setTotal] = useState(0);
-  const [isLoading, setIsLoading] = useState(false);
-  const [isNavigationLoading, setIsNavigationLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
-  const pagination = usePaginatedList(0, 10);
+  // Fetch function for the hook
+  const fetchProductsData = useCallback(async (offset: number, limit: number) => {
+    if (!jobId) throw new Error('Job ID is required');
 
-  const fetchProducts = useCallback(async (showNavigationLoading = false, isAlreadyLoading = false) => {
-    if (!jobId) return;
+    return await productApiService.getJobProducts(jobId, {
+      limit,
+      offset,
+    });
+  }, [jobId]);
 
-    try {
-      setIsLoading(true);
-      if (showNavigationLoading && !isAlreadyLoading) {
-        setIsNavigationLoading(true);
-      }
-      setError(null);
+  const {
+    items: products,
+    total,
+    isLoading,
+    isNavigationLoading,
+    error,
+    handlePrev,
+    handleNext,
+    handleRetry,
+    clearCache,
+    fetchFunction: fetchProducts,
+    loadFromCacheOrFetch,
+    offset,
+    limit
+  } = usePaginatedListWithPreloading<ProductItem>(fetchProductsData);
 
-      const response = await productApiService.getJobProducts(jobId, {
-        limit: pagination.limit,
-        offset: pagination.offset,
-      });
 
-      setProducts(response.items);
-      setTotal(response.total);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : t('errors.loadFailed'));
-      setProducts([]);
-      setTotal(0);
-    } finally {
-      setIsLoading(false);
-      setIsNavigationLoading(false);
-    }
-  }, [jobId, pagination.limit, pagination.offset, t]);
 
   useEffect(() => {
     if (!isCollecting) {
-      fetchProducts(true); // Show loading for initial load
+      loadFromCacheOrFetch();
     }
-  }, [fetchProducts, isCollecting]);
+  }, [loadFromCacheOrFetch, isCollecting]);
 
   // Auto-refetch when collecting (without showing navigation loading)
   useEffect(() => {
@@ -75,28 +69,23 @@ export function ProductsPanel({ jobId, isCollecting = false }: ProductsPanelProp
   // Handle navigation changes with loading indicators
   useEffect(() => {
     if (!isCollecting && isNavigationLoading) {
-      fetchProducts(true, true); // Show loading for pagination navigation, already loading
+      loadFromCacheOrFetch();
     }
-  }, [pagination.offset, fetchProducts, isCollecting, isNavigationLoading]);
+  }, [offset, loadFromCacheOrFetch, isCollecting, isNavigationLoading]);
+
+  // Clear cache when job changes
+  useEffect(() => {
+    clearCache();
+  }, [jobId, clearCache]);
 
   const groupedProducts = groupBy(products, p => p.src);
 
-  const handleRetry = () => {
-    fetchProducts(true);
-  };
-
-  const handlePrev = () => {
-    setIsNavigationLoading(true); // Set loading immediately
-    pagination.prev();
-  };
-
-  const handleNext = () => {
-    setIsNavigationLoading(true); // Set loading immediately
-    pagination.next(total);
+  const handleRetryClick = () => {
+    handleRetry();
   };
 
   return (
-    <PanelSection>
+    <PanelSection data-testid="products-panel">
       <PanelHeader
         title={t('products.panelTitle')}
         count={total}
@@ -112,11 +101,11 @@ export function ProductsPanel({ jobId, isCollecting = false }: ProductsPanelProp
           </div>
         )}
         {isLoading && products.length === 0 ? (
-          <ProductsSkeleton count={10} />
+          <ProductsSkeleton count={10} data-testid="products-skeleton" />
         ) : error ? (
-          <ProductsError onRetry={handleRetry} />
+          <ProductsError onRetry={handleRetryClick} data-testid="products-error" />
         ) : products.length === 0 ? (
-          <ProductsEmpty isCollecting={isCollecting} />
+          <ProductsEmpty isCollecting={isCollecting} data-testid="products-empty" />
         ) : (
           Object.entries(groupedProducts).map(([src, items]) => (
             <div key={src}>
@@ -134,11 +123,12 @@ export function ProductsPanel({ jobId, isCollecting = false }: ProductsPanelProp
       {total > 10 && (
         <ProductsPagination
           total={total}
-          limit={pagination.limit}
-          offset={pagination.offset}
+          limit={limit}
+          offset={offset}
           onPrev={handlePrev}
           onNext={handleNext}
           isLoading={isNavigationLoading}
+          data-testid="products-pagination"
         />
       )}
     </PanelSection>

@@ -38,6 +38,7 @@ export function ProductsPagination({
         onClick={onPrev}
         disabled={!canPrev || isLoading}
         className="flex items-center gap-1"
+        data-testid="products-pagination-prev"
       >
         {isLoading ? (
           <Loader2 className="h-4 w-4 animate-spin" />
@@ -47,7 +48,7 @@ export function ProductsPagination({
         {t('previous')}
       </Button>
 
-      <div className="text-sm text-muted-foreground flex items-center gap-2">
+      <div className="text-sm text-muted-foreground flex items-center gap-2" data-testid="products-pagination-current">
         {isLoading && (
           <Loader2 className="h-4 w-4 animate-spin" />
         )}
@@ -66,6 +67,7 @@ export function ProductsPagination({
         onClick={onNext}
         disabled={!canNext || isLoading}
         className="flex items-center gap-1"
+        data-testid="products-pagination-next"
       >
         {t('next')}
         {isLoading ? (

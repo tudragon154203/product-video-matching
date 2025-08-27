@@ -8,13 +8,13 @@ interface VideosErrorProps {
 
 export function VideosError({ onRetry }: VideosErrorProps) {
   const t = useTranslations();
-  
+
   return (
     <div className="text-center py-8">
       <div className="text-destructive font-medium mb-2">
         {t('errors.loadFailed')}
       </div>
-      <Button onClick={onRetry} variant="outline" size="sm">
+      <Button onClick={onRetry} variant="outline" size="sm" data-testid="videos-retry">
         {t('errors.retry')}
       </Button>
     </div>

@@ -38,6 +38,7 @@ export function VideosPagination({
         onClick={onPrev}
         disabled={!canPrev || isLoading}
         className="flex items-center gap-1"
+        data-testid="videos-pagination-prev"
       >
         {isLoading ? (
           <Loader2 className="h-4 w-4 animate-spin" />
@@ -47,7 +48,7 @@ export function VideosPagination({
         {t('previous')}
       </Button>
 
-      <div className="text-sm text-muted-foreground flex items-center gap-2">
+      <div className="text-sm text-muted-foreground flex items-center gap-2" data-testid="videos-pagination-current">
         {isLoading && (
           <Loader2 className="h-4 w-4 animate-spin" />
         )}
@@ -66,6 +67,7 @@ export function VideosPagination({
         onClick={onNext}
         disabled={!canNext || isLoading}
         className="flex items-center gap-1"
+        data-testid="videos-pagination-next"
       >
         {t('next')}
         {isLoading ? (
