@@ -2,12 +2,13 @@ import React from 'react';
 import { cn } from '@/lib/utils';
 
 interface ProductsSkeletonProps {
-  count: number;
+ count: number;
+  'data-testid'?: string;
 }
 
-export function ProductsSkeleton({ count }: ProductsSkeletonProps) {
+export function ProductsSkeleton({ count, 'data-testid': dataTestId }: ProductsSkeletonProps) {
   return (
-    <div className="space-y-3">
+    <div className="space-y-3" data-testid={dataTestId}>
       {Array.from({ length: count }).map((_, index) => (
         <div
           key={index}
