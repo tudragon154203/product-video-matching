@@ -14,37 +14,37 @@ export interface PhaseInfo {
  */
 export const phaseInfo: Record<Phase, PhaseInfo> = {
   unknown: { 
-    label: 'Unknown', 
+    label: 'Status unknown.', 
     color: 'gray',
     description: 'Job status is unknown or not initialized'
   },
   collection: { 
-    label: 'Collection', 
+    label: 'Collecting products and videos…', 
     color: 'blue',
     description: 'Collecting products and videos'
   },
   feature_extraction: { 
-    label: 'Feature Extraction', 
+    label: 'Extracting features (images / video frames)…', 
     color: 'yellow',
     description: 'Extracting features from images and video frames'
   },
   matching: { 
-    label: 'Matching', 
+    label: 'Matching products with videos…', 
     color: 'purple',
     description: 'Finding matches between products and videos'
   },
   evidence: { 
-    label: 'Evidence Building', 
+    label: 'Generating visual evidence…', 
     color: 'orange',
     description: 'Generating visual evidence for matches'
   },
   completed: { 
-    label: 'Completed', 
+    label: '✅ Completed!', 
     color: 'green',
     description: 'Job completed successfully'
   },
   failed: { 
-    label: 'Failed', 
+    label: '❌ Job failed.', 
     color: 'red',
     description: 'Job failed during processing'
   },
