@@ -9,6 +9,10 @@ interface UseJobStatusPollingResult {
   isLoading: boolean;
   error: string | null;
   refetch: () => Promise<void>;
+  counts: {
+    products: number;
+    videos: number;
+  };
 }
 
 const POLLING_INTERVAL = 5000; // 5 seconds
@@ -70,5 +74,9 @@ export function useJobStatusPolling(
     isLoading,
     error,
     refetch: fetchStatus,
+    counts: {
+      products: 0, // TODO: Implement actual counts from API response
+      videos: 0, // TODO: Implement actual counts from API response
+    },
   };
 }

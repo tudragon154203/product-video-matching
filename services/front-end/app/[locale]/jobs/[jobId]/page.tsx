@@ -6,6 +6,7 @@ import { useJobStatusPolling } from '@/lib/hooks/useJobStatusPolling';
 import { JobSplitView } from '@/components/jobs/JobSplitView';
 import { ProductsPanel } from '@/components/jobs/ProductsPanel';
 import { VideosPanel } from '@/components/jobs/VideosPanel';
+import { JobStatusHeader } from '@/components/jobs/JobStatusHeader';
 import { jobApiService } from '@/lib/api/services/job.api';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 
@@ -58,10 +59,13 @@ export default function JobDetailsPage({ params }: JobDetailsPageProps) {
             <div className="h-4 bg-muted rounded animate-pulse w-3/4" />
           </div>
         }>
-          <JobSplitView
-            left={<ProductsPanel jobId={jobId} isCollecting={isCollecting} />}
-            right={<VideosPanel jobId={jobId} isCollecting={isCollecting} />}
-          />
+          <div className="space-y-6">
+            <JobStatusHeader jobId={jobId} isCollecting={isCollecting} />
+            <JobSplitView
+              left={<ProductsPanel jobId={jobId} isCollecting={isCollecting} />}
+              right={<VideosPanel jobId={jobId} isCollecting={isCollecting} />}
+            />
+          </div>
         </Suspense>
       </div>
     </div>

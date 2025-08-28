@@ -17,7 +17,7 @@ interface JobListCardProps {
   error: Error | null
 }
 
-export function JobListCard({ jobs, groupedJobs, isLoading, error }: JobListCardProps) {
+export function JobListCard({ jobs = [], groupedJobs = {}, isLoading, error }: JobListCardProps) {
   const t = useTranslations('jobs')
   const tNav = useTranslations('navigation')
 

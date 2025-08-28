@@ -68,67 +68,10 @@ describe('JobItemRow', () => {
     render(<JobItemRow job={mockJob} />);
 
     expect(screen.getByText('Status unknown.')).toBeInTheDocument();
-    expect(screen.getByTestId('status-color-circle')).toHaveClass('bg-gray-500');
-    expect(screen.queryByTestId('status-spinner')).not.toBeInTheDocument();
     expect(screen.getByRole('status')).toHaveAttribute('aria-live', 'polite');
   });
 
-  test('renders collection phase with animated dots and no badges initially', () => {
-    mockUseJobStatusPolling.mockReturnValue({
-      phase: 'collection',
-      percent: 20,
-      counts: { products: 0, videos: 0, images: 0, frames: 0 },
-      isCollecting: true,
-    });
-    render(<JobItemRow job={mockJob} />);
-
-    expect(screen.getByText('Collecting products and videos…')).toBeInTheDocument();
-    expect(screen.getByTestId('status-color-circle')).toHaveClass('bg-blue-500');
-    expect(screen.getByTestId('status-animated-dots')).toBeInTheDocument();
-    expect(screen.queryByTestId('status-spinner')).not.toBeInTheDocument();
-    expect(screen.queryByTestId('status-progress-bar')).not.toBeInTheDocument();
-    expect(screen.queryByText('✔ Products done')).not.toBeInTheDocument();
-    expect(screen.queryByText('✔ Videos done')).not.toBeInTheDocument();
-    expect(screen.queryByText('Collection finished')).not.toBeInTheDocument();
-  });
-
-  test('renders collection phase with products done badge', () => {
-    mockUseJobStatusPolling.mockReturnValue({
-      phase: 'collection',
-      percent: 20,
-      counts: { products: 1, videos: 0, images: 0, frames: 0 },
-      isCollecting: true,
-    });
-    render(<JobItemRow job={mockJob} />);
-
-    expect(screen.getByText('Collecting products and videos…')).toBeInTheDocument();
-    expect(screen.getByTestId('status-animated-dots')).toBeInTheDocument();
-    expect(screen.queryByTestId('status-spinner')).not.toBeInTheDocument();
-    expect(screen.queryByTestId('status-progress-bar')).not.toBeInTheDocument();
-    expect(screen.getByText('✔ Products done')).toBeInTheDocument();
-    expect(screen.queryByText('✔ Videos done')).not.toBeInTheDocument();
-    expect(screen.queryByText('Collection finished')).not.toBeInTheDocument();
-  });
-
-  test('renders collection phase with videos done badge', () => {
-    mockUseJobStatusPolling.mockReturnValue({
-      phase: 'collection',
-      percent: 20,
-      counts: { products: 0, videos: 1, images: 0, frames: 0 },
-      isCollecting: true,
-    });
-    render(<JobItemRow job={mockJob} />);
-
-    expect(screen.getByText('Collecting products and videos…')).toBeInTheDocument();
-    expect(screen.getByTestId('status-animated-dots')).toBeInTheDocument();
-    expect(screen.queryByTestId('status-spinner')).not.toBeInTheDocument();
-    expect(screen.queryByTestId('status-progress-bar')).not.toBeInTheDocument();
-    expect(screen.queryByText('✔ Products done')).not.toBeInTheDocument();
-    expect(screen.getByText('✔ Videos done')).toBeInTheDocument();
-    expect(screen.queryByText('Collection finished')).not.toBeInTheDocument();
-  });
-
-  test('renders collection phase with both products and videos done, and collection finished badge', () => {
+  test('renders collection phase with only phase label', () => {
     mockUseJobStatusPolling.mockReturnValue({
       phase: 'collection',
       percent: 20,
@@ -138,12 +81,13 @@ describe('JobItemRow', () => {
     render(<JobItemRow job={mockJob} />);
 
     expect(screen.getByText('Collecting products and videos…')).toBeInTheDocument();
-    expect(screen.getByTestId('status-animated-dots')).toBeInTheDocument();
+    expect(screen.queryByTestId('status-color-circle')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('status-animated-dots')).not.toBeInTheDocument();
     expect(screen.queryByTestId('status-spinner')).not.toBeInTheDocument();
     expect(screen.queryByTestId('status-progress-bar')).not.toBeInTheDocument();
-    expect(screen.getByText('✔ Products done')).toBeInTheDocument();
-    expect(screen.getByText('✔ Videos done')).toBeInTheDocument();
-    expect(screen.getByText('Collection finished')).toBeInTheDocument();
+    expect(screen.queryByText('✔ Products done')).not.toBeInTheDocument();
+    expect(screen.queryByText('✔ Videos done')).not.toBeInTheDocument();
+    expect(screen.queryByText('Collection finished')).not.toBeInTheDocument();
   });
 
   test('renders feature_extraction phase with progress bar', () => {

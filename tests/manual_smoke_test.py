@@ -18,7 +18,6 @@ logger = configure_logging("smoke-test")
 
 # Service URLs
 MAIN_API_URL = config.MAIN_API_URL
-RESULTS_API_URL = config.RESULTS_API_URL
 
 
 async def run_smoke_test():
@@ -65,7 +64,6 @@ async def check_service_health(client):
     
     services = [
         ("Main API", f"{MAIN_API_URL}/health"),
-        ("Results API", f"{RESULTS_API_URL}/health")
     ]
     
     for service_name, health_url in services:

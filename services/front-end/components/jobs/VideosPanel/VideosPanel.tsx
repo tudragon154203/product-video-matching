@@ -34,7 +34,7 @@ export function VideosPanel({ jobId, isCollecting = false }: VideosPanelProps) {
   }, [jobId]);
 
   const {
-    items: videos,
+    items: videos = [],
     total,
     isLoading,
     isNavigationLoading,
@@ -51,7 +51,7 @@ export function VideosPanel({ jobId, isCollecting = false }: VideosPanelProps) {
     isCollecting,
     limit: 10,
     fetchFunction: fetchVideosData,
-    queryKey: (offset, limit) => queryKeys.videos.byJob(jobId, { offset, limit }),
+    queryKey: (offset, limit) => [...queryKeys.videos.byJob(jobId, { offset, limit })],
     enabled: !!jobId,
   });
 

@@ -1,0 +1,88 @@
+'use client'
+
+import { getPhaseInfo } from '@/lib/api/utils/phase'
+import type { Phase } from '@/lib/zod/job'
+import { Badge } from '@/components/ui/badge'
+import { useJobStatusPolling } from '@/lib/hooks/useJobStatusPolling'
+
+interface JobStatusHeaderProps {
+  jobId: string;
+  isCollecting?: boolean;
+}
+
+export function JobStatusHeader({ jobId, isCollecting = false }: JobStatusHeaderProps) {
+  const { phase: currentPhase, percent, counts } = useJobStatusPolling(jobId);
+  const phaseInfo = getPhaseInfo(currentPhase as Phase);
+
+  // Determine if products/videos are done for collection phase
+  const productsDone = counts?.products > 0; // Safely handle undefined counts
+  const videosDone = counts?.videos > 0; // Safely handle undefined counts
+  const collectionFinished = currentPhase === 'collection' && productsDone && videosDone;
+
+  // Phase-specific effects
+  const renderPhaseEffect = () => {
+    if (!phaseInfo || !phaseInfo.effect) {
+      return null;
+    }
+
+    switch (phaseInfo.effect) {
+      case 'spinner':
+        return (
+          <div data-testid="status-spinner" className="animate-spin rounded-full h-5 w-5 border-b-2 border-gray-900"></div>
+        );
+      case 'progress-bar':
+        return (
+          <div data-testid="status-progress-bar" className="w-3 h-3">
+            <div className="animate-pulse h-1 w-full bg-current rounded"></div>
+          </div>
+        );
+      case 'animated-dots':
+        return (
+          <div data-testid="status-animated-dots" className="flex space-x-1">
+            <div className="h-1 w-1 bg-current rounded-full animate-bounce"></div>
+            <div className="h-1 w-1 bg-current rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+            <div className="h-1 w-1 bg-current rounded-full animate-bounce" style={{ animationDelay: '0.4s' }}></div>
+          </div>
+        );
+      default:
+        return null;
+    }
+  };
+
+  if (!phaseInfo) {
+    return null;
+  }
+
+  return (
+    <div className="flex items-center space-x-4 py-4 border-b">
+      <div className="flex items-center space-x-2">
+        {/* Phase-specific effects */}
+        {isCollecting && renderPhaseEffect()}
+        <div
+          data-testid="status-color-circle" className={`h-4 w-4 rounded-full bg-${phaseInfo.color}-500`}
+        />
+        <Badge variant="secondary" className="text-xs">
+          {phaseInfo.label}
+        </Badge>
+      </div>
+
+      {/* Collection phase badges */}
+      {currentPhase === 'collection' && productsDone && (
+        <Badge variant="outline" className="text-xs">✔ Products done</Badge>
+      )}
+      {currentPhase === 'collection' && videosDone && (
+        <Badge variant="outline" className="text-xs">✔ Videos done</Badge>
+      )}
+      {collectionFinished && (
+        <Badge variant="default" className="text-xs">Collection finished</Badge>
+      )}
+
+      {percent !== undefined && (
+        <div className="flex items-center space-x-1 text-sm text-muted-foreground">
+          <span>Progress:</span>
+          <span className="font-medium">{percent}%</span>
+        </div>
+      )}
+    </div>
+  );
+}

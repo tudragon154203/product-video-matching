@@ -18,35 +18,10 @@ export function JobItemRow({ job }: JobItemRowProps) {
   const displayDate = job.updated_at || job.created_at;
 
   // Determine if products/videos are done for collection phase
-  const productsDone = counts.products > 0;
-  const videosDone = counts.videos > 0;
+  const productsDone = counts?.products > 0; // Safely handle undefined counts
+  const videosDone = counts?.videos > 0; // Safely handle undefined counts
   const collectionFinished = currentPhase === 'collection' && productsDone && videosDone;
 
-  // Phase-specific effects
-  const renderPhaseEffect = () => {
-    switch (phaseInfo.effect) {
-      case 'spinner':
-        return (
-          <div data-testid="status-spinner" className="animate-spin rounded-full h-3 w-3 border-b-2 border-gray-900"></div>
-        );
-      case 'progress-bar':
-        return (
-          <div data-testid="status-progress-bar" className="w-3 h-3">
-            <div className="animate-pulse h-1 w-full bg-current rounded"></div>
-          </div>
-        );
-      case 'animated-dots':
-        return (
-          <div data-testid="status-animated-dots" className="flex space-x-1">
-            <div className="h-1 w-1 bg-current rounded-full animate-bounce"></div>
-            <div className="h-1 w-1 bg-current rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
-            <div className="h-1 w-1 bg-current rounded-full animate-bounce" style={{ animationDelay: '0.4s' }}></div>
-          </div>
-        );
-      default:
-        return null;
-    }
-  };
 
   return (
     <Link
@@ -57,24 +32,23 @@ export function JobItemRow({ job }: JobItemRowProps) {
       <div className="space-y-2">
         <div className="flex items-center justify-between">
           <h4 className="font-medium text-sm truncate">{job.query}</h4>
-          <div className="flex items-center space-x-1" aria-live="polite" role="status">
-            {/* Phase-specific effects */}
-            {currentPhase !== 'unknown' && currentPhase !== 'completed' && currentPhase !== 'failed' && renderPhaseEffect()}
-            <div
-              data-testid="status-color-circle" className={`h-2 w-2 rounded-full bg-${phaseInfo.color}-500`}
-            />
-            <Badge variant="secondary" className="text-xs">
-              {phaseInfo.label}
-            </Badge>
-            {/* Collection phase badges */}
-            {currentPhase === 'collection' && productsDone && (
-              <Badge variant="outline" className="text-xs">✔ Products done</Badge>
-            )}
-            {currentPhase === 'collection' && videosDone && (
-              <Badge variant="outline" className="text-xs">✔ Videos done</Badge>
-            )}
-            {collectionFinished && (
-              <Badge variant="default" className="text-xs">Collection finished</Badge>
+          <div className="flex items-center space-x-2" aria-live="polite" role="status">
+            {phaseInfo && (
+              <>
+                <div
+                  data-testid="status-color-circle" className={`h-2 w-2 rounded-full ${phaseInfo.color === 'blue' ? 'bg-blue-500' :
+                      phaseInfo.color === 'yellow' ? 'bg-yellow-500' :
+                        phaseInfo.color === 'purple' ? 'bg-purple-500' :
+                          phaseInfo.color === 'orange' ? 'bg-orange-500' :
+                            phaseInfo.color === 'green' ? 'bg-green-500' :
+                              phaseInfo.color === 'red' ? 'bg-red-500' :
+                                'bg-gray-500'
+                    }`}
+                />
+                <span className="text-xs text-muted-foreground">
+                  {phaseInfo.label.replace('…', '')}
+                </span>
+              </>
             )}
           </div>
         </div>

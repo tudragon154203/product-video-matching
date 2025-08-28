@@ -104,7 +104,3 @@ def test_data():
 def main_api_url():
     return config.MAIN_API_URL
 
-
-@pytest.fixture
-def results_api_url():
-    return config.RESULTS_API_URL

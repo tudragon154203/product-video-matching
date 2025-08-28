@@ -33,7 +33,7 @@ export function ProductsPanel({ jobId, isCollecting = false }: ProductsPanelProp
   }, [jobId]);
 
   const {
-    items: products,
+    items: products = [],
     total,
     isLoading,
     isNavigationLoading,
@@ -50,7 +50,7 @@ export function ProductsPanel({ jobId, isCollecting = false }: ProductsPanelProp
     isCollecting,
     limit: 10,
     fetchFunction: fetchProductsData,
-    queryKey: (offset, limit) => queryKeys.products.byJob(jobId, { offset, limit }),
+    queryKey: (offset, limit) => [...queryKeys.products.byJob(jobId, { offset, limit })],
     enabled: !!jobId,
   });
 
