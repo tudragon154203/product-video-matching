@@ -56,7 +56,7 @@ class VideoCrawlerService:
                 elif platform == "tiktok":
                     platform_download_dirs[platform] = os.path.join(config.VIDEO_DIR, "tiktok")
                 else:
-                    platform_download_dirs[platform] = str(self.keyframe_extractor.videos_dir / platform)
+                    platform_download_dirs[platform] = os.path.join(config.VIDEO_DIR, platform)
                 
                 Path(platform_download_dirs[platform]).mkdir(parents=True, exist_ok=True)
             
