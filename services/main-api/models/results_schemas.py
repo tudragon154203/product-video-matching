@@ -42,6 +42,7 @@ class MatchResponse(BaseModel):
     ts: Optional[float] = Field(None, description="Timestamp in video")
     score: float = Field(..., description="Match confidence score")
     evidence_path: Optional[str] = Field(None, description="Path to evidence image")
+    evidence_url: Optional[str] = Field(None, description="Public URL to evidence image")
     created_at: str = Field(..., description="Match creation timestamp")
     
     # Enriched fields
@@ -59,6 +60,7 @@ class MatchDetailResponse(BaseModel):
     ts: Optional[float] = Field(None, description="Timestamp in video")
     score: float = Field(..., description="Match confidence score")
     evidence_path: Optional[str] = Field(None, description="Path to evidence image")
+    evidence_url: Optional[str] = Field(None, description="Public URL to evidence image")
     created_at: str = Field(..., description="Match creation timestamp")
     
     product: ProductResponse = Field(..., description="Product details")
@@ -86,3 +88,4 @@ class MatchListResponse(BaseModel):
 class EvidenceResponse(BaseModel):
     """Evidence image response schema"""
     evidence_path: str = Field(..., description="Path to evidence image file")
+    evidence_url: Optional[str] = Field(None, description="Public URL to evidence image")

@@ -12,6 +12,8 @@ from models.results_schemas import (
 from services.results.results_service import ResultsService
 from common_py.database import DatabaseManager
 from api.dependency import get_db
+from config_loader import config
+from utils.image_utils import to_public_url
 
 logger = logging.getLogger(__name__)
 

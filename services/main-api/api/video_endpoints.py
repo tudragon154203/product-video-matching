@@ -5,9 +5,9 @@ from datetime import datetime, timezone
 import pytz
 
 from models.schemas import (
-    VideoListResponse, 
-    FrameListResponse, 
-    VideoItem, 
+    VideoListResponse,
+    FrameListResponse,
+    VideoItem,
     FrameItem
 )
 from services.job.job_service import JobService
@@ -16,6 +16,8 @@ from common_py.crud.video_frame_crud import VideoFrameCRUD
 from common_py.database import DatabaseManager # Import DatabaseManager
 from common_py.messaging import MessageBroker # Import MessageBroker
 from api.dependency import get_db, get_broker
+from config_loader import config
+from utils.image_utils import to_public_url
 
 router = APIRouter()
 
@@ -186,10 +188,14 @@ async def get_video_frames(
         # Convert to response format and ensure datetime is in GMT+7
         frame_items = []
         for frame in frames:
+            # Generate public URL for the frame image
+            public_url = to_public_url(frame.local_path, config.DATA_ROOT_CONTAINER)
+            
             frame_item = FrameItem(
                 frame_id=frame.frame_id,
                 ts=frame.ts,
                 local_path=frame.local_path,
+                url=public_url,  # Add public URL field
                 updated_at=get_gmt7_time(frame.created_at)
             )
             frame_items.append(frame_item)

@@ -60,6 +60,9 @@ class MainAPIConfig:
     
     # Message broker configuration (from global config)
     BUS_BROKER: str = global_config.BUS_BROKER
+    
+    # Data root configuration for static file serving
+    DATA_ROOT_CONTAINER: str = os.getenv("DATA_ROOT_CONTAINER", "/app/data")
 
 # Create config instance
 config = MainAPIConfig()

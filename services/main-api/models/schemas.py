@@ -63,6 +63,7 @@ class FrameItem(BaseModel):
     frame_id: str
     ts: float
     local_path: str
+    url: Optional[str] = None  # New field for public URL
     updated_at: datetime
 
 
@@ -79,6 +80,7 @@ class ImageItem(BaseModel):
     img_id: str
     product_id: str
     local_path: str
+    url: Optional[str] = None  # New field for public URL
     product_title: str
     updated_at: datetime
 

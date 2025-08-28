@@ -6,7 +6,7 @@ import type { Phase } from '@/lib/zod/job'
 import { formatToGMT7 } from '@/lib/time'
 import { Badge } from '@/components/ui/badge'
 import Link from 'next/link'
-import { useJobStatusPolling } from '@/lib/hooks/useJobStatusPolling';
+import { useJobStatusPolling } from '@/lib/hooks/useJobStatusPolling'
 
 interface JobItemRowProps {
   job: JobItem

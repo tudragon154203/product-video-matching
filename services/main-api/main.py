@@ -27,12 +27,14 @@ from api.job_endpoints import router as job_router
 from api.health_endpoints import router as health_router
 from api.video_endpoints import router as video_router
 from api.image_endpoints import router as image_router
+from api.static_endpoints import router as static_router
 from api.product_endpoints import router as product_router
 from api.features_endpoints import router as features_router
 from api.results_endpoints import router as results_router
 
 # Import middleware
 from middleware.cors import add_cors_middleware
+from middleware.static_file_logging import StaticFileLoggingMiddleware
 
 # Get shared instances only for lifecycle handler
 db = get_db()
@@ -60,12 +62,14 @@ app = FastAPI(title="Main API Service", version="1.0.0", lifespan=lifespan)
 
 # Configure middleware
 add_cors_middleware(app)
+app.add_middleware(StaticFileLoggingMiddleware)
 
 # Include API routers
 app.include_router(job_router)
 app.include_router(health_router)
 app.include_router(video_router)
 app.include_router(image_router)
+app.include_router(static_router)
 app.include_router(product_router)
 app.include_router(features_router)
 app.include_router(results_router)

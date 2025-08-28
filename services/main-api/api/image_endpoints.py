@@ -5,7 +5,7 @@ from datetime import datetime, timezone
 import pytz
 
 from models.schemas import (
-    ImageListResponse, 
+    ImageListResponse,
     ImageItem
 )
 from services.job.job_service import JobService
@@ -13,7 +13,9 @@ from common_py.crud.product_image_crud import ProductImageCRUD
 from common_py.crud.product_crud import ProductCRUD
 from common_py.database import DatabaseManager # Import DatabaseManager
 from common_py.messaging import MessageBroker # Import MessageBroker
-from api.dependency import get_db, get_broker
+from api.dependency import get_db, get_broker, get_job_service, get_product_image_crud, get_product_crud
+from config_loader import config
+from services.static_file_service import StaticFileService
 
 router = APIRouter()
 
@@ -95,10 +97,15 @@ async def get_job_images(
         # Convert to response format and ensure datetime is in GMT+7
         image_items = []
         for image in images:
+            # Generate full URL for the image (API route based)
+            relative_path = os.path.relpath(image.local_path, config.DATA_ROOT_CONTAINER)
+            public_url = f"{config.BASE_URL}/files/{relative_path.replace(os.sep, '/')}"
+            
             image_item = ImageItem(
                 img_id=image.img_id,
                 product_id=image.product_id,
                 local_path=image.local_path,
+                url=public_url,  # Add public URL field
                 product_title=getattr(image, 'product_title', ''),  # Get product_title from joined query
                 updated_at=get_gmt7_time(image.updated_at or image.created_at)
             )
