@@ -151,7 +151,7 @@ class TestTikTokCrawler:
             is_healthy = await crawler.health_check()
             
             assert is_healthy is True
-            mock_search.assert_called_once_with(queries=["test"], recency_days=7, num_videos=1)
+            mock_search.assert_called_once_with(queries=["test"], recency_days=365, num_videos=1)
     
     @pytest.mark.asyncio
     async def test_health_check_failure(self, crawler):
