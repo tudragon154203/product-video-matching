@@ -146,10 +146,11 @@ async def check_results(client, job_id):
     logger.info(f"Checking results... (job_id: {job_id})")
     
     # Get results for the job
-    response = await client.get(f"{RESULTS_API_URL}/results", params={"job_id": job_id})
+    response = await client.get(f"{MAIN_API_URL}/results", params={"job_id": job_id, "limit": 10})
     response.raise_for_status()
     
-    results = response.json()
+    results_data = response.json()
+    results = results_data["items"]
     
     logger.info(f"Results retrieved (job_id: {job_id}, result_count: {len(results)})")
     
@@ -178,7 +179,7 @@ async def check_results(client, job_id):
         
         # Test detailed match endpoint
         match_id = first_result["match_id"]
-        response = await client.get(f"{RESULTS_API_URL}/matches/{match_id}")
+        response = await client.get(f"{MAIN_API_URL}/matches/{match_id}")
         response.raise_for_status()
         
         match_detail = response.json()
@@ -194,15 +195,16 @@ async def test_api_endpoints(http_client):
     logger.info("Testing API endpoints...")
     
     # Test stats endpoint
-    response = await http_client.get(f"{RESULTS_API_URL}/stats")
+    response = await http_client.get(f"{MAIN_API_URL}/stats")
     response.raise_for_status()
     stats = response.json()
     logger.info(f"System stats: {stats}")
     
     # Test results with filters
-    response = await http_client.get(f"{RESULTS_API_URL}/results", params={"min_score": 0.5})
+    response = await http_client.get(f"{MAIN_API_URL}/results", params={"min_score": 0.5, "limit": 10})
     response.raise_for_status()
-    filtered_results = response.json()
+    filtered_results_data = response.json()
+    filtered_results = filtered_results_data["items"]
     logger.info(f"Filtered results (count: {len(filtered_results)})")
 
 

@@ -59,7 +59,7 @@ const TestComponentWithControls: React.FC<{ children?: React.ReactNode }> = ({ c
   return (
     <Providers>
       <LoadingScreenProvider>
-        <div>
+        <div data-testid="page-container">
           <LoadingScreenControls />
           {children}
         </div>
@@ -257,7 +257,8 @@ describe('Loading Screen Unit Tests', () => {
     
     // Get the main page container (this would be the one with aria-busy)
     // The page container is the div that wraps the children in the LoadingScreenProvider
-    const pageContainer = screen.getByTestId('page-container');
+    // We need to get the div that has the aria-busy attribute
+    const pageContainer = screen.getByText('Page Content').closest('div[aria-busy]');
     
     // Initially, aria-busy should be false
     expect(pageContainer).toHaveAttribute('aria-busy', 'false');

@@ -105,7 +105,7 @@ export const LoadingScreenProvider: React.FC<LoadingScreenProviderProps> = ({
 
   return (
     <LoadingScreenContext.Provider value={{ startLoading, endLoading, isLoading: showOverlay }}>
-      <div aria-busy={showOverlay ? 'true' : 'false'} data-testid="page-container">
+      <div aria-busy={showOverlay ? 'true' : 'false'}>
         {children}
       </div>
       {showOverlay && (
