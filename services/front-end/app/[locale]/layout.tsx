@@ -1,5 +1,4 @@
 import type { Metadata } from 'next'
-import { Inter } from 'next/font/google'
 import { NextIntlClientProvider } from 'next-intl'
 import { getMessages, getTranslations } from 'next-intl/server'
 import { Providers } from '@/components/ui/providers'
@@ -8,8 +7,7 @@ import { JobSidebar } from '@/components/job-sidebar'
 import { HydrationErrorSuppressor } from '@/components/hydration-error-suppressor'
 import { notFound } from 'next/navigation'
 import './globals.css'
-
-const inter = Inter({ subsets: ['latin'] })
+import '@/public/fonts/inter.css'
 
 export const metadata: Metadata = {
   title: 'Product Video Matching',
@@ -29,9 +27,9 @@ export default async function LocaleLayout({
 
   const messages = await getMessages({ locale })
 
-  return (
+ return (
     <html lang={locale} suppressHydrationWarning>
-      <body className={inter.className}>
+      <body className="font-inter">
         <HydrationErrorSuppressor />
         <NextIntlClientProvider messages={messages}>
           <Providers>

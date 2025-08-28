@@ -117,6 +117,7 @@ services:
     volumes:
       - ../../services/front-end:/app
       - node_modules:/app/node_modules
+      - ../../${DATA_ROOT_HOST}:${DATA_ROOT_CONTAINER}
     depends_on:
       main-api:
         condition: service_healthy

@@ -7,7 +7,7 @@ export function formatToGMT7(dateString: string | null): string {
   
   try {
     const date = new Date(dateString);
-    return format(date, 'yyyy-MM-dd HH:mm:ss XXX');
+    return format(date, 'yyyy-MM-dd HH:mm:ss');
   } catch (error) {
     return 'Invalid date';
   }

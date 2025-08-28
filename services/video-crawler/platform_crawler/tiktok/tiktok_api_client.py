@@ -53,32 +53,26 @@ class TikTokApiClient:
             # Initialize TikTok API
             self.api = TikTokApi()
             
-            # Prepare session options compatible with TikTokApi 6.2.2
-            # This version has fewer parameters and different browser handling
-            session_options = {
+            # Prepare arguments for create_sessions
+            create_session_args = {
                 "ms_tokens": [self.ms_token] if self.ms_token else [],
-                "num_sessions": 1,  # Single session for stability
-                "sleep_after": 5,  # Longer delay for better compatibility
+                "browser": self.browser,
+                "headless": self.headless,
+                "num_sessions": 1,
+                "sleep_after": 5,
+                "timeout": 60000,
             }
-            
-            # Add headless parameter if supported and configured
-            # This allows visual verification when headless=False
-            try:
-                session_options["headless"] = self.headless
-                logger.info(f"Using headless mode: {self.headless}")
-            except Exception:
-                logger.warning("Headless parameter not supported in this TikTok API version")
-            
-            # Only add proxy if specifically configured and not empty
+
+            # Add proxy if configured
             if self.proxy_url and self.proxy_url.strip():
-                session_options["proxy"] = self.proxy_url
-            
-            logger.info("Initializing TikTok API with compatible options", options=session_options)
+                create_session_args["proxies"] = [self.proxy_url]
+
+            logger.info("Initializing TikTok API with compatible options", options=create_session_args)
             
             # Try to create sessions with extended timeout and better error handling
             try:
                 await asyncio.wait_for(
-                    self.api.create_sessions(**session_options),
+                    self.api.create_sessions(**create_session_args),
                     timeout=60  # Extended timeout for browser startup
                 )
                 self._session_initialized = True
@@ -94,6 +88,10 @@ class TikTokApiClient:
                         "ms_tokens": [self.ms_token] if self.ms_token else [],
                         "num_sessions": 1,
                         "sleep_after": 3,
+                        "browser": self.browser,
+                        "headless": self.headless,
+                        "proxies": [self.proxy_url] if self.proxy_url and self.proxy_url.strip() else [],
+                        "timeout": 60000,
                     }
                     await asyncio.wait_for(
                         self.api.create_sessions(**minimal_options),

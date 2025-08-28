@@ -48,28 +48,5 @@ class MockPlatformCrawler(PlatformCrawlerInterface):
                 
                 mock_videos.append(video)
         
-        # Create dummy video files
-        for video in mock_videos:
-            await self._create_dummy_video_file(video["local_path"])
-        
         return mock_videos
     
-    async def _create_dummy_video_file(self, file_path: str):
-        """
-        Create a dummy video file for testing purposes
-        
-        Args:
-            file_path: Path where the dummy file should be created
-        """
-        # Create a small dummy file (in reality, this would be an actual video)
-        try:
-            with open(file_path, 'w') as f:
-                f.write(f"This is a mock video file for {self.platform_name} platform.\
-")
-                f.write("In a real implementation, this would be an actual video file.\
-")
-                f.write("File created at: " + str(datetime.utcnow()) + "\
-")
-        except Exception as e:
-            # In a real implementation, we would handle this more gracefully
-            pass
