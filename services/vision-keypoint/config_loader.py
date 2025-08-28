@@ -38,6 +38,9 @@ class VisionKeypointConfig:
     DATA_ROOT: str = global_config.DATA_ROOT_CONTAINER
     IMG_SIZE: tuple[int, int] = global_config.IMG_SIZE
     
+    # Keypoint directory
+    KEYPOINT_DIR: str = os.getenv("KEYPOINT_DIR", "./keypoints")
+    
     # Logging (from global config)
     LOG_LEVEL: str = global_config.LOG_LEVEL
 

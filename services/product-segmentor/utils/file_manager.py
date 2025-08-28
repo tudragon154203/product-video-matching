@@ -28,14 +28,14 @@ class FileManager:
         self.people_mask_base_path = Path(people_mask_dir_path)
         self.product_mask_base_path = Path(product_mask_dir_path)
 
-        self.foreground_products_dir = self.foreground_mask_base_path / "products"
-        self.foreground_frames_dir = self.foreground_mask_base_path / "frames"
+        self.foreground_products_dir = self.foreground_mask_base_path / "product_images"
+        self.foreground_frames_dir = self.foreground_mask_base_path / "video_frames"
 
-        self.people_products_dir = self.people_mask_base_path / "products"
-        self.people_frames_dir = self.people_mask_base_path / "frames"
+        self.people_products_dir = self.people_mask_base_path / "product_images"
+        self.people_frames_dir = self.people_mask_base_path / "video_frames"
 
-        self.product_products_dir = self.product_mask_base_path / "products"
-        self.product_frames_dir = self.product_mask_base_path / "frames"
+        self.product_products_dir = self.product_mask_base_path / "product_images"
+        self.product_frames_dir = self.product_mask_base_path / "video_frames"
         
     async def initialize(self) -> None:
         """Initialize directory structure."""

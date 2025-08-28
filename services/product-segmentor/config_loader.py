@@ -38,9 +38,9 @@ class ProductSegmentorConfig:
     IMG_SIZE: tuple[int, int] = global_config.IMG_SIZE
     
     # File paths
-    FOREGROUND_MASK_DIR_PATH: str = os.getenv("FOREGROUND_MASK_DIR_PATH", "data/masks_foreground")
-    PEOPLE_MASK_DIR_PATH: str = os.getenv("PEOPLE_MASK_DIR_PATH", "data/masks_people")
-    PRODUCT_MASK_DIR_PATH: str = os.getenv("PRODUCT_MASK_DIR_PATH", "data/masks_product")
+    FOREGROUND_MASK_DIR_PATH: str = os.path.join(global_config.DATA_ROOT_CONTAINER, os.getenv("FOREGROUND_MASK_REL_PATH", "./masks_foreground"))
+    PEOPLE_MASK_DIR_PATH: str = os.path.join(global_config.DATA_ROOT_CONTAINER, os.getenv("PEOPLE_MASK_REL_PATH", "./masks_people"))
+    PRODUCT_MASK_DIR_PATH: str = os.path.join(global_config.DATA_ROOT_CONTAINER, os.getenv("PRODUCT_MASK_REL_PATH", "./masks_product"))
     
     # Database configuration (from global config)
     POSTGRES_DSN: str = global_config.POSTGRES_DSN
@@ -49,7 +49,6 @@ class ProductSegmentorConfig:
     BUS_BROKER: str = global_config.BUS_BROKER
     
     # Data root (from global config)
-    DATA_ROOT: str = global_config.DATA_ROOT_CONTAINER
     FOREGROUND_SEG_MODEL_CACHE: str = global_config.MODEL_CACHE
     
     # Logging

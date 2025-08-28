@@ -13,7 +13,7 @@ class KeypointExtractor:
     
     def __init__(self, data_root: str):
         self.data_root = Path(data_root)
-        self.kp_dir = self.data_root / "kp"
+        self.kp_dir = self.data_root / Path(config.KEYPOINT_DIR)
         self.kp_dir.mkdir(parents=True, exist_ok=True)
         
         # Initialize detectors

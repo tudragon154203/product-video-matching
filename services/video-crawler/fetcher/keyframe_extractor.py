@@ -5,6 +5,7 @@ from typing import List, Tuple
 import cv2
 import numpy as np
 from common_py.logging_config import configure_logging
+from config_loader import config
 
 logger = configure_logging("video-crawler")
 
@@ -12,10 +13,9 @@ logger = configure_logging("video-crawler")
 class KeyframeExtractor:
     """Handles keyframe extraction from videos"""
     
-    def __init__(self, data_root: str):
-        self.data_root = Path(data_root)
-        self.videos_dir = self.data_root / "videos"
-        self.videos_dir.mkdir(parents=True, exist_ok=True)
+    def __init__(self):
+        self.keyframe_root_dir = Path(config.KEYFRAME_DIR)
+        self.keyframe_root_dir.mkdir(parents=True, exist_ok=True)
     
     async def extract_keyframes(self, video_url: str, video_id: str) -> List[Tuple[float, str]]:
         """
@@ -23,9 +23,9 @@ class KeyframeExtractor:
         In production, this would download the video and extract real frames
         """
         try:
-            # Create video directory
-            video_dir = self.videos_dir / video_id / "frames"
-            video_dir.mkdir(parents=True, exist_ok=True)
+            # Create keyframes directory
+            keyframe_dir = self.keyframe_root_dir / video_id 
+            keyframe_dir.mkdir(parents=True, exist_ok=True)
             
             # For MVP, create dummy frames instead of downloading real video
             keyframes = []
@@ -34,7 +34,7 @@ class KeyframeExtractor:
             timestamps = [10.0, 30.0, 60.0, 90.0, 120.0]
             
             for i, ts in enumerate(timestamps):
-                frame_path = video_dir / f"frame_{i}.jpg"
+                frame_path = keyframe_dir / f"frame_{i}.jpg"
                 
                 # Create a dummy frame (colored rectangle with timestamp)
                 await self.create_dummy_frame(frame_path, ts, i)

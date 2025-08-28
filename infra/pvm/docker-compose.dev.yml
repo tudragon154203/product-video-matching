@@ -7,7 +7,8 @@ services:
     ports:
       - "${PORT_POSTGRES_HOST}:5432"
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - ../../${DATA_ROOT_HOST}/postgres_data:/var/lib/postgresql/data
+      # - postgres_data:/var/lib/postgresql/data
       - ../../infra/init_db:/docker-entrypoint-initdb.d:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
@@ -287,7 +288,7 @@ services:
     command: ["python", "app/main.py"]
 
 volumes:
-  postgres_data:
+  # postgres_data:
   rabbitmq_data:
   redis_data:
   redis_insight_data:

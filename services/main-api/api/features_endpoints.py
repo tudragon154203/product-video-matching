@@ -18,14 +18,12 @@ from common_py.crud.product_crud import ProductCRUD
 from common_py.crud.video_crud import VideoCRUD
 from common_py.database import DatabaseManager # Import DatabaseManager
 from common_py.messaging import MessageBroker # Import MessageBroker
-from api.dependency import get_db, get_broker
+from api.dependency import get_db, get_broker, get_job_service
 
 
 router = APIRouter()
 
 # Dependency functions use the centralized dependency module
-def get_job_service(db: DatabaseManager = Depends(get_db), broker: MessageBroker = Depends(get_broker)) -> JobService:
-    return JobService(db, broker)
 
 def get_product_image_crud(db: DatabaseManager = Depends(get_db)) -> ProductImageCRUD:
     return ProductImageCRUD(db)

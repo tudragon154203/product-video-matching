@@ -34,12 +34,10 @@ class VideoCrawlerConfig:
     # Message broker configuration (from global config)
     BUS_BROKER: str = global_config.BUS_BROKER
     
-    # Data storage (from global config)
-    DATA_ROOT: str = global_config.DATA_ROOT_CONTAINER
-    
     # Video storage directory
-    VIDEO_DIR: str = os.getenv("VIDEO_DIR", os.path.join(global_config.DATA_ROOT_CONTAINER, "videos"))
-    
+    VIDEO_DIR: str = os.path.join(global_config.DATA_ROOT_CONTAINER, os.getenv("VIDEO_REL_PATH", "videos"))
+    KEYFRAME_DIR: str = os.path.join(global_config.DATA_ROOT_CONTAINER, os.getenv("KEYFRAME_REL_PATH", "keyframes"))
+
     # Number of videos to search for per query
     NUM_VIDEOS: int = int(os.getenv("NUM_VIDEOS", "5"))
     

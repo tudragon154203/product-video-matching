@@ -13,21 +13,14 @@ from common_py.crud.product_image_crud import ProductImageCRUD
 from common_py.crud.product_crud import ProductCRUD
 from common_py.database import DatabaseManager # Import DatabaseManager
 from common_py.messaging import MessageBroker # Import MessageBroker
-from api.dependency import get_db, get_broker, get_job_service, get_product_image_crud, get_product_crud
+from api.dependency import get_db, get_broker, get_product_image_crud, get_product_crud, get_job_service
 from config_loader import config
 from services.static_file_service import StaticFileService
 
 router = APIRouter()
 
 # Dependency functions use the centralized dependency module
-def get_job_service(db: DatabaseManager = Depends(get_db), broker: MessageBroker = Depends(get_broker)) -> JobService:
-    return JobService(db, broker)
 
-def get_product_image_crud(db: DatabaseManager = Depends(get_db)) -> ProductImageCRUD:
-    return ProductImageCRUD(db)
-
-def get_product_crud(db: DatabaseManager = Depends(get_db)) -> ProductCRUD:
-    return ProductCRUD(db)
 
 
 def get_gmt7_time(dt: Optional[datetime]) -> Optional[datetime]:

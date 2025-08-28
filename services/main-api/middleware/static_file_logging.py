@@ -26,7 +26,8 @@ class StaticFileLoggingMiddleware(BaseHTTPMiddleware):
         Returns:
             The HTTP response
         """
-        if scope["type"] == "http":
+        # Access scope from the request object
+        if request.scope["type"] == "http":
             start_time = time.time()
             request_id = request.headers.get("x-request-id", "unknown")
             

@@ -23,14 +23,14 @@ logger = configure_logging("video-crawler")
 class VideoCrawlerService:
     """Main service class for mvideo crawl"""
     
-    def __init__(self, db: DatabaseManager, broker: MessageBroker, data_root: str):
+    def __init__(self, db: DatabaseManager, broker: MessageBroker):
         self.db = db
         self.broker = broker
         self.video_crud = VideoCRUD(db)
         self.frame_crud = VideoFrameCRUD(db)
-        self.platform_crawlers = self._initialize_platform_crawlers(data_root)
+        self.platform_crawlers = self._initialize_platform_crawlers()
         self.video_fetcher = VideoFetcher(platform_crawlers=self.platform_crawlers)
-        self.keyframe_extractor = KeyframeExtractor(data_root)
+        self.keyframe_extractor = KeyframeExtractor()
         self.event_emitter = EventEmitter(broker)
         self.job_progress_manager = JobProgressManager(broker)
     
@@ -177,7 +177,7 @@ class VideoCrawlerService:
                 video.video_id, keyframes_data, job_id
             )
     
-    def _initialize_platform_crawlers(self, data_root: str) -> Dict[str, PlatformCrawlerInterface]:
+    def _initialize_platform_crawlers(self) -> Dict[str, PlatformCrawlerInterface]:
         """Initialize platform crawlers for each supported platform"""
         crawlers = {}
         

@@ -6,7 +6,7 @@ from services.job.job_service import JobService
 from services.product.product_service import ProductService
 from common_py.database import DatabaseManager
 from common_py.messaging import MessageBroker
-from api.dependency import get_db, get_broker
+from api.dependency import get_db, get_broker, get_job_service
 from common_py.logging_config import configure_logging
 
 logger = configure_logging("main-api")
@@ -14,8 +14,6 @@ logger = configure_logging("main-api")
 router = APIRouter()
 
 # Dependency functions use the centralized dependency module
-def get_job_service(db: DatabaseManager = Depends(get_db), broker: MessageBroker = Depends(get_broker)) -> JobService:
-    return JobService(db, broker)
 
 def get_product_service(db: DatabaseManager = Depends(get_db)) -> ProductService:
     return ProductService(db)
