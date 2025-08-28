@@ -22,7 +22,6 @@ class TikTokCrawler(PlatformCrawlerInterface):
     def __init__(self):
         self.platform_name = "tiktok"
         self.searcher = TikTokSearcher(self.platform_name)
-        self.downloader = None
     
     async def search_and_download_videos(
         self, 

@@ -49,14 +49,14 @@ describe('JobItemRow', () => {
     // Default mock for getPhaseInfo
     mockGetPhaseInfo.mockImplementation((phase) => {
       switch (phase) {
-        case 'unknown': return { label: 'Status unknown.', color: 'gray' };
-        case 'collection': return { label: 'Collecting products and videos…', color: 'blue' };
-        case 'feature_extraction': return { label: 'Extracting features (images / video frames)…', color: 'yellow' };
-        case 'matching': return { label: 'Matching products with videos…', color: 'purple' };
-        case 'evidence': return { label: 'Generating visual evidence…', color: 'orange' };
-        case 'completed': return { label: '✅ Completed!', color: 'green' };
-        case 'failed': return { label: '❌ Job failed.', color: 'red' };
-        default: return { label: '', color: '' };
+        case 'unknown': return { label: 'Status unknown.', color: 'gray', effect: 'none' };
+        case 'collection': return { label: 'Collecting products and videos…', color: 'blue', effect: 'animated-dots' };
+        case 'feature_extraction': return { label: 'Extracting features (images / video frames)…', color: 'yellow', effect: 'progress-bar' };
+        case 'matching': return { label: 'Matching products with videos…', color: 'purple', effect: 'spinner' };
+        case 'evidence': return { label: 'Generating visual evidence…', color: 'orange', effect: 'progress-bar' };
+        case 'completed': return { label: '✅ Completed!', color: 'green', effect: 'none' };
+        case 'failed': return { label: '❌ Job failed.', color: 'red', effect: 'none' };
+        default: return { label: '', color: '', effect: 'none' };
       }
     });
 
@@ -73,7 +73,7 @@ describe('JobItemRow', () => {
     expect(screen.getByRole('status')).toHaveAttribute('aria-live', 'polite');
   });
 
-  test('renders collection phase with spinner and no badges initially', () => {
+  test('renders collection phase with animated dots and no badges initially', () => {
     mockUseJobStatusPolling.mockReturnValue({
       phase: 'collection',
       percent: 20,
@@ -84,7 +84,9 @@ describe('JobItemRow', () => {
 
     expect(screen.getByText('Collecting products and videos…')).toBeInTheDocument();
     expect(screen.getByTestId('status-color-circle')).toHaveClass('bg-blue-500');
-    expect(screen.getByTestId('status-spinner')).toBeInTheDocument();
+    expect(screen.getByTestId('status-animated-dots')).toBeInTheDocument();
+    expect(screen.queryByTestId('status-spinner')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('status-progress-bar')).not.toBeInTheDocument();
     expect(screen.queryByText('✔ Products done')).not.toBeInTheDocument();
     expect(screen.queryByText('✔ Videos done')).not.toBeInTheDocument();
     expect(screen.queryByText('Collection finished')).not.toBeInTheDocument();
@@ -100,7 +102,9 @@ describe('JobItemRow', () => {
     render(<JobItemRow job={mockJob} />);
 
     expect(screen.getByText('Collecting products and videos…')).toBeInTheDocument();
-    expect(screen.getByTestId('status-spinner')).toBeInTheDocument();
+    expect(screen.getByTestId('status-animated-dots')).toBeInTheDocument();
+    expect(screen.queryByTestId('status-spinner')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('status-progress-bar')).not.toBeInTheDocument();
     expect(screen.getByText('✔ Products done')).toBeInTheDocument();
     expect(screen.queryByText('✔ Videos done')).not.toBeInTheDocument();
     expect(screen.queryByText('Collection finished')).not.toBeInTheDocument();
@@ -116,7 +120,9 @@ describe('JobItemRow', () => {
     render(<JobItemRow job={mockJob} />);
 
     expect(screen.getByText('Collecting products and videos…')).toBeInTheDocument();
-    expect(screen.getByTestId('status-spinner')).toBeInTheDocument();
+    expect(screen.getByTestId('status-animated-dots')).toBeInTheDocument();
+    expect(screen.queryByTestId('status-spinner')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('status-progress-bar')).not.toBeInTheDocument();
     expect(screen.queryByText('✔ Products done')).not.toBeInTheDocument();
     expect(screen.getByText('✔ Videos done')).toBeInTheDocument();
     expect(screen.queryByText('Collection finished')).not.toBeInTheDocument();
@@ -132,13 +138,15 @@ describe('JobItemRow', () => {
     render(<JobItemRow job={mockJob} />);
 
     expect(screen.getByText('Collecting products and videos…')).toBeInTheDocument();
-    expect(screen.getByTestId('status-spinner')).toBeInTheDocument();
+    expect(screen.getByTestId('status-animated-dots')).toBeInTheDocument();
+    expect(screen.queryByTestId('status-spinner')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('status-progress-bar')).not.toBeInTheDocument();
     expect(screen.getByText('✔ Products done')).toBeInTheDocument();
     expect(screen.getByText('✔ Videos done')).toBeInTheDocument();
     expect(screen.getByText('Collection finished')).toBeInTheDocument();
   });
 
-  test('renders feature_extraction phase with spinner', () => {
+  test('renders feature_extraction phase with progress bar', () => {
     mockUseJobStatusPolling.mockReturnValue({
       phase: 'feature_extraction',
       percent: 50,
@@ -149,7 +157,9 @@ describe('JobItemRow', () => {
 
     expect(screen.getByText('Extracting features (images / video frames)…')).toBeInTheDocument();
     expect(screen.getByTestId('status-color-circle')).toHaveClass('bg-yellow-500');
-    expect(screen.getByTestId('status-spinner')).toBeInTheDocument();
+    expect(screen.getByTestId('status-progress-bar')).toBeInTheDocument();
+    expect(screen.queryByTestId('status-spinner')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('status-animated-dots')).not.toBeInTheDocument();
   });
 
   test('renders matching phase with spinner', () => {
@@ -164,9 +174,11 @@ describe('JobItemRow', () => {
     expect(screen.getByText('Matching products with videos…')).toBeInTheDocument();
     expect(screen.getByTestId('status-color-circle')).toHaveClass('bg-purple-500');
     expect(screen.getByTestId('status-spinner')).toBeInTheDocument();
+    expect(screen.queryByTestId('status-progress-bar')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('status-animated-dots')).not.toBeInTheDocument();
   });
 
-  test('renders evidence phase with spinner', () => {
+  test('renders evidence phase with progress bar', () => {
     mockUseJobStatusPolling.mockReturnValue({
       phase: 'evidence',
       percent: 90,
@@ -177,7 +189,9 @@ describe('JobItemRow', () => {
 
     expect(screen.getByText('Generating visual evidence…')).toBeInTheDocument();
     expect(screen.getByTestId('status-color-circle')).toHaveClass('bg-orange-500');
-    expect(screen.getByTestId('status-spinner')).toBeInTheDocument();
+    expect(screen.getByTestId('status-progress-bar')).toBeInTheDocument();
+    expect(screen.queryByTestId('status-spinner')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('status-animated-dots')).not.toBeInTheDocument();
   });
 
   test('renders completed phase correctly', () => {

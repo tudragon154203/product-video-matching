@@ -7,46 +7,54 @@ export interface PhaseInfo {
   label: string;
   color: string;
   description?: string;
+  effect?: 'spinner' | 'progress-bar' | 'animated-dots' | 'none';
 }
 
 /**
  * Phase information mapping for UI display
  */
 export const phaseInfo: Record<Phase, PhaseInfo> = {
-  unknown: { 
-    label: 'Status unknown.', 
+  unknown: {
+    label: 'Status unknown.',
     color: 'gray',
-    description: 'Job status is unknown or not initialized'
+    description: 'Job status is unknown or not initialized',
+    effect: 'none'
   },
-  collection: { 
-    label: 'Collecting products and videos…', 
+  collection: {
+    label: 'Collecting products and videos…',
     color: 'blue',
-    description: 'Collecting products and videos'
+    description: 'Collecting products and videos',
+    effect: 'animated-dots'
   },
-  feature_extraction: { 
-    label: 'Extracting features (images / video frames)…', 
+  feature_extraction: {
+    label: 'Extracting features (images / video frames)…',
     color: 'yellow',
-    description: 'Extracting features from images and video frames'
+    description: 'Extracting features from images and video frames',
+    effect: 'progress-bar'
   },
-  matching: { 
-    label: 'Matching products with videos…', 
+  matching: {
+    label: 'Matching products with videos…',
     color: 'purple',
-    description: 'Finding matches between products and videos'
+    description: 'Finding matches between products and videos',
+    effect: 'spinner'
   },
-  evidence: { 
-    label: 'Generating visual evidence…', 
+  evidence: {
+    label: 'Generating visual evidence…',
     color: 'orange',
-    description: 'Generating visual evidence for matches'
+    description: 'Generating visual evidence for matches',
+    effect: 'progress-bar'
   },
-  completed: { 
-    label: '✅ Completed!', 
+  completed: {
+    label: '✅ Completed!',
     color: 'green',
-    description: 'Job completed successfully'
+    description: 'Job completed successfully',
+    effect: 'none'
   },
-  failed: { 
-    label: '❌ Job failed.', 
+  failed: {
+    label: '❌ Job failed.',
     color: 'red',
-    description: 'Job failed during processing'
+    description: 'Job failed during processing',
+    effect: 'none'
   },
 } as const;
 

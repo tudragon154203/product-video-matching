@@ -82,6 +82,7 @@ python scripts/run_tests.py
 *   **View logs:** `docker compose -f infra/pvm/docker-compose.dev.yml logs -f` (all services) or `docker compose -f infra/pvm/docker-compose.dev.yml logs -f <service-name>` (specific service, e.g., `docker compose -f infra/pvm/docker-compose.dev.yml logs -f main-api`)
 *   **Restart specific service:** `docker compose -f infra/pvm/docker-compose.dev.yml restart <service-name>` (e.g., `docker compose -f infra/pvm/docker-compose.dev.yml restart main-api`)
 *   **Check service health:** `curl http://localhost:8000/health` (Main API) or `curl http://localhost:8080/health` (Results API)
+*   **Run command in microservice:** `cd services/<microservice_name> && <your_command_here>` (e.g., `cd services/front-end && npm test`). Replace `<microservice_name>` with the actual name of the service and `<your_command_here>` with the command you wish to execute.
 *   **Clean up:** `docker compose -f infra/pvm/docker-compose.dev.yml down`
 
 ## Development Conventions

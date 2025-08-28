@@ -56,11 +56,9 @@ export function useJobStatusPolling(
     }
   }, [enabled, jobId]);
 
-  // Stop polling if the job has reached a terminal state (finished or failed)
-  // NOTE: The TERMINAL_PHASES array might need to be adjusted based on the actual phase names returned by the backend.
+  // Stop polling if the job has reached a terminal state (completed or failed)
   useEffect(() => {
-    const TERMINAL_PHASES = ['finished', 'completed', 'success', 'failed', 'error'];
-    if (phase && TERMINAL_PHASES.includes(phase)) {
+    if (phase && (phase === 'completed' || phase === 'failed')) {
       stop();
     }
   }, [phase, stop]);

@@ -30,6 +30,7 @@ CLAUDE.md
 .clinerules*
 .mcp.json
 .playwright-mcp
+GEMINI.md
 
 # Environment variables
 .env
@@ -40,6 +41,7 @@ CLAUDE.md
 *node_modules/
 .next/
 playwright-report/
+*.stackdump
 
 # Python
 *.npz

@@ -6,21 +6,47 @@ import type { Phase } from '@/lib/zod/job'
 import { formatToGMT7 } from '@/lib/time'
 import { Badge } from '@/components/ui/badge'
 import Link from 'next/link'
-import { useJobStatusPolling } from '@/lib/hooks/useJobStatusPolling'; // Import the hook
+import { useJobStatusPolling } from '@/lib/hooks/useJobStatusPolling';
 
 interface JobItemRowProps {
   job: JobItem
 }
 
 export function JobItemRow({ job }: JobItemRowProps) {
-  const { phase: currentPhase, percent, counts } = useJobStatusPolling(job.job_id); // Use the hook
-  const phaseInfo = getPhaseInfo(currentPhase as Phase) // Use currentPhase from hook
-  const displayDate = job.updated_at || job.created_at
+  const { phase: currentPhase, percent, counts } = useJobStatusPolling(job.job_id);
+  const phaseInfo = getPhaseInfo(currentPhase as Phase);
+  const displayDate = job.updated_at || job.created_at;
 
   // Determine if products/videos are done for collection phase
-  const productsDone = counts.products > 0; // Assuming products count > 0 means done
-  const videosDone = counts.videos > 0; // Assuming videos count > 0 means done
+  const productsDone = counts.products > 0;
+  const videosDone = counts.videos > 0;
   const collectionFinished = currentPhase === 'collection' && productsDone && videosDone;
+
+  // Phase-specific effects
+  const renderPhaseEffect = () => {
+    switch (phaseInfo.effect) {
+      case 'spinner':
+        return (
+          <div data-testid="status-spinner" className="animate-spin rounded-full h-3 w-3 border-b-2 border-gray-900"></div>
+        );
+      case 'progress-bar':
+        return (
+          <div data-testid="status-progress-bar" className="w-3 h-3">
+            <div className="animate-pulse h-1 w-full bg-current rounded"></div>
+          </div>
+        );
+      case 'animated-dots':
+        return (
+          <div data-testid="status-animated-dots" className="flex space-x-1">
+            <div className="h-1 w-1 bg-current rounded-full animate-bounce"></div>
+            <div className="h-1 w-1 bg-current rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+            <div className="h-1 w-1 bg-current rounded-full animate-bounce" style={{ animationDelay: '0.4s' }}></div>
+          </div>
+        );
+      default:
+        return null;
+    }
+  };
 
   return (
     <Link
@@ -31,11 +57,9 @@ export function JobItemRow({ job }: JobItemRowProps) {
       <div className="space-y-2">
         <div className="flex items-center justify-between">
           <h4 className="font-medium text-sm truncate">{job.query}</h4>
-          <div className="flex items-center space-x-1" aria-live="polite" role="status"> {/* Add aria-live */}
-            {/* Spinner for in-progress phases */}
-            {(currentPhase === 'collection' || currentPhase === 'feature_extraction' || currentPhase === 'matching' || currentPhase === 'evidence') && (
-              <div data-testid="status-spinner" className="animate-spin rounded-full h-3 w-3 border-b-2 border-gray-900"></div>
-            )}
+          <div className="flex items-center space-x-1" aria-live="polite" role="status">
+            {/* Phase-specific effects */}
+            {currentPhase !== 'unknown' && currentPhase !== 'completed' && currentPhase !== 'failed' && renderPhaseEffect()}
             <div
               data-testid="status-color-circle" className={`h-2 w-2 rounded-full bg-${phaseInfo.color}-500`}
             />

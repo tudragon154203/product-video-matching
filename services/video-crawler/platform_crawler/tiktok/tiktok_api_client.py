@@ -9,13 +9,6 @@ from TikTokApi import TikTokApi
 from common_py.logging_config import configure_logging
 from config_loader import config
 
-# Import mock API for fallback
-try:
-    from .mock_tiktok_api import MockTikTokApiClient
-except ImportError:
-    # Handle relative import issues
-    from platform_crawler.tiktok.mock_tiktok_api import MockTikTokApiClient
-
 logger = configure_logging("tiktok-api-client")
 
 
@@ -35,28 +28,16 @@ class TikTokApiClient:
         self.sleep_after = config.TIKTOK_SLEEP_AFTER
         self.session_count = config.TIKTOK_SESSION_COUNT
         self.api = None
-        self.mock_client = None
-        self.use_mock = False
         self._session_initialized = False
     
     async def __aenter__(self):
         """Async context manager entry"""
-        success = await self.initialize_session()
-        if not success:
-            # If real API fails, try mock API as fallback
-            logger.warning("Real TikTok API failed, falling back to mock API for testing")
-            self.mock_client = MockTikTokApiClient(self.ms_token, self.proxy_url)
-            await self.mock_client.initialize_session()
-            self.use_mock = True
-            self._session_initialized = True
+        await self.initialize_session()
         return self
     
     async def __aexit__(self, exc_type, exc_val, exc_tb):
         """Async context manager exit"""
-        if self.use_mock and self.mock_client:
-            await self.mock_client.close_session()
-        else:
-            await self.close_session()
+        await self.close_session()
     
     async def initialize_session(self) -> bool:
         """
@@ -142,8 +123,6 @@ class TikTokApiClient:
     
     def is_session_active(self) -> bool:
         """Check if session is active (real or mock)"""
-        if self.use_mock and self.mock_client:
-            return self.mock_client.is_session_active()
         return self._session_initialized
     
     async def search_videos(self, query: str, count: int = 10) -> List[Dict[str, Any]]:
@@ -157,10 +136,7 @@ class TikTokApiClient:
         Returns:
             List of video metadata dictionaries
         """
-        # Use mock API if real API failed
-        if self.use_mock and self.mock_client:
-            logger.info("Using mock TikTok API for video search", query=query, count=count)
-            return await self.mock_client.search_videos(query, count)
+        
         
         if not self._session_initialized:
             await self.initialize_session()
@@ -219,10 +195,7 @@ class TikTokApiClient:
         Returns:
             Download URL string or None if failed
         """
-        # Use mock API if real API failed
-        if self.use_mock and self.mock_client:
-            logger.info("Using mock TikTok API for download URL", video_id=video_id)
-            return await self.mock_client.get_video_download_url(video_id)
+        
         
         if not self._session_initialized:
             await self.initialize_session()
