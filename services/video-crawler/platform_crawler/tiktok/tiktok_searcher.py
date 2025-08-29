@@ -15,10 +15,9 @@ class TikTokSearcher:
     """
     TikTok search engine with keyword-based search and filtering capabilities
     """
-    
-    def __init__(self, platform_name: str = "tiktok"):
-        self.platform_name = platform_name
-        self.api_client = None
+
+    def __init__(self):
+        self.api_client = TikTokApiClient()
     
     async def search_videos_by_keywords(
         self, 
@@ -44,9 +43,7 @@ class TikTokSearcher:
         all_videos = []
         
         try:
-            async with TikTokApiClient() as api_client:
-                self.api_client = api_client
-                
+            async with self.api_client as api_client:
                 for query in queries:
                     try:
                         logger.info("Searching TikTok with keyword", query=query, num_videos=num_videos)

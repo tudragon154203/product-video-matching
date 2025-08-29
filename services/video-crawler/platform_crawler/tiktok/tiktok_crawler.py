@@ -21,7 +21,8 @@ class TikTokCrawler(PlatformCrawlerInterface):
     
     def __init__(self):
         self.platform_name = "tiktok"
-        self.searcher = TikTokSearcher(self.platform_name)
+        self.searcher = TikTokSearcher()
+        self.downloader = TikTokDownloader()
     
     async def search_and_download_videos(
         self, 
@@ -148,9 +149,9 @@ class TikTokCrawler(PlatformCrawlerInterface):
         
         try:
             # Use the downloader to download videos
-            async with TikTokDownloader() as downloader:
+            async with self.downloader as downloader:
                 downloaded_videos = await downloader.download_multiple_videos(
-                    videos, 
+                    videos,
                     download_dir,
                     max_concurrent=config.NUM_PARALLEL_DOWNLOADS
                 )
@@ -223,6 +224,8 @@ class TikTokCrawler(PlatformCrawlerInterface):
             logger.info("Performing TikTok API health check")
             
             # Try to search with a simple query as a health check
+            # Try to search with a simple query as a health check
+            # Use the shared api_client instance through the searcher
             health_videos = await self.searcher.search_videos_by_keywords(
                 queries=["test"], recency_days=365, num_videos=1
             )

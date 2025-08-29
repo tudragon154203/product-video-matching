@@ -1,11 +1,14 @@
-# Official Playwright base image (Python 3.10 + Playwright v1.48.0 + Ubuntu 24.04 Noble)
-FROM mcr.microsoft.com/playwright/python:v1.48.0-noble
+# Đi với TiktokAPI==6.2.2
+FROM mcr.microsoft.com/playwright/python:v1.37.0-jammy
 
 WORKDIR /app
 
 # Copy requirements first for better caching
 COPY services/video-crawler/requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
+
+# Install ffmpeg
+RUN apt-get update && apt-get install -y ffmpeg && rm -rf /var/lib/apt/lists/*
 
 # Copy shared libraries
 COPY libs/common-py /app/libs/common-py

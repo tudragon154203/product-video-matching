@@ -22,13 +22,13 @@ export function usePanelData<T>({
   const fetchPanelData = useCallback(async (offset: number, limit: number) => {
     if (!jobId) throw new Error('Job ID is required');
     return await fetchFunction(offset, limit);
- }, [jobId, fetchFunction]);
+  }, [jobId, fetchFunction]);
 
- const pagination = useTanStackPagination<T>({
+  const pagination = useTanStackPagination<T>({
     queryKey: (offset, limit) => queryKey(offset, limit),
     fetchFunction: fetchPanelData,
     limit,
-    enabled: !!jobId && enabled && !isCollecting,
+    enabled: !!jobId && enabled,
     refetchInterval: isCollecting ? 5000 : false,
     staleTime: isCollecting ? 0 : 1000 * 60 * 5, // 5 minutes when not collecting, immediate when collecting
   });
@@ -40,5 +40,5 @@ export function usePanelData<T>({
     }
   }, [jobId, pagination.queryClient, queryKey, limit]);
 
- return pagination;
+  return pagination;
 }

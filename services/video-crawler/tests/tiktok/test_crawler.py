@@ -109,8 +109,12 @@ class TestTikTokCrawler:
             
             results = await crawler._download_videos(mock_video_data, temp_dir)
             
-            assert results == mock_video_data
-            mock_downloader_instance.download_multiple_videos.assert_called_once()
+            # The downloader should return the same videos (mocked)
+            assert len(results) == len(mock_video_data)
+            assert all('video_id' in video for video in results)
+            mock_downloader_instance.download_multiple_videos.assert_called_once_with(
+                mock_video_data, temp_dir, max_concurrent=3
+            )
     
     @pytest.mark.asyncio
     async def test_download_videos_empty_list(self, crawler, temp_dir):

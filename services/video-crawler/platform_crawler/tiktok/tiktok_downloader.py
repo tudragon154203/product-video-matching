@@ -22,7 +22,7 @@ class TikTokDownloader:
     
     def __init__(self):
         self.session = None
-        self.api_client = None
+        self.api_client = TikTokApiClient()
         self.max_retries = config.TIKTOK_MAX_RETRIES
     
     async def __aenter__(self):
@@ -35,28 +35,27 @@ class TikTokDownloader:
         await self._cleanup_session()
     
     async def _initialize_session(self):
-        """Initialize HTTP session and TikTok API client"""
+        """Initialize HTTP session"""
         try:
             # Create aiohttp session with timeout
             timeout = aiohttp.ClientTimeout(total=300)  # 5 minutes timeout
             self.session = aiohttp.ClientSession(timeout=timeout)
             
-            # Initialize TikTok API client
-            self.api_client = TikTokApiClient()
-            await self.api_client.initialize_session()
-            
             logger.info("TikTok downloader session initialized")
         except Exception as e:
             logger.error("Failed to initialize TikTok downloader session", error=str(e))
+            # Clean up partially initialized resources
+            if self.session:
+                await self.session.close()
+            self.session = None
             raise
     
     async def _cleanup_session(self):
-        """Cleanup HTTP session and API client"""
+        """Cleanup HTTP session"""
         try:
             if self.session:
                 await self.session.close()
-            if self.api_client:
-                await self.api_client.close_session()
+                self.session = None
             logger.info("TikTok downloader session cleaned up")
         except Exception as e:
             logger.error("Error cleaning up TikTok downloader session", error=str(e))
@@ -99,7 +98,7 @@ class TikTokDownloader:
             
             logger.info("Starting TikTok video download", video_id=video_id, url=video_url)
             
-            # Get download URL using TikTok API
+            # Get download URL using TikTok API with fallback to direct URL
             download_url = await self._get_download_url(video_data)
             
             if not download_url:
@@ -134,14 +133,15 @@ class TikTokDownloader:
         video_id = video_data.get('video_id')
         
         try:
-            # First try to get download URL from API client
-            if self.api_client:
-                download_url = await self.api_client.get_video_download_url(video_id)
-                if download_url:
-                    return download_url
+            # Try to get download URL from API client (always ready-to-use)
+            download_url = await self.api_client.get_video_download_url(video_id)
+            if download_url:
+                logger.info("Got download URL from API client", video_id=video_id)
+                return download_url
             
             # Fallback: try to extract from video data
             if 'download_url' in video_data and video_data['download_url']:
+                logger.info("Using download_url from video data", video_id=video_id)
                 return video_data['download_url']
             
             # Last resort: use the main video URL (may have watermark)
@@ -151,10 +151,17 @@ class TikTokDownloader:
                              video_id=video_id)
                 return video_url
             
+            logger.error("No download URL available", video_id=video_id)
             return None
             
         except Exception as e:
             logger.error("Error getting download URL", video_id=video_id, error=str(e))
+            # Fallback to main video URL if API client fails
+            video_url = video_data.get('url')
+            if video_url:
+                logger.warning("API client failed, using main video URL as fallback", 
+                             video_id=video_id)
+                return video_url
             return None
     
     async def _download_file(self, download_url: str, local_path: str) -> bool:

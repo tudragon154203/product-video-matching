@@ -52,7 +52,6 @@ class VideoCrawlerConfig:
     
     # TikTok API Configuration
     TIKTOK_MS_TOKEN: str = os.getenv("TIKTOK_MS_TOKEN", "")
-    TIKTOK_BROWSER: str = os.getenv("TIKTOK_BROWSER", "chromium")
     TIKTOK_HEADLESS: bool = os.getenv("TIKTOK_HEADLESS", "true").lower() == "true"
     TIKTOK_PROXY_URL: str = os.getenv("TIKTOK_PROXY_URL", "")  # Not needed for Vietnam IP
     TIKTOK_MAX_RETRIES: int = int(os.getenv("TIKTOK_MAX_RETRIES", "3"))
