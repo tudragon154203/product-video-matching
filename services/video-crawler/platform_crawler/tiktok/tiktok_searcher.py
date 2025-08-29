@@ -16,8 +16,8 @@ class TikTokSearcher:
     TikTok search engine with keyword-based search and filtering capabilities
     """
 
-    def __init__(self):
-        self.api_client = TikTokApiClient()
+    def __init__(self, api_client: Optional[TikTokApiClient] = None):
+        self.api_client = api_client or TikTokApiClient()
     
     async def search_videos_by_keywords(
         self, 

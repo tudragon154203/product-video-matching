@@ -43,8 +43,8 @@ class MockTikTokApiClient:
         self._session_initialized = False
         logger.info("Mock TikTok API session closed")
     
-    def is_session_active(self) -> bool:
-        """Check if session is active"""
+    def is_session_initialized(self) -> bool:
+        """Check if session is initialized"""
         return self._session_initialized
     
     async def search_videos(self, query: str, count: int = 10) -> List[Dict[str, Any]]:

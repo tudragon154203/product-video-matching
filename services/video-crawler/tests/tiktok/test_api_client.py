@@ -18,9 +18,9 @@ class TestTikTokApiClient:
         TikTokApiClient._initialized = False
         return TikTokApiClient(ms_token="test_token", proxy_url="http://test:proxy@proxy.com:8080")
     
-    def test_is_session_active_initial(self, api_client):
+    def test_is_session_initialized_initial(self, api_client):
         """Test session status check initially"""
-        assert api_client.is_session_active() is False
+        assert api_client.is_session_initialized() is False
     
     @pytest.mark.asyncio
     async def test_initialize_session_success(self, api_client, mock_tiktok_api):
@@ -57,12 +57,12 @@ class TestTikTokApiClient:
     @pytest.mark.asyncio
     async def test_search_videos_success(self, api_client, mock_tiktok_api, mock_video_object):
         """Test successful video search using new API implementation"""
-        # Mock search.general method
+        # Mock search.search_type method
         async def mock_video_generator():
             yield mock_video_object
         
         mock_tiktok_api.search = MagicMock()
-        mock_tiktok_api.search.general = MagicMock(return_value=mock_video_generator())
+        mock_tiktok_api.search.search_type = MagicMock(return_value=mock_video_generator())
         
         with patch('platform_crawler.tiktok.tiktok_api_client.TikTokApi', return_value=mock_tiktok_api):
             await api_client.initialize_session()
@@ -74,7 +74,7 @@ class TestTikTokApiClient:
             assert video["title"] == "Test video description"
             assert video["author"] == "test_user"
             assert video["platform"] == "tiktok"
-            mock_tiktok_api.search.general.assert_called_once_with("test_query", count=1)
+            mock_tiktok_api.search.search_type.assert_called_once_with("test_query", "video", count=1)
     
     @pytest.mark.asyncio
     async def test_search_videos_not_initialized(self, api_client):
@@ -122,20 +122,20 @@ class TestTikTokApiClient:
                 # This is expected in our current implementation
                 pass
     
-    def test_is_session_active(self, api_client, mock_tiktok_api):
+    def test_is_session_initialized(self, api_client, mock_tiktok_api):
         """Test session status check"""
-        assert api_client.is_session_active() is False
+        assert api_client.is_session_initialized() is False
         
         # Manually set session as initialized
         api_client._session_initialized = True
         api_client.api = mock_tiktok_api
         
-        assert api_client.is_session_active() is True
+        assert api_client.is_session_initialized() is True
     
     @pytest.mark.asyncio
     async def test_search_with_retry_on_failure(self, api_client, mock_tiktok_api):
         """Test retry mechanism on search failure"""
-        # Track the number of calls to search.general
+        # Track the number of calls to search.search_type
         call_count = 0
         
         async def failing_generator():
@@ -156,7 +156,7 @@ class TestTikTokApiClient:
                 return successful_generator()
         
         mock_tiktok_api.search = MagicMock()
-        mock_tiktok_api.search.general.side_effect = mock_side_effect
+        mock_tiktok_api.search.search_type.side_effect = mock_side_effect
         
         with patch('platform_crawler.tiktok.tiktok_api_client.TikTokApi', return_value=mock_tiktok_api):
             await api_client.initialize_session()

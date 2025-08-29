@@ -20,9 +20,9 @@ class TikTokDownloader:
     TikTok video downloader with watermark removal and file management
     """
     
-    def __init__(self):
+    def __init__(self, api_client: Optional[TikTokApiClient] = None):
         self.session = None
-        self.api_client = TikTokApiClient()
+        self.api_client = api_client or TikTokApiClient()
         self.max_retries = config.TIKTOK_MAX_RETRIES
     
     async def __aenter__(self):

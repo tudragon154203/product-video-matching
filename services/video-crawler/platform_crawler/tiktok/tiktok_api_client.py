@@ -40,8 +40,8 @@ class TikTokApiClient:
             self._session_initialized = False
             self._initialized = True
             
-            # Initialize session synchronously
-            asyncio.run(self.initialize_session())
+            # Don't initialize session here - defer to first use
+            # asyncio.run(self.initialize_session())  # REMOVED: This causes the error
             
             logger.info("TikTokApiClient singleton instance initialized for the first time.")
         else:
@@ -92,6 +92,9 @@ class TikTokApiClient:
 
     async def __aenter__(self):
         """Async context manager entry"""
+        # Initialize session when entering context if not already initialized
+        if not self._session_initialized:
+            await self.initialize_session()
         return self
 
     async def __aexit__(self, exc_type, exc_val, exc_tb):
@@ -108,8 +111,8 @@ class TikTokApiClient:
         except Exception as e:
             logger.error("Error closing TikTok API session", error=str(e))
 
-    def is_session_active(self) -> bool:
-        """Check if session is active (real or mock)"""
+    def is_session_initialized(self) -> bool:
+        """Check if session is initialized"""
         return self._session_initialized
 
     async def search_videos(self, query: str, count: int = 10) -> List[Dict[str, Any]]:
@@ -124,10 +127,13 @@ class TikTokApiClient:
             List of video metadata dictionaries
         """
 
-        # Check if session is active before proceeding
-        if not self.is_session_active():
-            logger.error("Cannot search videos: TikTok API session not initialized")
-            return []
+        # Check if session is initialized before proceeding, initialize if needed
+        if not self.is_session_initialized():
+            logger.info("TikTok API session not initialized, initializing now...")
+            init_success = await self.initialize_session()
+            if not init_success:
+                logger.error("Cannot search videos: Failed to initialize TikTok API session")
+                return []
 
         for attempt in range(self.max_retries):
             try:
@@ -135,8 +141,8 @@ class TikTokApiClient:
 
                 # Use TikTok API to search videos 
                 videos = []
-                # Use the correct TikTok API search method: api.search.videos()
-                async for video in self.api.search.videos(query, count=count):
+                # Use the correct TikTok API search method according to documentation
+                async for video in self.api.search.search_type(query, "video", count=count):
                     video_data = await self._extract_video_data(video)
                     if video_data:
                         videos.append(video_data)
@@ -168,10 +174,13 @@ class TikTokApiClient:
             Download URL string or None if failed
         """
 
-        # Check if session is active before proceeding
-        if not self.is_session_active():
-            logger.error("Cannot get download URL: TikTok API session not initialized")
-            return None
+        # Check if session is initialized before proceeding, initialize if needed
+        if not self.is_session_initialized():
+            logger.info("TikTok API session not initialized, initializing now...")
+            init_success = await self.initialize_session()
+            if not init_success:
+                logger.error("Cannot get download URL: Failed to initialize TikTok API session")
+                return None
 
         for attempt in range(self.max_retries):
             try:
@@ -234,8 +243,8 @@ class TikTokApiClient:
 
         return None
 
-    def is_session_active(self) -> bool:
-        """Check if TikTok API session is active"""
+    def is_session_initialized(self) -> bool:
+        """Check if TikTok API session is initialized"""
         return self._session_initialized and self.api is not None
     
     async def _extract_video_data(self, video) -> Optional[Dict[str, Any]]:

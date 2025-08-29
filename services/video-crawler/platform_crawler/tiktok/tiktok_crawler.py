@@ -8,6 +8,7 @@ from common_py.logging_config import configure_logging
 from platform_crawler.interface import PlatformCrawlerInterface
 from .tiktok_searcher import TikTokSearcher
 from .tiktok_downloader import TikTokDownloader
+from .tiktok_api_client import TikTokApiClient
 from config_loader import config
 
 logger = configure_logging("tiktok-crawler")
@@ -21,8 +22,11 @@ class TikTokCrawler(PlatformCrawlerInterface):
     
     def __init__(self):
         self.platform_name = "tiktok"
-        self.searcher = TikTokSearcher()
-        self.downloader = TikTokDownloader()
+        # Create a shared API client instance
+        self.api_client = TikTokApiClient()
+        # Pass the shared API client to searcher and downloader
+        self.searcher = TikTokSearcher(api_client=self.api_client)
+        self.downloader = TikTokDownloader(api_client=self.api_client)
     
     async def search_and_download_videos(
         self, 
@@ -66,6 +70,14 @@ class TikTokCrawler(PlatformCrawlerInterface):
                        recency_days=recency_days,
                        num_videos=num_videos,
                        download_dir=download_dir)
+            
+            # Initialize the shared API client session before using it
+            if not self.api_client.is_session_initialized():
+                logger.info("Initializing TikTok API client session")
+                init_success = await self.api_client.initialize_session()
+                if not init_success:
+                    logger.error("Failed to initialize TikTok API client session")
+                    return []
             
             # Step 1: Search for videos
             search_results = await self._search_videos(queries, recency_days, num_videos)
@@ -222,6 +234,14 @@ class TikTokCrawler(PlatformCrawlerInterface):
         """
         try:
             logger.info("Performing TikTok API health check")
+            
+            # Initialize the shared API client session if not already initialized
+            if not self.api_client.is_session_initialized():
+                logger.info("Initializing TikTok API client session for health check")
+                init_success = await self.api_client.initialize_session()
+                if not init_success:
+                    logger.error("Failed to initialize TikTok API client session for health check")
+                    return False
             
             # Try to search with a simple query as a health check
             # Try to search with a simple query as a health check

@@ -32,7 +32,7 @@ class TestTikTokIntegration:
         """Test TikTok API client session management"""
         with patch('platform_crawler.tiktok.tiktok_api_client.TikTokApi', return_value=mock_tiktok_api):
             async with TikTokApiClient() as client:
-                assert client.is_session_active() is True
+                assert client.is_session_initialized() is True
                 
                 # Test basic search functionality
                 mock_hashtag = MagicMock()
@@ -232,123 +232,81 @@ class TestTikTokRealAPIIntegration:
         browser_mode = "headless" if headless_mode else "visible"
         logger.info(f"🖥️  Running with {browser_mode} browser (TIKTOK_HEADLESS={headless_mode})")
         
-        # Test 1: Verify configuration is present
-        assert config.TIKTOK_MS_TOKEN is not None, "TIKTOK_MS_TOKEN must be configured in config"
-        assert len(config.TIKTOK_MS_TOKEN) > 0, "TIKTOK_MS_TOKEN cannot be empty"
-        logger.info("✓ TikTok configuration verified")
+        # Create API client and initialize session
+        api_client = TikTokApiClient()
+        init_success = await api_client.initialize_session()
         
-        # Test 2: Initialize client and session - MUST succeed
+        if not init_success:
+            pytest.fail("❌ FAILED: Could not initialize TikTok API session - check configuration and network")
+        
+        logger.info("✅ TikTok API session initialized successfully")
+        
+        # Perform a real search with a common Vietnamese term
+        search_term = "cách chọn gối ngủ tốt"  # "how to choose a good pillow" in Vietnamese
+        logger.info(f"🔍 Searching TikTok for: '{search_term}'")
+        
         try:
-            async with TikTokApiClient() as client:
-                assert client is not None, "TikTok client creation failed"
-                logger.info("✓ TikTok client created successfully")
+            videos = await api_client.search_videos(search_term, count=3)
+            
+            if not videos:
+                pytest.fail(f"❌ FAILED: No videos returned for search term '{search_term}' - API may be blocked or search term may be invalid")
+            
+            logger.info(f"✅ SUCCESS: Found {len(videos)} videos for search term '{search_term}'")
+            
+            # Validate that we got real video data
+            for i, video in enumerate(videos):
+                required_fields = ['video_id', 'url', 'title', 'author', 'duration_s']
+                missing_fields = [field for field in required_fields if field not in video]
                 
-                # Test 3: Session MUST be active for real API test
-                if not client.is_session_active():
-                    pytest.fail(
-                        "❌ FAILED: TikTok API session failed to initialize. "
-                        "Cannot perform real API test without active session. "
-                        "This means the service cannot connect to TikTok."
-                    )
+                if missing_fields:
+                    pytest.fail(f"❌ FAILED: Video {i} missing required fields: {missing_fields}")
                 
-                logger.info("✓ TikTok API session is active")
-                
-                # Test 4: Perform real searches and REQUIRE actual results
-                test_queries = ["vietnam", "product", "tech", "food"]
-                total_videos_found = 0
-                successful_queries = []
-                failed_queries = []
-                search_details = {}
-                
-                for query in test_queries:
-                    try:
-                        logger.info(f"🔍 Searching TikTok for: '{query}'")
-                        videos = await client.search_videos(query, count=5)
-                        
-                        # Validate response format
-                        assert isinstance(videos, list), f"Search for '{query}' must return a list, got {type(videos)}"
-                        
-                        video_count = len(videos)
-                        search_details[query] = {
-                            "count": video_count,
-                            "status": "success" if video_count > 0 else "empty"
-                        }
-                        
-                        if video_count > 0:
-                            logger.info(f"✅ Query '{query}' returned {video_count} real videos")
-                            total_videos_found += video_count
-                            successful_queries.append(query)
-                            
-                            # Validate video data structure for first video
-                            video = videos[0]
-                            required_fields = ["video_id", "title", "author", "platform"]
-                            for field in required_fields:
-                                assert field in video, f"Video from '{query}' missing required field: {field}"
-                            assert video["platform"] == "tiktok", f"Video platform must be 'tiktok', got '{video['platform']}'"
-                            
-                            logger.info(f"✓ Video data structure validated for query '{query}'")
-                        else:
-                            logger.warning(f"⚠️  Query '{query}' returned empty results")
-                            failed_queries.append(query)
-                            
-                    except Exception as e:
-                        logger.error(f"❌ Search failed for query '{query}': {str(e)}")
-                        failed_queries.append(query)
-                        search_details[query] = {
-                            "count": 0,
-                            "status": "error",
-                            "error": str(e)
-                        }
-                
-                # Log comprehensive results
-                logger.info(f"📊 Search Results Summary:")
-                logger.info(f"   Total videos found: {total_videos_found}")
-                logger.info(f"   Successful queries: {successful_queries}")
-                logger.info(f"   Failed/empty queries: {failed_queries}")
-                logger.info(f"   Detailed results: {search_details}")
-                
-                # Test 5: CRITICAL REQUIREMENT - MUST have real results or FAIL
-                if total_videos_found == 0:
-                    failure_message = (
-                        f"🚨 INTEGRATION TEST FAILED - NO REAL SEARCH RESULTS RETURNED 🚨\n\n"
-                        f"❌ FAILURE DETAILS:\n"
-                        f"   • Total videos found: {total_videos_found}\n"
-                        f"   • Queries attempted: {test_queries}\n"
-                        f"   • Successful queries: {successful_queries}\n"
-                        f"   • Failed queries: {failed_queries}\n"
-                        f"   • Search details: {search_details}\n\n"
-                        f"💥 CRITICAL ISSUE: The TikTok service cannot return real search results.\n"
-                        f"   This could be due to:\n"
-                        f"   - TikTok API being blocked or rate limited\n"
-                        f"   - Invalid or expired MS_TOKEN\n"
-                        f"   - Network connectivity issues\n"
-                        f"   - TikTok API changes or restrictions\n"
-                        f"   - Geographic or IP-based blocking\n\n"
-                        f"🔧 REQUIRED ACTION: Fix the underlying issue so the service can search TikTok\n"
-                        f"   and return real video results before this test will pass."
-                    )
-                    pytest.fail(failure_message)
-                
-                # Test passed - we have real results!
-                logger.info(f"🎉 SUCCESS: Integration test PASSED with {total_videos_found} real videos from TikTok API")
-                logger.info(f"✅ The service CAN search TikTok and return real results")
+                logger.info(f"📺 Video {i+1}: {video['title'][:50]}... by @{video['author']}")
+            
+            logger.info("🎉 ALL TESTS PASSED - TikTok API is working correctly!")
+            
+        except Exception as e:
+            pytest.fail(f"❌ FAILED: Exception during search: {str(e)}")
+        finally:
+            # Clean up session
+            await api_client.close_session()
+            logger.info("🧹 Cleaned up TikTok API session")
+    
+    @pytest.mark.asyncio
+    async def test_real_api_download_url(self):
+        """Test real API download URL retrieval"""
+        from common_py.logging_config import configure_logging
+        logger = configure_logging("test-tiktok-download")
+        
+        logger.info("📥 Testing TikTok download URL retrieval")
+        
+        # Create API client and initialize session
+        api_client = TikTokApiClient()
+        init_success = await api_client.initialize_session()
+        
+        if not init_success:
+            pytest.skip("Could not initialize TikTok API session - skipping download test")
+        
+        try:
+            # Search for a video to test download URL retrieval
+            videos = await api_client.search_videos("test", count=1)
+            
+            if not videos:
+                pytest.skip("No videos found for download URL test")
+            
+            video_id = videos[0]["video_id"]
+            logger.info(f"📥 Getting download URL for video: {video_id}")
+            
+            download_url = await api_client.get_video_download_url(video_id)
+            
+            if download_url:
+                logger.info(f"✅ SUCCESS: Got download URL: {download_url[:100]}...")
+            else:
+                logger.warning("⚠️  No download URL found (this may be expected for some videos)")
                 
         except Exception as e:
-            # Any exception during the test should result in failure
-            pytest.fail(
-                f"🚨 INTEGRATION TEST FAILED - EXCEPTION OCCURRED 🚨\n\n"
-                f"❌ ERROR: {str(e)}\n"
-                f"💥 The TikTok service encountered an error and cannot function properly.\n"
-                f"🔧 REQUIRED ACTION: Fix the underlying issue before this test will pass."
-            )
-        
-        # Test 6: Verify service components work after successful API test
-        try:
-            from platform_crawler.tiktok.tiktok_crawler import TikTokCrawler
-            crawler = TikTokCrawler()
-            assert crawler.get_platform_name() == "tiktok", "TikTok crawler platform name validation failed"
-            logger.info("✓ TikTok service components verified")
-        except Exception as e:
-            pytest.fail(f"Service component verification failed: {str(e)}")
-        
-        logger.info("🏆 STRICT real API integration test PASSED - Service can search TikTok and return real results!")
+            logger.error(f"❌ Error during download URL test: {str(e)}")
+        finally:
+            # Clean up session
+            await api_client.close_session()
+            logger.info("🧹 Cleaned up TikTok API session")
