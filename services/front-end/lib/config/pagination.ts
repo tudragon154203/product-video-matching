@@ -15,7 +15,7 @@ export const paginationConfig = {
      * TEMPORARY: Currently set to false to test API load reduction
      * Change back to true once API request frequency issue is resolved
      */
-    enablePrefetch: false,
+    enablePrefetch: true,
 
     /**
      * POLLING INTERVALS (in milliseconds)
@@ -23,13 +23,13 @@ export const paginationConfig = {
      */
     polling: {
         // Panel data polling during collection phase
-        panelDataInterval: 10000, // 10 seconds (reduced from 5 seconds)
+        panelDataInterval: 5000,
 
         // Job status polling
-        jobStatusInterval: 10000, // 10 seconds (reduced from 5 seconds)
+        jobStatusInterval: 10000,
 
         // Job sidebar polling
-        jobSidebarInterval: 15000, // 5 seconds (reduced from 5 seconds)
+        jobSidebarInterval: 10000,
     },
 
     /**

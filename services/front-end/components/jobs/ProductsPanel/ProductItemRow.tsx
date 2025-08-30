@@ -11,12 +11,14 @@ import { useTranslations } from 'next-intl';
 interface ProductItemRowProps {
   product: ProductItem;
   jobId: string;
+  isCollecting?: boolean;
 }
 
-export function ProductItemRow({ product, jobId }: ProductItemRowProps) {
+export function ProductItemRow({ product, jobId, isCollecting = false }: ProductItemRowProps) {
   const t = useTranslations();
 
   // Fetch first image for this product
+  // Reduce API load: skip nested image fetches while collecting
   const { data: imagesResponse } = useJobImages(
     jobId,
     {
@@ -24,10 +26,10 @@ export function ProductItemRow({ product, jobId }: ProductItemRowProps) {
       limit: 1, // Only fetch the first image
       offset: 0
     },
-    !!jobId && !!product.product_id
+    !!jobId && !!product.product_id && !isCollecting
   );
 
-  const firstImage = imagesResponse?.items?.[0];
+  const firstImage = isCollecting ? undefined : imagesResponse?.items?.[0];
 
   return (
     <div className="flex items-center gap-3 p-2 hover:bg-muted rounded-md transition-colors">

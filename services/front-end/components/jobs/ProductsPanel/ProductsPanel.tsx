@@ -81,7 +81,7 @@ export function ProductsPanel({ jobId, isCollecting = false }: ProductsPanelProp
           <ProductGroup src={src} count={items.length} />
           <div className="space-y-2">
             {items.map((product) => (
-              <ProductItemRow key={product.product_id} product={product} jobId={jobId} />
+              <ProductItemRow key={product.product_id} product={product} jobId={jobId} isCollecting={isCollecting} />
             ))}
           </div>
         </div>

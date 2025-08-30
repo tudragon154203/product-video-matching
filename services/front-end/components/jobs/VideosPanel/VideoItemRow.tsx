@@ -11,12 +11,14 @@ import { useTranslations } from 'next-intl';
 interface VideoItemRowProps {
   video: VideoItem;
   jobId: string;
+  isCollecting?: boolean;
 }
 
-export function VideoItemRow({ video, jobId }: VideoItemRowProps) {
+export function VideoItemRow({ video, jobId, isCollecting = false }: VideoItemRowProps) {
   const t = useTranslations();
 
   // Fetch first frame for this video
+  // Reduce API load: skip nested frame fetches while collecting
   const { data: framesResponse } = useVideoFrames(
     jobId,
     video.video_id,
@@ -26,10 +28,10 @@ export function VideoItemRow({ video, jobId }: VideoItemRowProps) {
       sort_by: 'ts',
       order: 'ASC'
     },
-    !!jobId && !!video.video_id
+    !!jobId && !!video.video_id && !isCollecting
   );
 
-  const firstFrame = framesResponse?.items?.[0];
+  const firstFrame = isCollecting ? undefined : framesResponse?.items?.[0];
 
   return (
     <div className="flex items-center gap-3 p-2 hover:bg-muted rounded-md transition-colors">

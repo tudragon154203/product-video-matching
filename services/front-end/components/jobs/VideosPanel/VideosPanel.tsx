@@ -82,7 +82,7 @@ export function VideosPanel({ jobId, isCollecting = false }: VideosPanelProps) {
           <VideoGroup platform={platform} count={items.length} />
           <div className="space-y-2">
             {items.map((video) => (
-              <VideoItemRow key={video.video_id} video={video} jobId={jobId} />
+              <VideoItemRow key={video.video_id} video={video} jobId={jobId} isCollecting={isCollecting} />
             ))}
           </div>
         </div>
