@@ -4,7 +4,6 @@ from unittest.mock import AsyncMock, Mock, patch
 import uuid
 import sys
 import os
-import logging # Import logging
 
 # Add project root to PYTHONPATH for local imports
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))

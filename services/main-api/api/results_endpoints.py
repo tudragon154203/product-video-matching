@@ -4,18 +4,18 @@ Provides endpoints for product-video matching results.
 """
 from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, Query, Path
-import logging
 
 from models.results_schemas import (
     MatchListResponse, MatchDetailResponse, StatsResponse, EvidenceResponse
 )
 from services.results.results_service import ResultsService
 from common_py.database import DatabaseManager
+from common_py.logging_config import configure_logging
 from api.dependency import get_db
 from config_loader import config
 from utils.image_utils import to_public_url
 
-logger = logging.getLogger(__name__)
+logger = configure_logging("main-api")
 
 router = APIRouter()
 

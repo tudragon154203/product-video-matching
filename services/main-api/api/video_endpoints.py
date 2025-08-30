@@ -15,9 +15,12 @@ from common_py.crud.video_crud import VideoCRUD
 from common_py.crud.video_frame_crud import VideoFrameCRUD
 from common_py.database import DatabaseManager # Import DatabaseManager
 from common_py.messaging import MessageBroker # Import MessageBroker
+from common_py.logging_config import configure_logging
 from api.dependency import get_db, get_broker, get_job_service
 from config_loader import config
 from utils.image_utils import to_public_url
+
+logger = configure_logging("main-api")
 
 router = APIRouter()
 

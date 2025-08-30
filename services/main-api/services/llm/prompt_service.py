@@ -1,6 +1,9 @@
 import json
 import re
 from typing import Dict, Any, List, Union
+from common_py.logging_config import configure_logging
+
+logger = configure_logging("main-api")
 
 class PromptService:
     def build_cls_prompt(self, query: str, industry_labels: list) -> str:
@@ -51,7 +54,6 @@ Rules:
                 queries = json.loads(cleaned_response)
             except (json.JSONDecodeError, Exception) as e:
                 # If parsing fails, create fallback structure
-                logger = __import__('logging').getLogger(__name__)
                 logger.warning(f"Failed to parse LLM response as JSON: {e}")
                 return self._create_fallback_queries(min_items)
         

@@ -5,18 +5,18 @@ Contains business logic for product-video matching results.
 import os
 from typing import Optional, List, Dict, Any, Tuple
 from uuid import uuid4
-import logging
 from datetime import datetime, timezone
 import pytz
 
 from common_py.database import DatabaseManager
 from common_py.crud import ProductCRUD, VideoCRUD, MatchCRUD
+from common_py.logging_config import configure_logging
 from models.results_schemas import (
     MatchResponse, MatchDetailResponse, StatsResponse, 
     ProductResponse, VideoResponse, MatchListResponse
 )
 
-logger = logging.getLogger(__name__)
+logger = configure_logging("main-api")
 
 
 class ResultsService:

@@ -2,7 +2,6 @@
 Static file serving endpoints for images and other media files.
 """
 import os
-import logging
 from pathlib import Path
 from fastapi import APIRouter, HTTPException, Request, Depends, Response
 from fastapi.responses import FileResponse
@@ -13,8 +12,9 @@ from config_loader import config
 from utils.image_utils import get_mime_type, is_safe_path
 from api.dependency import get_db
 from services.static_file_service import StaticFileService
+from common_py.logging_config import configure_logging
 
-logger = logging.getLogger(__name__)
+logger = configure_logging("main-api")
 
 router = APIRouter()
 

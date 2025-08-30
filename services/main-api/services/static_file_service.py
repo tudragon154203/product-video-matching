@@ -2,14 +2,14 @@
 Service for handling static file operations and security checks.
 """
 import os
-import logging
 from pathlib import Path
 from typing import Optional
 
 from config_loader import config
 from utils.image_utils import get_mime_type
+from common_py.logging_config import configure_logging
 
-logger = logging.getLogger(__name__)
+logger = configure_logging("main-api")
 
 
 class StaticFileService:
@@ -92,3 +92,14 @@ class StaticFileService:
         if not file_path.exists():
             return 0
         return file_path.stat().st_size
+    
+    def log_request(self, request, filename: str, file_path: Path = None, status: int = 200) -> None:
+        """Log static file request for observability."""
+        client_ip = getattr(request.client, 'host', 'unknown') if hasattr(request, 'client') else 'unknown'
+        user_agent = request.headers.get('user-agent', 'unknown')
+        
+        if file_path:
+            file_size = self.get_file_size(file_path) if file_path.exists() else 0
+            logger.info(f"Static file request: {client_ip} - {request.method} {filename} - {status} - {file_size} bytes - {user_agent}")
+        else:
+            logger.info(f"Static file request: {client_ip} - {request.method} {filename} - {status} - {user_agent}")

@@ -13,9 +13,12 @@ from common_py.crud.product_image_crud import ProductImageCRUD
 from common_py.crud.product_crud import ProductCRUD
 from common_py.database import DatabaseManager # Import DatabaseManager
 from common_py.messaging import MessageBroker # Import MessageBroker
+from common_py.logging_config import configure_logging
 from api.dependency import get_db, get_broker, get_product_image_crud, get_product_crud, get_job_service
 from config_loader import config
 from services.static_file_service import StaticFileService
+
+logger = configure_logging("main-api")
 
 router = APIRouter()
 

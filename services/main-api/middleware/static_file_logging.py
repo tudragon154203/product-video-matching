@@ -3,13 +3,12 @@ Static file logging middleware for monitoring static file requests.
 """
 
 import time
-import logging
 from fastapi import Request
 from starlette.middleware.base import BaseHTTPMiddleware
 from typing import Callable
+from common_py.logging_config import configure_logging
 
-
-logger = logging.getLogger(__name__)
+logger = configure_logging("main-api")
 
 
 class StaticFileLoggingMiddleware(BaseHTTPMiddleware):

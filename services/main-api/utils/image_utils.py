@@ -2,12 +2,13 @@
 Utility functions for image serving and URL derivation.
 """
 import os
-import logging
 from pathlib import Path
 from typing import Optional
 from urllib.parse import quote
 
-logger = logging.getLogger(__name__)
+from common_py.logging_config import configure_logging
+
+logger = configure_logging("main-api")
 
 def to_public_url(local_path: Optional[str], data_root: str) -> Optional[str]:
     """

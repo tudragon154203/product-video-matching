@@ -1,5 +1,4 @@
 import asyncio
-import logging
 from common_py.database import DatabaseManager
 from common_py.messaging import MessageBroker
 from common_py.logging_config import configure_logging

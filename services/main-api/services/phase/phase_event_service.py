@@ -1,5 +1,4 @@
 import asyncio
-import logging
 import uuid
 from typing import Dict, Any, Set
 from common_py.logging_config import configure_logging

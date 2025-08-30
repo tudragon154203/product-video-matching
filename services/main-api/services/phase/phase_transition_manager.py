@@ -1,5 +1,4 @@
 import asyncio
-import logging
 from typing import Dict, Any, List
 from common_py.logging_config import configure_logging
 from handlers.database_handler import DatabaseHandler
