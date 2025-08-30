@@ -62,7 +62,7 @@ async def serve_static_file(
         return FileResponse(
             path=file_path,
             filename=file_path.name,
-            content_type=mime_type
+            media_type=mime_type
         )
         
     except HTTPException:
