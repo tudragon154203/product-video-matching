@@ -1,5 +1,5 @@
 """
-Unit tests for KeyframeExtractor class
+Unit tests for LengthAdaptiveKeyframeExtractor class
 """
 import asyncio
 import tempfile
@@ -10,11 +10,14 @@ import pytest
 import cv2
 import numpy as np
 
-from fetcher.keyframe_extractor import KeyframeExtractor, KeyframeConfig, VideoProperties
+from keyframe_extractor.length_adaptive_extractor import LengthAdaptiveKeyframeExtractor, KeyframeConfig
+from keyframe_extractor.abstract_extractor import AbstractKeyframeExtractor
+from keyframe_extractor.interface import KeyframeExtractorInterface
+from models.video import VideoProperties
 
 
-class TestKeyframeExtractor:
-    """Test class for KeyframeExtractor"""
+class TestLengthAdaptiveKeyframeExtractor:
+    """Test class for LengthAdaptiveKeyframeExtractor"""
     
     @pytest.fixture
     def temp_dir(self):
@@ -33,9 +36,41 @@ class TestKeyframeExtractor:
     
     @pytest.fixture
     def extractor(self, temp_dir, test_config):
-        """Create a KeyframeExtractor instance with temporary directory"""
-        with patch('config_loader.config.KEYFRAME_DIR', temp_dir):
-            return KeyframeExtractor(config_override=test_config)
+        """Create a LengthAdaptiveKeyframeExtractor instance with temporary directory"""
+        return LengthAdaptiveKeyframeExtractor(keyframe_root_dir=temp_dir, config_override=test_config)
+    
+    @pytest.fixture
+    def sample_video(self, temp_dir):
+        """Create a sample video file for testing"""
+        video_path = Path(temp_dir) / "test_video.mp4"
+        
+        # Create a simple test video using OpenCV
+        fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+        fps = 30
+        frame_size = (640, 480)
+        
+        out = cv2.VideoWriter(str(video_path), fourcc, fps, frame_size)
+        
+        # Create 150 frames (5 seconds at 30fps)
+        for i in range(150):
+            # Create a frame with changing colors
+            frame = np.zeros((480, 640, 3), dtype=np.uint8)
+            # Change color over time
+            frame[:, :] = (i % 255, (i * 2) % 255, (i * 3) % 255)
+            # Add frame number text
+            cv2.putText(frame, f"Frame {i}", (50, 50), 
+                       cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2)
+            out.write(frame)
+        
+        out.release()
+        return str(video_path)
+    
+    def test_inheritance(self, extractor):
+        """Test that LengthAdaptiveKeyframeExtractor properly inherits from abstract base"""
+        assert isinstance(extractor, AbstractKeyframeExtractor)
+        assert isinstance(extractor, KeyframeExtractorInterface)
+        assert hasattr(extractor, 'extract_keyframes')
+        assert hasattr(extractor, '_extract_frames_from_video')
     
     @pytest.fixture
     def sample_video(self, temp_dir):
@@ -172,6 +207,33 @@ class TestKeyframeExtractor:
         score = extractor.calculate_blur_score_from_file(str(image_path))
         assert score > 0
     
+    def test_video_validation(self, extractor, sample_video):
+        """Test video file validation"""
+        # Valid video file
+        assert extractor.validate_video_file(sample_video) is True
+        
+        # Non-existent file
+        assert extractor.validate_video_file("/nonexistent/path.mp4") is False
+        
+        # Empty file path
+        assert extractor.validate_video_file("") is False
+    
+    def test_get_video_duration(self, extractor, sample_video):
+        """Test video duration extraction"""
+        duration = extractor.get_video_duration(sample_video)
+        assert isinstance(duration, float)
+        assert duration > 0
+        # Should be approximately 5 seconds (150 frames at 30fps)
+        assert 4.5 <= duration <= 5.5
+    
+    def test_supported_formats(self, extractor):
+        """Test supported video formats"""
+        formats = extractor.get_supported_formats()
+        assert isinstance(formats, list)
+        assert '.mp4' in formats
+        assert '.avi' in formats
+        assert '.mov' in formats
+    
     def test_validate_inputs(self, extractor, sample_video):
         """Test input validation"""
         # Valid inputs
@@ -194,6 +256,36 @@ class TestKeyframeExtractor:
         assert keyframe_dir is not None
         assert keyframe_dir.exists()
         assert keyframe_dir.is_dir()
+    
+    def test_frame_filename_generation(self, extractor):
+        """Test frame filename generation"""
+        video_id = "test_video"
+        timestamp = 15.75
+        
+        filename = extractor._generate_frame_filename(video_id, timestamp)
+        assert filename == "frame_15_75s.jpg"
+        
+        # Test with different format
+        filename_png = extractor._generate_frame_filename(video_id, timestamp, "png")
+        assert filename_png == "frame_15_75s.png"
+    
+    def test_cleanup_extracted_frames(self, extractor, temp_dir):
+        """Test cleanup of extracted frames"""
+        video_id = "cleanup_test"
+        
+        # Create a test directory with some files
+        keyframe_dir = Path(temp_dir) / video_id
+        keyframe_dir.mkdir()
+        test_file = keyframe_dir / "test_frame.jpg"
+        test_file.write_text("test")
+        
+        assert keyframe_dir.exists()
+        assert test_file.exists()
+        
+        # Cleanup should remove the directory
+        result = extractor.cleanup_extracted_frames(video_id)
+        assert result is True
+        assert not keyframe_dir.exists()
     
     def test_calculate_extraction_timestamps(self, extractor):
         """Test timestamp calculation for different video durations"""
@@ -223,6 +315,40 @@ class TestKeyframeExtractor:
         very_short_timestamps = extractor._calculate_extraction_timestamps(very_short_props)
         assert len(very_short_timestamps) == 1  # Should have middle timestamp
         assert very_short_timestamps[0] == 0.5
+    
+    @pytest.mark.asyncio
+    async def test_save_frame_functionality(self, extractor, temp_dir):
+        """Test frame saving functionality"""
+        # Create a test frame
+        frame = np.zeros((100, 100, 3), dtype=np.uint8)
+        frame[40:60, 40:60] = (255, 255, 255)  # White square
+        
+        frame_path = Path(temp_dir) / "test_frame.jpg"
+        
+        # Save frame
+        result = extractor._save_frame(frame, str(frame_path), quality=90)
+        assert result is True
+        assert frame_path.exists()
+        assert frame_path.stat().st_size > 0
+    
+    @pytest.mark.asyncio
+    async def test_seek_functionality(self, extractor, sample_video):
+        """Test video seeking functionality"""
+        cap = cv2.VideoCapture(sample_video)
+        try:
+            fps = cap.get(cv2.CAP_PROP_FPS)
+            
+            # Test seeking to timestamp
+            result = extractor._seek_to_timestamp(cap, 2.0, fps)
+            assert result is True
+            
+            # Verify we're at approximately the right position
+            current_frame = cap.get(cv2.CAP_PROP_POS_FRAMES)
+            expected_frame = 2.0 * fps
+            assert abs(current_frame - expected_frame) <= 5  # Allow small tolerance
+            
+        finally:
+            cap.release()
     
     @pytest.mark.asyncio
     async def test_error_handling_invalid_video(self, extractor, temp_dir):
@@ -259,3 +385,42 @@ class TestKeyframeExtractor:
         assert config.FRAME_BUFFER_SECONDS == 1.0
         assert config.FRAME_QUALITY == 95
         assert config.FRAME_FORMAT == "jpg"
+    
+    @pytest.mark.asyncio
+    async def test_configuration_override(self, temp_dir):
+        """Test configuration override functionality"""
+        custom_config = KeyframeConfig()
+        custom_config.FRAME_QUALITY = 80
+        custom_config.MIN_BLUR_THRESHOLD = 150.0
+        custom_config.FRAME_FORMAT = "png"
+        
+        extractor = LengthAdaptiveKeyframeExtractor(
+            keyframe_root_dir=temp_dir, 
+            config_override=custom_config
+        )
+        
+        assert extractor.config.FRAME_QUALITY == 80
+        assert extractor.config.MIN_BLUR_THRESHOLD == 150.0
+        assert extractor.config.FRAME_FORMAT == "png"
+    
+    @pytest.mark.asyncio
+    async def test_template_method_workflow(self, extractor, sample_video):
+        """Test that the template method workflow works correctly"""
+        video_id = "template_test"
+        video_url = "https://example.com/video.mp4"
+        
+        # This should use the template method from AbstractKeyframeExtractor
+        # which calls our concrete _extract_frames_from_video implementation
+        keyframes = await extractor.extract_keyframes(video_url, video_id, sample_video)
+        
+        # Verify the workflow completed successfully
+        assert len(keyframes) > 0
+        
+        # Verify directory was created
+        keyframe_dir = extractor.keyframe_root_dir / video_id
+        assert keyframe_dir.exists()
+        
+        # Verify frames were saved
+        for timestamp, frame_path in keyframes:
+            assert Path(frame_path).exists()
+            assert Path(frame_path).suffix == ".jpg"

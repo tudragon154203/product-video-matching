@@ -7,7 +7,7 @@ from common_py.messaging import MessageBroker
 from common_py.crud import VideoCRUD, VideoFrameCRUD
 from common_py.models import Video, VideoFrame
 from fetcher.video_fetcher import VideoFetcher
-from fetcher.keyframe_extractor import KeyframeExtractor
+from keyframe_extractor.length_adaptive_extractor import LengthAdaptiveKeyframeExtractor
 from platform_crawler.interface import PlatformCrawlerInterface
 from platform_crawler.mock_crawler import MockPlatformCrawler
 from platform_crawler.youtube.youtube_crawler import YoutubeCrawler
@@ -30,7 +30,7 @@ class VideoCrawlerService:
         self.frame_crud = VideoFrameCRUD(db)
         self.platform_crawlers = self._initialize_platform_crawlers()
         self.video_fetcher = VideoFetcher(platform_crawlers=self.platform_crawlers)
-        self.keyframe_extractor = KeyframeExtractor()
+        self.keyframe_extractor = LengthAdaptiveKeyframeExtractor()
         self.event_emitter = EventEmitter(broker)
         self.job_progress_manager = JobProgressManager(broker)
     
