@@ -153,7 +153,14 @@ class VideoCrawlerService:
         return video
 
     async def _extract_and_save_keyframes(self, video: Video, video_data: Dict[str, Any]) -> List[Dict[str, Any]]:
-        keyframes = await self.keyframe_extractor.extract_keyframes(video_data["url"], video.video_id)
+        # Get the local path from video_data if available
+        local_path = video_data.get("local_path")
+        
+        # Extract keyframes from downloaded video or create dummy frames
+        keyframes = await self.keyframe_extractor.extract_keyframes(
+            video_data["url"], video.video_id, local_path
+        )
+        
         frame_data = []
         for i, (timestamp, frame_path) in enumerate(keyframes):
             frame_id = f"{video.video_id}_frame_{i}"
