@@ -88,10 +88,27 @@ Selection rules for `primary_*` (best-effort, deterministic):
 - Backward compatibility maintained; existing consumers unaffected.
 
 ## Validation & Tests (TDD Outline)
-- Unit: URL derivation function returns `/files/...` for valid paths, null for invalid; handles Windows and POSIX paths.
-- Unit: Frame selector follows priority rules and is deterministic for same inputs.
-- Unit: Product image selector follows priority rules and is deterministic for same inputs.
-- Integration: Seed minimal data; list endpoints include new fields; URLs resolve (200) for seeded files; 404 for missing files handled gracefully by FE.
+Follow strict Red → Green → Refactor for each capability.
+
+1) URL Derivation (`to_public_url`)
+- Red: Write unit tests covering happy path, Windows/posix normalization, traversal rejection, and null/missing input. Expect failures.
+- Green: Implement minimal logic to pass tests without over-engineering.
+- Refactor: Extract helpers, improve readability, keep behavior identical; re-run tests.
+
+2) Video Preview Frame Selection
+- Red: Write unit tests for selection rules: prefer segmented frame, else raw; prefer mid-timestamp; tie-breakers by `updated_at` then `frame_id`; null when none valid.
+- Green: Implement selector to satisfy tests using deterministic ordering.
+- Refactor: Optimize query/ordering if needed; keep tests green.
+
+3) Product Primary Image Selection
+- Red: Write unit tests for selection rules: most recent image; prefer with masked variant; tie-break by `img_id`; null URLs and `image_count=0` when none.
+- Green: Implement selector accordingly.
+- Refactor: Consolidate shared utilities; preserve behavior.
+
+4) List Endpoints Contract Integration
+- Red: Add integration tests (TestClient) asserting new fields exist on `/jobs/{job_id}/videos` and `/jobs/{job_id}/products`, are nullable, and correct when seeded. Include: valid URL → 200; missing file → FE handles 404 gracefully.
+- Green: Wire selectors + URL derivation into handlers with minimal changes to pass tests.
+- Refactor: Remove duplication, ensure pagination/sorting unchanged; keep tests green.
 
 ## Performance Notes
 - Avoid N+1 queries: join or lateral selects to fetch one representative image/frame and counts in the same query when possible.
@@ -100,4 +117,3 @@ Selection rules for `primary_*` (best-effort, deterministic):
 ## Rollout
 - Implement behind a feature flag `INCLUDE_INLINE_IMAGE_FIELDS` defaulting to enabled in dev.
 - Document changes in API.md after implementation stabilizes.
-
