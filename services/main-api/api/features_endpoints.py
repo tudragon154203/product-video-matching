@@ -142,7 +142,7 @@ async def get_job_product_images_features(
     has: str = Query("any", pattern="^(segment|embedding|keypoints|none|any)$", description="Filter by feature presence"),
     limit: int = Query(100, ge=1, le=1000, description="Maximum number of items to return"),
     offset: int = Query(0, ge=0, description="Number of items to skip"),
-    sort_by: str = Query("updated_at", pattern="^(updated_at|img_id)$", description="Field to sort by"),
+    sort_by: str = Query("created_at", pattern="^(created_at|img_id)$", description="Field to sort by"),
     order: str = Query("DESC", pattern="^(ASC|DESC)$", description="Sort order"),
     product_image_crud: ProductImageCRUD = Depends(get_product_image_crud),
     job_service: JobService = Depends(get_job_service)
@@ -192,7 +192,7 @@ async def get_job_product_images_features(
                 has_embedding=has_embedding,
                 has_keypoints=has_keypoints,
                 paths=paths,
-                updated_at=get_gmt7_time(image.updated_at or image.created_at)
+                updated_at=get_gmt7_time(image.created_at)
             )
             image_items.append(image_item)
         
@@ -216,7 +216,7 @@ async def get_job_video_frames_features(
     has: str = Query("any", pattern="^(segment|embedding|keypoints|none|any)$", description="Filter by feature presence"),
     limit: int = Query(100, ge=1, le=1000, description="Maximum number of items to return"),
     offset: int = Query(0, ge=0, description="Number of items to skip"),
-    sort_by: str = Query("updated_at", pattern="^(updated_at|frame_id|ts)$", description="Field to sort by"),
+    sort_by: str = Query("ts", pattern="^(ts|frame_id)$", description="Field to sort by"),
     order: str = Query("DESC", pattern="^(ASC|DESC)$", description="Sort order"),
     video_frame_crud: VideoFrameCRUD = Depends(get_video_frame_crud),
     job_service: JobService = Depends(get_job_service)
@@ -269,7 +269,7 @@ async def get_job_video_frames_features(
                 has_embedding=has_embedding,
                 has_keypoints=has_keypoints,
                 paths=paths,
-                updated_at=get_gmt7_time(frame.updated_at or frame.created_at)
+                updated_at=get_gmt7_time(frame.created_at)
             )
             frame_items.append(frame_item)
         
@@ -320,7 +320,7 @@ async def get_product_image_feature(
             has_embedding=has_embedding,
             has_keypoints=has_keypoints,
             paths=paths,
-            updated_at=get_gmt7_time(image.updated_at or image.created_at)
+            updated_at=get_gmt7_time(image.created_at)
         )
         
     except HTTPException:
@@ -364,7 +364,7 @@ async def get_video_frame_feature(
             has_embedding=has_embedding,
             has_keypoints=has_keypoints,
             paths=paths,
-            updated_at=get_gmt7_time(frame.updated_at or frame.created_at)
+            updated_at=get_gmt7_time(frame.created_at)
         )
         
     except HTTPException:

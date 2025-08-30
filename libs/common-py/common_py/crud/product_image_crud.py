@@ -50,15 +50,15 @@ class ProductImageCRUD:
         search_query: Optional[str] = None,
         limit: int = 100,
         offset: int = 0,
-        sort_by: str = "updated_at",
+        sort_by: str = "created_at",
         order: str = "DESC",
         has_feature: Optional[str] = None
     ) -> List[ProductImage]:
         """List images for a job with filtering, search, pagination and sorting."""
         # Validate sort_by parameter
-        valid_sort_fields = {"img_id", "updated_at"}
+        valid_sort_fields = {"img_id", "created_at"}
         if sort_by not in valid_sort_fields:
-            sort_by = "updated_at"
+            sort_by = "created_at"
         
         # Validate order parameter
         order = order.upper()
@@ -158,14 +158,14 @@ class ProductImageCRUD:
         has_feature: Optional[str] = None,
         limit: int = 100,
         offset: int = 0,
-        sort_by: str = "updated_at",
+        sort_by: str = "created_at",
         order: str = "DESC"
     ) -> List[ProductImage]:
         """List images for a job with feature filtering, pagination and sorting."""
         # Validate sort_by parameter
-        valid_sort_fields = {"img_id", "updated_at"}
+        valid_sort_fields = {"img_id", "created_at"}
         if sort_by not in valid_sort_fields:
-            sort_by = "updated_at"
+            sort_by = "created_at"
         
         # Validate order parameter
         order = order.upper()

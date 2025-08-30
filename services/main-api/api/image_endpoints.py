@@ -39,7 +39,7 @@ async def get_job_images(
     q: Optional[str] = Query(None, description="Search query for product titles and image IDs"),
     limit: int = Query(100, ge=1, le=1000, description="Maximum number of items to return"),
     offset: int = Query(0, ge=0, description="Number of items to skip"),
-    sort_by: str = Query("updated_at", pattern="^(img_id|updated_at)$", description="Field to sort by"),
+    sort_by: str = Query("created_at", pattern="^(img_id|created_at)$", description="Field to sort by"),
     order: str = Query("DESC", pattern="^(ASC|DESC)$", description="Sort order"),
     job_service: JobService = Depends(get_job_service),
     product_image_crud: ProductImageCRUD = Depends(get_product_image_crud)
@@ -53,7 +53,7 @@ async def get_job_images(
         q: Search query for product titles and image IDs (case-insensitive)
         limit: Maximum number of items to return (1-1000)
         offset: Number of items to skip for pagination
-        sort_by: Field to sort by (img_id, updated_at)
+        sort_by: Field to sort by (img_id, created_at)
         order: Sort order (ASC or DESC)
     
     Returns:
@@ -91,8 +91,14 @@ async def get_job_images(
         image_items = []
         for image in images:
             # Generate full URL for the image (API route based)
-            relative_path = os.path.relpath(image.local_path, config.DATA_ROOT_CONTAINER)
-            public_url = f"{config.BASE_URL}/files/{relative_path.replace(os.sep, '/')}"
+            from utils.image_utils import to_public_url # Import locally to avoid circular dependency if any
+            public_url = to_public_url(image.local_path, config.DATA_ROOT_CONTAINER)
+            if public_url:
+                public_url = f"{config.MAIN_API_URL}{public_url}"
+            else:
+                # Handle case where public_url cannot be generated (e.g., invalid path)
+                logger.warning(f"Could not generate public URL for local_path: {image.local_path}")
+                public_url = None # Or a default placeholder URL
             
             image_item = ImageItem(
                 img_id=image.img_id,
@@ -100,7 +106,7 @@ async def get_job_images(
                 local_path=image.local_path,
                 url=public_url,  # Add public URL field
                 product_title=getattr(image, 'product_title', ''),  # Get product_title from joined query
-                updated_at=get_gmt7_time(image.updated_at or image.created_at)
+                updated_at=get_gmt7_time(image.created_at)
             )
             image_items.append(image_item)
         

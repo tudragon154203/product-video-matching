@@ -188,6 +188,12 @@ async def get_video_frames(
         for frame in frames:
             # Generate public URL for the frame image
             public_url = to_public_url(frame.local_path, config.DATA_ROOT_CONTAINER)
+            if public_url:
+                public_url = f"{config.MAIN_API_URL}{public_url}"
+            else:
+                # Handle case where public_url cannot be generated (e.g., invalid path)
+                logger.warning(f"Could not generate public URL for local_path: {frame.local_path}")
+                public_url = None # Or a default placeholder URL
             
             frame_item = FrameItem(
                 frame_id=frame.frame_id,

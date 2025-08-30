@@ -18,15 +18,15 @@ export function VideosSkeleton({ count, ...props }: VideosSkeletonProps) {
           )}
         >
           <div className="flex-shrink-0">
-            <div className="w-20 h-14 bg-muted rounded-md animate-pulse" />
+            <div className="w-[120px] h-[120px] bg-muted rounded-md animate-pulse" />
           </div>
-          
+
           <div className="flex-1 space-y-2">
             <div className="h-4 bg-muted rounded animate-pulse" />
             <div className="h-3 bg-muted rounded animate-pulse w-2/3" />
             <div className="h-3 bg-muted rounded animate-pulse w-1/2" />
           </div>
-          
+
           <div className="w-5 h-5 bg-muted rounded animate-pulse" />
         </div>
       ))}

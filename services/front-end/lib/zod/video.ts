@@ -30,6 +30,7 @@ export const FrameItem = z.object({
   frame_id: z.string(),
   ts: z.number(),
   local_path: z.string(),
+  url: z.string().nullable().optional(),
   updated_at: z.string(),
 });
 

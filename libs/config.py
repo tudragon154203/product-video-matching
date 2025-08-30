@@ -108,6 +108,7 @@ class Config:
     
     # Service URLs (for inter-service communication)
     MAIN_API_URL: str = field(default_factory=lambda: get_env_var("MAIN_API_URL", f"http://localhost:{get_env_int('PORT_MAIN', 8888)}"))
-
+    DATA_ROOT_CONTAINER: str = field(default_factory=lambda: get_env_var("DATA_ROOT_CONTAINER", "/app/data"))
+    
 # Create global config instance
 config = Config()

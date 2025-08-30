@@ -26,7 +26,7 @@ class StaticFileService:
         # Avoid double slashes
         if normalized_path.startswith('/'):
             normalized_path = normalized_path[1:]
-        return f"{config.BASE_URL}/files/{normalized_path}"
+        return f"{self.data_root}/files/{normalized_path}"
     
     def get_relative_path(self, local_path: str) -> str:
         """Get relative path from local path for URL building."""

@@ -114,7 +114,7 @@ class VideoFrameCRUD:
     ) -> List[VideoFrame]:
         """List frames for a job with optional video_id, feature filtering, pagination and sorting."""
         # Validate sort_by field
-        valid_sort_fields = ["ts", "frame_id", "updated_at"]
+        valid_sort_fields = ["ts", "frame_id"]
         if sort_by not in valid_sort_fields:
             sort_by = "ts"
         

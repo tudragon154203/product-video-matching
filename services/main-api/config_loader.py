@@ -62,7 +62,10 @@ class MainAPIConfig:
     BUS_BROKER: str = global_config.BUS_BROKER
     
     # Data root configuration for static file serving
-    DATA_ROOT_CONTAINER: str = os.getenv("DATA_ROOT_CONTAINER", "/app/data")
+    DATA_ROOT_CONTAINER: str = global_config.DATA_ROOT_CONTAINER
+
+    # MAIN URL
+    MAIN_API_URL: str = global_config.MAIN_API_URL
 
 # Create config instance
 config = MainAPIConfig()

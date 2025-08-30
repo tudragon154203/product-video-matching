@@ -7,6 +7,7 @@ export const ImageItem = z.object({
   img_id: z.string(),
   product_id: z.string(),
   local_path: z.string(),
+  url: z.string().nullable().optional(),
   product_title: z.string(),
   updated_at: z.string(),
 });

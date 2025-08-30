@@ -1,129 +1,114 @@
-#!/usr/bin/env python3
-"""
-Database seeding script for development
-"""
-import asyncio
-import asyncpg
-import uuid
-from datetime import datetime, timedelta
 import os
 import sys
+import uuid
+import random
+from datetime import datetime, timezone
+from pathlib import Path
 
-# Add libs to path
-sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'libs'))
+# Add the project root and libs/common-py to the Python path
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "libs" / "common-py"))
 
-from common_py.logging_config import configure_logging
-from infra.config import config
+from libs.config import config
+from common_py.database import DatabaseManager
+from common_py.crud.video_crud import VideoCRUD
+from common_py.crud.video_frame_crud import VideoFrameCRUD
+from common_py.crud.product_crud import ProductCRUD
+from common_py.crud.product_image_crud import ProductImageCRUD
 
-logger = configure_logging("seed")
+from faker import Faker
 
-# Database connection
-POSTGRES_DSN = config.POSTGRES_DSN
+fake = Faker()
 
+async def seed_data():
+    db_manager = DatabaseManager(config.POSTGRES_DSN)
+    await db_manager.connect()
 
-async def seed_database():
-    """Seed database with sample data"""
+    video_crud = VideoCRUD(db_manager)
+    video_frame_crud = VideoFrameCRUD(db_manager)
+    product_crud = ProductCRUD(db_manager)
+    product_image_crud = ProductImageCRUD(db_manager)
+
     try:
-        # Connect to database
-        conn = await asyncpg.connect(POSTGRES_DSN)
-        
-        logger.info("Connected to database, starting seeding...")
-        
-        # Create sample job
-        job_id = str(uuid.uuid4())
-        await conn.execute(
-            "INSERT INTO jobs (job_id, industry, phase) VALUES ($1, $2, $3)",
-            job_id, "ergonomic pillows", "completed"
-        )
-        logger.info("Created sample job", job_id=job_id)
-        
-        # Create sample products (reduced by 90% - keep 1 out of 2)
-        products = [
-            {
-                "id": str(uuid.uuid4()),
-                "src": "amazon",
-                "asin": "B08XYZ123",
-                "title": "Ergonomic Memory Foam Pillow",
-                "brand": "ComfortPlus",
-                "url": "https://amazon.com/ergonomic-pillow-1"
-            }
-        ]
-        
-        for product in products:
-            await conn.execute(
-                "INSERT INTO products (product_id, src, asin_or_itemid, title, brand, url, job_id) VALUES ($1, $2, $3, $4, $5, $6, $7)",
-                product["id"], product["src"], product["asin"], product["title"],
-                product["brand"], product["url"], job_id
-            )
-            
-            # Create sample images for each product (reduced by 90% - keep 1 out of 2)
-            for i in range(1):
-                img_id = f"{product['id']}_img_{i}"
-                await conn.execute(
-                    "INSERT INTO product_images (img_id, product_id, local_path) VALUES ($1, $2, $3)",
-                    img_id, product["id"], f"/app/data/products/{product['id']}/{img_id}.jpg"
-                )
-        
-        logger.info("Created sample products", count=len(products))
-        
-        # Create sample videos (reduced by 90% - keep 1 out of 2)
-        videos = [
-            {
-                "id": str(uuid.uuid4()),
-                "platform": "youtube",
-                "url": "https://youtube.com/watch?v=sample1",
-                "title": "Best Ergonomic Pillows Review 2024",
-                "duration": 180
-            }
-        ]
-        
-        for video in videos:
-            await conn.execute(
-                "INSERT INTO videos (video_id, platform, url, title, duration_s, job_id) VALUES ($1, $2, $3, $4, $5, $6)",
-                video["id"], video["platform"], video["url"], video["title"],
-                video["duration"], job_id
-            )
-            
-            # Create sample frames for each video (reduced by 90% - keep 1 out of 3)
-            for i in range(1):
-                frame_id = f"{video['id']}_frame_{i}"
-                timestamp = i * 30.0  # Every 30 seconds
-                await conn.execute(
-                    "INSERT INTO video_frames (frame_id, video_id, ts, local_path) VALUES ($1, $2, $3, $4)",
-                    frame_id, video["id"], timestamp, f"/app/data/videos/{video['id']}/frames/{frame_id}.jpg"
-                )
-        
-        logger.info("Created sample videos", count=len(videos))
-        
-        # Create sample matches (updated to reference remaining products and videos)
-        match_id = str(uuid.uuid4())
-        await conn.execute(
-            """INSERT INTO matches (match_id, job_id, product_id, video_id, best_img_id, best_frame_id, ts, score)
-               VALUES ($1, $2, $3, $4, $5, $6, $7, $8)""",
-            match_id, job_id, products[0]["id"], videos[0]["id"],
-            f"{products[0]['id']}_img_0", f"{videos[0]['id']}_frame_0", 30.0, 0.85
-        )
-        
-        logger.info("Created sample match", match_id=match_id)
-        
-        # Get final counts
-        stats = {
-            "jobs": await conn.fetchval("SELECT COUNT(*) FROM jobs"),
-            "products": await conn.fetchval("SELECT COUNT(*) FROM products"),
-            "product_images": await conn.fetchval("SELECT COUNT(*) FROM product_images"),
-            "videos": await conn.fetchval("SELECT COUNT(*) FROM videos"),
-            "video_frames": await conn.fetchval("SELECT COUNT(*) FROM video_frames"),
-            "matches": await conn.fetchval("SELECT COUNT(*) FROM matches")
-        }
-        
-        logger.info("Database seeding completed", stats=stats)
-        
-        await conn.close()
-        
-    except Exception as e:
-        logger.error("Failed to seed database", error=str(e))
-        raise
+        # Clear existing data (optional, but good for consistent seeding)
+        print("Truncating existing data...")
+        await db_manager.execute("TRUNCATE TABLE video_frames, product_images, videos, products RESTART IDENTITY CASCADE;")
+        print("Data truncated.")
 
+        job_id = str(uuid.uuid4())
+        print(f"Seeding data for job_id: {job_id}")
+
+        # Seed Products
+        products = []
+        for _ in range(5):
+            product_id = str(uuid.uuid4())
+            product = await product_crud.create_product(
+                product_id=product_id,
+                job_id=job_id,
+                title=fake.catch_phrase(),
+                description=fake.paragraph(),
+                price=random.uniform(10.0, 500.0),
+                currency="USD",
+                product_url=fake.url(),
+                source_platform="ecommerce"
+            )
+            products.append(product)
+            print(f"  Created product: {product.product_id}")
+
+            # Seed Product Images for each product
+            for _ in range(random.randint(1, 3)):
+                img_id = str(uuid.uuid4())
+                # Store local_path relative to DATA_ROOT_CONTAINER
+                relative_path = f"product_images/{product_id}/image_{img_id}.jpg"
+                await product_image_crud.create_product_image(
+                    img_id=img_id,
+                    product_id=product_id,
+                    job_id=job_id,
+                    url=fake.image_url(), # External URL
+                    local_path=relative_path, # Relative path
+                    source_platform="ecommerce"
+                )
+                print(f"    Created product image: {img_id} (local_path: {relative_path})")
+
+        # Seed Videos
+        videos = []
+        for _ in range(3):
+            video_id = str(uuid.uuid4())
+            video = await video_crud.create_video(
+                video_id=video_id,
+                job_id=job_id,
+                platform=random.choice(["youtube", "tiktok"]),
+                url=fake.url(),
+                title=fake.sentence(),
+                description=fake.paragraph(),
+                duration_s=random.randint(60, 600)
+            )
+            videos.append(video)
+            print(f"  Created video: {video.video_id}")
+
+            # Seed Video Frames for each video
+            for i in range(random.randint(5, 15)):
+                frame_id = str(uuid.uuid4())
+                # Store local_path relative to DATA_ROOT_CONTAINER
+                relative_path = f"keyframes/{video_id}/frame_{i}.jpg"
+                await video_frame_crud.create_video_frame(
+                    frame_id=frame_id,
+                    video_id=video_id,
+                    job_id=job_id,
+                    ts=i * 1000, # Milliseconds
+                    url=fake.image_url(), # External URL
+                    local_path=relative_path, # Relative path
+                    source_platform="video_crawler"
+                )
+                print(f"    Created video frame: {frame_id} (local_path: {relative_path})")
+
+        print("Seeding complete!")
+
+    except Exception as e:
+        print(f"An error occurred during seeding: {e}")
+    finally:
+        await db_manager.disconnect()
 
 if __name__ == "__main__":
-    asyncio.run(seed_database())
+    import asyncio
+    asyncio.run(seed_data())

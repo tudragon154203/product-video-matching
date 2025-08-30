@@ -11,10 +11,10 @@ logger = logging.getLogger(__name__)
 
 def to_public_url(local_path: Optional[str], data_root: str) -> Optional[str]:
     """
-    Convert a local file path to a public URL for serving via /files endpoint.
+    Convert a local file path (relative to data_root) to a public URL for serving via /files endpoint.
     
     Args:
-        local_path: Absolute path to the file inside the container (e.g., "/app/data/images/123.jpg")
+        local_path: Path to the file relative to the data_root (e.g., "images/123.jpg")
         data_root: The root data directory (e.g., "/app/data")
     
     Returns:
@@ -25,38 +25,31 @@ def to_public_url(local_path: Optional[str], data_root: str) -> Optional[str]:
         return None
     
     try:
-        # Security check: ensure path doesn't escape data root using abspath
-        # This handles cases where path contains ../ by resolving them
-        resolved_path = os.path.abspath(local_path)
-        resolved_root = os.path.abspath(data_root)
+        # Construct the full absolute path within the container
+        full_path = Path(data_root) / local_path
         
-        # Check if resolved path is within the resolved root
-        if not resolved_path.startswith(resolved_root):
-            logger.warning(f"Path {local_path} escapes data root {data_root}")
+        # Resolve the full path to handle any '..' or '.'
+        resolved_full_path = full_path.resolve()
+        resolved_data_root = Path(data_root).resolve()
+        
+        # Security check: ensure the resolved path is within the data root
+        if not resolved_full_path.is_relative_to(resolved_data_root):
+            logger.warning(f"Path {local_path} resolves outside data root {data_root}")
+            return None
+            
+        # Ensure it's not a directory
+        if resolved_full_path.is_dir():
+            logger.debug(f"Path {resolved_full_path} is a directory, not a file")
             return None
         
-        # Check if it's a directory (path ends with separator or is a directory)
-        if os.path.isdir(local_path):
-            logger.debug(f"Path {local_path} is a directory, not a file")
-            return None
-        
-        # Normalize paths to handle different separators
-        local_path = os.path.normpath(local_path)
-        data_root = os.path.normpath(data_root)
-        
-        # Get relative path from data_root
-        relative_path = os.path.relpath(local_path, data_root)
+        # Get the path relative to the data root for the URL
+        relative_url_path = str(resolved_full_path.relative_to(resolved_data_root))
         
         # Normalize separators to forward slashes for URL
-        relative_path = relative_path.replace(os.sep, '/')
+        relative_url_path = relative_url_path.replace(os.sep, '/')
         
         # Construct public URL
-        public_url = f"/files/{relative_path}"
-        
-        # Additional validation: ensure no path traversal in the final URL
-        if ".." in public_url:
-            logger.warning(f"Potential path traversal in URL: {public_url}")
-            return None
+        public_url = f"/files/{quote(relative_url_path)}" # Use quote for URL encoding
         
         return public_url
         
