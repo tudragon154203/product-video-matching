@@ -34,7 +34,7 @@ class ResultsService:
         self.video_crud = VideoCRUD(db)
         self.match_crud = MatchCRUD(db)
         
-        logger.info("ResultsService initialized")
+        logger.debug("ResultsService initialized")
     
     def _get_gmt7_time(self, dt: Optional[datetime]) -> Optional[datetime]:
         """Convert datetime to GMT+7 timezone"""
@@ -68,7 +68,7 @@ class ResultsService:
         correlation_id = str(uuid4())
         
         try:
-            logger.info(
+            logger.debug(
                 "Getting results",
                 extra={
                     "correlation_id": correlation_id,
@@ -107,7 +107,7 @@ class ResultsService:
                     # Continue processing other matches
                     continue
             
-            logger.info(
+            logger.debug(
                 f"Retrieved {len(enriched_matches)} results",
                 extra={
                     "correlation_id": correlation_id,
@@ -190,7 +190,7 @@ class ResultsService:
         correlation_id = str(uuid4())
         
         try:
-            logger.info(
+            logger.debug(
                 f"Getting match {match_id}",
                 extra={"correlation_id": correlation_id, "match_id": match_id}
             )
@@ -238,7 +238,7 @@ class ResultsService:
                 )
             )
             
-            logger.info(
+            logger.debug(
                 f"Retrieved match {match_id}",
                 extra={"correlation_id": correlation_id}
             )
@@ -308,7 +308,7 @@ class ResultsService:
         correlation_id = str(uuid4())
         
         try:
-            logger.info(
+            logger.debug(
                 f"Getting evidence path for match {match_id}",
                 extra={"correlation_id": correlation_id, "match_id": match_id}
             )
@@ -325,7 +325,7 @@ class ResultsService:
                 )
                 return None
             
-            logger.info(
+            logger.debug(
                 f"Retrieved evidence path for match {match_id}",
                 extra={"correlation_id": correlation_id}
             )
@@ -349,7 +349,7 @@ class ResultsService:
         correlation_id = str(uuid4())
         
         try:
-            logger.info(
+            logger.debug(
                 "Getting system statistics",
                 extra={"correlation_id": correlation_id}
             )
@@ -363,7 +363,7 @@ class ResultsService:
                 jobs=await self.db.fetch_val("SELECT COUNT(*) FROM jobs") or 0
             )
             
-            logger.info(
+            logger.debug(
                 "Retrieved system statistics",
                 extra={"correlation_id": correlation_id, "stats": stats.dict()}
             )

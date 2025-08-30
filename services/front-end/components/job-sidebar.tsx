@@ -3,19 +3,20 @@
 import { useQuery } from '@tanstack/react-query'
 import { JobListResponse, JobItem } from '@/lib/zod/job'
 import { jobApiService } from '@/lib/api/services/job.api'
+import { getPollingInterval } from '@/lib/config/pagination'
 import { JobStatsCard } from './job-sidebar/job-stats-card'
 import { JobListCard } from './job-sidebar/job-list-card'
 import { StartNewJobButton } from './job-sidebar/start-new-job-button'
 import { useJobStats, useGroupedJobs, useSortedJobs } from './job-sidebar/hooks'
 
 export function JobSidebar() {
-  // Fetch jobs using real API with more frequent polling
+  // Fetch jobs using real API with reduced polling frequency
   const { data: jobsResponse, isLoading, error } = useQuery<JobListResponse>({
     queryKey: ['jobs-list'],
     queryFn: async () => {
       return await jobApiService.listJobs({ limit: 100 })
     },
-    refetchInterval: 5000, // Refresh every 5 seconds instead of 30 seconds for more responsive updates
+    refetchInterval: getPollingInterval('jobSidebar'), // Use centralized config
     refetchOnWindowFocus: true, // Refetch when window regains focus
     refetchOnReconnect: true, // Refetch on network reconnect
   })
@@ -29,11 +30,11 @@ export function JobSidebar() {
     <div className="flex flex-col h-full p-4 space-y-4">
       <JobStatsCard stats={stats} isLoading={isLoading} />
       <StartNewJobButton />
-      <JobListCard 
-        jobs={sortedJobs} 
-        groupedJobs={groupedJobs} 
-        isLoading={isLoading} 
-        error={error ?? null} 
+      <JobListCard
+        jobs={sortedJobs}
+        groupedJobs={groupedJobs}
+        isLoading={isLoading}
+        error={error ?? null}
       />
     </div>
   )

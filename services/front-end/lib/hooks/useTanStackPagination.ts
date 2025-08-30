@@ -1,8 +1,9 @@
 'use client';
 
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { useQuery, useQueryClient, keepPreviousData } from '@tanstack/react-query';
 import { usePaginatedList } from './usePaginatedList';
+import { shouldEnablePrefetch, paginationConfig } from '@/lib/config/pagination';
 
 interface PaginatedResponse<T> {
     items: T[];
@@ -18,6 +19,7 @@ interface UseTanStackPaginationOptions<T> {
     staleTime?: number;
     gcTime?: number;
     refetchInterval?: number | false;
+    disablePrefetch?: boolean; // Option to disable adjacent page prefetching
 }
 
 interface UseTanStackPaginationReturn<T> {
@@ -54,9 +56,10 @@ export function useTanStackPagination<T>(
         initialOffset = 0,
         limit = 10,
         enabled = true,
-        staleTime = 1000 * 60 * 5, // 5 minutes default
-        gcTime = 1000 * 60 * 10, // 10 minutes default
+        staleTime = paginationConfig.cache.staleTime,
+        gcTime = paginationConfig.cache.gcTime,
         refetchInterval = false,
+        disablePrefetch = !shouldEnablePrefetch(), // Use centralized config
     } = options;
 
     const queryClient = useQueryClient();
@@ -85,17 +88,32 @@ export function useTanStackPagination<T>(
         gcTime,
         refetchInterval,
         placeholderData: keepPreviousData,
-        retry: 3,
-        retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
+        retry: (failureCount, error) => {
+            // Reduce retries during active polling to minimize API load
+            const maxRetries = refetchInterval
+                ? paginationConfig.retry.maxRetriesWhenPolling
+                : paginationConfig.retry.maxRetriesDefault;
+            return failureCount < maxRetries;
+        },
+        retryDelay: (attemptIndex) =>
+            Math.min(
+                paginationConfig.retry.baseRetryDelay * 2 ** attemptIndex,
+                paginationConfig.retry.maxRetryDelay
+            ),
     });
 
     // Extract data or provide defaults
     const items = data?.items || [];
     const total = data?.total || 0;
 
-    // Prefetch adjacent pages for better UX
+    // Prefetch adjacent pages for better UX (with smart throttling)
     const prefetchAdjacentPages = useCallback(() => {
         const currentOffset = pagination.offset;
+
+        // Skip prefetching during active polling to reduce API load
+        if (refetchInterval && isFetching) {
+            return;
+        }
 
         // Prefetch previous page
         if (currentOffset > 0) {
@@ -122,16 +140,33 @@ export function useTanStackPagination<T>(
                 gcTime,
             });
         }
-    }, [pagination.offset, limit, total, getQueryKey, fetchFunction, queryClient, staleTime, gcTime]);
+    }, [pagination.offset, limit, total, getQueryKey, fetchFunction, queryClient, staleTime, gcTime, refetchInterval, isFetching]);
 
-    // Prefetch adjacent pages when data loads successfully
+    // Track when we last prefetched to prevent rapid successive prefetching
+    const lastPrefetchRef = useRef<number>(0);
+
+    // Prefetch adjacent pages when data loads successfully (with smart throttling)
     useEffect(() => {
-        if (data && !isPlaceholderData) {
-            // Small delay to avoid blocking the main thread
-            const timer = setTimeout(prefetchAdjacentPages, 100);
-            return () => clearTimeout(timer);
+        // Skip prefetching entirely if disabled
+        if (disablePrefetch) {
+            return;
         }
-    }, [data, isPlaceholderData, prefetchAdjacentPages]);
+
+        if (data && !isPlaceholderData) {
+            const now = Date.now();
+            // Prevent prefetching if we just did it recently
+            const minPrefetchInterval = refetchInterval ? 8000 : 2000; // 8s during polling, 2s otherwise
+
+            if (now - lastPrefetchRef.current > minPrefetchInterval) {
+                const delay = refetchInterval ? 3000 : 100; // 3 seconds if actively refetching, 100ms otherwise
+                const timer = setTimeout(() => {
+                    prefetchAdjacentPages();
+                    lastPrefetchRef.current = Date.now();
+                }, delay);
+                return () => clearTimeout(timer);
+            }
+        }
+    }, [data, isPlaceholderData, prefetchAdjacentPages, refetchInterval, disablePrefetch]);
 
     // Navigation handlers with loading states
     const handlePrev = useCallback(() => {

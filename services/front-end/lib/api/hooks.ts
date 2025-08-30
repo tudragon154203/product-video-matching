@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { 
+import {
   jobApiService,
   productApiService,
   videoApiService,
@@ -7,6 +7,7 @@ import {
   featureApiService,
   resultsApiService
 } from './services';
+import { getPollingInterval } from '@/lib/config/pagination';
 import type {
   StartJobRequest,
   JobStatus,
@@ -60,7 +61,7 @@ export const queryKeys = {
 // Job hooks
 export const useStartJob = () => {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
     mutationFn: (request: StartJobRequest) => jobApiService.startJob(request),
     onSuccess: () => {
@@ -74,7 +75,7 @@ export const useJobStatus = (jobId: string, enabled = true) => {
     queryKey: queryKeys.jobs.status(jobId),
     queryFn: () => jobApiService.getJobStatus(jobId),
     enabled: enabled && !!jobId,
-    refetchInterval: 5000, // Poll every 5 seconds
+    refetchInterval: getPollingInterval('jobStatus'), // Use centralized config
   });
 };
 

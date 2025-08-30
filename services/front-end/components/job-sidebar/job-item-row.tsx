@@ -6,21 +6,16 @@ import type { Phase } from '@/lib/zod/job'
 import { formatToGMT7 } from '@/lib/time'
 import { Badge } from '@/components/ui/badge'
 import Link from 'next/link'
-import { useJobStatusPolling } from '@/lib/hooks/useJobStatusPolling'
 
 interface JobItemRowProps {
   job: JobItem
 }
 
 export function JobItemRow({ job }: JobItemRowProps) {
-  const { phase: currentPhase, percent, counts } = useJobStatusPolling(job.job_id);
-  const phaseInfo = getPhaseInfo(currentPhase as Phase);
+  // OPTIMIZATION: Use phase data from job list instead of individual API calls
+  // This eliminates the N+1 query problem and reduces API load significantly
+  const phaseInfo = getPhaseInfo(job.phase as Phase);
   const displayDate = job.updated_at || job.created_at;
-
-  // Determine if products/videos are done for collection phase
-  const productsDone = counts?.products > 0; // Safely handle undefined counts
-  const videosDone = counts?.videos > 0; // Safely handle undefined counts
-  const collectionFinished = currentPhase === 'collection' && productsDone && videosDone;
 
 
   return (
@@ -37,12 +32,12 @@ export function JobItemRow({ job }: JobItemRowProps) {
               <>
                 <div
                   data-testid="status-color-circle" className={`h-2 w-2 rounded-full ${phaseInfo.color === 'blue' ? 'bg-blue-500' :
-                      phaseInfo.color === 'yellow' ? 'bg-yellow-500' :
-                        phaseInfo.color === 'purple' ? 'bg-purple-500' :
-                          phaseInfo.color === 'orange' ? 'bg-orange-500' :
-                            phaseInfo.color === 'green' ? 'bg-green-500' :
-                              phaseInfo.color === 'red' ? 'bg-red-500' :
-                                'bg-gray-500'
+                    phaseInfo.color === 'yellow' ? 'bg-yellow-500' :
+                      phaseInfo.color === 'purple' ? 'bg-purple-500' :
+                        phaseInfo.color === 'orange' ? 'bg-orange-500' :
+                          phaseInfo.color === 'green' ? 'bg-green-500' :
+                            phaseInfo.color === 'red' ? 'bg-red-500' :
+                              'bg-gray-500'
                     }`}
                 />
                 <span className="text-xs text-muted-foreground">

@@ -16,7 +16,7 @@ class DatabaseHandler:
                 job_id, query, industry, queries, phase
             )
             await self.db.execute("COMMIT") # Explicitly commit
-            logger.info(f"Successfully stored job {job_id} in database.")
+            logger.debug(f"Successfully stored job {job_id} in database.")
         except Exception as e:
             logger.warning(f"Failed to store job in database: {e}")
             raise
@@ -26,9 +26,9 @@ class DatabaseHandler:
         try:
             job = await self.db.fetch_one("SELECT * FROM jobs WHERE job_id = $1", job_id)
             if job:
-                logger.info(f"Successfully fetched job {job_id} from database.")
+                logger.debug(f"Successfully fetched job {job_id} from database.")
             else:
-                logger.info(f"Job {job_id} not found in database.")
+                logger.debug(f"Job {job_id} not found in database.")
             return job
         except Exception as e:
             logger.warning(f"Failed to fetch job from database: {e}")
@@ -190,7 +190,7 @@ class DatabaseHandler:
                 job_id, event_name
             )
             count = result or 0
-            logger.info(f"Checking phase event (job_id: {job_id}, event_name: {event_name}, count: {count})")
+            logger.debug(f"Checking phase event (job_id: {job_id}, event_name: {event_name}, count: {count})")
             if count > 1:
                 logger.warning(f"MULTIPLE phase events found for same job/event (job_id: {job_id}, event_name: {event_name}, count: {count})")
             return count > 0
@@ -211,7 +211,7 @@ class DatabaseHandler:
             product_count, video_count, products_with_features, videos_with_features = await self._get_raw_asset_counts(job_id)
             has_images, has_videos = self._determine_asset_presence(product_count, video_count, products_with_features, videos_with_features)
             
-            logger.info(f"Job {job_id} asset types determined: images={has_images} (products={product_count}, with_features={products_with_features}), videos={has_videos} (videos={video_count}, with_features={videos_with_features})")
+            logger.debug(f"Job {job_id} asset types determined: images={has_images} (products={product_count}, with_features={products_with_features}), videos={has_videos} (videos={video_count}, with_features={videos_with_features})")
             
             return {"images": has_images, "videos": has_videos}
         except Exception as e:

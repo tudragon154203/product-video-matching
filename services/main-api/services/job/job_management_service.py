@@ -41,9 +41,9 @@ class JobManagementService:
     async def get_job(self, job_id: str):
         """Get a complete job record by ID."""
         try:
-            logger.info(f"Attempting to get job for job_id: {job_id}")
+            logger.debug(f"Attempting to get job for job_id: {job_id}")
             job = await self.db_handler.get_job(job_id)
-            logger.info(f"Result of db_handler.get_job for {job_id}: {job}")
+            logger.debug(f"Result of db_handler.get_job for {job_id}: {job}")
             
             if not job:
                 return None
@@ -55,9 +55,9 @@ class JobManagementService:
 
     async def get_job_status(self, job_id: str) -> JobStatusResponse:
         try:
-            logger.info(f"Attempting to get job status for job_id: {job_id}")
+            logger.debug(f"Attempting to get job status for job_id: {job_id}")
             job = await self.db_handler.get_job(job_id)
-            logger.info(f"Result of db_handler.get_job for {job_id}: {job}")
+            logger.debug(f"Result of db_handler.get_job for {job_id}: {job}")
             
             if not job:
                 return JobStatusResponse(

@@ -15,7 +15,7 @@ class PhaseTransitionManager:
         """Check if we need to transition to a new phase based on job-based completion events"""
         try:
             current_phase = await self.db_handler.get_job_phase(job_id)
-            logger.info(f"Checking phase transitions for job {job_id}: current_phase={current_phase}, event_type={event_type}")
+            logger.debug(f"Checking phase transitions for job {job_id}: current_phase={current_phase}, event_type={event_type}")
             
             if current_phase == "collection":
                 await self._process_collection_phase(job_id)
@@ -35,22 +35,22 @@ class PhaseTransitionManager:
             logger.error(f"Failed to check phase transitions for job {job_id}: {str(e)}")
     
     async def _process_collection_phase(self, job_id: str):
-        logger.info(f"Transitioning from collection to feature_extraction for job {job_id}")
+        logger.debug(f"Transitioning from collection to feature_extraction for job {job_id}")
         await self.db_handler.update_job_phase(job_id, "feature_extraction")
 
     async def _process_feature_extraction_phase(self, job_id: str):
         try:
             job_type = await self.db_handler.get_job_asset_types(job_id)
-            logger.info(f"Job {job_id} asset_types: {job_type}")
+            logger.debug(f"Job {job_id} asset_types: {job_type}")
         except Exception as e:
             logger.error(f"Failed to get asset types for job {job_id}: {str(e)}")
             return
         
         required_events = self._get_required_feature_events(job_type)
-        logger.info(f"Job {job_id} requires events: {required_events}")
+        logger.debug(f"Job {job_id} requires events: {required_events}")
         
         if not required_events:
-            logger.info(f"Zero-asset job {job_id} detected, transitioning directly from feature_extraction to matching")
+            logger.debug(f"Zero-asset job {job_id} detected, transitioning directly from feature_extraction to matching")
             await self.db_handler.update_job_phase(job_id, "matching")
             await self._publish_match_request_for_job(job_id)
             return
@@ -58,11 +58,11 @@ class PhaseTransitionManager:
         all_events_received, missing_events = await self._check_all_feature_events_received(job_id, required_events)
         
         if all_events_received:
-            logger.info(f"All required feature extraction completed, transitioning to matching for job {job_id}")
+            logger.debug(f"All required feature extraction completed, transitioning to matching for job {job_id}")
             await self.db_handler.update_job_phase(job_id, "matching")
             await self._publish_match_request_for_job(job_id)
         else:
-            logger.info(f"Job {job_id} waiting for required events: {missing_events}")
+            logger.debug(f"Job {job_id} waiting for required events: {missing_events}")
 
     def _get_required_feature_events(self, job_type: Dict[str, bool]) -> List[str]:
         required_events = []
@@ -92,7 +92,7 @@ class PhaseTransitionManager:
             logger.info(f"Matching completed, transitioning to evidence for job {job_id}")
             await self.db_handler.update_job_phase(job_id, "evidence")
         else:
-            logger.info(f"Job {job_id} is in matching phase, ensuring match request is published")
+            logger.debug(f"Job {job_id} is in matching phase, ensuring match request is published")
             await self._publish_match_request_for_job(job_id)
 
     async def _process_evidence_phase(self, job_id: str, event_type: str):
@@ -107,18 +107,18 @@ class PhaseTransitionManager:
                 logger.error(f"Failed to complete job {job_id}: {str(e)}")
                 raise
         else:
-            logger.info(f"Job {job_id} in evidence phase received {event_type} event (no action needed)")
+            logger.debug(f"Job {job_id} in evidence phase received {event_type} event (no action needed)")
 
     async def _handle_cross_phase_evidence_completion(self, job_id: str, event_type: str, current_phase: str):
         if event_type == "evidences.generation.completed" and current_phase != "evidence":
-            logger.info(f"Evidence generation completed but job {job_id} is in {current_phase} phase, checking if we should transition")
+            logger.debug(f"Evidence generation completed but job {job_id} is in {current_phase} phase, checking if we should transition")
             
             if await self.db_handler.has_phase_event(job_id, "matchings.process.completed"):
-                logger.info(f"Matching is complete, transitioning job {job_id} to evidence then completed")
+                logger.debug(f"Matching is complete, transitioning job {job_id} to evidence then completed")
                 try:
                     if current_phase != "evidence":
                         await self.db_handler.update_job_phase(job_id, "evidence")
-                        logger.info(f"Updated job {job_id} phase to evidence")
+                        logger.debug(f"Updated job {job_id} phase to evidence")
                     
                     await self.db_handler.update_job_phase(job_id, "completed")
                     logger.info(f"Successfully updated job {job_id} phase to completed")
@@ -141,6 +141,6 @@ class PhaseTransitionManager:
                 job_id,  # product_set_id
                 job_id   # video_set_id
             )
-            logger.info(f"Published match request for job {job_id}")
+            logger.debug(f"Published match request for job {job_id}")
         except Exception as e:
             logger.error(f"Failed to publish match request for job {job_id}: {str(e)}")

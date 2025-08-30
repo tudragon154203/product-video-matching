@@ -43,10 +43,10 @@ class JobInitializer:
             industry = cls_response["response"].strip()
             if industry not in config.INDUSTRY_LABELS:
                 industry = "other"
-            logger.info(f"industry from LLM: {industry}")
+            logger.debug(f"industry from LLM: {industry}")
             return industry
         finally:
-            logger.info(f"llm_classify_ms: {(time.time()-t0)*1000}")
+            logger.debug(f"llm_classify_ms: {(time.time()-t0)*1000}")
 
     async def _generate_queries(self, query: str, industry: str) -> Dict[str, Any]:
         gen_prompt = self.prompt_service.build_gen_prompt(query, industry)
@@ -58,11 +58,11 @@ class JobInitializer:
             # Pass the raw response string to normalize_queries, which will handle JSON parsing
             raw_response = gen_response["response"]
             queries = self.prompt_service.normalize_queries(raw_response, min_items=2, max_items=4)
-            logger.info("queries from LLM: %s", queries)
+            logger.debug("queries from LLM: %s", queries)
             
             return queries
         finally:
-            logger.info(f"llm_generate_ms: {(time.time()-t0)*1000}")
+            logger.debug(f"llm_generate_ms: {(time.time()-t0)*1000}")
 
     async def _publish_initial_events(self, job_id: str, request: StartJobRequest, queries: Dict[str, Any], industry: str, original_query: str):
         try:

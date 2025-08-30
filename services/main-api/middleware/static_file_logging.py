@@ -30,7 +30,7 @@ class StaticFileLoggingMiddleware(BaseHTTPMiddleware):
             start_time = time.time()
             request_id = request.headers.get("x-request-id", "unknown")
             
-            logger.info(
+            logger.debug(
                 f"Static file request - Method: {request.method}, "
                 f"Path: {request.url.path}, "
                 f"Request ID: {request_id}"
@@ -39,7 +39,7 @@ class StaticFileLoggingMiddleware(BaseHTTPMiddleware):
             response = await call_next(request)
             
             process_time = time.time() - start_time
-            logger.info(
+            logger.debug(
                 f"Static file response - Status: {response.status_code}, "
                 f"Process Time: {process_time:.3f}s, "
                 f"Request ID: {request_id}"

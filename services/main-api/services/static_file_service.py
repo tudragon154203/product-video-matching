@@ -72,7 +72,7 @@ class StaticFileService:
     def validate_file_access(self, file_path: Path) -> None:
         """Validate file access permissions and existence."""
         if not file_path.exists():
-            logger.info(f"File not found: {file_path}")
+            logger.debug(f"File not found: {file_path}")
             raise FileNotFoundError(f"File not found: {file_path}")
         
         if file_path.is_dir():
@@ -100,6 +100,6 @@ class StaticFileService:
         
         if file_path:
             file_size = self.get_file_size(file_path) if file_path.exists() else 0
-            logger.info(f"Static file request: {client_ip} - {request.method} {filename} - {status} - {file_size} bytes - {user_agent}")
+            logger.debug(f"Static file request: {client_ip} - {request.method} {filename} - {status} - {file_size} bytes - {user_agent}")
         else:
-            logger.info(f"Static file request: {client_ip} - {request.method} {filename} - {status} - {user_agent}")
+            logger.debug(f"Static file request: {client_ip} - {request.method} {filename} - {status} - {user_agent}")

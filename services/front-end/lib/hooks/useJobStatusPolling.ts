@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useInterval } from '@mantine/hooks';
 import { jobApiService } from '@/lib/api/services/job.api';
+import { getPollingInterval } from '@/lib/config/pagination';
 
 interface UseJobStatusPollingResult {
   phase: string;
@@ -12,36 +13,54 @@ interface UseJobStatusPollingResult {
   counts: {
     products: number;
     videos: number;
+    images: number;
+    frames: number;
   };
 }
 
-const POLLING_INTERVAL = 5000; // 5 seconds
+const POLLING_INTERVAL = getPollingInterval('jobStatus'); // Use centralized config
 const COLLECTION_PHASE = 'collection';
 
 export function useJobStatusPolling(
   jobId: string,
-  { 
+  {
     enabled = true,
-    interval = POLLING_INTERVAL 
+    interval = POLLING_INTERVAL
   } = {}
 ): UseJobStatusPollingResult {
   const [phase, setPhase] = useState<string>('');
   const [percent, setPercent] = useState<number | undefined>(undefined);
+  const [counts, setCounts] = useState<{
+    products: number;
+    videos: number;
+    images: number;
+    frames: number;
+  }>({ products: 0, videos: 0, images: 0, frames: 0 });
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  
+
   const isCollecting = phase === COLLECTION_PHASE;
 
   const fetchStatus = async () => {
-    if (!enabled) return;
-    
+    // Early return if disabled
+    if (!enabled) {
+      if (process.env.NODE_ENV === 'development') {
+        console.debug(`[useJobStatusPolling] Skipping fetch for job ${jobId} (disabled)`);
+      }
+      return;
+    }
+
+    if (process.env.NODE_ENV === 'development') {
+      console.debug(`[useJobStatusPolling] Fetching status for job ${jobId}`);
+    }
     try {
       setIsLoading(true);
       setError(null);
-      
+
       const status = await jobApiService.getJobStatus(jobId);
       setPhase(status.phase);
       setPercent(status.percent);
+      setCounts(status.counts); // Use actual counts from API
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to fetch job status');
     } finally {
@@ -57,8 +76,10 @@ export function useJobStatusPolling(
       fetchStatus(); // Initial fetch
       start();
       return () => stop();
+    } else {
+      stop(); // Ensure polling is stopped when disabled
     }
-  }, [enabled, jobId]);
+  }, [enabled, jobId, start, stop]); // Include all dependencies
 
   // Stop polling if the job has reached a terminal state (completed or failed)
   useEffect(() => {
@@ -74,9 +95,6 @@ export function useJobStatusPolling(
     isLoading,
     error,
     refetch: fetchStatus,
-    counts: {
-      products: 0, // TODO: Implement actual counts from API response
-      videos: 0, // TODO: Implement actual counts from API response
-    },
+    counts, // Return actual counts from API
   };
 }
