@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { usePathname } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { useState, useEffect } from 'react'
+import { useAutoAnimateList } from '@/lib/hooks/useAutoAnimateList'
 
 const languages = [
   { code: 'vi', name: 'Tiếng Việt', flag: '🇻🇳' },
@@ -17,6 +18,7 @@ export function LanguageToggle() {
   const pathname = usePathname()
   const [isOpen, setIsOpen] = useState(false)
   const [currentLocale, setCurrentLocale] = useState(locale)
+  const { parentRef: menuRef } = useAutoAnimateList<HTMLDivElement>({ duration: 180 })
 
   // Update current locale when URL changes
   useEffect(() => {
@@ -52,7 +54,7 @@ export function LanguageToggle() {
   const currentLanguage = languages.find(lang => lang.code === currentLocale)
 
   return (
-    <div className="relative">
+    <div className="relative" ref={menuRef}>
       <Button
         variant="outline"
         size="sm"

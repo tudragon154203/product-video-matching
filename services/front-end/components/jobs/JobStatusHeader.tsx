@@ -4,6 +4,7 @@ import { getPhaseInfo } from '@/lib/api/utils/phase'
 import type { Phase } from '@/lib/zod/job'
 import { Badge } from '@/components/ui/badge'
 import { useJobStatusPolling } from '@/lib/hooks/useJobStatusPolling'
+import { useAutoAnimateList } from '@/lib/hooks/useAutoAnimateList'
 
 interface JobStatusHeaderProps {
   jobId: string;
@@ -13,6 +14,7 @@ interface JobStatusHeaderProps {
 export function JobStatusHeader({ jobId, isCollecting = false }: JobStatusHeaderProps) {
   const { phase: currentPhase, percent, collection } = useJobStatusPolling(jobId);
   const phaseInfo = getPhaseInfo(currentPhase as Phase);
+  const { parentRef: headerRef } = useAutoAnimateList<HTMLDivElement>()
 
   // Event-based completion flags from backend status
   const productsDone = !!collection?.products_done;
@@ -54,7 +56,7 @@ export function JobStatusHeader({ jobId, isCollecting = false }: JobStatusHeader
   }
 
   return (
-    <div className="flex items-center space-x-4 py-4 border-b">
+    <div className="flex items-center space-x-4 py-4 border-b" ref={headerRef}>
       <div className="flex items-center space-x-2">
         {/* Phase-specific effects */}
         {isCollecting && renderPhaseEffect()}

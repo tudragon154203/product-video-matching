@@ -6,6 +6,7 @@ import { StartJobRequest } from '@/lib/zod/job'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { useTranslations } from 'next-intl'
+import { useAutoAnimateList } from '@/lib/hooks/useAutoAnimateList'
 
 interface AdvancedOptionsProps {
   register: UseFormRegister<StartJobRequest>
@@ -18,6 +19,8 @@ export function AdvancedOptions({ register, errors, setValue, watch }: AdvancedO
   const [showAdvanced, setShowAdvanced] = useState(false)
   const [selectAllPlatforms, setSelectAllPlatforms] = useState(true)
   const t = useTranslations('jobs')
+  const { parentRef: advancedRef } = useAutoAnimateList<HTMLDivElement>()
+  const { parentRef: platformsRef } = useAutoAnimateList<HTMLDivElement>()
 
   const availablePlatforms = ['youtube', 'douyin', 'tiktok', 'bilibili'] as const
   const watchedPlatforms = watch('platforms')
@@ -60,7 +63,7 @@ export function AdvancedOptions({ register, errors, setValue, watch }: AdvancedO
   };
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-3" ref={advancedRef}>
       <button
         type="button"
         onClick={() => setShowAdvanced(!showAdvanced)}
@@ -187,7 +190,7 @@ export function AdvancedOptions({ register, errors, setValue, watch }: AdvancedO
             
             {/* Individual platforms only shown when "All" is unchecked */}
             {!selectAllPlatforms && (
-              <div className="grid grid-cols-2 gap-2 mt-2">
+              <div className="grid grid-cols-2 gap-2 mt-2" ref={platformsRef}>
                 {availablePlatforms.map((platform) => (
                   <label
                     key={platform}

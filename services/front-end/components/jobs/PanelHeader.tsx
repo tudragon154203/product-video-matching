@@ -1,6 +1,7 @@
 import React from 'react';
 import { Card, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { useAutoAnimateList } from '@/lib/hooks/useAutoAnimateList';
 
 interface PanelHeaderProps {
   title: string;
@@ -10,9 +11,10 @@ interface PanelHeaderProps {
 }
 
 export function PanelHeader({ title, subtitle, count, children }: PanelHeaderProps) {
+  const { parentRef: headerRef } = useAutoAnimateList<HTMLDivElement>()
   return (
     <CardHeader className="pb-4">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between" ref={headerRef}>
         <div>
           <CardTitle className="text-xl font-semibold">{title}</CardTitle>
           {subtitle && (
