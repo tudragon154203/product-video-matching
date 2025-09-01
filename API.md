@@ -196,7 +196,7 @@ Get videos for a specific job with filtering and pagination.
       "title": "Example Video Title",
       "duration_s": 120.5,
       "frames_count": 240,
-      "thumbnail_url": "/files/videos/thumbnails/vid-123.jpg",
+      "first_keyframe_url": "/files/videos/frames/frame-001.jpg",
       "preview_frame": {
         "frame_id": "frame-789",
         "ts": 37.2,

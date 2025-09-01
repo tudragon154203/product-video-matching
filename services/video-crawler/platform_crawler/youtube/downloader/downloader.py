@@ -101,8 +101,8 @@ class YoutubeDownloader:
             # Get format selection based on attempt number
             format_selection = self.config.get_format_option(attempt)
             
-            # Configure proxy - use SOCKS5 proxy on first attempt, no proxy on retries
-            proxy_config = self.config.SOCKS_PROXY if attempt == 0 else None
+            # Configure proxy - use SOCKS5 proxy on first attempt only if USE_PRIVATE_PROXY is false, otherwise skip proxy
+            proxy_config = self.config.SOCKS_PROXY if attempt == 0 and not self.config.USE_PRIVATE_PROXY else None
             
             # Build yt-dlp options
             ydl_opts = YTDLPOptionsBuilder.build_options(user_agent, format_selection, proxy_config)

@@ -50,6 +50,10 @@ class VideoCrawlerConfig:
     # Logging (from .env first, then global config)
     LOG_LEVEL: str = os.getenv("LOG_LEVEL", global_config.LOG_LEVEL)
     
+    # Proxy configuration
+    USE_PRIVATE_PROXY: bool = os.getenv("USE_PRIVATE_PROXY", "false").lower() == "true"
+    PRIVATE_SOCKS5_PROXY: str = os.getenv("PRIVATE_SOCKS5_PROXY", "socks5://localhost:1080")
+    
 
 # Create config instance
 config = VideoCrawlerConfig()

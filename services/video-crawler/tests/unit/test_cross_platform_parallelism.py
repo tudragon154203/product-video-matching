@@ -147,7 +147,7 @@ async def test_max_concurrent_platforms_limit():
             
             # Verify all platforms were called
             assert youtube_crawler.call_count == 1
-            assert tiktok_crawler.call_count == 1
+            assert bilibili_crawler.call_count == 1
             assert mock_crawler3.call_count == 1
             
             # With 3 platforms and limit of 2 concurrent, should take ~6 seconds (3+3)
