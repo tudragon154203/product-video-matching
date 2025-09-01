@@ -8,6 +8,7 @@ import { formatDuration } from '@/lib/utils/formatDuration';
 import { useTranslations } from 'next-intl';
 import { queryKeys } from '@/lib/api/hooks';
 import { CommonPanelLayout, CommonPagination, usePanelData } from '@/components/CommonPanel';
+import { useAutoAnimateList } from '@/lib/hooks/useAutoAnimateList';
 
 import { VideoGroup } from './VideoGroup';
 import { VideoItemRow } from './VideoItemRow';
@@ -22,6 +23,9 @@ interface VideosPanelProps {
 
 export function VideosPanel({ jobId, isCollecting = false }: VideosPanelProps) {
   const t = useTranslations('jobResults');
+
+  // Animation hook for smooth list transitions
+  const { parentRef: videosListRef } = useAutoAnimateList<HTMLDivElement>();
 
   // Fetch function for TanStack Query
   const fetchVideosData = useCallback(async (offset: number, limit: number) => {
@@ -79,16 +83,18 @@ export function VideosPanel({ jobId, isCollecting = false }: VideosPanelProps) {
       emptyComponent={<VideosEmpty isCollecting={isCollecting} data-testid="videos-empty" />}
       errorComponent={<VideosError onRetry={handleRetryClick} data-testid="videos-error" />}
     >
-      {Object.entries(groupedVideos).map(([platform, items]) => (
-        <div key={platform}>
-          <VideoGroup platform={platform} count={items.length} />
-          <div className="space-y-2">
-            {items.map((video) => (
-              <VideoItemRow key={video.video_id} video={video} jobId={jobId} isCollecting={isCollecting} />
-            ))}
+      <div ref={videosListRef}>
+        {Object.entries(groupedVideos).map(([platform, items]) => (
+          <div key={platform}>
+            <VideoGroup platform={platform} count={items.length} />
+            <div className="space-y-2">
+              {items.map((video) => (
+                <VideoItemRow key={video.video_id} video={video} jobId={jobId} isCollecting={isCollecting} />
+              ))}
+            </div>
           </div>
-        </div>
-      ))}
+        ))}
+      </div>
 
       {total > 10 && (
         <CommonPagination

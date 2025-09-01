@@ -7,6 +7,7 @@ import { groupBy } from '@/lib/utils/groupBy';
 import { useTranslations } from 'next-intl';
 import { queryKeys } from '@/lib/api/hooks';
 import { CommonPanelLayout, CommonPagination, usePanelData } from '@/components/CommonPanel';
+import { useAutoAnimateList } from '@/lib/hooks/useAutoAnimateList';
 
 import { ProductGroup } from './ProductGroup';
 import { ProductItemRow } from './ProductItemRow';
@@ -21,6 +22,9 @@ interface ProductsPanelProps {
 
 export function ProductsPanel({ jobId, isCollecting = false }: ProductsPanelProps) {
   const t = useTranslations('jobResults');
+
+  // Animation hook for smooth list transitions
+  const { parentRef: productsListRef } = useAutoAnimateList<HTMLDivElement>();
 
   // Fetch function for TanStack Query
   const fetchProductsData = useCallback(async (offset: number, limit: number) => {
@@ -76,16 +80,18 @@ export function ProductsPanel({ jobId, isCollecting = false }: ProductsPanelProp
       emptyComponent={<ProductsEmpty isCollecting={isCollecting} data-testid="products-empty" />}
       errorComponent={<ProductsError onRetry={handleRetryClick} data-testid="products-error" />}
     >
-      {Object.entries(groupedProducts).map(([src, items]) => (
-        <div key={src}>
-          <ProductGroup src={src} count={items.length} />
-          <div className="space-y-2">
-            {items.map((product) => (
-              <ProductItemRow key={product.product_id} product={product} jobId={jobId} isCollecting={isCollecting} />
-            ))}
+      <div ref={productsListRef}>
+        {Object.entries(groupedProducts).map(([src, items]) => (
+          <div key={src}>
+            <ProductGroup src={src} count={items.length} />
+            <div className="space-y-2">
+              {items.map((product) => (
+                <ProductItemRow key={product.product_id} product={product} jobId={jobId} isCollecting={isCollecting} />
+              ))}
+            </div>
           </div>
-        </div>
-      ))}
+        ))}
+      </div>
 
       {total > 10 && (
         <CommonPagination

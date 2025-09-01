@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import Image from 'next/image';
 import { ImageIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useAutoAnimateList } from '@/lib/hooks/useAutoAnimateList';
 
 interface ThumbnailImageProps {
     src?: string | null;
@@ -29,6 +30,9 @@ export function ThumbnailImage({
     const [hasError, setHasError] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
 
+    // Animation hook for smooth image transitions
+    const { parentRef: imageRef } = useAutoAnimateList<HTMLDivElement>();
+
     // Show placeholder if no src or error occurred
     const showPlaceholder = !src || hasError;
 
@@ -53,6 +57,7 @@ export function ThumbnailImage({
 
     return (
         <div
+            ref={imageRef}
             className={cn(
                 "relative w-[120px] h-[120px] rounded-md overflow-hidden bg-muted flex-shrink-0",
                 className

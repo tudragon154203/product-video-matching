@@ -10,6 +10,37 @@ This is the UI microservice for the product video matching system.
 - **State Management**: TanStack Query
 - **Validation**: Zod
 - **Testing**: Jest + React Testing Library + Playwright
+- **Animations**: @formkit/auto-animate
+
+## Animation Features
+
+The application includes smooth animations powered by `@formkit/auto-animate` to enhance user experience during list updates and state changes.
+
+### Configuration
+
+Animations are enabled by default and respect the user's reduced motion preference (`prefers-reduced-motion`).
+
+### Components with Animations
+
+- **VideosPanel**: Smooth transitions when video lists update or filter
+- **ProductsPanel**: Animated product list changes during pagination or filtering
+- **JobSidebar**: Smooth job list updates and status changes
+- **CommonPanel**: Consistent animation behavior across all panel layouts
+- **ThumbnailImage**: Subtle animations for image loading states
+
+### Implementation Details
+
+- Uses `useAutoAnimateList` hook for list container animations
+- Uses `useAutoAnimateItem` hook for individual item animations
+- Respects user motion preferences via `disrespectUserMotionPreference` option
+- SSR-compatible with proper client-side checks
+
+### Custom Hooks
+
+- `useAutoAnimateList`: For animating list containers
+- `useAutoAnimateItem`: For animating individual list items
+
+Both hooks provide consistent animation behavior and respect user motion preferences across the application.
 
 ## Development
 

@@ -9,6 +9,7 @@ import Link from 'next/link'
 import { JobItemRow } from '@/components/job-sidebar/job-item-row'
 import { TimeSeparator } from '@/components/job-sidebar/time-separator'
 import { GroupedJobs } from '@/components/job-sidebar/types'
+import { useAutoAnimateList } from '@/lib/hooks/useAutoAnimateList'
 
 interface JobListCardProps {
   jobs: JobItem[]
@@ -20,6 +21,9 @@ interface JobListCardProps {
 export function JobListCard({ jobs = [], groupedJobs = {} as GroupedJobs, isLoading, error }: JobListCardProps) {
   const t = useTranslations('jobs')
   const tNav = useTranslations('navigation')
+
+  // Animation hook for smooth job list transitions
+  const { parentRef: jobsListRef } = useAutoAnimateList<HTMLDivElement>()
 
   const renderJobGroup = (jobs: JobItem[], groupKey: keyof GroupedJobs) => {
     if (jobs.length === 0) return null
@@ -62,9 +66,11 @@ export function JobListCard({ jobs = [], groupedJobs = {} as GroupedJobs, isLoad
 
         {!isLoading && !error && (
           <>
-            {Object.keys(groupedJobs).map(groupKey =>
-              renderJobGroup(groupedJobs[groupKey as keyof GroupedJobs], groupKey as keyof GroupedJobs)
-            )}
+            <div ref={jobsListRef}>
+              {Object.keys(groupedJobs).map(groupKey =>
+                renderJobGroup(groupedJobs[groupKey as keyof GroupedJobs], groupKey as keyof GroupedJobs)
+              )}
+            </div>
 
             {jobs.length === 0 && (
               <div className="text-center py-8 text-muted-foreground">

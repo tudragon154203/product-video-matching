@@ -2,6 +2,7 @@ import React from 'react';
 import { PanelHeader } from '@/components/jobs/PanelHeader';
 import { PanelSection } from '@/components/jobs/PanelSection';
 import { useTranslations } from 'next-intl';
+import { useAutoAnimateList } from '@/lib/hooks/useAutoAnimateList';
 
 interface CommonPanelLayoutProps {
   children: React.ReactNode;
@@ -30,8 +31,8 @@ export function CommonPanelLayout({
   isNavigationLoading = false,
   isLoading = false,
   isError = false,
- isEmpty = false,
- error,
+  isEmpty = false,
+  error,
   onRetry,
   testId,
   skeletonComponent,
@@ -41,6 +42,9 @@ export function CommonPanelLayout({
   placeholderDataComponent,
 }: CommonPanelLayoutProps) {
   const t = useTranslations('jobResults');
+
+  // Animation hook for smooth content transitions
+  const { parentRef: contentRef } = useAutoAnimateList<HTMLDivElement>();
   
   return (
     <PanelSection data-testid={testId}>
@@ -58,7 +62,7 @@ export function CommonPanelLayout({
         </div>
       ) : null}
       
-      <div className="space-y-4 relative">
+      <div ref={contentRef} className="space-y-4 relative">
         {isNavigationLoading && navigationLoadingComponent ? (
           navigationLoadingComponent
         ) : isNavigationLoading && !isEmpty ? (
@@ -69,7 +73,7 @@ export function CommonPanelLayout({
             </div>
           </div>
         ) : null}
-        
+
         {isLoading && isEmpty && skeletonComponent ? (
           skeletonComponent
         ) : isLoading && isEmpty ? (
@@ -83,7 +87,7 @@ export function CommonPanelLayout({
         ) : isError ? (
           <div className="text-center py-8">
             <div className="text-red-500 mb-2">⚠️ Error loading data</div>
-            <button 
+            <button
               onClick={onRetry}
               className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors"
             >
