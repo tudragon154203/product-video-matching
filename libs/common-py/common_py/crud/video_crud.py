@@ -85,10 +85,13 @@ class VideoCRUD:
                 ELSE 3
             END
             """
+            # When sorting by platform, also sort by recency within each platform group
+            # so that newly added videos surface to the top during polling.
+            # Keep secondary sort by created_at DESC regardless of platform group order.
             query = f"""
             SELECT v.* FROM videos v
             {where_clause}
-            ORDER BY {case_statement} {order}
+            ORDER BY {case_statement} {order}, v.created_at DESC
             LIMIT ${param_count-1} OFFSET ${param_count}
             """
         else:

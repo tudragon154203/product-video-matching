@@ -13,6 +13,7 @@ test.describe('Job Status Line Display', () => {
           phase: 'unknown',
           percent: 0,
           counts: { products: 0, videos: 0, images: 0, frames: 0 },
+          collection: { products_done: false, videos_done: false },
           updated_at: new Date().toISOString(),
         },
       });
@@ -32,6 +33,7 @@ test.describe('Job Status Line Display', () => {
           phase: 'unknown',
           percent: 0,
           counts: { products: 0, videos: 0, images: 0, frames: 0 },
+          collection: { products_done: false, videos_done: false },
           updated_at: new Date().toISOString(),
         },
       });
@@ -59,6 +61,7 @@ test.describe('Job Status Line Display', () => {
           phase: 'collection',
           percent: 20,
           counts: { products: 5, videos: 3, images: 0, frames: 0 },
+          collection: { products_done: true, videos_done: false },
           updated_at: new Date().toISOString(),
         },
       });
@@ -92,6 +95,7 @@ test.describe('Job Status Line Display', () => {
           phase: 'collection',
           percent: 20,
           counts: { products: 5, videos: 8, images: 0, frames: 0 },
+          collection: { products_done: true, videos_done: true },
           updated_at: new Date().toISOString(),
         },
       });
@@ -115,6 +119,7 @@ test.describe('Job Status Line Display', () => {
           phase: 'feature_extraction',
           percent: 50,
           counts: { products: 5, videos: 8, images: 10, frames: 15 },
+          collection: { products_done: true, videos_done: true },
           updated_at: new Date().toISOString(),
         },
       });
@@ -144,6 +149,7 @@ test.describe('Job Status Line Display', () => {
           phase: 'matching',
           percent: 80,
           counts: { products: 5, videos: 8, images: 10, frames: 15 },
+          collection: { products_done: true, videos_done: true },
           updated_at: new Date().toISOString(),
         },
       });
@@ -173,6 +179,7 @@ test.describe('Job Status Line Display', () => {
           phase: 'evidence',
           percent: 90,
           counts: { products: 5, videos: 8, images: 10, frames: 15 },
+          collection: { products_done: true, videos_done: true },
           updated_at: new Date().toISOString(),
         },
       });
@@ -202,6 +209,7 @@ test.describe('Job Status Line Display', () => {
           phase: 'completed',
           percent: 100,
           counts: { products: 5, videos: 8, images: 10, frames: 15 },
+          collection: { products_done: true, videos_done: true },
           updated_at: new Date().toISOString(),
         },
       });
@@ -229,6 +237,7 @@ test.describe('Job Status Line Display', () => {
           phase: 'failed',
           percent: 0,
           counts: { products: 0, videos: 0, images: 0, frames: 0 },
+          collection: { products_done: false, videos_done: false },
           updated_at: new Date().toISOString(),
         },
       });
@@ -261,6 +270,7 @@ test.describe('Job Status Line Display', () => {
           phase: phase,
           percent: phase === 'collection' ? 20 : 100,
           counts: { products: 5, videos: 8, images: 10, frames: 15 },
+          collection: { products_done: phase !== 'collection', videos_done: phase !== 'collection' },
           updated_at: new Date().toISOString(),
         },
       });

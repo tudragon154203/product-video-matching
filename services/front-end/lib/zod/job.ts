@@ -20,6 +20,12 @@ export const JobStatus = z.object({
     images: z.number(),
     frames: z.number(),
   }),
+  collection: z
+    .object({
+      products_done: z.boolean(),
+      videos_done: z.boolean(),
+    })
+    .optional(),
   updated_at: z.string().nullable(),
 });
 

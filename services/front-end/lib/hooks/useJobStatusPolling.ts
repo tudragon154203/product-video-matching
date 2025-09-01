@@ -16,6 +16,10 @@ interface UseJobStatusPollingResult {
     images: number;
     frames: number;
   };
+  collection?: {
+    products_done: boolean;
+    videos_done: boolean;
+  };
 }
 
 const POLLING_INTERVAL = getPollingInterval('jobStatus'); // Use centralized config
@@ -36,6 +40,7 @@ export function useJobStatusPolling(
     images: number;
     frames: number;
   }>({ products: 0, videos: 0, images: 0, frames: 0 });
+  const [collection, setCollection] = useState<{ products_done: boolean; videos_done: boolean } | undefined>(undefined);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -61,6 +66,7 @@ export function useJobStatusPolling(
       setPhase(status.phase);
       setPercent(status.percent);
       setCounts(status.counts); // Use actual counts from API
+      setCollection(status.collection);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to fetch job status');
     } finally {
@@ -96,5 +102,6 @@ export function useJobStatusPolling(
     error,
     refetch: fetchStatus,
     counts, // Return actual counts from API
+    collection,
   };
 }

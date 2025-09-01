@@ -70,6 +70,10 @@ class JobManagementService:
                         "images": 0,
                         "frames": 0
                     },
+                    collection={
+                        "products_done": False,
+                        "videos_done": False,
+                    },
                     updated_at=None
                 )
             
@@ -86,6 +90,16 @@ class JobManagementService:
             product_count, video_count, image_count, frame_count, match_count = await self.db_handler.get_job_counts_with_frames(job_id)
             updated_at = await self.db_handler.get_job_updated_at(job_id)
             
+            # Determine collection completion flags based on phase_events
+            try:
+                products_collection_done = await self.db_handler.has_phase_event(job_id, "products.collections.completed")
+            except Exception:
+                products_collection_done = False
+            try:
+                videos_collection_done = await self.db_handler.has_phase_event(job_id, "videos.collections.completed")
+            except Exception:
+                videos_collection_done = False
+
             return JobStatusResponse(
                 job_id=job_id,
                 phase=job["phase"],
@@ -95,6 +109,10 @@ class JobManagementService:
                     "videos": video_count,
                     "images": image_count,
                     "frames": frame_count
+                },
+                collection={
+                    "products_done": bool(products_collection_done),
+                    "videos_done": bool(videos_collection_done),
                 },
                 updated_at=updated_at
             )

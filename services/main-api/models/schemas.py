@@ -19,6 +19,8 @@ class JobStatusResponse(BaseModel):
     phase: str
     percent: float
     counts: dict
+    # Collection completion flags derived from phase_events
+    collection: dict | None = None
     updated_at: Optional[datetime] = None
 
 class JobAssetTypes(BaseModel):

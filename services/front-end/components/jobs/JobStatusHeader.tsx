@@ -11,12 +11,12 @@ interface JobStatusHeaderProps {
 }
 
 export function JobStatusHeader({ jobId, isCollecting = false }: JobStatusHeaderProps) {
-  const { phase: currentPhase, percent, counts } = useJobStatusPolling(jobId);
+  const { phase: currentPhase, percent, collection } = useJobStatusPolling(jobId);
   const phaseInfo = getPhaseInfo(currentPhase as Phase);
 
-  // Determine if products/videos are done for collection phase
-  const productsDone = counts?.products > 0; // Safely handle undefined counts
-  const videosDone = counts?.videos > 0; // Safely handle undefined counts
+  // Event-based completion flags from backend status
+  const productsDone = !!collection?.products_done;
+  const videosDone = !!collection?.videos_done;
   const collectionFinished = currentPhase === 'collection' && productsDone && videosDone;
 
   // Phase-specific effects

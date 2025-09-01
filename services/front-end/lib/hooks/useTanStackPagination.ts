@@ -87,6 +87,7 @@ export function useTanStackPagination<T>(
         staleTime,
         gcTime,
         refetchInterval,
+        refetchIntervalInBackground: true,
         placeholderData: keepPreviousData,
         retry: (failureCount, error) => {
             // Reduce retries during active polling to minimize API load

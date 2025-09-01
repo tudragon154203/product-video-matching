@@ -96,7 +96,12 @@ Get the current status and progress of a job.
   "counts": {
     "products": 15,
     "videos": 8,
-    "matches": 3
+    "images": 120,
+    "frames": 340
+  },
+  "collection": {
+    "products_done": true,
+    "videos_done": true
   }
 }
 ```
