@@ -35,8 +35,22 @@ class PhaseTransitionManager:
             logger.error(f"Failed to check phase transitions for job {job_id}: {str(e)}")
     
     async def _process_collection_phase(self, job_id: str):
-        logger.debug(f"Transitioning from collection to feature_extraction for job {job_id}")
-        await self.db_handler.update_job_phase(job_id, "feature_extraction")
+        try:
+            products_done = await self.db_handler.has_phase_event(job_id, "products.collections.completed")
+            videos_done = await self.db_handler.has_phase_event(job_id, "videos.collections.completed")
+
+            if products_done and videos_done:
+                logger.debug(f"Both collections completed; transitioning to feature_extraction for job {job_id}")
+                await self.db_handler.update_job_phase(job_id, "feature_extraction")
+            else:
+                missing = []
+                if not products_done:
+                    missing.append("products.collections.completed")
+                if not videos_done:
+                    missing.append("videos.collections.completed")
+                logger.debug(f"Waiting for collections completion events for job {job_id}; missing={missing}")
+        except Exception as e:
+            logger.error(f"Error while checking collection completion for job {job_id}: {str(e)}")
 
     async def _process_feature_extraction_phase(self, job_id: str):
         try:

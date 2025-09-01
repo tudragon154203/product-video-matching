@@ -129,13 +129,13 @@ services:
       - -c
       - |
         H=$(sha256sum package-lock.json | awk "{print $1}");
-        if [ ! -d node_modules ] || [ -z "$(ls -A node_modules 2>/dev/null)" ] || [ ! -f node_modules/.lockhash ] || [ "$(cat node_modules/.lockhash 2>/dev/null)" != "$H" ]; then
-          echo "[front-end] Installing deps (hash $H)";
+        if [ ! -d node_modules ] || [ -z "$(ls -A node_modules 2>/dev/null)" ] || [ ! -f node_modules/.lockhash ] || [ "$(cat node_modules/.lockhash 2>/dev/null)" != "$$H" ]; then
+          echo "[front-end] Installing deps (hash $$H)";
           rm -rf node_modules;
           npm ci --no-audit --no-fund;
-          echo "$H" > node_modules/.lockhash;
+          echo "$$H" > node_modules/.lockhash;
         else
-          echo "[front-end] Reusing cached node_modules (hash $H)";
+          echo "[front-end] Reusing cached node_modules (hash $$H)";
         fi
         npm run dev
 

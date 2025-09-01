@@ -43,7 +43,20 @@ class LifecycleHandler:
     async def subscribe_to_phase_events(self):
         """Subscribe to job-based completion events only"""
         try:
-            # Subscribe to the four job-based completion events
+            # Subscribe to collection completion events (to transition from collection -> feature_extraction)
+            await self.broker.subscribe_to_topic(
+                "products.collections.completed",
+                lambda event_data: self.job_service.handle_phase_event("products.collections.completed", event_data),
+                "main_api_products_collections_completed"
+            )
+
+            await self.broker.subscribe_to_topic(
+                "videos.collections.completed",
+                lambda event_data: self.job_service.handle_phase_event("videos.collections.completed", event_data),
+                "main_api_videos_collections_completed"
+            )
+
+            # Subscribe to feature extraction + downstream completion events
             await self.broker.subscribe_to_topic(
                 "image.embeddings.completed",
                 lambda event_data: self.job_service.handle_phase_event("image.embeddings.completed", event_data),

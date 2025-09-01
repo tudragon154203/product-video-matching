@@ -5,8 +5,8 @@ import uuid
 import sys
 import os
 
-# Add project root to PYTHONPATH for local imports
-sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+# Add project root to PYTHONPATH for local imports (ensure precedence)
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
 from services.phase.phase_event_service import PhaseEventService
 from handlers.database_handler import DatabaseHandler
@@ -431,3 +431,36 @@ class TestPhaseTransitionWithAssetTypes:
         # The original test expected no change, but the actual logic for zero-asset jobs is to transition.
         # If "no change" is the desired behavior for zero-asset jobs receiving events, 
         # the logic in _process_feature_extraction_phase would need to be modified.
+
+    @pytest.mark.asyncio
+    async def test_collection_phase_waits_for_both_collections_completed(self, phase_event_service, db_handler, mock_broker_handler):
+        """Ensure we only transition from collection -> feature_extraction after BOTH collections completed events."""
+        job_id = "collection-gate-job"
+
+        # Always report current phase as 'collection' during this test
+        db_handler.get_job_phase = AsyncMock(return_value="collection")
+        db_handler.update_job_phase = AsyncMock()
+
+        # First, only products.collections.completed arrives
+        await phase_event_service.handle_phase_event(
+            "products.collections.completed",
+            {
+                "job_id": job_id,
+                "event_id": str(uuid.uuid4())
+            }
+        )
+
+        # Should NOT transition yet
+        db_handler.update_job_phase.assert_not_called()
+
+        # Now videos.collections.completed arrives
+        await phase_event_service.handle_phase_event(
+            "videos.collections.completed",
+            {
+                "job_id": job_id,
+                "event_id": str(uuid.uuid4())
+            }
+        )
+
+        # Should transition to feature_extraction once both are recorded
+        db_handler.update_job_phase.assert_called_with(job_id, "feature_extraction")

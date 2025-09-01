@@ -294,7 +294,7 @@ Note: `additionalProperties` are allowed; publishers may include `job_id` for tr
 ### main-api
 
 - Publishes: `products.collect.request`, `videos.search.request`, `match.request`, `job.completed`
-- Subscribes: `image.embeddings.completed`, `video.embeddings.completed`, `image.keypoints.completed`, `video.keypoints.completed`, `matchings.process.completed`, `evidences.generation.completed`
+- Subscribes: `products.collections.completed`, `videos.collections.completed`, `image.embeddings.completed`, `video.embeddings.completed`, `image.keypoints.completed`, `video.keypoints.completed`, `matchings.process.completed`, `evidences.generation.completed`
 
 ### dropship-product-finder
 
@@ -332,6 +332,5 @@ Note: Some internal completion events like `products.images.masked.completed` an
 
 - Publishes: `evidences.generation.completed`
 - Subscribes: `match.result`, `matchings.process.completed`
-
 
 
