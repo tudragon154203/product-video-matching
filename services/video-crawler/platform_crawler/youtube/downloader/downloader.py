@@ -8,6 +8,7 @@ from .retry_handler import RetryHandler
 from .file_manager import FileManager
 from .ytdlp_config import YTDLPOptionsBuilder
 from .error_handler import ErrorHandler
+from services.cleanup_service import cleanup_service
 
 logger = configure_logging("video-crawler")
 
@@ -46,7 +47,13 @@ class YoutubeDownloader:
             return existing_result
         
         # Download the video with resilient format selection and retry mechanism
-        return await self._download_with_retries(video, download_dir, title, start_time)
+        download_result = await self._download_with_retries(video, download_dir, title, start_time)
+        
+        # Perform cleanup after successful download
+        if download_result and download_result.get('local_path'):
+            await self._perform_cleanup_after_download(download_dir)
+        
+        return download_result
     
     async def _check_existing_file(self, video: Dict[str, Any], download_dir: str, title: str, start_time: float) -> Dict[str, Any]:
         """
@@ -241,3 +248,28 @@ class YoutubeDownloader:
         # If we've exhausted all retries
         logger.error(f"[DOWNLOAD-FAILED-FINAL] Video: {title} | All {self.config.MAX_RETRIES} attempts failed. Skipping this video.")
         return "fail"
+    
+    async def _perform_cleanup_after_download(self, download_dir: str) -> None:
+        """
+        Perform cleanup of old videos after a successful download.
+        
+        Args:
+            download_dir: Directory where videos are stored
+        """
+        try:
+            logger.info(f"[CLEANUP-AFTER-DOWNLOAD] Starting cleanup after successful download")
+            
+            # Perform cleanup with dry_run=False to actually remove files
+            cleanup_results = await cleanup_service.perform_cleanup(download_dir, dry_run=False)
+            
+            if cleanup_results['files_removed']:
+                freed_mb = cleanup_results['total_size_freed'] / (1024 * 1024)
+                logger.info(
+                    f"[CLEANUP-AFTER-DOWNLOAD-COMPLETE] Removed {len(cleanup_results['files_removed'])} files, freed {freed_mb:.2f}MB"
+                )
+            else:
+                logger.info(f"[CLEANUP-AFTER-DOWNLOAD] No old files to remove")
+                
+        except Exception as e:
+            logger.error(f"[CLEANUP-AFTER-DOWNLOAD-ERROR] Failed to perform cleanup: {str(e)}")
+            # Don't let cleanup errors affect the download process

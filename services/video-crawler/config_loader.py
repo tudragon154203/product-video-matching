@@ -54,6 +54,10 @@ class VideoCrawlerConfig:
     USE_PRIVATE_PROXY: bool = os.getenv("USE_PRIVATE_PROXY", "false").lower() == "true"
     PRIVATE_SOCKS5_PROXY: str = os.getenv("PRIVATE_SOCKS5_PROXY", "socks5://localhost:1080")
     
+    # Video cleanup configuration
+    CLEANUP_OLD_VIDEOS: bool = os.getenv("CLEANUP_OLD_VIDEOS", "false").lower() == "true"
+    VIDEO_RETENTION_DAYS: int = int(os.getenv("VIDEO_RETENTION_DAYS", "7"))
+    
 
 # Create config instance
 config = VideoCrawlerConfig()

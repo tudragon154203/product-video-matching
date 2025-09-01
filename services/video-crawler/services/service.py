@@ -12,6 +12,8 @@ from platform_crawler.interface import PlatformCrawlerInterface
 from platform_crawler.mock_crawler import MockPlatformCrawler
 from platform_crawler.youtube.youtube_crawler import YoutubeCrawler
 from handlers.event_emitter import EventEmitter
+from utils.file_cleanup import VideoCleanupManager
+from services.cleanup_service import cleanup_service
 from common_py.logging_config import configure_logging
 from config_loader import config
 from vision_common import JobProgressManager
@@ -32,6 +34,12 @@ class VideoCrawlerService:
         self.keyframe_extractor = LengthAdaptiveKeyframeExtractor()
         self.event_emitter = EventEmitter(broker)
         self.job_progress_manager = JobProgressManager(broker)
+        
+        # Initialize video cleanup
+        if config.CLEANUP_OLD_VIDEOS:
+            logger.info("Video cleanup enabled with retention period of {} days".format(config.VIDEO_RETENTION_DAYS))
+        else:
+            logger.info("Video cleanup is disabled")
     
     async def handle_videos_search_request(self, event_data: Dict[str, Any]):
         """Handle video search request with cross-platform parallelism"""
@@ -112,6 +120,11 @@ class VideoCrawlerService:
     async def _process_and_emit_videos(self, all_videos: List[Dict[str, Any]], job_id: str):
         for video_data in all_videos:
             await self.process_video(video_data, job_id)
+        
+        # Run automatic cleanup after video processing if enabled
+        if config.CLEANUP_OLD_VIDEOS:
+            await self._run_auto_cleanup(job_id)
+        
         await self.event_emitter.publish_videos_collections_completed(job_id)
     
     async def process_video(self, video_data: Dict[str, Any], job_id: str) -> List[Dict[str, Any]]:
@@ -192,4 +205,51 @@ class VideoCrawlerService:
         crawlers["douyin"] = MockPlatformCrawler("douyin")
 
         return crawlers
+    
+    async def _run_auto_cleanup(self, job_id: str):
+        """Run automatic video cleanup after processing"""
+        try:
+            logger.info(f"[AUTO-CLEANUP] Starting cleanup for job {job_id}")
+            
+            # Create directory structure for cleanup based on config
+            video_dir = config.VIDEO_DIR
+            
+            # Perform cleanup (dry run is False for actual cleanup)
+            cleanup_results = await cleanup_service.perform_cleanup(video_dir, dry_run=False)
+            
+            if cleanup_results['files_removed']:
+                logger.info(f"[AUTO-CLEANUP] Successfully cleaned up {len(cleanup_results['files_removed'])} files for job {job_id}")
+            else:
+                logger.info(f"[AUTO-CLEANUP] No files to cleanup for job {job_id}")
+                
+        except Exception as e:
+            logger.error(f"[AUTO-CLEANUP-ERROR] Failed to run cleanup for job {job_id}: {str(e)}")
+    
+    async def run_manual_cleanup(self, dry_run: bool = False) -> Dict[str, Any]:
+        """Run manual cleanup for debugging/testing purposes
+        
+        Args:
+            dry_run: If True, only list files without removing them
+            
+        Returns:
+            Dictionary with cleanup results
+        """
+        try:
+            logger.info(f"[MANUAL-CLEANUP] Starting cleanup (dry_run={dry_run})")
+            
+            # Get cleanup information first
+            cleanup_info = await cleanup_service.get_cleanup_info(config.VIDEO_DIR)
+            
+            # Perform cleanup
+            cleanup_results = await cleanup_service.perform_cleanup(config.VIDEO_DIR, dry_run)
+            
+            return {
+                'cleanup_info': cleanup_info,
+                'cleanup_results': cleanup_results,
+                'config': cleanup_service.get_status()
+            }
+            
+        except Exception as e:
+            logger.error(f"[MANUAL-CLEANUP-ERROR] Failed to run manual cleanup: {str(e)}")
+            raise
     

@@ -63,6 +63,31 @@
   - `services/front-end/components/CommonPanel/*` (only if a shared list wrapper exists)
   - `services/front-end/components/common/ThumbnailImage.tsx` (optional subtle opacity reveal upon load complete)
 
+## Additional Integrations (Post‑Scope Refinement)
+To further improve perceived responsiveness in small but high‑frequency UI areas, the following surfaces were also wired up with auto‑animate using the shared `useAutoAnimateList` hook:
+
+- Toaster list: animate toast enter/exit/reorder
+  - `services/front-end/components/ui/toaster.tsx`
+  - Rationale: transient messages often overlap with other actions; smoothing reduces flicker.
+
+- Language dropdown menu: animate open/close and option rendering
+  - `services/front-end/components/language-toggle.tsx`
+  - Rationale: tiny, frequent toggle; animation aids spatial continuity without heavy motion.
+
+- Advanced options section: animate expand/collapse and the platform checkbox grid
+  - `services/front-end/components/advanced-options.tsx`
+  - Rationale: complex conditional UI (flag + grid); animation helps avoid abrupt layout jumps.
+
+- Job status header badges: animate badges appearing during collection (products/videos done, finished)
+  - `services/front-end/components/jobs/JobStatusHeader.tsx`
+  - Rationale: status signals occur incrementally; easing badge appearance feels more polished.
+
+- Panel header count badge: animate subtle updates to counts
+  - `services/front-end/components/jobs/PanelHeader.tsx`
+  - Rationale: small numeric changes benefit from micro‑motion to reinforce change without noise.
+
+All additions honor reduced motion and reuse the same defaults as list animations (short durations, ease‑in/out), keeping motion subtle and consistent.
+
 ## Implementation Plan (No Code in Spec)
 1) Dependency
    - Add @formkit/auto-animate to front-end package.
@@ -201,3 +226,19 @@
 - Feature flag and reduced motion honored across all animated surfaces.
 - No console errors; no noticeable jank on 60hz laptop in DevTools Performance profile.
 - Documentation: this spec updated; short README note under front-end explaining the flag and helper.
+
+## Verification Steps (Added Surfaces)
+- Toaster list
+  - Trigger a toast (e.g., start a job) and observe smooth enter/exit; no flicker or layout jump.
+- Language dropdown
+  - Toggle menu open/close; options should glide in/out subtly; selection still immediate.
+- Advanced options
+  - Toggle “Show Advanced Options”; toggle the “All” checkbox for platforms; the grid should expand/collapse smoothly.
+- Job status header
+  - On a collecting job, watch badges appear as products/videos complete; no reflow jank.
+- Panel header count
+  - Navigate pages or let polling update counts; count badge change should feel smooth.
+
+## Follow‑ups
+- Consider animating job stats card numbers (total/running/completed/failed) using the same hook for subtle numeric updates.
+- Monitor for any regressions or motion sensitivity reports; if needed, lower durations or expand the feature flag usage.
