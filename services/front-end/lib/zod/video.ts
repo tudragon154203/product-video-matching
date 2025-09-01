@@ -1,6 +1,16 @@
 import { z } from "zod";
 
 /**
+ * Preview frame schema for video preview frames
+ */
+export const PreviewFrame = z.object({
+  frame_id: z.string(),
+  ts: z.number(),
+  url: z.string(),
+  segment_url: z.string().nullable(),
+});
+
+/**
  * Video item schema for main-api video endpoints
  */
 export const VideoItem = z.object({
@@ -11,6 +21,8 @@ export const VideoItem = z.object({
   duration_s: z.number(),
   frames_count: z.number(),
   updated_at: z.string(),
+  first_keyframe_url: z.string().nullable(),
+  preview_frame: PreviewFrame.nullable(),
 });
 
 /**
@@ -45,6 +57,7 @@ export const FrameListResponse = z.object({
 });
 
 // Export types
+export type PreviewFrame = z.infer<typeof PreviewFrame>;
 export type VideoItem = z.infer<typeof VideoItem>;
 export type VideoListResponse = z.infer<typeof VideoListResponse>;
 export type FrameItem = z.infer<typeof FrameItem>;

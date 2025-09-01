@@ -7,6 +7,7 @@ from typing import Optional
 from urllib.parse import quote
 
 from common_py.logging_config import configure_logging
+from config_loader import config
 
 logger = configure_logging("main-api")
 
@@ -19,7 +20,7 @@ def to_public_url(local_path: Optional[str], data_root: str) -> Optional[str]:
         data_root: The root data directory (e.g., "/app/data")
     
     Returns:
-        Public URL relative to /files (e.g., "/files/images/123.jpg") or None if invalid
+        Public URL relative to API root (e.g., "/files/images/123.jpg") or None if invalid
     """
     if not local_path or not isinstance(local_path, str) or not local_path.strip():
         logger.debug("Empty or invalid local_path provided")
@@ -49,9 +50,8 @@ def to_public_url(local_path: Optional[str], data_root: str) -> Optional[str]:
         # Normalize separators to forward slashes for URL
         relative_url_path = relative_url_path.replace(os.sep, '/')
         
-        # Construct public URL
-        public_url = f"/files/{quote(relative_url_path)}" # Use quote for URL encoding
-        
+        # Construct public URL as a relative path; FE prefixes with NEXT_PUBLIC_API_BASE_URL
+        public_url = f"/files/{quote(relative_url_path)}"  # Use quote for URL encoding
         return public_url
         
     except (ValueError, OSError) as e:

@@ -81,17 +81,23 @@ async def test_get_job_products_success():
                     item = data["items"][0]
                     required_item_fields = ["product_id", "src", "asin_or_itemid", "title", "brand", "url", "image_count", "created_at"]
                     missing_item_fields = [field for field in required_item_fields if field not in item]
-                    
+
                     if missing_item_fields:
                         print(f"✗ Get job products test failed: Missing item fields: {missing_item_fields}")
                         assert False, f"Missing item fields: {missing_item_fields}"
-                    
+
                     # Validate item field types
                     assert isinstance(item["product_id"], str), "product_id should be string"
                     assert isinstance(item["src"], str), "src should be string"
                     assert isinstance(item["title"], str), "title should be string"
                     assert isinstance(item["image_count"], int), "image_count should be integer"
                     assert item["image_count"] >= 0, "image_count should be non-negative"
+
+                    # Validate new fields for additional image fields
+                    new_fields = ["primary_image_url", "primary_masked_url"]
+                    for field in new_fields:
+                        assert field in item, f"New field '{field}' should be present in product item"
+                        # These fields can be None, so we just check they exist
                 
                 print("✓ Get job products endpoint test passed")
                 assert True

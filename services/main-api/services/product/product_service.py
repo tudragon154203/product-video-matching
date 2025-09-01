@@ -6,6 +6,8 @@ from common_py.database import DatabaseManager
 from common_py.crud.product_crud import ProductCRUD
 from common_py.crud.product_image_crud import ProductImageCRUD
 from models.schemas import ProductItem, ProductListResponse
+from utils.product_utils import select_primary_images
+from config_loader import config
 
 
 class ProductService:
@@ -68,12 +70,13 @@ class ProductService:
         # Convert to response format and get image counts
         product_items = []
         for product in products:
-            # Get image count for this product
-            image_count = await self.product_image_crud.count_product_images_by_job(
-                job_id=job_id,
-                product_id=product.product_id
+            # Get primary image and image count for this product
+            primary_image_url, image_count = await select_primary_images(
+                product.product_id,
+                self.product_image_crud,
+                config.DATA_ROOT_CONTAINER
             )
-            
+
             product_item = ProductItem(
                 product_id=product.product_id,
                 src=product.src,
@@ -82,7 +85,8 @@ class ProductService:
                 brand=product.brand,
                 url=product.url,
                 image_count=image_count,
-                created_at=self._get_gmt7_time(product.created_at)
+                created_at=self._get_gmt7_time(product.created_at),
+                primary_image_url=primary_image_url
             )
             product_items.append(product_item)
         

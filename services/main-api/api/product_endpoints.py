@@ -8,6 +8,8 @@ from common_py.database import DatabaseManager
 from common_py.messaging import MessageBroker
 from api.dependency import get_db, get_broker, get_job_service
 from common_py.logging_config import configure_logging
+from utils.product_utils import select_primary_images
+from config_loader import config
 
 logger = configure_logging("main-api")
 

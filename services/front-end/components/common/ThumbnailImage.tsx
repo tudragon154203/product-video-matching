@@ -41,6 +41,16 @@ export function ThumbnailImage({
         setIsLoading(false);
     };
 
+    // Build absolute URL when API returns a relative path (e.g., "/files/images/..")
+    let finalSrc = src || undefined;
+    if (finalSrc && !/^https?:\/\//i.test(finalSrc)) {
+        const base = (process.env.NEXT_PUBLIC_API_BASE_URL || '').replace(/\/$/, '');
+        if (finalSrc.startsWith('/')) {
+            finalSrc = `${base}${finalSrc}`;
+        }
+        // else: leave as-is for data URIs or other schemes
+    }
+
     return (
         <div
             className={cn(
@@ -71,7 +81,7 @@ export function ThumbnailImage({
 
                     {/* Actual image */}
                     <Image
-                        src={src}
+                        src={finalSrc as string}
                         alt={alt || ""}
                         fill
                         className="object-cover"

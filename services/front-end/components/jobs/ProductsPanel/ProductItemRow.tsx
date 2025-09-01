@@ -5,7 +5,6 @@ import { formatGMT7 } from '@/lib/utils/formatGMT7';
 import { InlineBadge } from '@/components/jobs/InlineBadge';
 import { LinkExternalIcon } from '@/components/jobs/LinkExternalIcon';
 import { ThumbnailImage } from '@/components/common/ThumbnailImage';
-import { useJobImages } from '@/lib/api/hooks';
 import { useTranslations } from 'next-intl';
 
 interface ProductItemRowProps {
@@ -17,19 +16,8 @@ interface ProductItemRowProps {
 export function ProductItemRow({ product, jobId, isCollecting = false }: ProductItemRowProps) {
   const t = useTranslations();
 
-  // Fetch first image for this product
-  // Reduce API load: skip nested image fetches while collecting
-  const { data: imagesResponse } = useJobImages(
-    jobId,
-    {
-      product_id: product.product_id,
-      limit: 1, // Only fetch the first image
-      offset: 0
-    },
-    !!jobId && !!product.product_id && !isCollecting
-  );
-
-  const firstImage = isCollecting ? undefined : imagesResponse?.items?.[0];
+  // Use the primary_image_url from the product data instead of making a separate API call
+  // This eliminates the nested API call and improves performance
 
   return (
     <div className="flex items-center gap-3 p-2 hover:bg-muted rounded-md transition-colors">
@@ -41,7 +29,7 @@ export function ProductItemRow({ product, jobId, isCollecting = false }: Product
         className="flex-shrink-0 hover:opacity-80 transition-opacity"
       >
         <ThumbnailImage
-          src={firstImage?.url}
+          src={product.primary_image_url}
           alt={product.title || 'Product image'}
           data-testid="product-thumbnail"
         />

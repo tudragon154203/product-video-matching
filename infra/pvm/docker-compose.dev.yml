@@ -83,6 +83,7 @@ services:
       - .env  # Shared environment variables      
     environment:
       PYTHONPATH: /app/libs:/app/libs/common-py:/app/libs/contracts
+      PUBLIC_IMAGE_BASE_URL: ${PUBLIC_IMAGE_BASE_URL}
     ports:
       - "${PORT_MAIN}:8000"
     volumes:
@@ -118,13 +119,25 @@ services:
     volumes:
       - ../../services/front-end:/app
       - node_modules:/app/node_modules
-      # Frontend does not need the data volume; images are fetched via main-api
-      # - ../../${DATA_ROOT_HOST}:${DATA_ROOT_CONTAINER}
     depends_on:
       main-api:
         condition: service_healthy
     restart: unless-stopped
-    command: sh -c "npm install && npm run dev"
+    # Install only when lockfile changes or node_modules is empty
+    command:
+      - sh
+      - -c
+      - |
+        H=$(sha256sum package-lock.json | awk "{print $1}");
+        if [ ! -d node_modules ] || [ -z "$(ls -A node_modules 2>/dev/null)" ] || [ ! -f node_modules/.lockhash ] || [ "$(cat node_modules/.lockhash 2>/dev/null)" != "$H" ]; then
+          echo "[front-end] Installing deps (hash $H)";
+          rm -rf node_modules;
+          npm ci --no-audit --no-fund;
+          echo "$H" > node_modules/.lockhash;
+        else
+          echo "[front-end] Reusing cached node_modules (hash $H)";
+        fi
+        npm run dev
 
 
   dropship-product-finder:

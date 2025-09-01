@@ -19,6 +19,8 @@ from common_py.logging_config import configure_logging
 from api.dependency import get_db, get_broker, get_job_service
 from config_loader import config
 from utils.image_utils import to_public_url
+from utils.video_utils import select_preview_frame, get_first_keyframe_url
+from models.schemas import PreviewFrame
 
 logger = configure_logging("main-api")
 
@@ -106,6 +108,33 @@ async def get_job_videos(
         video_items = []
         for video in videos:
             frames_count = await video_frame_crud.get_video_frames_count(video.video_id)
+
+            # Thumbnail URL not used in response; removed undefined call
+
+            # Get preview frame
+            preview_frame_data = await select_preview_frame(
+                video.video_id,
+                float(video.duration_s or 0),
+                video_frame_crud,
+                config.DATA_ROOT_CONTAINER
+            )
+
+            preview_frame = None
+            if preview_frame_data:
+                preview_frame = PreviewFrame(
+                    frame_id=preview_frame_data['frame_id'],
+                    ts=preview_frame_data['ts'],
+                    url=preview_frame_data['url'],
+                    segment_url=preview_frame_data['segment_url']
+                )
+
+            # Get first keyframe URL
+            first_keyframe_url = await get_first_keyframe_url(
+                video.video_id,
+                video_frame_crud,
+                config.DATA_ROOT_CONTAINER
+            )
+
             video_item = VideoItem(
                 video_id=video.video_id,
                 platform=video.platform,
@@ -113,7 +142,9 @@ async def get_job_videos(
                 title=video.title or "",
                 duration_s=float(video.duration_s or 0),
                 frames_count=frames_count,
-                updated_at=get_gmt7_time(video.created_at)
+                updated_at=get_gmt7_time(video.created_at),
+                preview_frame=preview_frame,
+                first_keyframe_url=first_keyframe_url
             )
             video_items.append(video_item)
         

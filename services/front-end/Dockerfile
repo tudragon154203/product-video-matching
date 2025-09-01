@@ -1,9 +1,10 @@
-FROM node:22.18.0-alpine
+FROM node:20-bookworm-slim
 
 WORKDIR /app
 
 # Install dependencies
 COPY package.json package-lock.json* ./
-RUN npm install
+# Use clean, deterministic install
+RUN npm ci --no-audit --no-fund
 
 EXPOSE 3000

@@ -36,7 +36,7 @@ test.describe('Refactored Pagination Components', () => {
         platform: offset < 10 ? 'YouTube' : 'TikTok',
         title: `Video ${offset + i + 1}`,
         duration: 120 + (offset + i),
-        thumbnail_url: 'https://example.com/thumb.jpg'
+        first_keyframe_url: 'https://example.com/thumb.jpg'
       }));
 
       await route.fulfill({

@@ -5,7 +5,6 @@ import { formatGMT7 } from '@/lib/utils/formatGMT7';
 import { formatDuration } from '@/lib/utils/formatDuration';
 import { LinkExternalIcon } from '@/components/jobs/LinkExternalIcon';
 import { ThumbnailImage } from '@/components/common/ThumbnailImage';
-import { useVideoFrames } from '@/lib/api/hooks';
 import { useTranslations } from 'next-intl';
 
 interface VideoItemRowProps {
@@ -17,21 +16,10 @@ interface VideoItemRowProps {
 export function VideoItemRow({ video, jobId, isCollecting = false }: VideoItemRowProps) {
   const t = useTranslations();
 
-  // Fetch first frame for this video
-  // Reduce API load: skip nested frame fetches while collecting
-  const { data: framesResponse } = useVideoFrames(
-    jobId,
-    video.video_id,
-    {
-      limit: 1, // Only fetch the first frame
-      offset: 0,
-      sort_by: 'ts',
-      order: 'ASC'
-    },
-    !!jobId && !!video.video_id && !isCollecting
-  );
-
-  const firstFrame = isCollecting ? undefined : framesResponse?.items?.[0];
+  // Use the first_keyframe_url and preview_frame from the video data instead of making a separate API call
+  // This eliminates the nested API call and improves performance
+  // Prefer first_keyframe_url, fallback to preview_frame.url if thumbnail is not available
+  const thumbnailSrc = video.first_keyframe_url || video.preview_frame?.url;
 
   return (
     <div className="flex items-center gap-3 p-2 hover:bg-muted rounded-md transition-colors">
@@ -43,7 +31,7 @@ export function VideoItemRow({ video, jobId, isCollecting = false }: VideoItemRo
         className="flex-shrink-0 hover:opacity-80 transition-opacity"
       >
         <ThumbnailImage
-          src={firstFrame?.url}
+          src={thumbnailSrc}
           alt={video.title || 'Video thumbnail'}
           data-testid="video-thumbnail"
         />

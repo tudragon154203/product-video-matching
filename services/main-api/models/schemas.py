@@ -39,6 +39,14 @@ class JobAssetTypes(BaseModel):
             return "zero-asset"
 
 
+class PreviewFrame(BaseModel):
+    """Schema for video preview frame"""
+    frame_id: str
+    ts: float
+    url: str
+    segment_url: Optional[str] = None
+
+
 class VideoItem(BaseModel):
     """Schema for video item in list response"""
     video_id: str
@@ -48,6 +56,8 @@ class VideoItem(BaseModel):
     duration_s: float
     frames_count: int
     updated_at: datetime
+    preview_frame: Optional[PreviewFrame] = None
+    first_keyframe_url: Optional[str] = None
 
 
 class VideoListResponse(BaseModel):
@@ -121,6 +131,7 @@ class ProductItem(BaseModel):
     url: Optional[str] = None
     image_count: int
     created_at: datetime
+    primary_image_url: Optional[str] = None
 
 
 class ProductListResponse(BaseModel):

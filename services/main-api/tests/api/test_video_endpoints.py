@@ -225,4 +225,74 @@ async def test_get_video_frames_success():
     assert data["items"][0]["updated_at"].endswith("+07:00")
     print("✓ test_get_video_frames_success passed")
 
+@pytest.mark.asyncio
+async def test_get_job_videos_includes_new_fields():
+    """Test that GET /jobs/{job_id}/videos includes thumbnail_url and preview_frame fields."""
+    # Mock video with frames for preview_frame selection
+    mock_video = MockVideo(MOCK_VIDEO_ID_1, "youtube", "url1", "Video Title 1", 120, datetime.now(timezone.utc) - timedelta(days=5))
+
+    # Mock frames for preview frame selection
+    mock_frames = [
+        MockVideoFrame("frame-middle", MOCK_VIDEO_ID_1, 60.0, "/app/data/videos/frames/frame-middle.jpg",
+                      datetime.now(timezone.utc), datetime.now(timezone.utc)),
+        MockVideoFrame("frame-early", MOCK_VIDEO_ID_1, 10.0, "/app/data/videos/frames/frame-early.jpg",
+                      datetime.now(timezone.utc), datetime.now(timezone.utc))
+    ]
+
+    video_crud_mock.list_videos_by_job.return_value = [mock_video]
+    video_crud_mock.count_videos_by_job.return_value = 1
+    video_frame_crud_mock.get_video_frames_count = AsyncMock(return_value=2)
+    video_frame_crud_mock.list_video_frames_by_video = AsyncMock(return_value=mock_frames)
+
+    async with AsyncClient(app=app, base_url="http://localhost:8888") as ac:
+        response = await ac.get(f"/jobs/{MOCK_JOB_ID}/videos")
+
+    assert response.status_code == 200
+    data = response.json()
+    assert len(data["items"]) == 1
+
+    video_item = data["items"][0]
+    # Check that new field is present
+    assert "preview_frame" in video_item
+
+    # Check preview_frame structure
+    preview_frame = video_item["preview_frame"]
+    assert preview_frame is not None
+    assert "frame_id" in preview_frame
+    assert "ts" in preview_frame
+    assert "url" in preview_frame
+    assert "segment_url" in preview_frame
+
+    # Should select frame closest to middle (60.0 for 120s video)
+    assert preview_frame["frame_id"] == "frame-middle"
+    assert preview_frame["ts"] == 60.0
+    assert preview_frame["url"] == "/files/videos/frames/frame-middle.jpg"
+    assert preview_frame["segment_url"] is None  # No segment path in mock
+
+    print("✓ test_get_job_videos_includes_new_fields passed")
+
+@pytest.mark.asyncio
+async def test_get_job_videos_no_frames():
+    """Test that GET /jobs/{job_id}/videos handles videos with no frames."""
+    mock_video = MockVideo(MOCK_VIDEO_ID_1, "youtube", "url1", "Video Title 1", 120, datetime.now(timezone.utc))
+
+    video_crud_mock.list_videos_by_job.return_value = [mock_video]
+    video_crud_mock.count_videos_by_job.return_value = 1
+    video_frame_crud_mock.get_video_frames_count = AsyncMock(return_value=0)
+    video_frame_crud_mock.list_video_frames_by_video = AsyncMock(return_value=[])
+
+    async with AsyncClient(app=app, base_url="http://localhost:8888") as ac:
+        response = await ac.get(f"/jobs/{MOCK_JOB_ID}/videos")
+
+    assert response.status_code == 200
+    data = response.json()
+    assert len(data["items"]) == 1
+
+    video_item = data["items"][0]
+    # Check that new field is present but null/None when no frames
+    assert "preview_frame" in video_item
+    assert video_item["preview_frame"] is None
+
+    print("✓ test_get_job_videos_no_frames passed")
+
 # ... rest of the test cases ...

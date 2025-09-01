@@ -70,6 +70,9 @@
       "loadFailed": "Không thể tải dữ liệu.",
       "retry": "Thử lại"
     },
+    "loading": "Đang tải...",
+    "navigationLoading": "Đang tải dữ liệu mới...",
+    "placeholderData": "Đang tải dữ liệu mới...",
     "pagination": {
       "pageInfo": "Trang {currentPage} / {totalPages} ({start}-{end} trong tổng {totalItems})",
       "next": "Tiếp",

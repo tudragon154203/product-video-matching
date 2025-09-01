@@ -196,6 +196,13 @@ Get videos for a specific job with filtering and pagination.
       "title": "Example Video Title",
       "duration_s": 120.5,
       "frames_count": 240,
+      "thumbnail_url": "/files/videos/thumbnails/vid-123.jpg",
+      "preview_frame": {
+        "frame_id": "frame-789",
+        "ts": 37.2,
+        "url": "/files/videos/frames/frame-789.jpg",
+        "segment_url": "/files/masked/frame-789.jpg"
+      },
       "updated_at": "2024-01-15T10:30:00+07:00"
     }
   ],
@@ -207,6 +214,48 @@ Get videos for a specific job with filtering and pagination.
 
 **Status Codes:**
 - `200`: Videos retrieved successfully
+- `404`: Job not found
+- `500`: Internal server error
+
+### Get Job Products
+
+Get products for a specific job with filtering and pagination.
+
+**Endpoint:** `GET /jobs/{job_id}/products`
+
+**Query Parameters:**
+- `job_id` (string, required): The job ID to filter products by
+- `q` (string, optional): Search query for product titles, brands, or ASIN/ItemID (case-insensitive)
+- `src` (string, optional): Filter by source platform (e.g., 'amazon', 'ebay')
+- `limit` (integer, optional, default: 100): Maximum number of items to return (1-1000)
+- `offset` (integer, optional, default: 0): Number of items to skip for pagination
+- `sort_by` (string, optional, default: `created_at`, pattern: `^(product_id|title|brand|src|created_at)$`): Field to sort by
+- `order` (string, optional, default: `DESC`, pattern: `^(ASC|DESC)$`): Sort order
+
+**Response:**
+```json
+{
+  "items": [
+    {
+      "product_id": "prod-456",
+      "src": "amazon",
+      "asin_or_itemid": "B08N5WRWNW",
+      "title": "Ergonomic Office Chair",
+      "brand": "Acme",
+      "url": "https://amazon.com/dp/B08N5WRWNW",
+      "image_count": 4,
+      "primary_image_url": "/files/images/img-123.jpg",
+      "created_at": "2024-01-15T10:30:00+07:00"
+    }
+  ],
+  "total": 1,
+  "limit": 100,
+  "offset": 0
+}
+```
+
+**Status Codes:**
+- `200`: Products retrieved successfully
 - `404`: Job not found
 - `500`: Internal server error
 

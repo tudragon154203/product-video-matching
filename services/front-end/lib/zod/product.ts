@@ -9,6 +9,7 @@ export const ProductItem = z.object({
   url: z.string().nullable(),
   image_count: z.number(),
   created_at: z.string(),
+  primary_image_url: z.string().nullable(),
 });
 
 export const ProductListResponse = z.object({
