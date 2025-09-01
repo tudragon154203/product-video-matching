@@ -125,3 +125,79 @@
 - Shared‑element transitions for thumbnails/keyframes.
 - Animate count badges and headers with number tweening (respect reduced motion).
 
+## TDD To‑Do (Red → Green → Refactor)
+
+### Story A: VideosPanel animates new items during collection
+- Red (write failing tests)
+  - E2E: `services/front-end/tests/e2e/animations.videos.spec.ts`
+    - Mock API or fixture flow to: load job details → initial 3 videos; after polling tick, backend returns 4th video.
+    - Assert: new row appears and has a transient transition style (e.g., computed `transition-duration` > 0 or `transform` applied within 250ms window).
+    - Assert: no layout jump on sibling items (container height changes smoothly; optional check via bounding boxes within small delta).
+  - Integration: `services/front-end/tests/components/VideosPanel.anim.test.tsx`
+    - Mount `VideosPanel` with mock service returning initial then updated items via query invalidation.
+    - Assert: auto‑animate initializer is attached to the list container (spy via helper marker or attribute).
+- Green (implement to pass)
+  - Add auto‑animate to the per‑platform item container in `VideosPanel`.
+  - Ensure keys are stable (`video_id`).
+  - Respect reduced motion and feature flag.
+- Refactor
+  - Extract a `useAutoAnimateList` helper to centralize defaults and guards; apply across other panels.
+  - Consolidate repeated list wrappers in CommonPanel if any.
+
+### Story B: ProductsPanel animates new items during collection
+- Red
+  - E2E: `services/front-end/tests/e2e/animations.products.spec.ts`
+    - Initial N products → polling adds 1; assert same animation signals and smoothness as Story A.
+  - Integration: `services/front-end/tests/components/ProductsPanel.anim.test.tsx`
+    - Assert initializer attached to the list container; stable keys (`product_id`).
+- Green
+  - Attach auto‑animate to the per‑source item container in `ProductsPanel`.
+  - Respect flags and reduced motion.
+- Refactor
+  - Reuse `useAutoAnimateList` and shared config.
+
+### Story C: JobSidebar animates list updates and reorders
+- Red
+  - E2E: `services/front-end/tests/e2e/animations.sidebar.spec.ts`
+    - With polling, simulate new job insertion and a phase change that reorders the list.
+    - Assert: reorder animates (position change with transition) and no flicker of headers.
+  - Integration: `services/front-end/tests/components/job-sidebar.anim.test.tsx`
+    - Assert initializer attached to jobs list container; stable keys (`job_id`).
+- Green
+  - Attach auto‑animate to job list container in `job-sidebar/job-list-card.tsx`.
+- Refactor
+  - Extract any sidebar‑specific animation options into shared helper.
+
+### Story D: Pagination transitions feel smooth (page content swap)
+- Red
+  - E2E: `services/front-end/tests/e2e/animations.pagination.spec.ts`
+    - Navigate Next/Prev on Videos/Products; assert previous page items fade/transform out and new items in; no double animation on skeletons.
+  - Integration: `services/front-end/tests/components/CommonPanel.pagination.anim.test.tsx`
+    - Assert list container has initializer; verify toggling offset does not remount the wrapper (so animations can run).
+- Green
+  - Attach auto‑animate to the list container used by CommonPanel consumers around the map of items.
+  - Ensure skeletons remain inside a stable wrapper to avoid “enter/exit” of wrapper itself.
+- Refactor
+  - Centralize a `PanelList` wrapper component using `useAutoAnimateList` to reduce duplication.
+
+### Story E: Global flag and reduced motion
+- Red
+  - Unit: `services/front-end/tests/unit/animations.flags.test.ts`
+    - When `NEXT_PUBLIC_ENABLE_ANIMATIONS = 'false'`, auto‑animate is not initialized.
+    - When `prefers-reduced-motion: reduce`, helper returns noop.
+- Green
+  - Read env flag in helper; check media query for reduced motion.
+- Refactor
+  - Expose a single config object (durations/easing) and use across all hooks.
+
+## Test Observability & Heuristics
+- Animations are hard to assert precisely; use pragmatic signals:
+  - Presence of inline `transition` or `transform` on newly inserted node during a 0–250ms window.
+  - Stable parent wrapper identity across updates (no remount): compare element handles.
+  - Optional measurement of adjacent item bounding boxes to ensure no abrupt jumps beyond a small threshold.
+
+## Definition of Done (DoD)
+- All Red tests pass Green on local CI for front-end package.
+- Feature flag and reduced motion honored across all animated surfaces.
+- No console errors; no noticeable jank on 60hz laptop in DevTools Performance profile.
+- Documentation: this spec updated; short README note under front-end explaining the flag and helper.
