@@ -58,11 +58,11 @@ async def test_cross_platform_parallelism():
         
         # Replace platform crawlers with mock crawlers that have delays
         youtube_crawler = MockPlatformCrawler("youtube", delay_seconds=2)
-        tiktok_crawler = MockPlatformCrawler("tiktok", delay_seconds=2)
-        
+        bilibili_crawler = MockPlatformCrawler("bilibili", delay_seconds=2)
+
         service.platform_crawlers = {
             "youtube": youtube_crawler,
-            "tiktok": tiktok_crawler
+            "bilibili": bilibili_crawler
         }
         service.video_fetcher = VideoFetcher(platform_crawlers=service.platform_crawlers)
         
@@ -71,7 +71,7 @@ async def test_cross_platform_parallelism():
             "job_id": "test_job_123",
             "industry": "fashion",
             "queries": ["dress", "skirt"],
-            "platforms": ["youtube", "tiktok"],
+            "platforms": ["youtube", "bilibili"],
             "recency_days": 30
         }
         
@@ -84,21 +84,21 @@ async def test_cross_platform_parallelism():
         
         # Verify both platforms were called
         assert youtube_crawler.call_count == 1
-        assert tiktok_crawler.call_count == 1
-        
+        assert bilibili_crawler.call_count == 1
+
         # Check that calls started at roughly the same time (parallel execution)
         assert len(youtube_crawler.call_times) == 1
-        assert len(tiktok_crawler.call_times) == 1
-        
+        assert len(bilibili_crawler.call_times) == 1
+
         # If platforms ran sequentially, it would take ~4 seconds (2+2)
         # If platforms ran in parallel, it should take ~2 seconds
         assert total_time < 3, f"Platforms appear to run sequentially. Total time: {total_time:.2f}s"
-        
+
         # Verify overlapping time windows (parallel execution)
         youtube_start = youtube_crawler.call_times[0]
-        tiktok_start = tiktok_crawler.call_times[0]
+        bilibili_start = bilibili_crawler.call_times[0]
         # They should start within a short time of each other (less than 0.5 seconds)
-        assert abs(youtube_start - tiktok_start) < 0.5, "Platforms did not start in parallel"
+        assert abs(youtube_start - bilibili_start) < 0.5, "Platforms did not start in parallel"
 
 @pytest.mark.asyncio
 async def test_max_concurrent_platforms_limit():
@@ -113,12 +113,12 @@ async def test_max_concurrent_platforms_limit():
         
         # Replace platform crawlers with mock crawlers that have longer delays
         youtube_crawler = MockPlatformCrawler("youtube", delay_seconds=3)
-        tiktok_crawler = MockPlatformCrawler("tiktok", delay_seconds=3)
+        bilibili_crawler = MockPlatformCrawler("bilibili", delay_seconds=3)
         mock_crawler3 = MockPlatformCrawler("platform3", delay_seconds=3)
-        
+
         service.platform_crawlers = {
             "youtube": youtube_crawler,
-            "tiktok": tiktok_crawler,
+            "bilibili": bilibili_crawler,
             "platform3": mock_crawler3
         }
         service.video_fetcher = VideoFetcher(platform_crawlers=service.platform_crawlers)
@@ -128,7 +128,7 @@ async def test_max_concurrent_platforms_limit():
             "job_id": "test_job_456",
             "industry": "tech",
             "queries": ["smartphone", "laptop"],
-            "platforms": ["youtube", "tiktok", "platform3"],
+            "platforms": ["youtube", "bilibili", "platform3"],
             "recency_days": 30
         }
         

@@ -52,8 +52,7 @@ class TestVideoCrawlerIntegration:
         crawlers = {
             "youtube": MockPlatformCrawler("youtube"),
             "bilibili": MockPlatformCrawler("bilibili"),
-            "douyin": MockPlatformCrawler("douyin"),
-            "tiktok": MockPlatformCrawler("tiktok")
+            "douyin": MockPlatformCrawler("douyin")
         }
         return VideoFetcher(platform_crawlers=crawlers)
     
@@ -91,11 +90,10 @@ class TestVideoCrawlerIntegration:
         assert "youtube" in video_crawler_service.platform_crawlers
         assert "bilibili" in video_crawler_service.platform_crawlers
         assert "douyin" in video_crawler_service.platform_crawlers
-        assert "tiktok" in video_crawler_service.platform_crawlers
-        
+
         # Verify that VideoFetcher has access to platform crawlers
         assert video_crawler_service.video_fetcher.platform_crawlers is not None
-        assert len(video_crawler_service.video_fetcher.platform_crawlers) == 4
+        assert len(video_crawler_service.video_fetcher.platform_crawlers) == 3
     
     
     @pytest.mark.asyncio

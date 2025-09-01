@@ -30,6 +30,8 @@ export function VideosPanel({ jobId, isCollecting = false }: VideosPanelProps) {
     return await videoApiService.getJobVideos(jobId, {
       limit,
       offset,
+      sort_by: 'platform',
+      order: 'ASC'
     });
   }, [jobId]);
 

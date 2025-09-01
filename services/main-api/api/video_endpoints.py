@@ -52,7 +52,7 @@ async def get_job_videos(
     min_frames: Optional[int] = Query(None, description="Minimum number of frames"),
     limit: int = Query(100, ge=1, le=1000, description="Maximum number of items to return"),
     offset: int = Query(0, ge=0, description="Number of items to skip"),
-    sort_by: str = Query("created_at", pattern="^(created_at|duration_s|frames_count|title)$", description="Field to sort by"),
+    sort_by: str = Query("created_at", pattern="^(created_at|duration_s|title|platform)$", description="Field to sort by"),
     order: str = Query("DESC", pattern="^(ASC|DESC)$", description="Sort order"),
     job_service: JobService = Depends(get_job_service),
     video_crud: VideoCRUD = Depends(get_video_crud),
@@ -68,7 +68,7 @@ async def get_job_videos(
         min_frames: Minimum number of frames a video must have
         limit: Maximum number of items to return (1-1000)
         offset: Number of items to skip for pagination
-        sort_by: Field to sort by (updated_at, duration_s, frames_count, title)
+        sort_by: Field to sort by (created_at, duration_s, title, platform)
         order: Sort order (ASC or DESC)
     
     Returns:

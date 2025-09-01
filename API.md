@@ -182,7 +182,7 @@ Get videos for a specific job with filtering and pagination.
 - `min_frames` (integer, optional): Minimum number of frames a video must have
 - `limit` (integer, optional, default: 100): Maximum number of items to return (1-1000)
 - `offset` (integer, optional, default: 0): Number of items to skip for pagination
-- `sort_by` (string, optional, default: `updated_at`, pattern: `^(updated_at|duration_s|frames_count|title)$`): Field to sort by
+- `sort_by` (string, optional, default: `created_at`, pattern: `^(created_at|duration_s|title|platform)$`): Field to sort by
 - `order` (string, optional, default: `DESC`, pattern: `^(ASC|DESC)$`): Sort order
 
 **Response:**

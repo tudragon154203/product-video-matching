@@ -26,7 +26,7 @@ Snapshot for header & overall progress.
 
 ### `GET /jobs/{job_id}/videos`
 
-Query: `q`, `platform`, `min_frames`, `limit`, `offset`, `sort_by=updated_at|duration_s|frames_count|title`, `order`
+Query: `q`, `platform`, `min_frames`, `limit`, `offset`, `sort_by=created_at|duration_s|title|platform`, `order`
 
 ```json
 {

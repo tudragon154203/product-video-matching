@@ -30,25 +30,25 @@ def mock_video_data():
     """Mock video data for testing"""
     import time
     current_time = time.time()
-    
+
     return [
         {
             "video_id": "test_video_1",
-            "url": "https://tiktok.com/@user1/video/test_video_1",
+            "url": "https://youtube.com/watch?v=test_video_1",
             "title": "Test Video 1",
             "duration_s": 30,
-            "platform": "tiktok",
+            "platform": "youtube",
             "author": "test_user1",
             "view_count": 1000,
             "create_time": current_time - 3600  # 1 hour ago
         },
         {
-            "video_id": "test_video_2", 
-            "url": "https://tiktok.com/@user2/video/test_video_2",
-            "title": "Test Video 2 Vietnam",
+            "video_id": "test_video_2",
+            "url": "https://youtube.com/watch?v=test_video_2",
+            "title": "Test Video 2",
             "duration_s": 45,
-            "platform": "tiktok", 
-            "author": "vietnam_user",
+            "platform": "youtube",
+            "author": "test_user2",
             "view_count": 2000,
             "create_time": current_time - 7200  # 2 hours ago
         }
@@ -64,32 +64,6 @@ def mock_downloaded_video_data(mock_video_data, temp_dir):
         downloaded.append(video_copy)
     return downloaded
 
-@pytest.fixture
-def mock_tiktok_api():
-    """Mock TikTok API for testing"""
-    mock_api = MagicMock()
-    mock_api.create_sessions = AsyncMock()
-    mock_api.close = AsyncMock()
-    mock_api.hashtag = MagicMock()
-    mock_api.trending = MagicMock()
-    mock_api.video = MagicMock()
-    return mock_api
-
-@pytest.fixture
-def mock_video_object():
-    """Mock TikTok video object"""
-    mock_video = MagicMock()
-    mock_video.id = "test_video_123"
-    mock_video.desc = "Test video description"
-    mock_video.author.username = "test_user"
-    mock_video.author.nickname = "Test User"
-    mock_video.duration = 30
-    mock_video.stats.playCount = 1000
-    mock_video.stats.diggCount = 100
-    mock_video.stats.shareCount = 10
-    mock_video.stats.commentCount = 50
-    mock_video.createTime = 1234567890
-    return mock_video
 
 @pytest.fixture
 def vietnamese_test_videos():
@@ -119,13 +93,5 @@ def vietnamese_test_videos():
 def mock_config():
     """Mock configuration for testing"""
     config = MagicMock()
-    config.TIKTOK_MS_TOKEN = "test_token"
-    config.TIKTOK_BROWSER = "chromium"
-    config.TIKTOK_HEADLESS = True
-    config.TIKTOK_PROXY_URL = ""
-    config.TIKTOK_MAX_RETRIES = 3
-    config.TIKTOK_SLEEP_AFTER = 2
-    config.TIKTOK_SESSION_COUNT = 1
-    config.TIKTOK_VIETNAM_REGION = True
     config.NUM_PARALLEL_DOWNLOADS = 3
     return config

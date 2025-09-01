@@ -13,6 +13,7 @@ export function VideoGroup({ platform, count }: VideoGroupProps) {
   const labelMap: Record<string, string> = {
     'youtube': 'YouTube',
     'tiktok': 'TikTok',
+    'douyin': 'Douyin',
   };
 
   const label = labelMap[platform.toLowerCase()] || platform;

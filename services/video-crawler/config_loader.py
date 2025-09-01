@@ -50,14 +50,6 @@ class VideoCrawlerConfig:
     # Logging (from .env first, then global config)
     LOG_LEVEL: str = os.getenv("LOG_LEVEL", global_config.LOG_LEVEL)
     
-    # TikTok API Configuration
-    TIKTOK_MS_TOKEN: str = os.getenv("TIKTOK_MS_TOKEN", "")
-    TIKTOK_HEADLESS: bool = os.getenv("TIKTOK_HEADLESS", "true").lower() == "true"
-    TIKTOK_PROXY_URL: str = os.getenv("TIKTOK_PROXY_URL", "")  # Not needed for Vietnam IP
-    TIKTOK_MAX_RETRIES: int = int(os.getenv("TIKTOK_MAX_RETRIES", "3"))
-    TIKTOK_SLEEP_AFTER: int = int(os.getenv("TIKTOK_SLEEP_AFTER", "2"))  # Reduced for Vietnam IP
-    TIKTOK_SESSION_COUNT: int = int(os.getenv("TIKTOK_SESSION_COUNT", "1"))
-    TIKTOK_VIETNAM_REGION: bool = os.getenv("TIKTOK_VIETNAM_REGION", "true").lower() == "true"
 
 # Create config instance
 config = VideoCrawlerConfig()

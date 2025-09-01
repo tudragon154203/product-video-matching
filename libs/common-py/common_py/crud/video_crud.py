@@ -51,13 +51,19 @@ class VideoCRUD:
         
         if min_frames is not None:
             param_count += 1
-            conditions.append(f"EXISTS (SELECT 1 FROM video_frames vf WHERE vf.video_id = videos.video_id AND vf.created_at >= NOW() - INTERVAL '1 day' GROUP BY vf.video_id HAVING COUNT(*) >= ${param_count})")
+            # Reference the outer query alias 'v' to avoid FROM-clause issues
+            conditions.append(
+                f"EXISTS (SELECT 1 FROM video_frames vf "
+                f"WHERE vf.video_id = v.video_id "
+                f"AND vf.created_at >= NOW() - INTERVAL '1 day' "
+                f"GROUP BY vf.video_id HAVING COUNT(*) >= ${param_count})"
+            )
             params.append(min_frames)
         
         where_clause = "WHERE " + " AND ".join(conditions)
         
-        # Validate sort_by field
-        valid_sort_fields = ["created_at", "duration_s", "frames_count", "title"]
+        # Validate sort_by field (frames_count removed)
+        valid_sort_fields = ["created_at", "duration_s", "title", "platform"]
         if sort_by not in valid_sort_fields:
             sort_by = "created_at"
         
@@ -69,12 +75,29 @@ class VideoCRUD:
         param_count += 1
         params.append(offset)
         
-        query = f"""
-        SELECT v.* FROM videos v
-        {where_clause}
-        ORDER BY v.{sort_by} {order}
-        LIMIT ${param_count-1} OFFSET ${param_count}
-        """
+        # Custom platform sorting with priority: youtube, tiktok, douyin, others
+        if sort_by == "platform":
+            case_statement = """
+            CASE 
+                WHEN lower(platform) = 'youtube' THEN 0
+                WHEN lower(platform) = 'tiktok' THEN 1
+                WHEN lower(platform) = 'douyin' THEN 2
+                ELSE 3
+            END
+            """
+            query = f"""
+            SELECT v.* FROM videos v
+            {where_clause}
+            ORDER BY {case_statement} {order}
+            LIMIT ${param_count-1} OFFSET ${param_count}
+            """
+        else:
+            query = f"""
+            SELECT v.* FROM videos v
+            {where_clause}
+            ORDER BY v.{sort_by} {order}
+            LIMIT ${param_count-1} OFFSET ${param_count}
+            """
         
         rows = await self.db.fetch_all(query, *params)
         return [Video(**row) for row in rows]
