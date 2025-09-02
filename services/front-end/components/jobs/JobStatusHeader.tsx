@@ -19,7 +19,7 @@ export function JobStatusHeader({ jobId, isCollecting = false }: JobStatusHeader
   // Event-based completion flags from backend status
   const productsDone = !!collection?.products_done;
   const videosDone = !!collection?.videos_done;
-  const collectionFinished = currentPhase === 'collection' && productsDone && videosDone;
+  const collectionFinished = productsDone && videosDone;
 
   // Phase-specific effects
   const renderPhaseEffect = () => {
@@ -68,11 +68,11 @@ export function JobStatusHeader({ jobId, isCollecting = false }: JobStatusHeader
         </Badge>
       </div>
 
-      {/* Collection phase badges */}
-      {currentPhase === 'collection' && productsDone && (
+      {/* Collection completion badges (persist across phases once done) */}
+      {productsDone && (
         <Badge variant="outline" className="text-xs">✔ Products done</Badge>
       )}
-      {currentPhase === 'collection' && videosDone && (
+      {videosDone && (
         <Badge variant="outline" className="text-xs">✔ Videos done</Badge>
       )}
       {collectionFinished && (
