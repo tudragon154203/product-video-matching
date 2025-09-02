@@ -3,7 +3,7 @@ from typing import Dict, Any
 from fastapi import HTTPException
 from common_py.logging_config import configure_logging
 
-logger = configure_logging("main-api")
+logger = configure_logging("main-api:gemini_api_client")
 
 class GeminiAPIClient:
     def __init__(self, api_key: str, model: str):

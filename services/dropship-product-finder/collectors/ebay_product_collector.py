@@ -7,7 +7,7 @@ from services.ebay_auth_api_client import EbayAuthAPIClient
 from config_loader import config
 from common_py.logging_config import configure_logging
 
-logger = configure_logging("dropship-product-finder")
+logger = configure_logging("dropship-product-finder:ebay_product_collector")
 
 
 class EbayProductCollector(BaseProductCollector):

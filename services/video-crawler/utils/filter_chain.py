@@ -2,7 +2,7 @@ from typing import List, Callable, Any, Tuple, Dict
 from datetime import datetime
 from common_py.logging_config import configure_logging
 
-logger = configure_logging("video-crawler")
+logger = configure_logging("video-crawler:filter_chain")
 
 
 class FilterChain:

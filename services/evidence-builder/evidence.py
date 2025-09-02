@@ -6,7 +6,7 @@ from common_py.logging_config import configure_logging
 from PIL import Image, ImageDraw, ImageFont
 from evidence_image_renderer import EvidenceImageRenderer
 
-logger = configure_logging("evidence-builder")
+logger = configure_logging("evidence-builder:evidence")
 
 
 class EvidenceGenerator:

@@ -7,7 +7,7 @@ from common_py.logging_config import configure_logging
 from api.dependency import get_db, get_broker
 
 # Configure logger
-logger = configure_logging("main-api")
+logger = configure_logging("main-api:health_endpoints")
 
 # Create router for health endpoints (no prefix)
 router = APIRouter()

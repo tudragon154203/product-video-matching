@@ -10,7 +10,7 @@ from services.llm.prompt_service import PromptService
 from handlers.database_handler import DatabaseHandler
 from handlers.broker_handler import BrokerHandler
 
-logger = configure_logging("main-api")
+logger = configure_logging("main-api:job_initializer")
 
 class JobInitializer:
     def __init__(self, db_handler: DatabaseHandler, broker_handler: BrokerHandler, llm_service: LLMService, prompt_service: PromptService):

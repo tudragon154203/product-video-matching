@@ -2,6 +2,8 @@ import logging
 import sys
 import json
 import os
+import inspect
+from pathlib import Path
 from typing import Any, Dict, Optional
 from contextvars import ContextVar, copy_context
 
@@ -95,6 +97,49 @@ class ContextLogger:
         self._base.critical(prepared["msg"], *args, **prepared["std"])  # type: ignore[arg-type]
 
 
+def _standardize_logger_name(name: str) -> str:
+    """Ensure logger name follows `microservice:file` when possible.
+
+    If the provided name already contains a colon, it is returned unchanged.
+    Otherwise, attempt to infer microservice and file from the caller's path.
+    Falls back to the original name if inference fails.
+    """
+    try:
+        if ":" in name:
+            return name
+
+        # Inspect call stack to find the first external frame
+        frame = inspect.currentframe()
+        if frame is None:
+            return name
+        caller = frame.f_back
+        # Walk back until we leave this module
+        this_file = __file__
+        while caller and caller.f_code.co_filename == this_file:
+            caller = caller.f_back
+        if not caller:
+            return name
+
+        p = Path(caller.f_code.co_filename).resolve()
+        parts = p.parts
+        if "services" in parts:
+            i = parts.index("services")
+            micro = parts[i + 1]
+            file_part = p.stem if p.name != "__init__.py" else p.parent.name
+            return f"{micro}:{file_part}"
+        if "libs" in parts:
+            i = parts.index("libs")
+            micro = parts[i + 1]
+            file_part = p.stem if p.name != "__init__.py" else p.parent.name
+            return f"{micro}:{file_part}"
+        if "scripts" in parts:
+            file_part = p.stem if p.name != "__init__.py" else p.parent.name
+            return f"scripts:{file_part}"
+        return name
+    except Exception:
+        return name
+
+
 def configure_logging(
     service_name: str,
     log_level: str = "INFO",
@@ -103,10 +148,12 @@ def configure_logging(
     """Configure logging and return a ContextLogger that accepts kwargs.
 
     Usage:
-        logger = configure_logging("main-api")
+        logger = configure_logging("service:file")
         logger.info("Started", job_id=job_id)
         logger.error("Failure", error=str(e))
     """
+    # Standardize logger name to the `service:file` format when possible
+    service_name = _standardize_logger_name(service_name)
     if log_format == "json":
         formatter = JsonFormatter()
     else:

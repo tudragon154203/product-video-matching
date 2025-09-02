@@ -10,7 +10,7 @@ from common_py.logging_config import configure_logging
 from handlers.video_crawl_handler import VideoCrawlHandler
 from config_loader import config
 
-logger = configure_logging("video-crawler", log_level=config.LOG_LEVEL)
+logger = configure_logging("video-crawler:main", log_level=config.LOG_LEVEL)
 
 @asynccontextmanager
 async def service_context():

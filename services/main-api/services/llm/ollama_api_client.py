@@ -4,7 +4,7 @@ from typing import Dict, Any
 from fastapi import HTTPException
 from common_py.logging_config import configure_logging
 
-logger = configure_logging("main-api")
+logger = configure_logging("main-api:ollama_api_client")
 
 class OllamaAPIClient:
     def __init__(self, ollama_host: str):

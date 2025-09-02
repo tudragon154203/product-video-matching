@@ -6,7 +6,7 @@ from typing import Dict, Any, Optional
 from collections import defaultdict, deque
 from .logging_config import configure_logging
 
-logger = configure_logging("common-py")
+logger = configure_logging("common-py:metrics")
 
 
 class MetricsCollector:

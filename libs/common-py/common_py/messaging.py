@@ -8,7 +8,7 @@ from aio_pika import Message, DeliveryMode
 from .logging_config import configure_logging
 from .messaging_handler import MessageHandler # New import
 
-logger = configure_logging("common-py")
+logger = configure_logging("common-py:messaging")
 
 
 class MessageBroker:

@@ -4,7 +4,7 @@ from typing import Dict, Any, Set, Optional, Tuple
 from common_py.logging_config import configure_logging
 from common_py.messaging import MessageBroker
 
-logger = configure_logging("job-progress-manager")
+logger = configure_logging("vision-common:completion_event_publisher")
 
 class CompletionEventPublisher:
     # Constants

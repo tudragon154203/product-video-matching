@@ -2,7 +2,7 @@ from typing import Dict, Any, Optional
 from common_py.database import DatabaseManager
 from common_py.logging_config import configure_logging
 
-logger = configure_logging("evidence-builder")
+logger = configure_logging("evidence-builder:match_record_manager")
 
 class MatchRecordManager:
     def __init__(self, db: DatabaseManager):

@@ -16,7 +16,7 @@ import aioredis
 import httpx
 from common_py.logging_config import configure_logging
 
-logger = configure_logging("dropship-product-finder")
+logger = configure_logging("dropship-product-finder:test_auth_flow")
 
 async def test_ebay_auth_flow():
     """Test the complete eBay authentication flow"""

@@ -7,7 +7,7 @@ import torch
 from torchvision import transforms
 from common_py.logging_config import configure_logging
 
-logger = configure_logging("segmentation-utils")
+logger = configure_logging("product-segmentor:segmentation_utils")
 
 def prepare_image(image_path: str, transform: transforms.Compose, device: torch.device):
     """Prepare image for inference."""

@@ -3,7 +3,7 @@ from typing import Dict, Any, Optional
 from common_py.messaging import MessageBroker
 from common_py.logging_config import configure_logging
 
-logger = configure_logging("video-crawler")
+logger = configure_logging("video-crawler:event_emitter")
 
 
 class EventEmitter:

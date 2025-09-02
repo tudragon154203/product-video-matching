@@ -3,7 +3,7 @@ import re
 from typing import Dict, Any, List, Union
 from common_py.logging_config import configure_logging
 
-logger = configure_logging("main-api")
+logger = configure_logging("main-api:prompt_service")
 
 class PromptService:
     def build_cls_prompt(self, query: str, industry_labels: list) -> str:

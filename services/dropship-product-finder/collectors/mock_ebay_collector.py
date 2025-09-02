@@ -2,7 +2,7 @@ from typing import List, Dict, Any, Optional
 from common_py.logging_config import configure_logging
 from .base_product_collector import BaseProductCollector
 
-logger = configure_logging("dropship-product-finder")
+logger = configure_logging("dropship-product-finder:mock_ebay_collector")
 
 
 class MockEbayCollector(BaseProductCollector):

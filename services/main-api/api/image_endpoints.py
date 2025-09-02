@@ -18,7 +18,7 @@ from api.dependency import get_db, get_broker, get_product_image_crud, get_produ
 from config_loader import config
 from services.static_file_service import StaticFileService
 
-logger = configure_logging("main-api")
+logger = configure_logging("main-api:image_endpoints")
 
 router = APIRouter()
 

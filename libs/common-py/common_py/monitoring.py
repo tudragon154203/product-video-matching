@@ -6,7 +6,7 @@ from .monitoring.health_monitor import HealthMonitor
 from .monitoring.metrics_exporter import MetricsExporter
 from .monitoring.alert_handlers import log_alert_handler, console_alert_handler
 
-logger = configure_logging("common-py")
+logger = configure_logging("common-py:monitoring")
 
 # Global monitoring instance
 monitor = None

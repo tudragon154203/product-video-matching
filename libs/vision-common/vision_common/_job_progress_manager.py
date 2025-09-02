@@ -7,7 +7,7 @@ from .job_progress_manager.base_manager import BaseJobProgressManager
 from .job_progress_manager.watermark_timer_manager import WatermarkTimerManager
 from .job_progress_manager.completion_event_publisher import CompletionEventPublisher
 
-logger = configure_logging("job-progress-manager")
+logger = configure_logging("vision-common:_job_progress_manager")
 
 class JobProgressManager:
     """

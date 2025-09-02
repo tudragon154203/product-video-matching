@@ -16,7 +16,7 @@ from models.results_schemas import (
     ProductResponse, VideoResponse, MatchListResponse
 )
 
-logger = configure_logging("main-api")
+logger = configure_logging("main-api:results_service")
 
 
 class ResultsService:

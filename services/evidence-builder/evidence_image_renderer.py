@@ -3,7 +3,7 @@ import numpy as np
 from typing import Optional
 from common_py.logging_config import configure_logging
 
-logger = configure_logging("evidence-builder")
+logger = configure_logging("evidence-builder:evidence_image_renderer")
 
 class EvidenceImageRenderer:
     def __init__(self):

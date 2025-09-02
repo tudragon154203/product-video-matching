@@ -14,7 +14,7 @@ import numpy as np
 from common_py.logging_config import configure_logging
 from .abstract_extractor import AbstractKeyframeExtractor
 
-logger = configure_logging("video-crawler")
+logger = configure_logging("video-crawler:length_adaptive_extractor")
 
 
 @dataclass

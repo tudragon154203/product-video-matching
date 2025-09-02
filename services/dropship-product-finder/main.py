@@ -11,7 +11,7 @@ from handlers.dropship_product_handler import DropshipProductHandler
 from config_loader import config
 import aioredis
 
-logger = configure_logging("dropship-product-finder")
+logger = configure_logging("dropship-product-finder:main")
 
 @asynccontextmanager
 async def service_context():

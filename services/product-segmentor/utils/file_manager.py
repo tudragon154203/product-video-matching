@@ -10,7 +10,7 @@ import numpy as np
 from PIL import Image
 from common_py.logging_config import configure_logging
 
-logger = configure_logging("file-manager")
+logger = configure_logging("product-segmentor:file_manager")
 
 
 class FileManager:

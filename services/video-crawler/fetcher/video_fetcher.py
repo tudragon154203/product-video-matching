@@ -5,7 +5,7 @@ from platform_crawler.interface import PlatformCrawlerInterface
 from common_py.logging_config import configure_logging
 from config_loader import config
 
-logger = configure_logging("video-crawler")
+logger = configure_logging("video-crawler:video_fetcher")
 
 
 class VideoFetcher:

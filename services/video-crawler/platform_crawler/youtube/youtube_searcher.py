@@ -11,7 +11,7 @@ from platform_crawler.youtube.youtube_filters import (
 )
 from config_loader import config # Import config
 
-logger = configure_logging("video-crawler", log_level=config.LOG_LEVEL)
+logger = configure_logging("video-crawler:youtube_searcher", log_level=config.LOG_LEVEL)
 
 class YoutubeSearcher:
     def __init__(self, platform_name: str):

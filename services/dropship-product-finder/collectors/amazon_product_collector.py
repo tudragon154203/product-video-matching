@@ -2,7 +2,7 @@ from typing import List, Dict, Any
 from .base_product_collector import BaseProductCollector
 from common_py.logging_config import configure_logging
 
-logger = configure_logging("dropship-product-finder")
+logger = configure_logging("dropship-product-finder:amazon_product_collector")
 
 class AmazonProductCollector(BaseProductCollector):
     """Amazon product collector implementation"""

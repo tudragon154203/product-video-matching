@@ -1,8 +1,8 @@
-import logging
+from common_py.logging_config import configure_logging
 import numpy as np
 from typing import Dict, Any, List, Tuple
 
-logger = logging.getLogger(__name__)
+logger = configure_logging("matcher:embedding_similarity")
 
 
 class EmbeddingSimilarity:

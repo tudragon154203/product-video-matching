@@ -31,7 +31,7 @@ from segmentation.models.yolo_segmentor import YOLOSegmentor
 from .asset_processor import AssetProcessor # New import
 from vision_common import JobProgressManager
 
-logger = configure_logging("product-segmentor-service", config.LOG_LEVEL)
+logger = configure_logging("product-segmentor:service", config.LOG_LEVEL)
 
 class ProductSegmentorService:
     """Core business logic for product segmentation.

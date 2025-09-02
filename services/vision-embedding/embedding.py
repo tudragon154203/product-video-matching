@@ -8,7 +8,7 @@ from common_py.logging_config import configure_logging
 from embedding_components.clip_processor import CLIPProcessor as CustomCLIPProcessor
 from embedding_components.mock_generator import MockEmbeddingGenerator
 
-logger = configure_logging("vision-embedding")
+logger = configure_logging("vision-embedding:embedding")
 
 from config_loader import config
 

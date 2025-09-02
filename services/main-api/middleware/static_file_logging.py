@@ -8,7 +8,7 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from typing import Callable
 from common_py.logging_config import configure_logging
 
-logger = configure_logging("main-api")
+logger = configure_logging("main-api:static_file_logging")
 
 
 class StaticFileLoggingMiddleware(BaseHTTPMiddleware):

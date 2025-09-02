@@ -9,7 +9,7 @@ from common_py.logging_config import configure_logging
 from common_py.crud.video_frame_crud import VideoFrameCRUD
 from utils.image_utils import to_public_url
 
-logger = configure_logging("main-api")
+logger = configure_logging("main-api:video_utils")
 
 
 async def select_preview_frame(
@@ -165,5 +165,4 @@ async def get_first_keyframe_url(
     except Exception as e:
         logger.warning(f"Error getting first keyframe for video {video_id}: {e}")
         return None
-
 

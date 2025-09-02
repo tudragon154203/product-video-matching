@@ -13,7 +13,7 @@ from common_py.logging_config import configure_logging
 from segmentation.base_segmentation import BaseSegmentation
 from segmentation.segmentation_utils import prepare_image, normalize_and_resize_mask # New import
 
-logger = configure_logging("rmbg14-segmentor")
+logger = configure_logging("product-segmentor:rmbg14_segmentor")
 
 from config_loader import config
 

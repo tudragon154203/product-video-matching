@@ -6,7 +6,7 @@ from keypoint import KeypointExtractor
 import uuid
 from vision_common import JobProgressManager
 
-logger = configure_logging("vision-keypoint")
+logger = configure_logging("vision-keypoint:keypoint_asset_processor")
 
 class KeypointAssetProcessor:
     def __init__(self, db: DatabaseManager, broker: MessageBroker, extractor: KeypointExtractor, progress_manager: JobProgressManager):

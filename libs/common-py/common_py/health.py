@@ -5,7 +5,7 @@ import asyncio
 from typing import Dict, Any
 from .logging_config import configure_logging
 
-logger = configure_logging("common-py")
+logger = configure_logging("common-py:health")
 
 
 class HealthChecker:

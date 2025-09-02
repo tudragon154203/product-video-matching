@@ -2,7 +2,7 @@ import numpy as np
 from typing import Dict, Any, Optional, List
 from common_py.logging_config import configure_logging
 
-logger = configure_logging("matcher")
+logger = configure_logging("matcher:vector_searcher")
 
 class VectorSearcher:
     def __init__(self, db, retrieval_topk: int):

@@ -2,7 +2,7 @@ from common_py.database import DatabaseManager
 from typing import Optional, Dict, Any
 from common_py.logging_config import configure_logging
 
-logger = configure_logging("main-api")
+logger = configure_logging("main-api:database_handler")
 
 class DatabaseHandler:
     def __init__(self, db: DatabaseManager):

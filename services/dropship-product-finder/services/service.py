@@ -11,7 +11,7 @@ from .product_collection_manager import ProductCollectionManager
 from .image_storage_manager import ImageStorageManager
 from collectors.mock_ebay_collector import MockEbayCollector
 
-logger = configure_logging("dropship-product-finder")
+logger = configure_logging("dropship-product-finder:service")
 
 
 class DropshipProductFinderService:

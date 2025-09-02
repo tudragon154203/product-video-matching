@@ -15,7 +15,7 @@ from api.dependency import get_db
 from config_loader import config
 from utils.image_utils import to_public_url
 
-logger = configure_logging("main-api")
+logger = configure_logging("main-api:results_endpoints")
 
 router = APIRouter()
 

@@ -8,7 +8,7 @@ from datetime import datetime, timedelta
 from common_py.logging_config import configure_logging
 from .ebay_auth_api_client import EbayAuthAPIClient
 
-logger = configure_logging("dropship-product-finder")
+logger = configure_logging("dropship-product-finder:auth")
 
 
 class eBayAuthService:

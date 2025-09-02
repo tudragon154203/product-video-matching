@@ -11,7 +11,7 @@ from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_excep
 from .migration_config import MigrationConfig
 from .logging_config import configure_logging
 
-logger = configure_logging("common-py")
+logger = configure_logging("common-py:migration_connection")
 
 
 class MigrationConnectionManager:

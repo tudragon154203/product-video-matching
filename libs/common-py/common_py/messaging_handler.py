@@ -8,7 +8,7 @@ from aio_pika import Message, DeliveryMode
 from .logging_config import configure_logging
 from .error_codes import ErrorCode, create_error, RetryableError
 
-logger = configure_logging("common-py")
+logger = configure_logging("common-py:messaging_handler")
 
 class MessageHandler:
     def __init__(self, broker_exchange: aio_pika.Exchange, dlq_name: str):

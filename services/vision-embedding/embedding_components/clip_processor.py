@@ -6,7 +6,7 @@ import numpy as np
 from typing import Tuple, Optional
 from common_py.logging_config import configure_logging
 
-logger = configure_logging("vision-embedding")
+logger = configure_logging("vision-embedding:clip_processor")
 
 class CLIPProcessor:
     def __init__(self, model: CLIPModel, processor: CLIPProcessor, device: torch.device):

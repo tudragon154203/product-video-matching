@@ -11,7 +11,7 @@ from common_py.logging_config import configure_logging
 from utils.product_utils import select_primary_images
 from config_loader import config
 
-logger = configure_logging("main-api")
+logger = configure_logging("main-api:product_endpoints")
 
 router = APIRouter()
 

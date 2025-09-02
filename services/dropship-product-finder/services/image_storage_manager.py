@@ -7,7 +7,7 @@ from common_py.models import Product, ProductImage
 from common_py.logging_config import configure_logging
 from collectors.base_product_collector import BaseProductCollector
 
-logger = configure_logging("dropship-product-finder")
+logger = configure_logging("dropship-product-finder:image_storage_manager")
 
 class ImageStorageManager:
     def __init__(self, db: DatabaseManager, broker: MessageBroker, collectors: Dict[str, BaseProductCollector]):

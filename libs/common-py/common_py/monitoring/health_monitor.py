@@ -3,7 +3,7 @@ from typing import Dict, Any, List, Callable
 from ..logging_config import configure_logging
 from ..metrics import metrics
 
-logger = configure_logging("common-py")
+logger = configure_logging("common-py:health_monitor")
 
 
 class HealthMonitor:

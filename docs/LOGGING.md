@@ -19,8 +19,8 @@ The `ContextLogger` is a thin wrapper around Python's standard logger that suppo
 ```python
 from common_py.logging_config import configure_logging
 
-# Initialize logger
-logger = configure_logging("my-service")
+# Initialize module-level logger using service:file pattern
+logger = configure_logging("main-api:main")
 
 # Basic logging
 logger.info("Service started")
@@ -42,7 +42,7 @@ The `JsonFormatter` produces structured JSON logs that include correlation IDs w
 ```json
 {
   "timestamp": "2024-01-15T10:30:00.123Z",
-  "name": "main-api",
+  "name": "main-api:main",
   "level": "INFO",
   "message": "Service started",
   "correlation_id": "job123"
@@ -56,14 +56,14 @@ The `JsonFormatter` produces structured JSON logs that include correlation IDs w
 ```python
 from common_py.logging_config import configure_logging
 
-# Basic configuration
-logger = configure_logging("my-service")
+# Basic configuration (service:file)
+logger = configure_logging("main-api:video_endpoints")
 
 # With custom log level
-logger = configure_logging("my-service", log_level="DEBUG")
+logger = configure_logging("main-api:video_endpoints", log_level="DEBUG")
 
 # With JSON format
-logger = configure_logging("my-service", log_format="json")
+logger = configure_logging("main-api:video_endpoints", log_format="json")
 ```
 
 ### Environment Variables
@@ -86,7 +86,7 @@ from config import config
 
 # Use global config or service-specific override
 log_level = getattr(config, 'LOG_LEVEL', 'INFO')
-logger = configure_logging("my-service", log_level=log_level)
+logger = configure_logging("main-api:main", log_level=log_level)
 ```
 
 ## Correlation ID Usage
@@ -196,14 +196,27 @@ logger.info("Sent response",
 
 ### 1. Logger Naming
 
-Use the service name as the logger name:
+Use the unified `service:file` pattern for every Python module (one logger per file):
+
+- Format: `microservice-name:file-name`
+- Regex: `^[a-z0-9-]+:[a-z0-9_]+$`
+- microservice-name: service folder under `services/` (e.g., `main-api`, `video-crawler`), library name under `libs/` (e.g., `common-py`, `vision-common`), or `scripts` for repository scripts.
+- file-name: Python file stem (for `__init__.py`, use the package directory name).
+
+Examples:
 
 ```python
-# In main.py
-logger = configure_logging("main-api")
+# main-api main entry
+logger = configure_logging("main-api:main")
 
-# In handlers
-logger = configure_logging("main-api.handlers")
+# API module
+logger = configure_logging("main-api:video_endpoints")
+
+# Worker module
+logger = configure_logging("video-crawler:cleanup_service")
+
+# Library module
+logger = configure_logging("common-py:messaging")
 ```
 
 ### 2. Log Levels
@@ -283,19 +296,37 @@ logger.debug("Complex data", data=expensive_to_compute())
 logger.debug(f"Complex data: {expensive_to_compute()}")
 ```
 
+## CI Validation
+
+To enforce the unified naming convention, use the repository validator:
+
+```bash
+python scripts/validate_logging_standards.py
+```
+
+This fails if:
+- Any `configure_logging("...")` name does not match `^[a-z0-9-]+:[a-z0-9_]+$` within `services/*` (excluding `services/front-end`), `libs/*`, or `scripts/*`.
+- Any module uses `logging.getLogger(__name__)` in scope.
+
+Recommendation: add this script to your CI to prevent regressions.
+
 ## Migration Guide
 
 ### For Existing Services
 
-1. **Replace standard logger imports**:
+1. **Replace non‑compliant logger initializations**:
 ```python
-# Old
+# Old (examples to replace)
 import logging
 logger = logging.getLogger(__name__)
 
-# New
 from common_py.logging_config import configure_logging
-logger = configure_logging(__name__)
+logger = configure_logging("main-api")            # service only
+logger = configure_logging("main-api.handlers")    # dotted name
+
+# New (service:file)
+from common_py.logging_config import configure_logging
+logger = configure_logging("main-api:video_endpoints")
 ```
 
 2. **Update log calls to use structured format**:
@@ -325,7 +356,7 @@ async def handle_request(request):
 ```python
 from common_py.logging_config import configure_logging
 
-logger = configure_logging("my-service")
+logger = configure_logging("my-service:main")
 ```
 
 2. **Use structured logging throughout**:
@@ -395,7 +426,7 @@ All logs include these standard fields:
 | Field | Type | Description |
 |-------|------|-------------|
 | `timestamp` | string | ISO 8601 timestamp |
-| `name` | string | Logger name (service name) |
+| `name` | string | Logger name (service:file) |
 | `level` | string | Log level (DEBUG, INFO, WARNING, ERROR, CRITICAL) |
 | `message` | string | Log message |
 | `correlation_id` | string | Request correlation ID (when available) |
@@ -458,7 +489,7 @@ Logs can be easily integrated with ELK (Elasticsearch, Logstash, Kibana) stack:
 ```json
 {
   "@timestamp": "2024-01-15T10:30:00.123Z",
-  "service": "main-api",
+  "service": "main-api:main",
   "level": "INFO",
   "message": "Service started",
   "correlation_id": "job123",

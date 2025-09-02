@@ -3,7 +3,7 @@ import cv2
 from typing import Optional
 from common_py.logging_config import configure_logging
 
-logger = configure_logging("image-masking-processor")
+logger = configure_logging("product-segmentor:image_masking_processor")
 
 class ImageMaskingProcessor:
     """

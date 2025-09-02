@@ -8,7 +8,7 @@ from common_py.logging_config import configure_logging
 from common_py.crud.product_image_crud import ProductImageCRUD
 from utils.image_utils import to_public_url
 
-logger = configure_logging("main-api")
+logger = configure_logging("main-api:product_utils")
 
 
 async def select_primary_images(

@@ -7,7 +7,7 @@ from io import BytesIO
 from common_py.logging_config import configure_logging
 from .interface import IProductCollector
 
-logger = configure_logging("dropship-product-finder")
+logger = configure_logging("dropship-product-finder:base_product_collector")
 
 
 class BaseProductCollector(IProductCollector):

@@ -3,7 +3,7 @@ import base64
 from typing import Dict, Any
 from common_py.logging_config import configure_logging
 
-logger = configure_logging("dropship-product-finder")
+logger = configure_logging("dropship-product-finder:ebay_auth_api_client")
 
 class EbayAuthAPIClient:
     """Client for interacting with the eBay OAuth 2.0 token endpoint."""

@@ -14,7 +14,7 @@ from api.dependency import get_db
 from services.static_file_service import StaticFileService
 from common_py.logging_config import configure_logging
 
-logger = configure_logging("main-api")
+logger = configure_logging("main-api:static_endpoints")
 
 router = APIRouter()
 

@@ -3,7 +3,7 @@ import time
 from typing import Dict, Any
 from common_py.logging_config import configure_logging
 
-logger = configure_logging("video-crawler")
+logger = configure_logging("video-crawler:retry_handler")
 
 class RetryHandler:
     """Handles retry logic for YouTube video downloads"""

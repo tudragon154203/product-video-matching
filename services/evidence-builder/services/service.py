@@ -7,7 +7,7 @@ from evidence import EvidenceGenerator
 from .match_record_manager import MatchRecordManager
 from .evidence_publisher import EvidencePublisher
 
-logger = configure_logging("evidence-builder")
+logger = configure_logging("evidence-builder:service")
 
 
 class EvidenceBuilderService:

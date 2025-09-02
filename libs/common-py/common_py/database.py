@@ -3,7 +3,7 @@ import os
 from typing import Optional, List, Dict, Any
 from .logging_config import configure_logging
 
-logger = configure_logging("common-py")
+logger = configure_logging("common-py:database")
 
 class DatabaseManager:
     """Async PostgreSQL database manager using asyncpg"""

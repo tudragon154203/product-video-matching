@@ -15,7 +15,7 @@ from typing import Optional
 from common_py.logging_config import configure_logging
 from segmentation.interface import SegmentationInterface
 
-logger = configure_logging("product-segmentor")
+logger = configure_logging("product-segmentor:foreground_processor")
 
 class ForegroundProcessor:
     """Handles core foreground image segmentation operations.

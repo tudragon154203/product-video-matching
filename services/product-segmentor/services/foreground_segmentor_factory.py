@@ -6,7 +6,7 @@ from segmentation.models.rmbg20_segmentor import RMBG20Segmentor
 from segmentation.models.rmbg14_segmentor import RMBG14Segmentor
 from common_py.logging_config import configure_logging
 
-logger = configure_logging("product-segmentor")
+logger = configure_logging("product-segmentor:foreground_segmentor_factory")
 
 
 def create_segmentor(model_name: Optional[str] = None, hf_token: Optional[str] = None) -> SegmentationInterface:

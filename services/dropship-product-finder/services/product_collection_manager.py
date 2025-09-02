@@ -4,7 +4,7 @@ from common_py.logging_config import configure_logging
 from collectors.interface import IProductCollector
 from .image_storage_manager import ImageStorageManager
 
-logger = configure_logging("dropship-product-finder")
+logger = configure_logging("dropship-product-finder:product_collection_manager")
 
 class ProductCollectionManager:
     def __init__(self, collectors: Dict[str, IProductCollector], image_storage_manager: ImageStorageManager):

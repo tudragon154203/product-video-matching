@@ -2,7 +2,7 @@ import numpy as np
 from typing import Dict, Any
 from common_py.logging_config import configure_logging
 
-logger = configure_logging("matcher")
+logger = configure_logging("matcher:pair_score_calculator")
 
 class PairScoreCalculator:
     def __init__(self, sim_deep_min: float, inliers_min: float):

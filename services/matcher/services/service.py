@@ -7,7 +7,7 @@ from common_py.models import Match
 from common_py.logging_config import configure_logging
 from matching import MatchingEngine
 
-logger = configure_logging("matcher")
+logger = configure_logging("matcher:service")
 
 
 class MatcherService:

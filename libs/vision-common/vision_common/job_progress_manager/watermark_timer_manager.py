@@ -2,7 +2,7 @@ import asyncio
 from typing import Dict, Any, Set, Optional
 from common_py.logging_config import configure_logging
 
-logger = configure_logging("job-progress-manager")
+logger = configure_logging("vision-common:watermark_timer_manager")
 
 class WatermarkTimerManager:
     def __init__(self, completion_publisher):

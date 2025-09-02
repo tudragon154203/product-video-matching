@@ -6,7 +6,7 @@ from keypoint import KeypointExtractor
 from vision_common import JobProgressManager
 from .keypoint_asset_processor import KeypointAssetProcessor
 
-logger = configure_logging("vision-keypoint")
+logger = configure_logging("vision-keypoint:service")
 
 
 class VisionKeypointService:

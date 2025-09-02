@@ -12,7 +12,7 @@ from common_py.logging_config import configure_logging
 from handlers.segmentor_handler import ProductSegmentorHandler
 from config_loader import config
 
-logger = configure_logging("product-segmentor")
+logger = configure_logging("product-segmentor:main")
 
 
 @asynccontextmanager

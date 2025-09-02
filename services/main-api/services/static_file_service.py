@@ -9,7 +9,7 @@ from config_loader import config
 from utils.image_utils import get_mime_type
 from common_py.logging_config import configure_logging
 
-logger = configure_logging("main-api")
+logger = configure_logging("main-api:static_file_service")
 
 
 class StaticFileService:

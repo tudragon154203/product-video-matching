@@ -2,7 +2,7 @@ from datetime import datetime
 from typing import Any, Tuple
 from common_py.logging_config import configure_logging
 
-logger = configure_logging("video-crawler")
+logger = configure_logging("video-crawler:youtube_filters")
 
 
 def filter_valid_entry(entry: Any, cutoff_date: datetime) -> Tuple[bool, str]:

@@ -4,7 +4,7 @@ from common_py.messaging import MessageBroker
 from common_py.database import DatabaseManager
 from common_py.logging_config import configure_logging
 
-logger = configure_logging("evidence-builder")
+logger = configure_logging("evidence-builder:evidence_publisher")
 
 class EvidencePublisher:
     def __init__(self, broker: MessageBroker, db: DatabaseManager):

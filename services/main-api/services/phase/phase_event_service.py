@@ -7,7 +7,7 @@ from handlers.broker_handler import BrokerHandler
 from contracts.validator import validator
 from .phase_transition_manager import PhaseTransitionManager
 
-logger = configure_logging("main-api")
+logger = configure_logging("main-api:phase_event_service")
 
 
 class PhaseEventService:

@@ -7,7 +7,7 @@ from common_py.messaging import MessageBroker
 from common_py.logging_config import configure_logging
 from config_loader import config
 
-logger = configure_logging("segmentor-handler")
+logger = configure_logging("product-segmentor:segmentor_handler")
 
 
 class ProductSegmentorHandler:

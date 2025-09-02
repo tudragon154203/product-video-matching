@@ -9,7 +9,7 @@ from urllib.parse import quote
 from common_py.logging_config import configure_logging
 from config_loader import config
 
-logger = configure_logging("main-api")
+logger = configure_logging("main-api:image_utils")
 
 def to_public_url(local_path: Optional[str], data_root: str) -> Optional[str]:
     """

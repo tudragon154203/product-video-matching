@@ -7,7 +7,7 @@ sys.path.append("/app/app")
 from common_py.logging_config import configure_logging
 
 # Configure logging
-logger = configure_logging("main-api")
+logger = configure_logging("main-api:main")
 
 # Load service-specific configuration
 from config_loader import config

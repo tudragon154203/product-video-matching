@@ -4,7 +4,7 @@ from typing import Dict, Any, Set, Optional
 from common_py.logging_config import configure_logging
 from common_py.messaging import MessageBroker
 
-logger = configure_logging("job-progress-manager")
+logger = configure_logging("vision-common:base_manager")
 
 class BaseJobProgressManager:
     def __init__(self, broker: MessageBroker):

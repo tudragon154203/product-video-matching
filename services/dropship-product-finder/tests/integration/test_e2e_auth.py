@@ -19,7 +19,7 @@ from collectors.ebay_product_collector import EbayProductCollector
 import aioredis
 from common_py.logging_config import configure_logging
 
-logger = configure_logging("dropship-product-finder")
+logger = configure_logging("dropship-product-finder:test_e2e_auth")
 
 async def test_e2e_flow():
     """Test complete end-to-end flow"""

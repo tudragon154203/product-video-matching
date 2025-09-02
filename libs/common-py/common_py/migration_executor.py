@@ -15,7 +15,7 @@ from .migration_config import MigrationConfig
 from .migration_connection import MigrationConnectionManager
 from .logging_config import configure_logging
 
-logger = configure_logging("common-py")
+logger = configure_logging("common-py:migration_executor")
 
 
 class MigrationExecutor:

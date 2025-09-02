@@ -7,7 +7,7 @@ from .ollama_api_client import OllamaAPIClient
 from .gemini_api_client import GeminiAPIClient
 
 # Configure logger
-logger = configure_logging("main-api")
+logger = configure_logging("main-api:llm_service")
 
 class LLMService:
     def __init__(self):

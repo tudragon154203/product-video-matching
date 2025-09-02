@@ -22,7 +22,7 @@ from utils.image_utils import to_public_url
 from utils.video_utils import select_preview_frame, get_first_keyframe_url
 from models.schemas import PreviewFrame
 
-logger = configure_logging("main-api")
+logger = configure_logging("main-api:video_endpoints")
 
 router = APIRouter()
 

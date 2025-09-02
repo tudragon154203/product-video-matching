@@ -3,7 +3,7 @@ from common_py.logging_config import configure_logging
 from vision_common import JobProgressManager
 # CompletionManager was removed - using JobProgressManager directly
 
-logger = configure_logging("product-segmentor-service")
+logger = configure_logging("product-segmentor:asset_processor")
 
 class AssetProcessor:
     def __init__(self, image_masking_processor, db_updater, event_emitter, job_progress_manager: JobProgressManager):

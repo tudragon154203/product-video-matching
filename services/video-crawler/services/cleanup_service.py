@@ -8,7 +8,7 @@ from common_py.logging_config import configure_logging
 from utils.file_cleanup import VideoCleanupManager
 from config_loader import config
 
-logger = configure_logging("video-crawler")
+logger = configure_logging("video-crawler:cleanup_service")
 
 
 class VideoCleanupService:

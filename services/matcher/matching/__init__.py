@@ -6,7 +6,7 @@ from matching_components.vector_searcher import VectorSearcher
 from matching_components.pair_score_calculator import PairScoreCalculator
 from matching_components.match_aggregator import MatchAggregator
 
-logger = configure_logging("matcher")
+logger = configure_logging("matcher:matching")
 
 
 class MatchingEngine:

@@ -21,7 +21,7 @@ from collectors.ebay_product_collector import EbayProductCollector
 import aioredis
 from common_py.logging_config import configure_logging
 
-logger = configure_logging("dropship-product-finder-integration")
+logger = configure_logging("dropship-product-finder:test_ebay_collector_real")
 
 
 @pytest.fixture(scope="module")

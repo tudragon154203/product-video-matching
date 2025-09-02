@@ -2,7 +2,7 @@ import numpy as np
 from typing import Dict, Any, Optional, List
 from common_py.logging_config import configure_logging
 
-logger = configure_logging("similarity-calculator")
+logger = configure_logging("matcher:similarity_calculator")
 
 class SimilarityCalculator:
     """

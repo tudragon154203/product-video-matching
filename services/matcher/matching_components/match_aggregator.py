@@ -2,7 +2,7 @@ import numpy as np
 from typing import Dict, Any, Optional, List
 from common_py.logging_config import configure_logging
 
-logger = configure_logging("matcher")
+logger = configure_logging("matcher:match_aggregator")
 
 class MatchAggregator:
     def __init__(self, match_best_min: float, match_cons_min: int, match_accept: float):

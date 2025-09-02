@@ -11,7 +11,7 @@ from pathlib import Path
 from typing import List, Dict, Any, Optional
 from common_py.logging_config import configure_logging
 
-logger = configure_logging("video-crawler")
+logger = configure_logging("video-crawler:file_cleanup")
 
 
 class VideoCleanupManager:

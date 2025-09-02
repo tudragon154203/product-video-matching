@@ -5,7 +5,7 @@ from common_py.logging_config import configure_logging
 from config_loader import config
 from services.job.job_service import JobService
 
-logger = configure_logging("main-api")
+logger = configure_logging("main-api:lifecycle_handler")
 
 class LifecycleHandler:
     def __init__(self, db: DatabaseManager, broker: MessageBroker, job_service: JobService):

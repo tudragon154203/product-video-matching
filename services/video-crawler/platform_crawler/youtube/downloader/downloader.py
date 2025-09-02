@@ -10,7 +10,7 @@ from .ytdlp_config import YTDLPOptionsBuilder
 from .error_handler import ErrorHandler
 from services.cleanup_service import cleanup_service
 
-logger = configure_logging("video-crawler")
+logger = configure_logging("video-crawler:downloader")
 
 
 class YoutubeDownloader:

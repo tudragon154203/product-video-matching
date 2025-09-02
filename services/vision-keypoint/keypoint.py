@@ -5,7 +5,7 @@ from typing import Optional, Tuple
 from config_loader import config
 from common_py.logging_config import configure_logging
 
-logger = configure_logging("vision-keypoint")
+logger = configure_logging("vision-keypoint:keypoint")
 
 
 class KeypointExtractor:

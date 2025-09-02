@@ -4,7 +4,7 @@ from common_py.logging_config import configure_logging
 from handlers.database_handler import DatabaseHandler
 from handlers.broker_handler import BrokerHandler
 
-logger = configure_logging("main-api")
+logger = configure_logging("main-api:phase_transition_manager")
 
 class PhaseTransitionManager:
     def __init__(self, db_handler: DatabaseHandler, broker_handler: BrokerHandler):

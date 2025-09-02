@@ -15,7 +15,7 @@ from common_py.logging_config import configure_logging
 from config_loader import config
 from .interface import KeyframeExtractorInterface
 
-logger = configure_logging("video-crawler")
+logger = configure_logging("video-crawler:abstract_extractor")
 
 
 class AbstractKeyframeExtractor(KeyframeExtractorInterface, ABC):

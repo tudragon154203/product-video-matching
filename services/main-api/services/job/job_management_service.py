@@ -12,7 +12,7 @@ from handlers.database_handler import DatabaseHandler
 from handlers.broker_handler import BrokerHandler
 from .job_initializer import JobInitializer
 
-logger = configure_logging("main-api")
+logger = configure_logging("main-api:job_management_service")
 
 class JobManagementService:
     def __init__(self, db_handler: DatabaseHandler, broker_handler: BrokerHandler):

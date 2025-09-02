@@ -10,7 +10,7 @@ from common_py.logging_config import configure_logging
 from handlers.evidence_handler import EvidenceHandler
 from config_loader import config
 
-logger = configure_logging("evidence-builder")
+logger = configure_logging("evidence-builder:main")
 
 @asynccontextmanager
 async def service_context():

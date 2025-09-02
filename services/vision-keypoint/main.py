@@ -10,7 +10,7 @@ from common_py.logging_config import configure_logging
 from handlers.keypoint_handler import VisionKeypointHandler
 from config_loader import config
 
-logger = configure_logging("vision-keypoint")
+logger = configure_logging("vision-keypoint:main")
 
 @asynccontextmanager
 async def service_context():

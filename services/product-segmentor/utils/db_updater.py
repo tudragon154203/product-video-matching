@@ -12,7 +12,7 @@ from common_py.database import DatabaseManager
 from common_py.logging_config import configure_logging
 from utils.file_manager import FileManager
 
-logger = configure_logging("product-segmentor")
+logger = configure_logging("product-segmentor:db_updater")
 
 class DatabaseUpdater:
     """Handles database updates for segmentation results.

@@ -12,7 +12,7 @@ from platform_crawler.youtube.downloader import YoutubeDownloader
 from platform_crawler.youtube.youtube_utils import is_url_like, sanitize_filename
 from config_loader import config
 
-logger = configure_logging("video-crawler")
+logger = configure_logging("video-crawler:youtube_crawler")
 
 
 class YoutubeCrawler(PlatformCrawlerInterface):

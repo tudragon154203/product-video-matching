@@ -4,7 +4,7 @@ from typing import Dict, Any, Optional
 from common_py.logging_config import configure_logging
 from config_loader import config
 
-logger = configure_logging("dropship-product-finder")
+logger = configure_logging("dropship-product-finder:ebay_browse_api_client")
 
 # Fixed filter string from Sprint 1 requirements
 FILTER = (

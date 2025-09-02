@@ -8,7 +8,7 @@ import uuid
 import asyncio
 from vision_common import JobProgressManager
 
-logger = configure_logging("vision-embedding")
+logger = configure_logging("vision-embedding:service")
 
 
 class VisionEmbeddingService:

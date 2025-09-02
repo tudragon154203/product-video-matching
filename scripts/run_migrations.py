@@ -20,9 +20,8 @@ from common_py.migration_service import (
     create_migration_service
 )
 from common_py.logging_config import configure_logging
-import logging
 
-logger = logging.getLogger(__name__)
+logger = configure_logging("scripts:run_migrations")
 
 
 def setup_argument_parser() -> argparse.ArgumentParser:
@@ -95,7 +94,7 @@ def main() -> int:
     try:
         # Setup logging
         log_level = "DEBUG" if args.verbose else "INFO"
-        configure_logging(args.service_name, log_level)
+        configure_logging("scripts:run_migrations", log_level)
         
         logger.info(f"Starting migration runner for action: {args.action}")
         

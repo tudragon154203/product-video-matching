@@ -8,7 +8,7 @@ from typing import Optional, Tuple
 from dataclasses import dataclass
 from .logging_config import configure_logging
 
-logger = configure_logging("common-py")
+logger = configure_logging("common-py:migration_config")
 
 
 @dataclass

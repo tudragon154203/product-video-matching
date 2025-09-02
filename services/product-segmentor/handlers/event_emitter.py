@@ -7,7 +7,7 @@ from common_py.logging_config import configure_logging
 
 from config_loader import config
 
-logger = configure_logging("product-segmentor-event-emitter", config.LOG_LEVEL)
+logger = configure_logging("product-segmentor:event_emitter", config.LOG_LEVEL)
 
 
 class EventEmitter:

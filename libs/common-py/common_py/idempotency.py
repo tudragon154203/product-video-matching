@@ -6,7 +6,7 @@ import json
 from typing import Any, Dict, Optional
 from .logging_config import configure_logging
 
-logger = configure_logging("common-py")
+logger = configure_logging("common-py:idempotency")
 
 
 class IdempotencyManager:

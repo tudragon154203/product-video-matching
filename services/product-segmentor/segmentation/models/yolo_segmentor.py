@@ -8,7 +8,7 @@ from segmentation.base_segmentation import BaseSegmentation
 from config_loader import config
 from common_py.logging_config import configure_logging
 
-logger = configure_logging("yolo-segmentor")
+logger = configure_logging("product-segmentor:yolo_segmentor")
 
 class YOLOSegmentor(BaseSegmentation):
     """YOLOv8 segmentation model for people segmentation."""

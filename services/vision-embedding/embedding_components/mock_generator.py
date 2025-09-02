@@ -3,7 +3,7 @@ from PIL import Image
 from typing import Tuple
 from common_py.logging_config import configure_logging
 
-logger = configure_logging("vision-embedding")
+logger = configure_logging("vision-embedding:mock_generator")
 
 class MockEmbeddingGenerator:
     def __init__(self):

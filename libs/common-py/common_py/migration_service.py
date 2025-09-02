@@ -13,7 +13,7 @@ from .migration_config import MigrationConfig
 from .migration_executor import MigrationExecutor
 from .logging_config import configure_logging
 
-logger = configure_logging("common-py")
+logger = configure_logging("common-py:migration_service")
 
 
 class MigrationAction(Enum):
@@ -76,8 +76,8 @@ class MigrationService:
             # Validate configuration
             self.config.validate()
             
-            # Setup logging
-            configure_logging(self.service_name, self.config.verbose and "DEBUG" or "INFO")
+            # Setup logging for this module using standardized name
+            configure_logging("common-py:migration_service", self.config.verbose and "DEBUG" or "INFO")
             
             # Create executor
             self.executor = MigrationExecutor(self.config)
