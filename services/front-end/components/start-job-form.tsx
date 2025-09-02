@@ -14,6 +14,7 @@ import { useQueryClient } from '@tanstack/react-query'
 import { useTranslations, useLocale } from 'next-intl'
 import { useRouter } from 'next/navigation'
 import { AdvancedOptions } from '@/components/advanced-options'
+import NProgress from 'nprogress'
 
 export function StartJobForm() {
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -57,7 +58,9 @@ export function StartJobForm() {
       await queryClient.invalidateQueries({ queryKey: ['jobs-list'] })
       await queryClient.refetchQueries({ queryKey: ['jobs-list'] })
 
-      // Navigate to the job detail page
+      // Navigate to the job detail page with immediate top progress feedback
+      NProgress.set(0.3)
+      NProgress.start()
       router.push(`/${locale}/jobs/${response.job_id}`)
     } catch (error) {
       toast({
