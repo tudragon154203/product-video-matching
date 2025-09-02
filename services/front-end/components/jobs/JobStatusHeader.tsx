@@ -12,14 +12,9 @@ interface JobStatusHeaderProps {
 }
 
 export function JobStatusHeader({ jobId, isCollecting = false }: JobStatusHeaderProps) {
-  const { phase: currentPhase, percent, collection } = useJobStatusPolling(jobId);
+  const { phase: currentPhase, percent } = useJobStatusPolling(jobId);
   const phaseInfo = getPhaseInfo(currentPhase as Phase);
   const { parentRef: headerRef } = useAutoAnimateList<HTMLDivElement>()
-
-  // Event-based completion flags from backend status
-  const productsDone = !!collection?.products_done;
-  const videosDone = !!collection?.videos_done;
-  const collectionFinished = productsDone && videosDone;
 
   // Phase-specific effects
   const renderPhaseEffect = () => {
@@ -67,17 +62,6 @@ export function JobStatusHeader({ jobId, isCollecting = false }: JobStatusHeader
           {phaseInfo.label}
         </Badge>
       </div>
-
-      {/* Collection completion badges (persist across phases once done) */}
-      {productsDone && (
-        <Badge variant="outline" className="text-xs">✔ Products done</Badge>
-      )}
-      {videosDone && (
-        <Badge variant="outline" className="text-xs">✔ Videos done</Badge>
-      )}
-      {collectionFinished && (
-        <Badge variant="default" className="text-xs">Collection finished</Badge>
-      )}
 
       {percent !== undefined && (
         <div className="flex items-center space-x-1 text-sm text-muted-foreground">

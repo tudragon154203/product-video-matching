@@ -8,6 +8,7 @@ interface CommonPanelLayoutProps {
   children: React.ReactNode;
   title: string;
   count: number;
+  headerChildren?: React.ReactNode;
   isPlaceholderData?: boolean;
   isNavigationLoading?: boolean;
   isLoading?: boolean;
@@ -27,6 +28,7 @@ export function CommonPanelLayout({
   children,
   title,
   count,
+  headerChildren,
   isPlaceholderData = false,
   isNavigationLoading = false,
   isLoading = false,
@@ -51,7 +53,9 @@ export function CommonPanelLayout({
       <PanelHeader
         title={title}
         count={count}
-      />
+      >
+        {headerChildren}
+      </PanelHeader>
       
       {/* Placeholder data indicator */}
       {isPlaceholderData && placeholderDataComponent ? (

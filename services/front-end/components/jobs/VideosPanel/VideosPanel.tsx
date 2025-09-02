@@ -15,13 +15,15 @@ import { VideoItemRow } from './VideoItemRow';
 import { VideosSkeleton } from './VideosSkeleton';
 import { VideosEmpty } from './VideosEmpty';
 import { VideosError } from './VideosError';
+import { Badge } from '@/components/ui/badge';
 
 interface VideosPanelProps {
   jobId: string;
   isCollecting?: boolean;
+  videosDone?: boolean;
 }
 
-export function VideosPanel({ jobId, isCollecting = false }: VideosPanelProps) {
+export function VideosPanel({ jobId, isCollecting = false, videosDone = false }: VideosPanelProps) {
   const t = useTranslations('jobResults');
 
   // Animation hook for smooth list transitions
@@ -71,6 +73,13 @@ export function VideosPanel({ jobId, isCollecting = false }: VideosPanelProps) {
     <CommonPanelLayout
       title={t('videos.panelTitle')}
       count={total}
+      headerChildren={
+        videosDone ? (
+          <div className="flex items-center gap-2">
+            <Badge variant="outline" className="text-xs">✔ Videos done</Badge>
+          </div>
+        ) : null
+      }
       isPlaceholderData={isPlaceholderData}
       isNavigationLoading={isNavigationLoading}
       isLoading={isLoading}

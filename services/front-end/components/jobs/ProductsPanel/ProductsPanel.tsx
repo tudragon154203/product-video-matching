@@ -14,13 +14,15 @@ import { ProductItemRow } from './ProductItemRow';
 import { ProductsSkeleton } from './ProductsSkeleton';
 import { ProductsEmpty } from './ProductsEmpty';
 import { ProductsError } from './ProductsError';
+import { Badge } from '@/components/ui/badge';
 
 interface ProductsPanelProps {
   jobId: string;
   isCollecting?: boolean;
+  productsDone?: boolean;
 }
 
-export function ProductsPanel({ jobId, isCollecting = false }: ProductsPanelProps) {
+export function ProductsPanel({ jobId, isCollecting = false, productsDone = false }: ProductsPanelProps) {
   const t = useTranslations('jobResults');
 
   // Animation hook for smooth list transitions
@@ -68,6 +70,13 @@ export function ProductsPanel({ jobId, isCollecting = false }: ProductsPanelProp
     <CommonPanelLayout
       title={t('products.panelTitle')}
       count={total}
+      headerChildren={
+        productsDone ? (
+          <div className="flex items-center gap-2">
+            <Badge variant="outline" className="text-xs">✔ Products done</Badge>
+          </div>
+        ) : null
+      }
       isPlaceholderData={isPlaceholderData}
       isNavigationLoading={isNavigationLoading}
       isLoading={isLoading}

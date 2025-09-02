@@ -28,7 +28,7 @@ export default function JobDetailsPage({ params }: JobDetailsPageProps) {
   });
   
   // Use job status polling to auto-refresh while collecting
-  const { isCollecting } = useJobStatusPolling(jobId, { enabled: true });
+  const { isCollecting, collection } = useJobStatusPolling(jobId, { enabled: true });
   
   // Invalidate jobs list when job detail page loads to ensure sidebar is up-to-date
   useEffect(() => {
@@ -62,8 +62,20 @@ export default function JobDetailsPage({ params }: JobDetailsPageProps) {
           <div className="space-y-6">
             <JobStatusHeader jobId={jobId} isCollecting={isCollecting} />
             <JobSplitView
-              left={<ProductsPanel jobId={jobId} isCollecting={isCollecting} />}
-              right={<VideosPanel jobId={jobId} isCollecting={isCollecting} />}
+              left={
+                <ProductsPanel
+                  jobId={jobId}
+                  isCollecting={isCollecting}
+                  productsDone={!!collection?.products_done}
+                />
+              }
+              right={
+                <VideosPanel
+                  jobId={jobId}
+                  isCollecting={isCollecting}
+                  videosDone={!!collection?.videos_done}
+                />
+              }
             />
           </div>
         </Suspense>

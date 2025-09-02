@@ -81,9 +81,9 @@ test.describe('Job Status Line Display', () => {
     await expect(page.locator('[data-testid="status-spinner"]')).not.toBeVisible();
     await expect(page.locator('[data-testid="status-progress-bar"]')).not.toBeVisible();
     
-    // Assert collection badges
-    await expect(page.locator('text="✔ Products done"')).toBeVisible();
-    await expect(page.locator('text="✔ Videos done"')).not.toBeVisible();
+    // Assert collection badges appear in respective panel headers
+    await expect(page.locator('[data-testid="products-panel"] >> text="✔ Products done"')).toBeVisible();
+    await expect(page.locator('[data-testid="videos-panel"] >> text="✔ Videos done"')).not.toBeVisible();
   });
 
   test('should display collection phase with both products and videos done', async ({ page }) => {
@@ -104,10 +104,9 @@ test.describe('Job Status Line Display', () => {
     // Assert text
     await expect(page.locator('text="Collecting products and videos…"')).toBeVisible();
     
-    // Assert collection badges
-    await expect(page.locator('text="✔ Products done"')).toBeVisible();
-    await expect(page.locator('text="✔ Videos done"')).toBeVisible();
-    await expect(page.locator('text="Collection finished"')).toBeVisible();
+    // Assert collection badges appear in respective panel headers
+    await expect(page.locator('[data-testid="products-panel"] >> text="✔ Products done"')).toBeVisible();
+    await expect(page.locator('[data-testid="videos-panel"] >> text="✔ Videos done"')).toBeVisible();
   });
 
   test('should display feature extraction phase with progress bar', async ({ page }) => {
