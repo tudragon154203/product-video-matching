@@ -80,3 +80,65 @@ The microservice path is automatically added to PYTHONPATH when executing from i
 - Adjust the codebase and tests if they fail
 - A test writing task can only be marked as completed when all tests pass
 - Use `python -m pytest` to run tests with appropriate flags
+
+## Logging Standards
+
+### Unified Logging System
+- **Framework**: Python's standard `logging` module with structured enhancements
+- **Key Components**: `ContextLogger` wrapper, `JsonFormatter`, correlation ID tracking
+- **Configuration**: Environment-based with `LOG_LEVEL` and `LOG_FORMAT` variables
+- **Naming Convention**: `service:file` pattern (e.g., `main-api:video_endpoints`)
+
+### Core Features
+- **Structured Logging**: JSON format with consistent field structure
+- **Correlation ID Tracking**: Automatic propagation across service boundaries
+- **Context-Aware Logging**: Extra kwargs support without TypeError
+- **Environment Configuration**: Global and service-specific log level/format settings
+
+### Logger Initialization
+```python
+from common_py.logging_config import configure_logging
+
+# Service entry point
+logger = configure_logging("main-api:main")
+
+# Module logger
+logger = configure_logging("video-crawler:cleanup_service")
+```
+
+### Structured Logging Examples
+```python
+# Basic logging
+logger.info("Service started")
+
+# With structured data
+logger.info("Processing job", job_id="job123", status="started", user_id="user456")
+
+# Error logging
+logger.error("Operation failed", error=str(e), job_id="job123")
+```
+
+### Correlation ID Usage
+```python
+from common_py.logging_config import set_correlation_id
+
+# Set for request context
+set_correlation_id("job123")
+
+# All logs include correlation_id automatically
+logger.info("Processing request")
+```
+
+### Log Levels
+- **DEBUG**: Detailed debugging (development only)
+- **INFO**: General operation information
+- **WARNING**: Potentially harmful situations
+- **ERROR**: Serious errors preventing normal operation
+- **CRITICAL**: Very serious errors requiring service termination
+
+### Best Practices
+- Use structured data instead of string formatting
+- Always include relevant context (job_id, user_id, operation type)
+- Set correlation IDs for request tracing
+- Use appropriate log levels to reduce production noise
+- Avoid expensive operations in log statements
