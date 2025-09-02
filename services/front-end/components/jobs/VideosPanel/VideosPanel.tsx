@@ -76,7 +76,7 @@ export function VideosPanel({ jobId, isCollecting = false, videosDone = false }:
       headerChildren={
         videosDone ? (
           <div className="flex items-center gap-2">
-            <Badge variant="outline" className="text-xs">✔ Videos done</Badge>
+            <Badge variant="outline" className="text-xs text-green-600">✔ Videos done</Badge>
           </div>
         ) : null
       }

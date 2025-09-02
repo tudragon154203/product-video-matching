@@ -73,7 +73,7 @@ export function ProductsPanel({ jobId, isCollecting = false, productsDone = fals
       headerChildren={
         productsDone ? (
           <div className="flex items-center gap-2">
-            <Badge variant="outline" className="text-xs">✔ Products done</Badge>
+            <Badge variant="outline" className="text-xs text-green-600">✔ Products done</Badge>
           </div>
         ) : null
       }
