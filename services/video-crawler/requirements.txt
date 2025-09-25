@@ -1,7 +1,7 @@
 aio-pika==9.4.3
 asyncpg==0.29.0
 pydantic==2.8.2
-yt-dlp==2025.08.20
+yt-dlp==2025.09.23
 opencv-python==4.10.0.84
 numpy==1.26.4
 python-dotenv==1.0.1
