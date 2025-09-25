@@ -58,7 +58,7 @@ if ($MappingJson) {
 
 Write-Step "Creating worktree: $WorktreePath for branch $Branch"
 if (-not $WhatIf) {
-  git worktree add $WorktreePath $Branch
+  git worktree add $WorktreePath -b $Branch
   if ($LASTEXITCODE -ne 0) { throw "git worktree add failed." }
 }
 
@@ -72,4 +72,4 @@ foreach ($kv in $mapping.GetEnumerator()) {
 
 Write-Step "Done."
 
-# .\tools\SyncPvmEnvs.ps1
+#.\tools\NewPvmWorktree.ps1 -WorktreePath ..\feat-integrate-tiktok-search -Branch feat/integrate-tiktok-search 

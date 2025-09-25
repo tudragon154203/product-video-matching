@@ -54,4 +54,4 @@ foreach ($kv in $mapping.GetEnumerator()) {
 }
 Write-Host "==> Done." -ForegroundColor Cyan
 
-#.\tools\NewPvmWorktree.ps1 -WorktreePath ..\feat-integrate-tiktok-search -Branch feat/integrate-tiktok-search 
+# .\tools\SyncPvmEnvs.ps1
