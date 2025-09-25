@@ -1,50 +1,62 @@
-# [PROJECT_NAME] Constitution
-<!-- Example: Spec Constitution, TaskFlow Constitution, etc. -->
+<!--
+Sync Impact Report:
+- Version change: 0.0.0 (assumed) → 1.0.0
+- List of modified principles: All 5 existing principles replaced with 5 new, consolidated principles.
+- Added sections: None.
+- Removed sections: None.
+- Templates requiring updates:
+    - .specify/templates/plan-template.md: ✅ updated
+    - .specify/templates/spec-template.md: ⚠ pending (no explicit changes, but implicit alignment)
+    - .specify/templates/tasks-template.md: ⚠ pending (no explicit changes, but implicit alignment)
+    - .specify/templates/commands/*.md: ✅ updated (no changes to the command files themselves, but the constitution output will be generic)
+    - README.md: ✅ updated (no changes needed, already aligned)
+    - RUN.md: ✅ updated (no changes needed, already aligned)
+- Follow-up TODOs: TODO(RATIFICATION_DATE): Original adoption date unknown
+-->
+# Product-Video Matching System Constitution
 
 ## Core Principles
 
-### [PRINCIPLE_1_NAME]
-<!-- Example: I. Library-First -->
-[PRINCIPLE_1_DESCRIPTION]
-<!-- Example: Every feature starts as a standalone library; Libraries must be self-contained, independently testable, documented; Clear purpose required - no organizational-only libraries -->
+### I. Microservice Structure
+All microservices MUST adhere to a standardized structure: `app/main.py` (entry point), `handlers/` (RabbitMQ event handlers), `services/` (business logic), `config_loader.py` (environment configuration), `Dockerfile`, and a service-specific `.env` file. This ensures consistency, maintainability, and ease of onboarding for new developers.
 
-### [PRINCIPLE_2_NAME]
-<!-- Example: II. CLI Interface -->
-[PRINCIPLE_2_DESCRIPTION]
-<!-- Example: Every library exposes functionality via CLI; Text in/out protocol: stdin/args → stdout, errors → stderr; Support JSON + human-readable formats -->
+### II. Event Contracts
+All inter-service communication via RabbitMQ MUST conform to defined event contracts. Events in `libs/contracts/contracts/schemas/` MUST utilize JSON schema validation. Routing keys MUST follow a dotted notation (e.g., `image.embeddings.completed`), leveraging topic exchange routing. Each event MUST include a unique `event_id` to support idempotency in message processing.
 
-### [PRINCIPLE_3_NAME]
-<!-- Example: III. Test-First (NON-NEGOTIABLE) -->
-[PRINCIPLE_3_DESCRIPTION]
-<!-- Example: TDD mandatory: Tests written → User approved → Tests fail → Then implement; Red-Green-Refactor cycle strictly enforced -->
+### III. Testing Discipline
+Testing efforts MUST prioritize integration tests for core functionality, critical paths, and identified edge cases. Exhaustive unit tests are to be avoided in favor of broader integration coverage. When testing, developers MUST `cd` into the specific microservice directory before executing `python -m pytest tests/ -v` to ensure correct `PYTHONPATH` resolution. External dependencies (e.g., Playwright) SHOULD be mocked. Basic smoke tests for API endpoints are mandatory. All tests MUST pass before a task is considered complete.
 
-### [PRINCIPLE_4_NAME]
-<!-- Example: IV. Integration Testing -->
-[PRINCIPLE_4_DESCRIPTION]
-<!-- Example: Focus areas requiring integration tests: New library contract tests, Contract changes, Inter-service communication, Shared schemas -->
+### IV. Development Environment & Configuration
+The development environment MUST be initiated using `./up-dev.ps1` (Windows) or `docker compose -f infra/pvm/docker-compose.dev.yml up -d --build`. Database migrations MUST be run via `./migrate.ps1` and optional seeding with `./seed.ps1`. Shared environment variables (e.g., database credentials, common ports) MUST be managed in a common `.env` file, with service-specific overrides in `services/<service_name>/.env`. Shared libraries (`libs/`) MUST be volume-mounted for live development updates. Container rebuilds SHOULD be avoided; use `docker compose down` followed by `docker compose up` for service restarts. Logs MUST be monitored using `docker compose logs -f`.
 
-### [PRINCIPLE_5_NAME]
-<!-- Example: V. Observability, VI. Versioning & Breaking Changes, VII. Simplicity -->
-[PRINCIPLE_5_DESCRIPTION]
-<!-- Example: Text I/O ensures debuggability; Structured logging required; Or: MAJOR.MINOR.BUILD format; Or: Start simple, YAGNI principles -->
+### V. Data Flow Enforcement
+The system's data processing MUST strictly adhere to the defined pipeline: job creation → collection → segmentation → embedding/keypoints → matching → evidence generation → results. `pgvector` MUST be used for efficient storage and similarity search of embeddings. `RabbitMQ` MUST be the sole mechanism for asynchronous event-driven communication between microservices.
 
-## [SECTION_2_NAME]
-<!-- Example: Additional Constraints, Security Requirements, Performance Standards, etc. -->
+## Architectural Guidelines
 
-[SECTION_2_CONTENT]
-<!-- Example: Technology stack requirements, compliance standards, deployment policies, etc. -->
+*   **Event-Driven Microservices:** The system is built on an event-driven microservices architecture, utilizing RabbitMQ as the message broker for asynchronous communication.
+*   **Python-Centric:** Python is the primary language for all microservices and shared libraries.
+*   **PostgreSQL with pgvector:** PostgreSQL with the `pgvector` extension is the mandated database for all persistent data, especially for vector similarity search.
+*   **Containerization:** Docker and Docker Compose are the standard for local development and deployment packaging.
+*   **Image-First Matching:** The core matching logic employs an image-first approach, combining deep learning embeddings (CLIP) with traditional computer vision techniques (AKAZE/SIFT + RANSAC).
 
-## [SECTION_3_NAME]
-<!-- Example: Development Workflow, Review Process, Quality Gates, etc. -->
+## Development Practices
 
-[SECTION_3_CONTENT]
-<!-- Example: Code review requirements, testing gates, deployment approval process, etc. -->
+*   **Code Style:** Adherence to PEP 8 guidelines for all Python code.
+*   **Type Hinting:** Type hints are strongly encouraged for improved code clarity and maintainability.
+*   **Docstrings:** Public APIs and complex functions MUST include comprehensive docstrings.
+*   **Structured Logging:** Structured logging MUST be implemented across all services for effective monitoring and debugging.
+*   **Shared Libraries:** Common functionalities are encapsulated in shared libraries (`contracts`, `common-py`, `vision-common`) located in `libs/`.
+*   **Docker Build Optimization:** `.dockerignore` and optimized Dockerfiles are used to minimize build times and leverage caching.
 
 ## Governance
-<!-- Example: Constitution supersedes all other practices; Amendments require documentation, approval, migration plan -->
 
-[GOVERNANCE_RULES]
-<!-- Example: All PRs/reviews must verify compliance; Complexity must be justified; Use [GUIDANCE_FILE] for runtime development guidance -->
+*   **Amendment Procedure:** Amendments to this Constitution MUST be proposed via a pull request, reviewed by at least two core contributors, and approved by the project lead.
+*   **Versioning Policy:** This Constitution follows semantic versioning (MAJOR.MINOR.PATCH).
+    *   MAJOR: Backward incompatible governance/principle removals or redefinitions.
+    *   MINOR: New principle/section added or materially expanded guidance.
+    *   PATCH: Clarifications, wording, typo fixes, non-semantic refinements.
+*   **Compliance Review:** All code changes and architectural decisions MUST be reviewed for compliance with these principles. Non-compliance MUST be justified and approved by the project lead.
+*   **Guidance:** The `RUN.md` document provides runtime development guidance and MUST be consulted for day-to-day operations.
 
-**Version**: [CONSTITUTION_VERSION] | **Ratified**: [RATIFICATION_DATE] | **Last Amended**: [LAST_AMENDED_DATE]
-<!-- Example: Version: 2.1.1 | Ratified: 2025-06-13 | Last Amended: 2025-07-16 -->
+**Version**: 1.0.0 | **Ratified**: TODO(RATIFICATION_DATE): Original adoption date unknown | **Last Amended**: 2025-09-25

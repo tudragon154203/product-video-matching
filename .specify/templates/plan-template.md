@@ -47,7 +47,11 @@
 ## Constitution Check
 *GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
 
-[Gates determined based on constitution file]
+- [ ] **I. Microservice Structure**: Adherence to standardized microservice layout.
+- [ ] **II. Event Contracts**: All inter-service communication conforms to defined event contracts.
+- [ ] **III. Testing Discipline**: Prioritization of integration tests, correct test execution, and passing tests.
+- [ ] **IV. Development Environment & Configuration**: Correct environment setup, configuration management, and efficient development practices.
+- [ ] **V. Data Flow Enforcement**: Strict adherence to the defined data processing pipeline and technology usage.
 
 ## Project Structure
 
@@ -209,4 +213,4 @@ ios/ or android/
 - [ ] Complexity deviations documented
 
 ---
-*Based on Constitution v2.1.1 - See `/memory/constitution.md`*
+*Based on Constitution v1.0.0 - See `/memory/constitution.md`*
