@@ -77,9 +77,29 @@ As a system operator, I want to use the existing TikTok search API to crawl TikT
 - **FR-005**: The system MUST process the `TikTokSearchResponse` and extract relevant video information (ID, title, URL, thumbnail, author, views, likes, comments, shares, createTime).
 - **FR-006**: The system MUST handle potential errors and unavailability of the TikTok Search API gracefully.
 - **FR-007**: The system MUST be implemented within the `video-crawler` microservice.
+- **FR-008**: The system MUST stream search results in real-time as videos are found, rather than waiting for batch completion.
+- **FR-009**: The system MUST provide public API access without authentication, implementing appropriate rate limiting to prevent abuse.
+
+### Non-Functional Requirements
+- **NFR-001**: The system MUST provide real-time streaming updates as TikTok videos are discovered and processed.
+- **NFR-002**: The system MUST implement retry logic with exponential backoff when the TikTok Search API fails, attempting up to 3 retries with 15-second intervals.
+- **NFR-003**: The system MUST support medium-scale operations handling 100-1000 videos per day with moderate query frequency.
 
 ### Key Entities *(include if feature involves data)*
 - **TikTokVideo**: Represents a single video retrieved from TikTok, containing attributes like ID, title, URL, thumbnail, author, views, likes, comments, shares, and creation time.
+
+---
+
+## Clarifications
+
+### Session 2025-09-25
+
+- Q: What should be the primary data processing model for the TikTok crawler? → A: Real-time streaming of results as videos are found
+- Q: When the TikTok Search API fails, what should happen? → A: B with 3 attempts, 15 seconds apart
+- Q: What level of access should different users have to the TikTok crawler functionality? → A: D
+- Q: How long should TikTok video data be retained in the system? → A: B, similar to youtube platform
+- Q: What is the expected maximum scale for TikTok crawling operations? → A: B
+- **NFR-004**: The system MUST retain TikTok video data for short-term (7 days) similar to YouTube platform data retention policy.
 
 ---
 
