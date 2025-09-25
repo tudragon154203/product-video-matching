@@ -56,6 +56,10 @@ When creating this spec from a user prompt:
 
 ### Primary User Story
 As a system operator, I want to use the existing TikTok search API to crawl TikTok content, so that I can integrate TikTok data into the product-video matching system.
+### Important Notes
+- **PHASE 1 SCOPE**: This implementation focuses on searching and retrieving TikTok video metadata from the existing server at `http://localhost:5680/tiktok/search`.
+- **OUT OF SCOPE**: Video downloading functionality is NOT part of this sprint but infrastructure will be prepared for future implementation.
+
 
 ### Acceptance Scenarios
 1. **Given** the TikTok Search API is accessible at `http://localhost:5680/tiktok/search`, **When** a request is made to crawl TikTok content for a specific query, **Then** the system should successfully retrieve a list of TikTok videos.
@@ -74,7 +78,7 @@ As a system operator, I want to use the existing TikTok search API to crawl TikT
 - **FR-002**: The system MUST be able to send search queries to the TikTok Search API.
 - **FR-003**: The system MUST be able to specify the number of videos to retrieve (`numVideos`) when making a search request.
 - **FR-004**: The system MUST be able to control the browser execution mode (`force_headful`) for TikTok searches.
-- **FR-005**: The system MUST process the `TikTokSearchResponse` and extract relevant video information (ID, title, URL, thumbnail, author, views, likes, comments, shares, createTime).
+- **FR-005**: The system MUST process the `TikTokSearchResponse` and extract relevant video information (id, caption, authorHandle, likeCount, uploadTime, webViewUrl) from the results array.
 - **FR-006**: The system MUST handle potential errors and unavailability of the TikTok Search API gracefully.
 - **FR-007**: The system MUST be implemented within the `video-crawler` microservice.
 - **FR-008**: The system MUST stream search results in real-time as videos are found, rather than waiting for batch completion.
@@ -86,9 +90,21 @@ As a system operator, I want to use the existing TikTok search API to crawl TikT
 - **NFR-003**: The system MUST support medium-scale operations handling 100-1000 videos per day with moderate query frequency.
 
 ### Key Entities *(include if feature involves data)*
-- **TikTokVideo**: Represents a single video retrieved from TikTok, containing attributes like ID, title, URL, thumbnail, author, views, likes, comments, shares, and creation time.
+- **TikTokVideo**: Represents a single video retrieved from TikTok, containing attributes:
+  - `id` (string): Unique video identifier
+  - `caption` (string): Video caption/text content (may be empty)
+  - `authorHandle` (string): TikTok username/author handle
+  - `likeCount` (number): Number of likes on the video
+  - `uploadTime` (string): Video upload timestamp
+  - `webViewUrl` (string): Direct URL to view the video on TikTok
 
+**Response Schema**:
+- `results` (array): Array of TikTokVideo objects
+- `totalResults` (number): Total number of results available
+- `query` (string): Original search query executed
+- `search_metadata` (object): Execution metadata containing `executed_path`, `execution_time`, and `request_hash`
 ---
+- Q: What is the scope of this TikTok crawler implementation? → A: PHASE 1: Search and metadata retrieval only (video downloading deferred to Phase 2)
 
 ## Clarifications
 
