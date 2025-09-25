@@ -1,0 +1,2 @@
+#!/usr/bin/env bash
+pwsh -NoLogo -NoProfile -File "$(git rev-parse --show-toplevel)/tools/SyncPvmEnvs.ps1"

@@ -1,0 +1,3 @@
+#!/usr/bin/env bash
+# Sync .env files after any checkout (incl. worktree add)
+pwsh -NoLogo -NoProfile -File "$(git rev-parse --show-toplevel)/tools/SyncPvmEnvs.ps1"

@@ -1,0 +1,33 @@
+#!/bin/sh
+#
+# Pre-commit hook to synchronize docker-compose files
+# Runs the sync_compose.py script to ensure docker-compose.mac.yml is up to date
+
+# Check if the sync_compose.py script exists
+if [ -f "infra/pvm/sync_compose.py" ]; then
+    echo "Running docker-compose synchronization..."
+    
+    # Store the current docker-compose.mac.yml checksum
+    MAC_YML="infra/pvm/docker-compose.mac.yml"
+    if [ -f "$MAC_YML" ]; then
+        OLD_CHECKSUM=$(md5 -q "$MAC_YML" 2>/dev/null || md5sum "$MAC_YML" 2>/dev/null | cut -d' ' -f1)
+    else
+        OLD_CHECKSUM=""
+    fi
+    
+    # Run the synchronization script
+    python3 infra/pvm/sync_compose.py
+    
+    # Check if docker-compose.mac.yml was modified
+    if [ -f "$MAC_YML" ]; then
+        NEW_CHECKSUM=$(md5 -q "$MAC_YML" 2>/dev/null || md5sum "$MAC_YML" 2>/dev/null | cut -d' ' -f1)
+        
+        # If the file was modified, stage it
+        if [ "$OLD_CHECKSUM" != "$NEW_CHECKSUM" ]; then
+            echo "docker-compose.mac.yml was updated, staging changes..."
+            git add "$MAC_YML"
+        fi
+    fi
+else
+    echo "Warning: sync_compose.py script not found, skipping docker-compose synchronization"
+fi
