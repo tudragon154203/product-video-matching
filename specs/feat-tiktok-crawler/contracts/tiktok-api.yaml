@@ -1,0 +1,181 @@
+openapi: 3.0.0
+info:
+  title: TikTok Search API
+  description: API for searching TikTok videos via external service
+  version: 1.0.0
+  contact:
+    name: Video Crawler Team
+    email: dev@example.com
+
+servers:
+  - url: http://localhost:5680
+    description: Development server
+
+paths:
+  /tiktok/search:
+    post:
+      summary: Search for TikTok videos
+      description: Searches TikTok for videos matching the query and returns results with real-time streaming
+      operationId: searchTikTokVideos
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TikTokSearchRequest'
+      responses:
+        '200':
+          description: Successful search with video results
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TikTokSearchResponse'
+        '400':
+          description: Invalid request parameters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '429':
+          description: Rate limit exceeded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+components:
+  schemas:
+    TikTokSearchRequest:
+      type: object
+      required:
+        - query
+      properties:
+        query:
+          type: string
+          description: Search query terms
+          example: "ergonomic pillows"
+          minLength: 1
+          maxLength: 500
+        numVideos:
+          type: integer
+          description: Maximum number of videos to return
+          minimum: 1
+          maximum: 50
+          default: 10
+          example: 15
+        force_headful:
+          type: boolean
+          description: Use headful browser mode for search
+          default: false
+          example: true
+
+    TikTokSearchResponse:
+      type: object
+      required:
+        - results
+        - totalResults
+        - query
+        - search_metadata
+      properties:
+        results:
+          type: array
+          description: Array of TikTok video results
+          maxItems: 50
+          items:
+            $ref: '#/components/schemas/TikTokVideo'
+        totalResults:
+          type: integer
+          description: Total number of results available
+          minimum: 0
+          example: 150
+        query:
+          type: string
+          description: Original search query
+          example: "ergonomic pillows"
+        search_metadata:
+          $ref: '#/components/schemas/SearchMetadata'
+
+    TikTokVideo:
+      type: object
+      required:
+        - id
+        - caption
+        - authorHandle
+        - likeCount
+        - uploadTime
+        - webViewUrl
+      properties:
+        id:
+          type: string
+          description: Unique video identifier
+          example: "video_123456789"
+        caption:
+          type: string
+          description: Video caption/text content
+          example: "Check out this amazing ergonomic pillow!"
+        authorHandle:
+          type: string
+          description: TikTok username/author handle
+          example: "@comfortlover"
+        likeCount:
+          type: integer
+          description: Number of likes on the video
+          minimum: 0
+          example: 12345
+        uploadTime:
+          type: string
+          format: date-time
+          description: Video upload timestamp
+          example: "2024-01-01T12:00:00Z"
+        webViewUrl:
+          type: string
+          format: uri
+          description: Direct URL to view the video on TikTok
+          example: "https://www.tiktok.com/@comfortlover/video/123456789"
+
+    SearchMetadata:
+      type: object
+      required:
+        - executed_path
+        - execution_time
+        - request_hash
+      properties:
+        executed_path:
+          type: string
+          description: API endpoint path executed
+          example: "/tiktok/search"
+        execution_time:
+          type: integer
+          description: Execution time in milliseconds
+          minimum: 0
+          example: 450
+        request_hash:
+          type: string
+          description: Unique hash of the request parameters
+          example: "abc123def456"
+
+    Error:
+      type: object
+      required:
+        - error
+        - code
+      properties:
+        error:
+          type: string
+          description: Error message
+          example: "Invalid request parameters"
+        code:
+          type: string
+          description: Error code
+          example: "INVALID_REQUEST"
+        details:
+          type: object
+          description: Additional error details
+          example:
+            retry_after: 60
