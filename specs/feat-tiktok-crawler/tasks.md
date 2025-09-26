@@ -42,38 +42,38 @@
 - **Tests**: `services/video-crawler/tests/unit/test_tiktok_crawler.py`
 
 ## Phase 3.1: Setup
-- [ ] T001 Create TikTok crawler directory structure in services/video-crawler/platform_crawler/tiktok/
-- [ ] T002 Add httpx and sse-starlette dependencies to services/video-crawler/requirements.txt
-- [ ] T003 [P] Add `TIKTOK_CRAWL_HOST_PORT` to `services/video-crawler/.env.example` and `services/video-crawler/config_loader.py`
-
+- [x] T001 Create TikTok crawler directory structure in services/video-crawler/platform_crawler/tiktok/
+- [x] T002 Add httpx and sse-starlette dependencies to services/video-crawler/requirements.txt
+- [x] T003 [P] Add `TIKTOK_CRAWL_HOST_PORT` to `services/video-crawler/.env.example` and `services/video-crawler/config_loader.py`
+ 
 ## Phase 3.2: Tests First (TDD) ⚠️ MUST COMPLETE BEFORE 3.3
 **CRITICAL: These tests MUST be written and MUST FAIL before ANY implementation**
-- [ ] T004 [P] Contract test POST /tiktok/search API in services/video-crawler/tests/contract/test_tiktok_api.py
-- [ ] T005 [P] Integration test TikTok crawler in services/video-crawler/tests/integration/test_tiktok_integration.py
-- [ ] T006 [P] Test TikTok platform query extraction in services/video-crawler/tests/unit/test_platform_queries.py
-
+- [x] T004 [P] Contract test POST /tiktok/search API in services/video-crawler/tests/contract/test_tiktok_api.py
+- [x] T005 [P] Integration test TikTok crawler in services/video-crawler/tests/integration/test_tiktok_integration.py
+- [x] T006 [P] Test TikTok platform query extraction in services/video-crawler/tests/unit/test_platform_queries.py
+ 
 ## Phase 3.3: Core Implementation (ONLY after tests are failing)
-- [ ] T007 [P] TikTokVideo model in services/video-crawler/platform_crawler/tiktok/tiktok_models.py
-- [ ] T008 [P] TikTokSearcher HTTP client in services/video-crawler/platform_crawler/tiktok/tiktok_searcher.py
-- [ ] T009 [P] TikTokCrawler implementation in services/video-crawler/platform_crawler/tiktok/tiktok_crawler.py
-- [ ] T010 Update platform crawler initialization in services/video-crawler/services/service.py
-- [ ] T011 Update platform query extraction logic in services/video-crawler/services/service.py
-- [ ] T012 Add TikTok download directory handling in services/video-crawler/services/service.py
-
+- [x] T007 [P] TikTokVideo model in services/video-crawler/platform_crawler/tiktok/tiktok_models.py
+- [x] T008 [P] TikTokSearcher HTTP client in services/video-crawler/platform_crawler/tiktok/tiktok_searcher.py
+- [x] T009 [P] TikTokCrawler implementation in services/video-crawler/platform_crawler/tiktok/tiktok_crawler.py
+- [x] T010 Update platform crawler initialization in services/video-crawler/services/service.py
+- [x] T011 Update platform query extraction logic in services/video-crawler/services/service.py
+- [x] T012 Add TikTok download directory handling in services/video-crawler/services/service.py
+ 
 ## Phase 3.4: Integration
-- [ ] T013 Connect TikTokSearcher to external API with exponential backoff
-- [ ] T014 Implement real-time streaming response handling
-- [ ] T015 Add TikTok platform to video metadata processing
-- [ ] T016 Update error handling for TikTok API failures
-- [ ] T017 Ensure `TIKTOK_CRAWL_HOST_PORT` is correctly loaded and used by `TikTokSearcher`.
-
+- [x] T013 Connect TikTokSearcher to external API with exponential backoff
+- [x] T014 Implement real-time streaming response handling
+- [x] T015 Add TikTok platform to video metadata processing
+- [x] T016 Update error handling for TikTok API failures
+- [x] T017 Ensure `TIKTOK_CRAWL_HOST_PORT` is correctly loaded and used by `TikTokSearcher`.
+ 
 ## Phase 3.5: Polish
-- [ ] T018 [P] Unit tests for TikTok models in services/video-crawler/tests/unit/test_tiktok_models.py
-- [ ] T019 [P] Unit tests for TikTok searcher in services/video-crawler/tests/unit/test_tiktok_searcher.py
-- [ ] T020 Performance testing with concurrent requests
-- [ ] T021 [P] Update API documentation in services/video-crawler/README.md
-- [ ] T022 Run quickstart.md validation scenarios
-- [ ] T23 Remove any duplication with existing YouTube patterns
+- [x] T018 [P] Unit tests for TikTok models in services/video-crawler/tests/unit/test_tiktok_models.py
+- [x] T019 [P] Unit tests for TikTok searcher in services/video-crawler/tests/unit/test_tiktok_searcher.py
+- [x] T020 Performance testing with concurrent requests
+- [x] T021 [P] Update API documentation in services/video-crawler/README.md
+- [x] T022 Run quickstart.md validation scenarios
+- [x] T23 Remove any duplication with existing YouTube patterns
 
 ## Dependencies
 - Tests (T004-T006) before implementation (T007-T012)

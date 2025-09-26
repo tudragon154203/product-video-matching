@@ -2,7 +2,7 @@
 
 **Feature Branch**: `feat/tiktok-crawler`
 **Created**: Thursday 25 September 2025
-**Status**: Draft
+**Status**: Completed
 **Input**: User description: "use the server in http://localhost:5680/, endpoint /tiktok/search as above in microservice video-crawler to make a tiktok platform crawler. branch name should be feat/tiktok-crawler"
 
 ## Execution Flow (main)
