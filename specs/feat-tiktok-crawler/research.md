@@ -46,7 +46,7 @@
 ### Technical Dependencies
 - **New Dependencies**: `httpx` for HTTP client, `sse-starlette` for SSE support
 - **Existing Dependencies**: Leverages current `aio-pika`, `asyncpg`, `pydantic`
-- **Configuration**: Add `TIKTOK_API_URL` to service config
+- **Configuration**: Use `TIKTOK_CRAWL_HOST_PORT` to configure the local search endpoint
 
 ### Performance Considerations
 - **Scale**: 100-1000 videos/day (matches NFR-003)
