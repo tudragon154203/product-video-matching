@@ -22,32 +22,32 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/TikTokSearchRequest'
+              $ref: "#/components/schemas/TikTokSearchRequest"
       responses:
-        '200':
+        "200":
           description: Successful search with video results
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/TikTokSearchResponse'
-        '400':
+                $ref: "#/components/schemas/TikTokSearchResponse"
+        "400":
           description: Invalid request parameters
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Error'
-        '429':
+                $ref: "#/components/schemas/Error"
+        "429":
           description: Rate limit exceeded
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Error'
-        '500':
+                $ref: "#/components/schemas/Error"
+        "500":
           description: Internal server error
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Error'
+                $ref: "#/components/schemas/Error"
 
 components:
   schemas:
@@ -88,7 +88,7 @@ components:
           description: Array of TikTok video results
           maxItems: 50
           items:
-            $ref: '#/components/schemas/TikTokVideo'
+            $ref: "#/components/schemas/TikTokVideo"
         totalResults:
           type: integer
           description: Total number of results available
@@ -99,7 +99,7 @@ components:
           description: Original search query
           example: "ergonomic pillows"
         search_metadata:
-          $ref: '#/components/schemas/SearchMetadata'
+          $ref: "#/components/schemas/SearchMetadata"
 
     TikTokVideo:
       type: object
@@ -114,7 +114,7 @@ components:
         id:
           type: string
           description: Unique video identifier
-          example: "video_123456789"
+          example: "123456789"
         caption:
           type: string
           description: Video caption/text content
