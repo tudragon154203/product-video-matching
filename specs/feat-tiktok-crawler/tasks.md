@@ -44,7 +44,7 @@
 ## Phase 3.1: Setup
 - [ ] T001 Create TikTok crawler directory structure in services/video-crawler/platform_crawler/tiktok/
 - [ ] T002 Add httpx and sse-starlette dependencies to services/video-crawler/requirements.txt
-- [ ] T003 [P] Add TIKTOK_API_URL configuration to services/video-crawler/config_loader.py
+- [ ] T003 [P] Add `TIKTOK_CRAWL_HOST_PORT` to `services/video-crawler/.env.example` and `services/video-crawler/config_loader.py`
 
 ## Phase 3.2: Tests First (TDD) ⚠️ MUST COMPLETE BEFORE 3.3
 **CRITICAL: These tests MUST be written and MUST FAIL before ANY implementation**
@@ -65,14 +65,15 @@
 - [ ] T014 Implement real-time streaming response handling
 - [ ] T015 Add TikTok platform to video metadata processing
 - [ ] T016 Update error handling for TikTok API failures
+- [ ] T017 Ensure `TIKTOK_CRAWL_HOST_PORT` is correctly loaded and used by `TikTokSearcher`.
 
 ## Phase 3.5: Polish
-- [ ] T017 [P] Unit tests for TikTok models in services/video-crawler/tests/unit/test_tiktok_models.py
-- [ ] T018 [P] Unit tests for TikTok searcher in services/video-crawler/tests/unit/test_tiktok_searcher.py
-- [ ] T019 Performance testing with concurrent requests
-- [ ] T020 [P] Update API documentation in services/video-crawler/README.md
-- [ ] T021 Run quickstart.md validation scenarios
-- [ ] T22 Remove any duplication with existing YouTube patterns
+- [ ] T018 [P] Unit tests for TikTok models in services/video-crawler/tests/unit/test_tiktok_models.py
+- [ ] T019 [P] Unit tests for TikTok searcher in services/video-crawler/tests/unit/test_tiktok_searcher.py
+- [ ] T020 Performance testing with concurrent requests
+- [ ] T021 [P] Update API documentation in services/video-crawler/README.md
+- [ ] T022 Run quickstart.md validation scenarios
+- [ ] T23 Remove any duplication with existing YouTube patterns
 
 ## Dependencies
 - Tests (T004-T006) before implementation (T007-T012)
@@ -80,7 +81,8 @@
 - T008 blocks T013
 - T009 blocks T010
 - Implementation before integration (T013-T016)
-- Integration before polish (T017-T022)
+- Integration before polish (T017-T023)
+- T017 (config usage) depends on T003 (config definition) and T008 (TikTokSearcher).
 
 ## Parallel Example
 ```
@@ -93,6 +95,11 @@ Task: "Test TikTok platform query extraction in services/video-crawler/tests/uni
 Task: "TikTokVideo model in services/video-crawler/platform_crawler/tiktok/tiktok_models.py"
 Task: "TikTokSearcher HTTP client in services/video-crawler/platform_crawler/tiktok/tiktok_searcher.py"
 Task: "TikTokCrawler implementation in services/video-crawler/platform_crawler/tiktok/tiktok_crawler.py"
+
+# Launch T018-T020 together:
+Task: "Unit tests for TikTok models in services/video-crawler/tests/unit/test_tiktok_models.py"
+Task: "Unit tests for TikTok searcher in services/video-crawler/tests/unit/test_tiktok_searcher.py"
+Task: "Performance testing with concurrent requests"
 ```
 
 ## Notes

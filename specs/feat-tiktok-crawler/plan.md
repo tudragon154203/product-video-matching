@@ -28,6 +28,7 @@ Implement TikTok platform crawler integration using existing TikTok Search API a
 **Project Type**: microservice (single)
 **Performance Goals**: 100-1000 videos/day, real-time streaming
 **Constraints**: 50 videos max per search, 7-day data retention
+**Configuration**: TIKTOK_CRAWL_HOST_PORT=5680 (use http://localhost:5680/ for local dev, http://host.docker.internal:5680/ for Docker deployment)
 **Scale/Scope**: Medium-scale operations
 
 ## Constitution Check
