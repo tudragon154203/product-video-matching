@@ -11,6 +11,7 @@ from keyframe_extractor.length_adaptive_extractor import LengthAdaptiveKeyframeE
 from platform_crawler.interface import PlatformCrawlerInterface
 from platform_crawler.mock_crawler import MockPlatformCrawler
 from platform_crawler.youtube.youtube_crawler import YoutubeCrawler
+from platform_crawler.tiktok.tiktok_crawler import TikTokCrawler
 from handlers.event_emitter import EventEmitter
 from utils.file_cleanup import VideoCleanupManager
 from services.cleanup_service import cleanup_service
@@ -60,6 +61,8 @@ class VideoCrawlerService:
             for platform in platforms:
                 if platform == "youtube":
                     platform_download_dirs[platform] = os.path.join(config.VIDEO_DIR, "youtube")
+                elif platform == "tiktok":
+                    platform_download_dirs[platform] = os.path.join(config.VIDEO_DIR, "tiktok")
                 else:
                     platform_download_dirs[platform] = os.path.join(config.VIDEO_DIR, platform)
                 
@@ -102,6 +105,8 @@ class VideoCrawlerService:
                 platform_queries = queries["zh"]
             elif "douyin" in platforms and "vi" in queries:
                 platform_queries = queries["vi"]
+            elif "tiktok" in platforms and "vi" in queries:
+                platform_queries = queries["vi"]  # Use Vietnamese queries for TikTok
             else:
                 for query_list in queries.values():
                     if isinstance(query_list, list):
@@ -199,6 +204,8 @@ class VideoCrawlerService:
         # Use real YouTube crawler
         crawlers["youtube"] = YoutubeCrawler()
 
+        # Use real TikTok crawler
+        crawlers["tiktok"] = TikTokCrawler()
 
         # Use mock crawlers for other platforms (not implemented yet)
         crawlers["bilibili"] = MockPlatformCrawler("bilibili")

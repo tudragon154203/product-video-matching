@@ -46,7 +46,7 @@ class TestTikTokAPIContract:
 
             async with httpx.AsyncClient() as client:
                 response = await client.post(
-                    f"{config.TIKTOK_API_URL}/tiktok/search",
+                    f"http://localhost:{config.TIKTOK_CRAWL_HOST_PORT}/tiktok/search",
                     json={
                         "query": "ergonomic pillows",
                         "numVideos": 5,
@@ -92,7 +92,7 @@ class TestTikTokAPIContract:
 
             async with httpx.AsyncClient() as client:
                 response = await client.post(
-                    f"{config.TIKTOK_API_URL}/tiktok/search",
+                    f"http://localhost:{config.TIKTOK_CRAWL_HOST_PORT}/tiktok/search",
                     json={"query": ""}  # Empty query should trigger validation error
                 )
 
@@ -122,7 +122,7 @@ class TestTikTokAPIContract:
 
             async with httpx.AsyncClient() as client:
                 response = await client.post(
-                    f"{config.TIKTOK_API_URL}/tiktok/search",
+                    f"http://localhost:{config.TIKTOK_CRAWL_HOST_PORT}/tiktok/search",
                     json={"query": "test"}
                 )
 
