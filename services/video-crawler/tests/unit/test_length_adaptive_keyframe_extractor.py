@@ -13,7 +13,7 @@ import numpy as np
 from keyframe_extractor.length_adaptive_extractor import LengthAdaptiveKeyframeExtractor, KeyframeConfig
 from keyframe_extractor.abstract_extractor import AbstractKeyframeExtractor
 from keyframe_extractor.interface import KeyframeExtractorInterface
-from keyframe_extractor.models import VideoProperties
+from models.video import VideoProperties
 
 
 class TestLengthAdaptiveKeyframeExtractor:
