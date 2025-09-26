@@ -28,6 +28,20 @@ class EventEmitter:
                    event_id=event_id)
         return event_id
     
+    async def publish_videos_keyframes_ready_batch(self, job_id: str, videos: list, correlation_id: Optional[str] = None):
+        """Publish batch keyframes ready event"""
+        await self.broker.publish_event(
+            "videos.keyframes.ready.batch",
+            {
+                "job_id": job_id,
+                "videos": videos
+            },
+            correlation_id=correlation_id or job_id
+        )
+        logger.info("Published videos keyframes ready batch event",
+                   job_id=job_id,
+                   video_count=len(videos))
+
     async def publish_videos_keyframes_ready(self, video_id: str, frames: list, job_id: str, correlation_id: Optional[str] = None):
         """Publish individual video keyframes ready event"""
         await self.broker.publish_event(

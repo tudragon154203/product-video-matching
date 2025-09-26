@@ -100,12 +100,18 @@ class YoutubeSearcher:
         filtered_entries, skipped_count = filter_chain.apply(entries, cutoff_date)
         
         for entry in filtered_entries:
+            duration = entry.get('duration')
+            try:
+                duration_value = int(duration) if duration is not None else None
+            except (TypeError, ValueError):
+                duration_value = None
+
             video = {
                 'platform': self.platform_name,
                 'video_id': entry['id'],
                 'url': f"https://www.youtube.com/watch?v={entry['id']}",
                 'title': entry.get('title', ''),
-                'duration_s': entry['duration'],
+                'duration_s': duration_value,
                 'uploader': entry.get('uploader', 'unknown'),
             }
             videos.append(video)

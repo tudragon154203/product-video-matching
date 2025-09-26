@@ -42,8 +42,16 @@ class YoutubeCrawler(PlatformCrawlerInterface):
         logger.info(f"Starting search_and_download_videos with {len(queries)} queries, recency_days={recency_days}, num_videos={num_videos}")
         
         Path(download_dir).mkdir(parents=True, exist_ok=True)
-        
-        all_videos = await self._search_videos_for_queries(queries, recency_days, num_videos)
+
+        filtered_queries = [query for query in queries if not is_url_like(query)]
+        if len(filtered_queries) != len(queries):
+            skipped = len(queries) - len(filtered_queries)
+            logger.info(f"Skipping {skipped} URL-like queries out of {len(queries)}")
+        if not filtered_queries:
+            logger.info("No keyword queries available after filtering URL-like inputs; skipping search")
+            return []
+
+        all_videos = await self._search_videos_for_queries(filtered_queries, recency_days, num_videos)
         logger.info(f"Total videos found across all queries: {len(all_videos)}")
         
         unique_videos = self._deduplicate_videos(all_videos)
