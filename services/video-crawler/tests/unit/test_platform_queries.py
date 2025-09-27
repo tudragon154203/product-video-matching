@@ -49,8 +49,8 @@ class TestPlatformQueryExtraction:
         service = VideoCrawlerService(None, None)
 
         queries = {
-            "vi": ["tiktok query 1", "tiktok query 2"],
-            "zh": ["bilibili query 1"]  # This should not be used for TikTok
+            "vi": ["đánh giá tai nghe không dây", "unbox iphone 15"],
+            "en": ["wireless earbuds review 2024"]  # English queries should not be used for TikTok
         }
         platforms = ["tiktok"]
 
@@ -58,8 +58,11 @@ class TestPlatformQueryExtraction:
         extracted = service._extract_platform_queries(queries, platforms)
 
         assert isinstance(extracted, list)
-        # Currently returns all queries, but should eventually prioritize Vietnamese for TikTok
-        assert len(extracted) >= 2
+        # Should return only Vietnamese queries, not English
+        assert len(extracted) == 2
+        assert "đánh giá tai nghe không dây" in extracted
+        assert "unbox iphone 15" in extracted
+        assert "wireless earbuds review 2024" not in extracted
 
     def test_extract_platform_queries_invalid_input(self):
         """Test query extraction with invalid input formats."""

@@ -79,19 +79,6 @@ class TestTikTokIntegration:
         assert "videos.collections.completed" in published_topics
 
     @pytest.mark.asyncio
-    async def test_tiktok_platform_query_extraction(self, db, broker):
-        """TikTok queries should prioritize Vietnamese inputs."""
-        service = VideoCrawlerService(db, broker)
-
-        queries = {
-            "vi": ["đánh giá tai nghe không dây", "unbox iphone 15"],
-        }
-
-        extracted_queries = service._extract_platform_queries(queries, ["tiktok"])
-
-        assert extracted_queries == ["đánh giá tai nghe không dây", "unbox iphone 15"]
-
-    @pytest.mark.asyncio
     async def test_tiktok_error_handling(self, db, broker, tiktok_crawler):
         """Gracefully handle crawler failures without raising."""
         # Replace the TikTok crawler in the service with our real instance
