@@ -53,14 +53,17 @@ tests/
 |   |-- services/
 |   |-- utils/
 |   |-- domain/
+|   |-- __init__.py
 |-- integration/
 |   |-- test_<feature>.py
+|   |-- __init__.py
 |-- contract/
     |-- events/
     |-- http/
+    |-- __init__.py
 ```
 
-*Integration tests live directly under `tests/integration/` with no additional folder hierarchy. Each module is marked at the top level (for example `pytestmark = pytest.mark.integration`) so pytest filters remain reliable, while unit tests remain unmarked to keep `pytest -m "not integration"` focused on the unit suite.*
+*Integration tests live directly under `tests/integration/` with no additional folder hierarchy. Each module is marked at the top level (for example `pytestmark = pytest.mark.integration`) so pytest filters remain reliable, while unit tests remain unmarked to keep `pytest -m "not integration"` focused on the unit suite. Every subdirectory that holds Python modules (including `unit/`, `integration/`, `contract/`, and any nested folders within them) MUST contain an empty `__init__.py` so pytest treats them as packages consistently. These `__init__.py` files SHOULD remain empty; they simply signal package boundaries to Python and pytest.*
 
 ## Success Metrics
 - 100% of microservices replicate the structure above within one sprint of adoption.
@@ -70,8 +73,9 @@ tests/
 ## Rollout Plan
 1. Publish this PRD and share it with service owners.
 2. Update onboarding documentation to reference the standardized layout.
-3. Schedule refactoring work for each service to migrate existing tests into the new structure.
-4. Monitor adherence during code reviews and flag deviations for follow-up.
+3. Build a reference microservice (or update an existing one) that fully demonstrates the structure, providing a living example for other teams.
+4. Schedule refactoring work for each service to migrate existing tests into the new structure.
+5. Monitor adherence during code reviews and flag deviations for follow-up.
 
 ## Risks & Mitigations
 - **Legacy debt**: Existing services may require non-trivial refactors. Mitigate by planning incremental moves and providing migration scripts.
@@ -81,3 +85,4 @@ tests/
 ## Open Questions
 - Do any services require additional subfolders (e.g., performance tests) that should be standardized later?
 - Should we provide cookiecutter or template scripts to bootstrap the directory layout automatically?
+
