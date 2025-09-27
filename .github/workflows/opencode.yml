@@ -28,14 +28,11 @@ jobs:
     environment: "Agents/Bots"
     timeout-minutes: 5
     env:
-      # OPENCODE_VERSION: ${{ vars.OPENCODE_VERSION != '' && vars.OPENCODE_VERSION || '0.10.1' }}
       EVENT_NAME: ${{ inputs.event-name }}
       EVENT_PAYLOAD: ${{ inputs.event }}
       TARGET_ID: ${{ inputs.target-id || '' }}
       TARGET_TYPE: ${{ inputs.target-type || '' }}
       MODEL: "openrouter/qwen/qwen3-235b-a22b:free"
-      # MODEL: "openrouter/qwen/qwen3-coder:free"
-      # MODEL: 'openrouter/x-ai/grok-4-fast:free'
     concurrency:
       group: opencode-${{ github.workflow }}-${{ inputs.event-name }}-${{ inputs.target-id != '' && inputs.target-id || github.run_id }}
       cancel-in-progress: true
