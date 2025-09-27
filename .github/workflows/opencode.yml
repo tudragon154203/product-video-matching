@@ -1,0 +1,149 @@
+name: '💬 Opencode'
+
+on:
+  workflow_call:
+    inputs:
+      event-name:
+        required: true
+        type: string
+      event:
+        required: true
+        type: string
+      target-id:
+        required: false
+        type: string
+      target-type:
+        required: false
+        type: string
+
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+  id-token: write
+
+jobs:
+  opencode:
+    runs-on: ${{ vars.OS || 'ubuntu-latest' }}
+    environment: 'Agents/Bots'
+    timeout-minutes: 5
+    env:
+      OPENCODE_VERSION: ${{ vars.OPENCODE_VERSION != '' && vars.OPENCODE_VERSION || '0.10.1' }}
+      EVENT_NAME: ${{ inputs.event-name }}
+      EVENT_PAYLOAD: ${{ inputs.event }}
+      TARGET_ID: ${{ inputs.target-id || '' }}
+      TARGET_TYPE: ${{ inputs.target-type || '' }}
+      MODEL: 'openrouter/qwen/qwen3-235b-a22b:free'
+      # MODEL: 'openrouter/x-ai/grok-4-fast:free'
+    concurrency:
+      group: opencode-${{ github.workflow }}-${{ inputs.event-name }}-${{ inputs.target-id != '' && inputs.target-id || github.run_id }}
+      cancel-in-progress: true
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Select OpenRouter API key
+        id: select_openrouter_key
+        run: python .github/workflows/scripts/bots/common/rotate_key/openrouter.py --output-selected-name openrouter_secret_name
+        env:
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+          OPENROUTER_API_KEY_2: ${{ secrets.OPENROUTER_API_KEY_2 }}
+          OPENROUTER_API_KEY_3: ${{ secrets.OPENROUTER_API_KEY_3 }}
+          OPENROUTER_API_KEY_4: ${{ secrets.OPENROUTER_API_KEY_4 }}
+          OPENROUTER_API_KEY_5: ${{ secrets.OPENROUTER_API_KEY_5 }}
+
+      - name: React with 🎆 to show Opencode is running
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const { join } = require('node:path');
+            const reactWithEmoji = require(join(process.cwd(), '.github/workflows/scripts/bots/common/javascript/react_with_emoji.cjs'));
+            await reactWithEmoji({ github, context, core, reaction: 'hooray' });
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: Install opencode CLI
+        run: ./.github/workflows/scripts/bots/opencode/install-opencode-cli.sh
+
+      - name: Determine opencode version
+        id: opencode_version
+        run: ./.github/workflows/scripts/bots/opencode/get-opencode-version.sh
+
+      - name: Persist event payload
+        run: |
+          cat <<'JSON' > "$RUNNER_TEMP/opencode-event.json"
+          ${{ inputs.event }}
+          JSON
+          {
+            echo "EVENT_PAYLOAD_FILE=$RUNNER_TEMP/opencode-event.json"
+            echo "EVENT_PAYLOAD_SIZE=$(wc -c < "$RUNNER_TEMP/opencode-event.json" | tr -d ' ')"
+          } >> "$GITHUB_ENV"
+
+      - name: Prepare opencode prompt
+        id: prepare_prompt
+        env:
+          EVENT_NAME: ${{ env.EVENT_NAME }}
+          TARGET_TYPE: ${{ env.TARGET_TYPE }}
+          TARGET_ID: ${{ env.TARGET_ID }}
+          MODEL: ${{ env.MODEL }}
+        run: |
+          python ./.github/workflows/scripts/bots/opencode/prepare_prompt.py \
+            --event "$RUNNER_TEMP/opencode-event.json" \
+            --prompt "$RUNNER_TEMP/opencode-prompt.txt" \
+            --meta "$RUNNER_TEMP/opencode-meta.json" \
+            --outputs "$GITHUB_OUTPUT" \
+            --event-name "$EVENT_NAME" \
+            --target-type "$TARGET_TYPE" \
+            --target-id "$TARGET_ID" \
+            --model "$MODEL" \
+            --repository "${GITHUB_REPOSITORY:-this repository}"
+
+      - name: Run opencode CLI
+        id: run_cli
+        env:
+          MODEL: ${{ steps.prepare_prompt.outputs.model || env.MODEL }}
+          OPENROUTER_API_KEY: ${{ env.OPENROUTER_API_KEY }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          ./.github/workflows/scripts/bots/opencode/run-opencode-cli.sh \
+            "$RUNNER_TEMP/opencode-prompt.txt" \
+            "$RUNNER_TEMP/opencode-stdout.txt" \
+            "$RUNNER_TEMP/opencode-stderr.txt" \
+            "$GITHUB_OUTPUT"
+
+      - name: Build GitHub comment body
+        id: build_comment
+        run: |
+          python ./.github/workflows/scripts/bots/opencode/build_comment.py \
+            --meta "$RUNNER_TEMP/opencode-meta.json" \
+            --stdout "$RUNNER_TEMP/opencode-stdout.txt" \
+            --stderr "$RUNNER_TEMP/opencode-stderr.txt" \
+            --exit-code "${{ steps.run_cli.outputs.exit_code || '0' }}" \
+            --output "$RUNNER_TEMP/opencode-comment.md" \
+            --outputs "$GITHUB_OUTPUT"
+
+      - name: Post GitHub comment
+        env:
+          TARGET_TYPE: ${{ env.TARGET_TYPE }}
+          TARGET_ID: ${{ env.TARGET_ID }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          ./.github/workflows/scripts/bots/opencode/post-comment.sh \
+            "$TARGET_TYPE" \
+            "$TARGET_ID" \
+            "$RUNNER_TEMP/opencode-comment.md"
+
+      - name: Fail workflow if opencode CLI failed
+        if: steps.run_cli.outputs.exit_code != '0'
+        run: |
+          echo "::error::opencode CLI exited with status ${{ steps.run_cli.outputs.exit_code }}." >&2
+          exit 1
+
