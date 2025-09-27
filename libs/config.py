@@ -7,35 +7,10 @@ from pathlib import Path
 from typing import Optional, Dict, Any, Tuple
 from dataclasses import dataclass, field
 
-# Load environment variables from .env file
-def load_env_file(env_path: str = None) -> Dict[str, str]:
-    if env_path is None:
-        # Check for test environment first
-        if os.getenv("PYTEST_CURRENT_TEST"):
-            env_path = "infra/pvm/.env.test"
-        else:
-            env_path = "infra/pvm/.env"
-    """Load environment variables from .env file"""
-    env_vars = {}
-    env_file_path = Path(env_path)
-    
-    if env_file_path.exists():
-        with open(env_file_path, 'r') as f:
-            for line in f:
-                line = line.strip()
-                if line and not line.startswith('#') and '=' in line:
-                    key, value = line.split('=', 1)
-                    env_vars[key.strip()] = value.strip()
-    
-    return env_vars
-
-# Load environment variables
-env_vars = load_env_file()
-
 # Helper function to get environment variable with fallback
 def get_env_var(key: str, default: Optional[str] = None) -> str:
     """Get environment variable with fallback to default"""
-    return os.getenv(key, env_vars.get(key, default))
+    return os.getenv(key, default)
 
 # Helper function to get integer environment variable
 def get_env_int(key: str, default: int = 0) -> int:
