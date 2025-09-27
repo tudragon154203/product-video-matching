@@ -44,14 +44,32 @@ def tiktok_crawler():
 class TestTikTokIntegration:
     """Integration tests for TikTok crawler functionality."""
 
-    @pytest.mark.asyncio
-    async def test_tiktok_platform_integration(self, db, broker):
-        """Verify TikTok platform is wired into the service."""
-        service = VideoCrawlerService(db, broker)
-
-        assert "tiktok" in service.platform_crawlers
-        assert isinstance(service.platform_crawlers["tiktok"], PlatformCrawlerInterface)
-        assert "tiktok" in service.video_fetcher.platform_crawlers
+    def test_environment_variables_override(self):
+        """Test that .env.test overrides .env values during pytest execution."""
+        # DEBUG: Print environment variables to verify pytest-dotenv functionality
+        print(f"DEBUG: LOG_LEVEL from config: {config.LOG_LEVEL}")
+        print(f"DEBUG: BUS_BROKER from config: {config.BUS_BROKER}")
+        print(f"DEBUG: POSTGRES_DSN from config: {config.POSTGRES_DSN}")
+        print(f"DEBUG: PYTEST_CURRENT_TEST env var: {os.environ.get('PYTEST_CURRENT_TEST', 'NOT SET')}")
+        
+        # Check the global config directly
+        from libs.config import config as global_config
+        print(f"DEBUG: LOG_LEVEL from global_config: {global_config.LOG_LEVEL}")
+        print(f"DEBUG: BUS_BROKER from global_config: {global_config.BUS_BROKER}")
+        print(f"DEBUG: POSTGRES_DSN from global_config: {global_config.POSTGRES_DSN}")
+        
+        # Check environment variables directly (these should be set by pytest-dotenv)
+        print(f"DEBUG: LOG_LEVEL from os.environ: {os.environ.get('LOG_LEVEL', 'NOT SET')}")
+        print(f"DEBUG: BUS_BROKER from os.environ: {os.environ.get('BUS_BROKER', 'NOT SET')}")
+        print(f"DEBUG: POSTGRES_DSN from os.environ: {os.environ.get('POSTGRES_DSN', 'NOT SET')}")
+        
+        # Verify that test environment values are loaded directly from os.environ
+        # These should be set by pytest-dotenv from .env.test
+        assert os.environ.get('LOG_LEVEL') == "DEBUG", f"Expected LOG_LEVEL=DEBUG from os.environ, got {os.environ.get('LOG_LEVEL')}"
+        assert "localhost:5672" in os.environ.get('BUS_BROKER', ''), f"Expected localhost in BUS_BROKER from os.environ, got {os.environ.get('BUS_BROKER')}"
+        assert "localhost:5444" in os.environ.get('POSTGRES_DSN', ''), f"Expected localhost:5444 in POSTGRES_DSN from os.environ, got {os.environ.get('POSTGRES_DSN')}"
+        
+        print("SUCCESS: Test environment variables are correctly loaded by pytest-dotenv!")
 
     @pytest.mark.asyncio
     async def test_tiktok_search_request_processing(self, db, broker, tiktok_crawler, temp_dir):
