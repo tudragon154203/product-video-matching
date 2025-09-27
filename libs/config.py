@@ -68,16 +68,6 @@ class Config:
     MODEL_CACHE: str = field(default_factory=lambda: get_env_var("MODEL_CACHE", "./model_cache"))
     IMG_SIZE: Tuple[int, int] = field(default_factory=lambda: get_env_tuple_int("IMG_SIZE", (512, 512)))
 
-    # Vector Search Configuration
-    RETRIEVAL_TOPK: int = field(default_factory=lambda: get_env_int("RETRIEVAL_TOPK", 20))
-    
-    # Matching Thresholds
-    SIM_DEEP_MIN: float = field(default_factory=lambda: get_env_float("SIM_DEEP_MIN", 0.82))
-    INLIERS_MIN: float = field(default_factory=lambda: get_env_float("INLIERS_MIN", 0.35))
-    MATCH_BEST_MIN: float = field(default_factory=lambda: get_env_float("MATCH_BEST_MIN", 0.88))
-    MATCH_CONS_MIN: int = field(default_factory=lambda: get_env_int("MATCH_CONS_MIN", 2))
-    MATCH_ACCEPT: float = field(default_factory=lambda: get_env_float("MATCH_ACCEPT", 0.80))
-    
     # Logging
     LOG_LEVEL: str = field(default_factory=lambda: get_env_var("LOG_LEVEL", "INFO"))
     
