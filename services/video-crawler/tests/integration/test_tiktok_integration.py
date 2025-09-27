@@ -121,7 +121,7 @@ class TestTikTokIntegration:
         service.video_fetcher.search_all_platforms_videos_parallel = mock_fetch_all_videos
         
         # Mock the job progress manager and event emitter for proper handling
-        service.job_progress_manager = MagicMock()
+        service.job_progress_manager = AsyncMock()
         
         async def mock_emit_keyframes_ready_batch(job_id, batch_payload):
             """Mock event emitter to track processed videos"""
@@ -209,13 +209,9 @@ class TestTikTokIntegration:
             """Simulate TikTok API failure"""
             raise Exception("TikTok API rate limit exceeded")
 
-        async def mock_emit_zero_videos(job_id):
-            """Mock zero video event emission"""
-            pass
-
         service.video_fetcher.search_all_platforms_videos_parallel = mock_fetch_all_videos_error
-        service.event_emitter.publish_videos_collections_completed = mock_emit_zero_videos
-        service.job_progress_manager = MagicMock()
+        service.event_emitter.publish_videos_collections_completed = AsyncMock()
+        service.job_progress_manager = AsyncMock()
 
         # Execute the search request (this will simulate API failure)
         try:
@@ -225,8 +221,7 @@ class TestTikTokIntegration:
             # The service should still complete the process by calling the zero videos handler
             pass
 
-        # Verify that the error was handled gracefully
-        assert "videos.collections.completed" in published_topics
+        service.event_emitter.publish_videos_collections_completed.assert_called_once_with(job_id="test-job-456")
         
         # Verify that job progress was still updated even for zero videos
         if service.job_progress_manager.update_job_progress:

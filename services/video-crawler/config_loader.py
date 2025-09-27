@@ -59,6 +59,7 @@ class VideoCrawlerConfig:
     VIDEO_RETENTION_DAYS: int = int(os.getenv("VIDEO_RETENTION_DAYS", "7"))
 
     # TikTok API configuration
+    TIKTOK_CRAWL_HOST: str = os.getenv("TIKTOK_CRAWL_HOST", "host.docker.internal")
     TIKTOK_CRAWL_HOST_PORT: str = os.getenv("TIKTOK_CRAWL_HOST_PORT", "5680")
     
 

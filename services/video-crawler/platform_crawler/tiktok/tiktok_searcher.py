@@ -14,7 +14,7 @@ class TikTokSearcher:
     
     def __init__(self, platform_name: str):
         self.platform_name = platform_name
-        self.base_url = f"http://localhost:{config.TIKTOK_CRAWL_HOST_PORT}"
+        self.base_url = f"http://{config.TIKTOK_CRAWL_HOST}:{config.TIKTOK_CRAWL_HOST_PORT}"
         self.client = httpx.AsyncClient(
             timeout=httpx.Timeout(180.0),  # 3 minute timeout to accommodate slower headless crawls
             limits=httpx.Limits(max_keepalive_connections=5, max_connections=10)
