@@ -61,10 +61,9 @@ class TestTikTokIntegration:
 
         event_data = {
             "job_id": "test-job-123",
-            "industry": "test industry",
+            "industry": "electronics",
             "queries": {
-                "vi": ["test query vietnamese"],
-                "zh": ["test query chinese"],
+                "vi": ["đánh giá tai nghe không dây", "unbox iphone 15"],
             },
             "platforms": ["tiktok"],
             "recency_days": 30,
@@ -85,13 +84,12 @@ class TestTikTokIntegration:
         service = VideoCrawlerService(db, broker)
 
         queries = {
-            "vi": ["query vi 1", "query vi 2"],
-            "zh": ["query zh 1", "query zh 2"],
+            "vi": ["đánh giá tai nghe không dây", "unbox iphone 15"],
         }
 
         extracted_queries = service._extract_platform_queries(queries, ["tiktok"])
 
-        assert extracted_queries == ["query vi 1", "query vi 2"]
+        assert extracted_queries == ["đánh giá tai nghe không dây", "unbox iphone 15"]
 
     @pytest.mark.asyncio
     async def test_tiktok_error_handling(self, db, broker, tiktok_crawler):
@@ -110,8 +108,8 @@ class TestTikTokIntegration:
 
         event_data = {
             "job_id": "test-job-456",
-            "industry": "test industry",
-            "queries": {"vi": ["test query"]},
+            "industry": "tech reviews",
+            "queries": {"vi": ["đánh giá laptop giá rẻ", "gadgets bếp thông minh"]},
             "platforms": ["tiktok"],
             "recency_days": 30,
         }
