@@ -26,6 +26,9 @@ Establishing a common structure for each service's `tests/` directory will reduc
 2. Each subdirectory MUST contain a `README.md` or introductory documentation when domain-specific explanations are necessary.
 3. Shared fixtures that apply across test types MUST live under `tests/fixtures/` to encourage reuse.
 4. Static assets used by tests MUST be stored under `tests/data/` to keep the working tree organized.
+5. The `tests/integration/` directory MUST remain flat (no nested folders) and should contain descriptively named modules (e.g. `test_<feature>.py`).
+6. Integration test modules MUST define `pytestmark = pytest.mark.integration`, exercise real network or service boundaries in the dev stack, and minimize mocks to the smallest surface required to prevent destructive side effects.
+7. Unit tests MUST avoid applying the `integration` marker (optionally using `pytestmark = pytest.mark.unit`) so `pytest -m "not integration"` reliably executes only the unit suite.
 
 ### Non-Functional Requirements
 1. The layout MUST support pytest discovery rules (`test_*.py` and `*_test.py`).
@@ -37,28 +40,27 @@ All microservices MUST organize their test suite to match the following outline:
 
 ```
 tests/
-├── README.md
-├── conftest.py
-├── fixtures/
-│   ├── __init__.py
-│   ├── factories.py
-│   ├── payloads.py
-│   └── settings.py
-├── data/
-├── unit/
-│   ├── handlers/
-│   ├── services/
-│   ├── utils/
-│   └── domain/
-├── integration/
-│   ├── api/
-│   ├── workflows/
-│   ├── messaging/
-│   └── external/
-└── contract/
-    ├── events/
-    └── http/
+|-- README.md
+|-- conftest.py
+|-- fixtures/
+|   |-- __init__.py
+|   |-- factories.py
+|   |-- payloads.py
+|   |-- settings.py
+|-- data/
+|-- unit/
+|   |-- handlers/
+|   |-- services/
+|   |-- utils/
+|   |-- domain/
+|-- integration/
+|   |-- test_<feature>.py
+|-- contract/
+    |-- events/
+    |-- http/
 ```
+
+*Integration tests live directly under `tests/integration/` with no additional folder hierarchy. Each module is marked at the top level (for example `pytestmark = pytest.mark.integration`) so pytest filters remain reliable, while unit tests remain unmarked to keep `pytest -m "not integration"` focused on the unit suite.*
 
 ## Success Metrics
 - 100% of microservices replicate the structure above within one sprint of adoption.
@@ -73,10 +75,9 @@ tests/
 
 ## Risks & Mitigations
 - **Legacy debt**: Existing services may require non-trivial refactors. Mitigate by planning incremental moves and providing migration scripts.
-- **Over-prescription**: Teams might have unique needs. Mitigate by allowing deeper nesting within `unit/` or `integration/` while keeping top-level folders consistent.
+- **Over-prescription**: Teams might have unique needs. Mitigate by allowing deeper nesting within `unit/` or `contract/` while keeping `integration/` flat and consistent across services.
 - **Knowledge gaps**: Engineers may be unaware of the change. Mitigate with brown-bag sessions and documentation updates.
 
 ## Open Questions
 - Do any services require additional subfolders (e.g., performance tests) that should be standardized later?
 - Should we provide cookiecutter or template scripts to bootstrap the directory layout automatically?
-
