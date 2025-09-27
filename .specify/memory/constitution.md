@@ -1,17 +1,17 @@
 <!--
 Sync Impact Report:
-- Version change: 0.0.0 (assumed) → 1.0.0
-- List of modified principles: All 5 existing principles replaced with 5 new, consolidated principles.
-- Added sections: None.
+- Version change: 1.0.1 → 1.1.0
+- List of modified principles: Added Principle VI. Unified Logging Standard.
+- Added sections: VI. Unified Logging Standard
 - Removed sections: None.
 - Templates requiring updates:
     - .specify/templates/plan-template.md: ✅ updated
-    - .specify/templates/spec-template.md: ⚠ pending (no explicit changes, but implicit alignment)
-    - .specify/templates/tasks-template.md: ⚠ pending (no explicit changes, but implicit alignment)
-    - .specify/templates/commands/*.md: ✅ updated (no changes to the command files themselves, but the constitution output will be generic)
+    - .specify/templates/spec-template.md: ⚠ pending (no explicit changes needed for logging)
+    - .specify/templates/tasks-template.md: ⚠ pending (no explicit changes needed for logging)
+    - .specify/templates/commands/*.md: ✅ updated (no changes needed)
     - README.md: ✅ updated (no changes needed, already aligned)
     - RUN.md: ✅ updated (no changes needed, already aligned)
-- Follow-up TODOs: TODO(RATIFICATION_DATE): Original adoption date unknown
+- Follow-up TODOs: None required
 -->
 # Product-Video Matching System Constitution
 
@@ -31,6 +31,9 @@ The development environment MUST be initiated using `./up-dev.ps1` (Windows) or 
 
 ### V. Data Flow Enforcement
 The system's data processing MUST strictly adhere to the defined pipeline: job creation → collection → segmentation → embedding/keypoints → matching → evidence generation → results. `pgvector` MUST be used for efficient storage and similarity search of embeddings. `RabbitMQ` MUST be the sole mechanism for asynchronous event-driven communication between microservices.
+
+### VI. Unified Logging Standard
+All microservices MUST implement unified logging using Python's standard `logging` module with the `ContextLogger` wrapper from `common_py.logging_config`. Logger names MUST follow the `service:file` pattern (e.g., `main-api:main`) and use structured logging with keyword arguments instead of string formatting. Each service MUST support correlation ID tracking for request tracing across services, with automatic extraction from RabbitMQ events. Log configuration MUST be environment-based, supporting `LOG_LEVEL` and `LOG_FORMAT` variables. Error logging MUST include exception details and structured context data. The `JsonFormatter` MUST be used for JSON format logs, ensuring all logs include standard fields: `timestamp`, `name`, `level`, `message`, `correlation_id`, and extra structured data.
 
 ## Architectural Guidelines
 
@@ -59,4 +62,4 @@ The system's data processing MUST strictly adhere to the defined pipeline: job c
 *   **Compliance Review:** All code changes and architectural decisions MUST be reviewed for compliance with these principles. Non-compliance MUST be justified and approved by the project lead.
 *   **Guidance:** The `RUN.md` document provides runtime development guidance and MUST be consulted for day-to-day operations.
 
-**Version**: 1.0.1 | **Ratified**: TODO(RATIFICATION_DATE): Original adoption date unknown | **Last Amended**: 2025-09-25
+**Version**: 1.1.0 | **Ratified**: TODO(RATIFICATION_DATE): Original adoption date unknown | **Last Amended**: 2025-09-27

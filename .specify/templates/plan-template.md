@@ -52,6 +52,7 @@
 - [ ] **III. Testing Discipline**: Prioritization of integration tests, correct test execution, and passing tests.
 - [ ] **IV. Development Environment & Configuration**: Correct environment setup, configuration management, and efficient development practices.
 - [ ] **V. Data Flow Enforcement**: Strict adherence to the defined data processing pipeline and technology usage.
+- [ ] **VI. Unified Logging Standard**: Implementation of structured logging with ContextLogger, correlation ID tracking, and environment-based configuration.
 
 ## Project Structure
 
