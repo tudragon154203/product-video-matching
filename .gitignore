@@ -21,11 +21,9 @@ infra/qdrant/data
 .clinerules*
 .playwright-mcp
 
-# Environment variables
-.env
-.env.local
-.env.*.local
-.env.test
+# Environment variables - ALL .env files
+.env*
+!*.env.example
 
 # Nodejs
 *node_modules/
