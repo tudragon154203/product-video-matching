@@ -29,6 +29,7 @@ Establishing a common structure for each service's `tests/` directory will reduc
 5. The `tests/integration/` directory MUST remain flat (no nested folders) and should contain descriptively named modules (e.g. `test_<feature>.py`).
 6. Integration test modules MUST define `pytestmark = pytest.mark.integration`, exercise real network or service boundaries in the dev stack, and minimize mocks to the smallest surface required to prevent destructive side effects.
 7. Unit tests MUST avoid applying the `integration` marker (optionally using `pytestmark = pytest.mark.unit`) so `pytest -m "not integration"` reliably executes only the unit suite.
+8. Each microservice's `pytest.ini` MUST register the repository-wide markers (at minimum `unit` and `integration`) to satisfy `--strict-markers`, and SHOULD declare any service-specific markers used in the suite.
 
 ### Non-Functional Requirements
 1. The layout MUST support pytest discovery rules (`test_*.py` and `*_test.py`).
