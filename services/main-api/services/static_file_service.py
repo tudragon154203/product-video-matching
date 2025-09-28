@@ -57,9 +57,20 @@ class StaticFileService:
         """Get secure file path with validation."""
         try:
             # Join requested file path with data root
-            file_path = (self.data_root / filename).resolve()
+            requested_path = self.data_root / filename
 
-            # Security check: ensure file is within data root
+            # Check if the requested path is a symlink before resolving
+            if requested_path.is_symlink():
+                # Resolve the symlink target to check if it's outside the data root
+                symlink_target = requested_path.resolve()
+                if not symlink_target.is_relative_to(self.data_root):
+                    logger.warning(f"Symlink path traversal attempt: {filename} -> {symlink_target}")
+                    raise ValueError(f"Symlink path traversal attempt: {filename}")
+
+            # Now resolve the path normally
+            file_path = requested_path.resolve()
+
+            # Additional security check: ensure file is within data root after full resolution
             if not file_path.is_relative_to(self.data_root):
                 logger.warning(f"Path traversal attempt: {filename}")
                 raise ValueError(f"Path traversal attempt: {filename}")
@@ -69,6 +80,10 @@ class StaticFileService:
         except (ValueError, RuntimeError) as e:
             logger.warning(f"Path resolution failed for {filename}: {e}")
             raise e
+        except OSError as e:
+            # Catch potential OS-level errors during path resolution (e.g., permission issues with symlinks)
+            logger.warning(f"OS error during path resolution for {filename}: {e}")
+            raise ValueError(f"Path traversal attempt: {filename}")
 
     def validate_file_access(self, file_path: Path) -> None:
         """Validate file access permissions and existence."""
@@ -107,4 +122,4 @@ class StaticFileService:
                 f"Static file request: {client_ip} - {request.method} {filename} - {status} - {file_size} bytes - {user_agent}")
         else:
             logger.debug(
-                f"Static file request: {client_ip} - {request.method} {filename} - {status} - {user_agent}")
+                f"Static file request: {client_ip} - {request.method} {filename} - {status} - {user_agent}")
