@@ -267,9 +267,16 @@ async def test_product_id_logging_in_storage_error():
 
         # Verify that the exception was logged with the product ID
         mock_logger.exception.assert_called()
-        # Check that one of the exception calls contains the expected message
+        # Debug: print what was actually logged
         exception_calls = [call for call in mock_logger.exception.call_args_list]
-        assert any("id=test_prod_123" in str(call) for call in exception_calls)
+        print(f"DEBUG: Exception calls: {exception_calls}")
+        for i, call in enumerate(exception_calls):
+            print(f"DEBUG: Call {i}: {call}")
+            print(f"DEBUG: Call {i} args: {call[0]}")
+            print(f"DEBUG: Call {i} kwargs: {call[1]}")
+        # Check that one of the exception calls contains the expected product ID
+        # The call contains format string and arguments separately
+        assert any("test_prod_123" in call[0] for call in exception_calls)
 
 
 @pytest.mark.asyncio
@@ -286,6 +293,13 @@ async def test_collector_logging_on_failure():
 
         # Verify that the collector failure was logged
         mock_logger.exception.assert_called()
-        # Check that the exception contains the expected query
+        # Debug: print what was actually logged
         exception_calls = [call for call in mock_logger.exception.call_args_list]
-        assert any("query='query1'" in str(call) for call in exception_calls)
+        print(f"DEBUG: Exception calls: {exception_calls}")
+        for i, call in enumerate(exception_calls):
+            print(f"DEBUG: Call {i}: {call}")
+            print(f"DEBUG: Call {i} args: {call[0]}")
+            print(f"DEBUG: Call {i} kwargs: {call[1]}")
+        # Check that the exception contains the expected query
+        # The call contains format string and arguments separately
+        assert any("query1" in call[0] for call in exception_calls)

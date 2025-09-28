@@ -29,10 +29,12 @@ class ProductCollectionManager:
                         query, top_k
                     )
                 except Exception as e:
+                    product_id = "unknown"
                     logger.exception(
-                        "[%s] Collect failed for query='%s': %s",
+                        "[%s] Collect failed for query='%s' (id=%s): %s",
                         platform,
                         query,
+                        product_id,
                         e,
                     )
                     continue
