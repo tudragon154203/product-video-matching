@@ -4,9 +4,16 @@ import pytz
 from datetime import datetime, timedelta, timezone
 from unittest.mock import AsyncMock, MagicMock
 import pytest
-pytestmark = pytest.mark.integration
 
 # Import dependencies that will be mocked
+from services.job.job_service import JobService
+from services.job.job_management_service import JobManagementService
+from common_py.crud.product_image_crud import ProductImageCRUD
+from common_py.crud.product_crud import ProductCRUD
+from handlers.database_handler import DatabaseHandler
+from common_py.messaging import MessageBroker
+
+pytestmark = pytest.mark.integration
 
 # Mock data
 MOCK_JOB_ID = "job123"
