@@ -1,9 +1,12 @@
-import cv2
-import numpy as np
 from pathlib import Path
 from typing import Optional, Tuple
-from config_loader import config
+
+import cv2
+import numpy as np
+
 from common_py.logging_config import configure_logging
+
+from config_loader import config
 
 logger = configure_logging("vision-keypoint:keypoint")
 
@@ -37,33 +40,46 @@ class KeypointExtractor:
             
             # Fallback to SIFT if AKAZE fails or finds too few keypoints
             if descriptors is None or len(keypoints) < 10:
-                logger.info("AKAZE found insufficient keypoints, trying SIFT", 
-                           entity_id=entity_id, akaze_count=len(keypoints) if keypoints else 0)
+                logger.info(
+                    "AKAZE found insufficient keypoints, trying SIFT",
+                    entity_id=entity_id,
+                    akaze_count=len(keypoints) if keypoints else 0,
+                )
                 keypoints, descriptors = await self._extract_sift_keypoints(image)
             
             if descriptors is None or len(keypoints) < 5:
-                logger.warning("Insufficient keypoints found", 
-                              entity_id=entity_id, 
-                              final_count=len(keypoints) if keypoints else 0)
+                logger.warning(
+                    "Insufficient keypoints found",
+                    entity_id=entity_id,
+                    final_count=len(keypoints) if keypoints else 0,
+                )
                 # Create mock keypoints for MVP
                 return await self._create_mock_keypoints(entity_id)
             
             # Save keypoints and descriptors
             kp_blob_path = await self._save_keypoints(entity_id, keypoints, descriptors)
             
-            logger.info("Extracted keypoints", 
-                       entity_id=entity_id, 
-                       count=len(keypoints),
-                       descriptor_shape=descriptors.shape)
+            logger.info(
+                "Extracted keypoints",
+                entity_id=entity_id,
+                count=len(keypoints),
+                descriptor_shape=descriptors.shape,
+            )
             
             return kp_blob_path
             
         except Exception as e:
-            logger.error("Failed to extract keypoints", 
-                        image_path=image_path, entity_id=entity_id, error=str(e))
+            logger.error(
+                "Failed to extract keypoints",
+                image_path=image_path,
+                entity_id=entity_id,
+                error=str(e),
+            )
             return None
     
-    async def _extract_akaze_keypoints(self, image: np.ndarray) -> Tuple[list, Optional[np.ndarray]]:
+    async def _extract_akaze_keypoints(
+        self, image: np.ndarray
+    ) -> Tuple[list, Optional[np.ndarray]]:
         """Extract AKAZE keypoints and descriptors"""
         try:
             keypoints, descriptors = self.akaze.detectAndCompute(image, None)
@@ -72,7 +88,9 @@ class KeypointExtractor:
             logger.error("AKAZE extraction failed", error=str(e))
             return [], None
     
-    async def _extract_sift_keypoints(self, image: np.ndarray) -> Tuple[list, Optional[np.ndarray]]:
+    async def _extract_sift_keypoints(
+        self, image: np.ndarray
+    ) -> Tuple[list, Optional[np.ndarray]]:
         """Extract SIFT keypoints and descriptors"""
         try:
             keypoints, descriptors = self.sift.detectAndCompute(image, None)
@@ -81,27 +99,31 @@ class KeypointExtractor:
             logger.error("SIFT extraction failed", error=str(e))
             return [], None
     
-    async def _save_keypoints(self, entity_id: str, keypoints: list, descriptors: np.ndarray) -> str:
+    async def _save_keypoints(
+        self, entity_id: str, keypoints: list, descriptors: np.ndarray
+    ) -> str:
         """Save keypoints and descriptors to compressed numpy file"""
         kp_blob_path = self.kp_dir / f"{entity_id}.npz"
         
         # Convert keypoints to serializable format
         kp_data = []
         for kp in keypoints:
-            kp_data.append({
-                'pt': kp.pt,
-                'angle': kp.angle,
-                'response': kp.response,
-                'octave': kp.octave,
-                'size': kp.size
-            })
+            kp_data.append(
+                {
+                    "pt": kp.pt,
+                    "angle": kp.angle,
+                    "response": kp.response,
+                    "octave": kp.octave,
+                    "size": kp.size,
+                }
+            )
         
         # Save to compressed numpy file
         np.savez_compressed(
             kp_blob_path,
             keypoints=kp_data,
             descriptors=descriptors,
-            count=len(keypoints)
+            count=len(keypoints),
         )
         
         return str(kp_blob_path)
@@ -115,13 +137,18 @@ class KeypointExtractor:
             # Mock keypoint data
             kp_data = []
             for i in range(num_keypoints):
-                kp_data.append({
-                    'pt': (np.random.uniform(50, 450), np.random.uniform(50, 350)),
-                    'angle': np.random.uniform(0, 360),
-                    'response': np.random.uniform(0.1, 1.0),
-                    'octave': np.random.randint(0, 4),
-                    'size': np.random.uniform(5, 20)
-                })
+                kp_data.append(
+                    {
+                        "pt": (
+                            np.random.uniform(50, 450),
+                            np.random.uniform(50, 350),
+                        ),
+                        "angle": np.random.uniform(0, 360),
+                        "response": np.random.uniform(0.1, 1.0),
+                        "octave": np.random.randint(0, 4),
+                        "size": np.random.uniform(5, 20),
+                    }
+                )
             
             # Mock descriptors (64-dimensional for AKAZE, 128 for SIFT)
             # Use 64 for consistency
@@ -134,17 +161,23 @@ class KeypointExtractor:
                 keypoints=kp_data,
                 descriptors=descriptors,
                 count=num_keypoints,
-                mock=True  # Flag to indicate this is mock data
+                mock=True,
             )
-            
-            logger.info("Created mock keypoints", 
-                       entity_id=entity_id, count=num_keypoints)
+
+            logger.info(
+                "Created mock keypoints",
+                entity_id=entity_id,
+                count=num_keypoints,
+            )
             
             return str(kp_blob_path)
             
         except Exception as e:
-            logger.error("Failed to create mock keypoints", 
-                        entity_id=entity_id, error=str(e))
+            logger.error(
+                "Failed to create mock keypoints",
+                entity_id=entity_id,
+                error=str(e),
+            )
             return None
     
     def load_keypoints(self, kp_blob_path: str) -> Tuple[list, np.ndarray]:
@@ -154,26 +187,32 @@ class KeypointExtractor:
             
             # Reconstruct keypoints
             keypoints = []
-            for kp_data in data['keypoints']:
+            for kp_data in data["keypoints"]:
                 kp = cv2.KeyPoint(
-                    x=float(kp_data['pt'][0]),
-                    y=float(kp_data['pt'][1]),
-                    size=float(kp_data['size']),
-                    angle=float(kp_data['angle']),
-                    response=float(kp_data['response']),
-                    octave=int(kp_data['octave'])
+                    x=float(kp_data["pt"][0]),
+                    y=float(kp_data["pt"][1]),
+                    size=float(kp_data["size"]),
+                    angle=float(kp_data["angle"]),
+                    response=float(kp_data["response"]),
+                    octave=int(kp_data["octave"]),
                 )
                 keypoints.append(kp)
-            
-            descriptors = data['descriptors']
+
+            descriptors = data["descriptors"]
             
             return keypoints, descriptors
             
         except Exception as e:
-            logger.error("Failed to load keypoints", kp_blob_path=kp_blob_path, error=str(e))
+            logger.error(
+                "Failed to load keypoints",
+                kp_blob_path=kp_blob_path,
+                error=str(e),
+            )
             return [], np.array([]) 
     
-    async def extract_keypoints_with_mask(self, image_path: str, mask_path: str, entity_id: str) -> Optional[str]:
+    async def extract_keypoints_with_mask(
+        self, image_path: str, mask_path: str, entity_id: str
+    ) -> Optional[str]:
         """Extract keypoints and descriptors from an image with mask applied"""
         try:
             # Load image
@@ -198,37 +237,55 @@ class KeypointExtractor:
             masked_image = cv2.bitwise_and(image, mask)
             
             # Try AKAZE first (faster and more robust) with mask
-            keypoints, descriptors = await self._extract_akaze_keypoints_with_mask(masked_image, mask)
+            keypoints, descriptors = await self._extract_akaze_keypoints_with_mask(
+                masked_image, mask
+            )
             
             # Fallback to SIFT if AKAZE fails or finds too few keypoints
             if descriptors is None or len(keypoints) < 10:
-                logger.info("AKAZE found insufficient keypoints with mask, trying SIFT", 
-                           entity_id=entity_id, akaze_count=len(keypoints) if keypoints else 0)
-                keypoints, descriptors = await self._extract_sift_keypoints_with_mask(masked_image, mask)
+                logger.info(
+                    "AKAZE found insufficient keypoints with mask, trying SIFT",
+                    entity_id=entity_id,
+                    akaze_count=len(keypoints) if keypoints else 0,
+                )
+                keypoints, descriptors = await self._extract_sift_keypoints_with_mask(
+                    masked_image, mask
+                )
             
             if descriptors is None or len(keypoints) < 5:
-                logger.warning("Insufficient keypoints found with mask", 
-                              entity_id=entity_id, 
-                              final_count=len(keypoints) if keypoints else 0)
+                logger.warning(
+                    "Insufficient keypoints found with mask",
+                    entity_id=entity_id,
+                    final_count=len(keypoints) if keypoints else 0,
+                )
                 # Create mock keypoints for MVP
                 return await self._create_mock_keypoints(entity_id)
             
             # Save keypoints and descriptors
             kp_blob_path = await self._save_keypoints(entity_id, keypoints, descriptors)
             
-            logger.info("Extracted keypoints with mask", 
-                       entity_id=entity_id, 
-                       count=len(keypoints),
-                       descriptor_shape=descriptors.shape)
+            logger.info(
+                "Extracted keypoints with mask",
+                entity_id=entity_id,
+                count=len(keypoints),
+                descriptor_shape=descriptors.shape,
+            )
             
             return kp_blob_path
             
         except Exception as e:
-            logger.error("Failed to extract keypoints with mask", 
-                        image_path=image_path, mask_path=mask_path, entity_id=entity_id, error=str(e))
+            logger.error(
+                "Failed to extract keypoints with mask",
+                image_path=image_path,
+                mask_path=mask_path,
+                entity_id=entity_id,
+                error=str(e),
+            )
             return None
     
-    async def _extract_akaze_keypoints_with_mask(self, image: np.ndarray, mask: np.ndarray) -> Tuple[list, Optional[np.ndarray]]:
+    async def _extract_akaze_keypoints_with_mask(
+        self, image: np.ndarray, mask: np.ndarray
+    ) -> Tuple[list, Optional[np.ndarray]]:
         """Extract AKAZE keypoints and descriptors with mask"""
         try:
             keypoints, descriptors = self.akaze.detectAndCompute(image, mask)
@@ -237,7 +294,9 @@ class KeypointExtractor:
             logger.error("AKAZE extraction with mask failed", error=str(e))
             return [], None
     
-    async def _extract_sift_keypoints_with_mask(self, image: np.ndarray, mask: np.ndarray) -> Tuple[list, Optional[np.ndarray]]:
+    async def _extract_sift_keypoints_with_mask(
+        self, image: np.ndarray, mask: np.ndarray
+    ) -> Tuple[list, Optional[np.ndarray]]:
         """Extract SIFT keypoints and descriptors with mask"""
         try:
             keypoints, descriptors = self.sift.detectAndCompute(image, mask)

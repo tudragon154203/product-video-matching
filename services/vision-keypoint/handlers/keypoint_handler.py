@@ -1,8 +1,9 @@
-from .decorators import validate_event, handle_errors
-from services.service import VisionKeypointService
 from common_py.database import DatabaseManager
 from common_py.messaging import MessageBroker
 from config_loader import config
+from services.service import VisionKeypointService
+
+from .decorators import validate_event
 
 class VisionKeypointHandler:
     def __init__(self):
