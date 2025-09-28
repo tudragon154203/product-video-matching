@@ -42,8 +42,8 @@ def get_gmt7_time(dt: Optional[datetime]) -> Optional[datetime]:
 @pytest.fixture(autouse=True)
 def setup_mocks(monkeypatch):  # Add monkeypatch as an argument
     global product_image_crud_mock, video_frame_crud_mock, product_crud_mock, \
-           video_crud_mock, job_service_mock, job_management_service_mock, \
-           db_mock, broker_mock
+        video_crud_mock, job_service_mock, job_management_service_mock, \
+        db_mock, broker_mock
 
     # Set environment variables for tests
     monkeypatch.setenv(
