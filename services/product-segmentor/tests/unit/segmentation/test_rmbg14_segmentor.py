@@ -1,17 +1,17 @@
 """Tests for RMBG-1.4 segmentation implementation."""
 
-import pytest
-pytestmark = pytest.mark.unit
-import numpy as np
-import torch
-from unittest.mock import Mock, AsyncMock, patch
-from PIL import Image
-import tempfile
 import os
+import tempfile
+from unittest.mock import Mock, patch
 
-from segmentation.interface import SegmentationInterface
+import numpy as np
+import pytest
+from PIL import Image
+
 from segmentation.models.rmbg14_segmentor import RMBG14Segmentor
 from segmentation.models.rmbg20_segmentor import RMBG20Segmentor
+
+pytestmark = pytest.mark.unit
 
 
 class TestRMBG14Segmentor:

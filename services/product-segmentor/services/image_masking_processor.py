@@ -14,7 +14,7 @@ class ImageMaskingProcessor:
         self.foreground_segmentor = foreground_segmentor
         self.people_segmentor = people_segmentor
         self.file_manager = file_manager
-        self.image_processor = image_processor # This is the ForegroundProcessor from service.py
+        self.image_processor = image_processor  # This is the ForegroundProcessor from service.py
 
     async def process_single_image(self, image_id: str, local_path: str, image_type: str, job_id: str = "unknown") -> Optional[str]:
         """Process a single image to generate mask.
@@ -110,8 +110,15 @@ class ImageMaskingProcessor:
                     final_mask = cv2.bitwise_and(foreground_mask, cv2.bitwise_not(people_mask))
                     logger.info("Subtracted people mask from foreground mask", image_id=image_id)
                 except Exception as bitwise_e:
-                    logger.error("Error during bitwise operation for mask subtraction", error=str(bitwise_e), error_type=type(bitwise_e).__name__, image_id=image_id, foreground_shape=foreground_mask.shape, people_shape=people_mask.shape)
-                    return foreground_mask # Fallback to original foreground mask
+                    logger.error(
+                        "Error during bitwise operation for mask subtraction",
+                        error=str(bitwise_e),
+                        error_type=type(bitwise_e).__name__,
+                        image_id=image_id,
+                        foreground_shape=foreground_mask.shape,
+                        people_shape=people_mask.shape,
+                    )
+                    return foreground_mask  # Fallback to original foreground mask
             else:
                 logger.warning("Mask processing warning",
                              job_id=job_id,
