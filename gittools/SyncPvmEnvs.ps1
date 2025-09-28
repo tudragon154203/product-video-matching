@@ -1,17 +1,42 @@
 param(
   [string]$WorktreePath = (Get-Location).Path,
   [string]$SecretsRoot = 'O:\product-video-matching\secrets',
-  [string]$MappingJson = '',
   [switch]$Force,
   [switch]$WhatIf
 )
 
 function Copy-EnvFile {
-  param([string]$TargetDir, [string]$SecretFile)
-  $source = Join-Path $SecretsRoot $SecretFile
-  $dest   = Join-Path $TargetDir ".env"
+  param(
+    [string]$TargetDir,
+    [string]$SecretFile,
+    [string]$FileExtension = 'env'
+  )
 
-  if (-not (Test-Path $source)) { Write-Warning "Missing secret file: $source"; return }
+  $dest   = if ($FileExtension -eq 'test') {
+    Join-Path $TargetDir ".env.test"
+  } else {
+    Join-Path $TargetDir ".$FileExtension"
+  }
+
+  # For .env.test files, construct the source file name differently
+  if ($FileExtension -eq 'test') {
+    $envFile = $SecretFile.Replace('.env', '')
+    $source = Join-Path $SecretsRoot "$envFile.env.test"
+
+    # Only warn for missing test files if the original secret file was a .env file
+    if (-not (Test-Path $source) -and $SecretFile -like "*.env") {
+      Write-Warning "Missing test secret file: $source"
+      return
+    }
+  } else {
+    # For .env files, warn if missing
+    $source = Join-Path $SecretsRoot $SecretFile
+    if (-not (Test-Path $source)) {
+      Write-Warning "Missing secret file: $source";
+      return
+    }
+  }
+
   if (-not (Test-Path $TargetDir)) { New-Item -ItemType Directory -Force -Path $TargetDir | Out-Null }
 
   if ((Test-Path $dest) -and -not $Force) {
@@ -22,6 +47,7 @@ function Copy-EnvFile {
       if (-not $WhatIf) { Copy-Item $dest $bak -Force }
       Write-Host "Backup: $dest -> $bak" -ForegroundColor DarkYellow
     }
+    $fileType = if ($FileExtension -eq 'test') { '.env.test' } else { '.env' }
     Write-Host "Copy: $source -> $dest" -ForegroundColor Green
     if (-not $WhatIf) { Copy-Item $source $dest -Force }
   }
@@ -38,19 +64,16 @@ $mapping = [ordered]@{
   'services\front-end'             = 'front-end.env'
 }
 
-if ($MappingJson) {
-  if (-not (Test-Path $MappingJson)) { throw "MappingJson not found: $MappingJson" }
-  $jsonMap = Get-Content $MappingJson -Raw | ConvertFrom-Json
-  $mapping = @{}
-  foreach ($k in $jsonMap.PSObject.Properties.Name) {
-    $mapping[$k -replace '/','\'] = $jsonMap.$k
-  }
-}
 
-Write-Host "==> Syncing .env into $WorktreePath from $SecretsRoot" -ForegroundColor Cyan
+Write-Host "==> Syncing .env and .env.test into $WorktreePath from $SecretsRoot" -ForegroundColor Cyan
 foreach ($kv in $mapping.GetEnumerator()) {
   $target = Join-Path $WorktreePath $kv.Key
-  Copy-EnvFile -TargetDir $target -SecretFile $kv.Value
+
+  # Copy .env file
+  Copy-EnvFile -TargetDir $target -SecretFile $kv.Value -FileExtension 'env'
+
+  # Copy corresponding .env.test file
+  Copy-EnvFile -TargetDir $target -SecretFile $kv.Value -FileExtension 'test'
 }
 Write-Host "==> Done." -ForegroundColor Cyan
 
