@@ -1,21 +1,22 @@
-"""
-Unit tests for LengthAdaptiveKeyframeExtractor class
-"""
-import pytest
-pytestmark = pytest.mark.unit
-import asyncio
-import tempfile
+"""Unit tests for LengthAdaptiveKeyframeExtractor class."""
+
 import shutil
+import tempfile
 from pathlib import Path
-from unittest.mock import AsyncMock, patch, MagicMock
+
 import cv2
 import numpy as np
+import pytest
 
-from keyframe_extractor.length_adaptive_extractor import LengthAdaptiveKeyframeExtractor, KeyframeConfig
 from keyframe_extractor.abstract_extractor import AbstractKeyframeExtractor
 from keyframe_extractor.interface import KeyframeExtractorInterface
+from keyframe_extractor.length_adaptive_extractor import (
+    KeyframeConfig,
+    LengthAdaptiveKeyframeExtractor,
+)
 from models.video import VideoProperties
 
+pytestmark = pytest.mark.unit
 
 class TestLengthAdaptiveKeyframeExtractor:
     """Test class for LengthAdaptiveKeyframeExtractor"""
@@ -72,32 +73,6 @@ class TestLengthAdaptiveKeyframeExtractor:
         assert isinstance(extractor, KeyframeExtractorInterface)
         assert hasattr(extractor, 'extract_keyframes')
         assert hasattr(extractor, '_extract_frames_from_video')
-    
-    @pytest.fixture
-    def sample_video(self, temp_dir):
-        """Create a sample video file for testing"""
-        video_path = Path(temp_dir) / "test_video.mp4"
-        
-        # Create a simple test video using OpenCV
-        fourcc = cv2.VideoWriter_fourcc(*'mp4v')
-        fps = 30
-        frame_size = (640, 480)
-        
-        out = cv2.VideoWriter(str(video_path), fourcc, fps, frame_size)
-        
-        # Create 150 frames (5 seconds at 30fps)
-        for i in range(150):
-            # Create a frame with changing colors
-            frame = np.zeros((480, 640, 3), dtype=np.uint8)
-            # Change color over time
-            frame[:, :] = (i % 255, (i * 2) % 255, (i * 3) % 255)
-            # Add frame number text
-            cv2.putText(frame, f"Frame {i}", (50, 50), 
-                       cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2)
-            out.write(frame)
-        
-        out.release()
-        return str(video_path)
     
     @pytest.mark.asyncio
     async def test_extract_keyframes_without_video_file(self, extractor):

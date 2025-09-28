@@ -1,13 +1,11 @@
-import pytest
-pytestmark = pytest.mark.unit
 import asyncio
-from unittest.mock import AsyncMock, MagicMock, patch
 import tempfile
-import os
-from pathlib import Path
 
-# Import directly from the files we need to test
+import pytest
+
 from platform_crawler.youtube.youtube_crawler import YoutubeCrawler
+
+pytestmark = pytest.mark.unit
 
 class MockYoutubeDownloader:
     """Mock downloader for testing"""

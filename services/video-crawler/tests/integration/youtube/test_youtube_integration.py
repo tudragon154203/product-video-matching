@@ -1,18 +1,17 @@
-import pytest
-pytestmark = pytest.mark.integration
 import asyncio
 import logging
 import os
 import tempfile
-from datetime import datetime, timedelta
+
+import pytest
+
 from platform_crawler.youtube.youtube_crawler import YoutubeCrawler
+
+pytestmark = pytest.mark.integration
 
 @pytest.mark.asyncio
 async def test_real_video_download_integration():
     """Integration test that actually downloads real YouTube videos"""
-    import tempfile
-    import os
-    
     crawler = YoutubeCrawler()
     
     # Use a temporary directory for testing
@@ -89,10 +88,6 @@ async def test_real_video_download_integration():
 @pytest.mark.asyncio
 async def test_file_reuse_functionality():
     """Test that existing video files are reused instead of re-downloaded"""
-    import tempfile
-    import os
-    from pathlib import Path
-    
     crawler = YoutubeCrawler()
     
     with tempfile.TemporaryDirectory() as temp_dir:

@@ -1,6 +1,4 @@
-import random
-from typing import Dict, Any
-from .config import DownloaderConfig
+from typing import Any, Dict
 
 class YTDLPOptionsBuilder:
     """Builds yt-dlp options for video downloads"""

@@ -1,6 +1,6 @@
 import asyncio
-import time
-from typing import Dict, Any
+from typing import Any, Dict
+
 from common_py.logging_config import configure_logging
 
 logger = configure_logging("video-crawler:retry_handler")

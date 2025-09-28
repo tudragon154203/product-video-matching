@@ -1,11 +1,12 @@
 """
 Pytest configuration and shared fixtures for video-crawler tests
 """
-import pytest
-import tempfile
 import asyncio
+import tempfile
 from pathlib import Path
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import MagicMock
+
+import pytest
 
 # Ensure common_py is in the path for tests
 import sys

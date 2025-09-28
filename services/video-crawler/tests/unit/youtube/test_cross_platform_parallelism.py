@@ -1,16 +1,16 @@
-import pytest
-pytestmark = pytest.mark.unit
 import asyncio
-from unittest.mock import AsyncMock, MagicMock, patch
 import tempfile
-import os
-from pathlib import Path
 import time
+from unittest.mock import AsyncMock, patch
+
+import pytest
 
 # Import the classes we need to test
 from services.service import VideoCrawlerService
 from fetcher.video_fetcher import VideoFetcher
 from platform_crawler.interface import PlatformCrawlerInterface
+
+pytestmark = pytest.mark.unit
 
 class MockPlatformCrawler(PlatformCrawlerInterface):
     """Mock platform crawler for testing parallelism"""
@@ -28,8 +28,6 @@ class MockPlatformCrawler(PlatformCrawlerInterface):
         
         # Simulate processing delay
         await asyncio.sleep(self.delay_seconds)
-        
-        end_time = time.time()
         
         # Return mock videos
         return [

@@ -1,10 +1,14 @@
 """Unit tests for TikTokSearcher HTTP client."""
-import pytest
-pytestmark = pytest.mark.unit
+
 import httpx
-from unittest.mock import AsyncMock, patch, MagicMock
-from platform_crawler.tiktok.tiktok_searcher import TikTokSearcher
+from unittest.mock import AsyncMock, patch
+
+import pytest
+
 from platform_crawler.tiktok.tiktok_models import TikTokSearchResponse
+from platform_crawler.tiktok.tiktok_searcher import TikTokSearcher
+
+pytestmark = pytest.mark.unit
 
 
 class TestTikTokSearcher:

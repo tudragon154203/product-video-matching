@@ -1,17 +1,17 @@
 """Integration tests for TikTok crawler functionality."""
-import pytest
-pytestmark = pytest.mark.integration
-import asyncio
-import os
-from typing import Dict, Any, List
-from unittest.mock import AsyncMock, MagicMock
 
-from services.service import VideoCrawlerService
-from platform_crawler.interface import PlatformCrawlerInterface
-from platform_crawler.tiktok.tiktok_crawler import TikTokCrawler
+import pytest
+
+from typing import Any, Dict
+from unittest.mock import AsyncMock
+
 from common_py.database import DatabaseManager
 from common_py.messaging import MessageBroker
 from config_loader import config
+from platform_crawler.tiktok.tiktok_crawler import TikTokCrawler
+from services.service import VideoCrawlerService
+
+pytestmark = pytest.mark.integration
 
 
 @pytest.fixture
@@ -217,7 +217,7 @@ class TestTikTokIntegration:
         # Execute the search request (this will simulate API failure)
         try:
             await service.handle_videos_search_request(event_data)
-        except Exception as e:
+        except Exception:
             # If the API call fails, we still want to verify the error handling
             # The service should still complete the process by calling the zero videos handler
             pass
