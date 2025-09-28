@@ -1,7 +1,9 @@
 """TikTok HTTP client for searching videos via external API."""
+
 import asyncio
+
 import httpx
-from typing import List, Dict, Any, Optional
+
 from common_py.logging_config import configure_logging
 from config_loader import config
 from .tiktok_models import TikTokSearchResponse

@@ -257,7 +257,7 @@ class YoutubeDownloader:
             download_dir: Directory where videos are stored
         """
         try:
-            logger.info(f"[CLEANUP-AFTER-DOWNLOAD] Starting cleanup after successful download")
+            logger.info("[CLEANUP-AFTER-DOWNLOAD] Starting cleanup after successful download")
             
             # Perform cleanup with dry_run=False to actually remove files
             cleanup_results = await cleanup_service.perform_cleanup(download_dir, dry_run=False)
@@ -268,7 +268,7 @@ class YoutubeDownloader:
                     f"[CLEANUP-AFTER-DOWNLOAD-COMPLETE] Removed {len(cleanup_results['files_removed'])} files, freed {freed_mb:.2f}MB"
                 )
             else:
-                logger.info(f"[CLEANUP-AFTER-DOWNLOAD] No old files to remove")
+                logger.info("[CLEANUP-AFTER-DOWNLOAD] No old files to remove")
                 
         except Exception as e:
             logger.error(f"[CLEANUP-AFTER-DOWNLOAD-ERROR] Failed to perform cleanup: {str(e)}")

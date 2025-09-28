@@ -1,6 +1,5 @@
-import asyncio
 import yt_dlp
-from typing import Dict, Any
+
 from common_py.logging_config import configure_logging
 
 logger = configure_logging("video-crawler:error_handler")

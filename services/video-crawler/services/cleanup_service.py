@@ -2,11 +2,11 @@
 Video cleanup service for automatically removing old video files.
 """
 
-import asyncio
-from typing import Dict, Any, List
+from typing import Any, Dict
+
 from common_py.logging_config import configure_logging
-from utils.file_cleanup import VideoCleanupManager
 from config_loader import config
+from utils.file_cleanup import VideoCleanupManager
 
 logger = configure_logging("video-crawler:cleanup_service")
 

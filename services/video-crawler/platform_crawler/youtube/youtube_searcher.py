@@ -1,15 +1,16 @@
-import re
 import asyncio
-from typing import List, Dict, Any
 from datetime import datetime, timedelta
+from typing import Any, Dict, List
+
 import yt_dlp
+
 from common_py.logging_config import configure_logging
-from ..utils.filter_chain import FilterChain
+from config_loader import config
 from platform_crawler.youtube.youtube_filters import (
+    filter_duration,
     filter_valid_entry,
-    filter_duration
 )
-from config_loader import config # Import config
+from ..utils.filter_chain import FilterChain
 
 logger = configure_logging("video-crawler:youtube_searcher", log_level=config.LOG_LEVEL)
 
@@ -58,11 +59,11 @@ class YoutubeSearcher:
                 # Add specific handling for common errors
                 error_msg = str(e).lower()
                 if "403" in error_msg or "forbidden" in error_msg:
-                    logger.warning(f"Received 403 Forbidden error. This may be due to rate limiting. Waiting before next attempt.")
+                    logger.warning("Received 403 Forbidden error. This may be due to rate limiting. Waiting before next attempt.")
                     if attempts < MAX_ATTEMPTS:
                         await asyncio.sleep(10)  # Wait longer for 403 errors
                 elif "429" in error_msg or "too many requests" in error_msg:
-                    logger.warning(f"Received 429 Too Many Requests error. Waiting before next attempt.")
+                    logger.warning("Received 429 Too Many Requests error. Waiting before next attempt.")
                     if attempts < MAX_ATTEMPTS:
                         await asyncio.sleep(15)  # Wait even longer for rate limiting
                 break

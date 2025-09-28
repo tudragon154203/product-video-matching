@@ -1,7 +1,8 @@
 import uuid
-from typing import Dict, Any, Optional
-from common_py.messaging import MessageBroker
+from typing import Optional
+
 from common_py.logging_config import configure_logging
+from common_py.messaging import MessageBroker
 
 logger = configure_logging("video-crawler:event_emitter")
 

@@ -1,20 +1,20 @@
-"""
-Integration tests for video cleanup workflow
-"""
+"""Integration tests for video cleanup workflow."""
 
-import pytest
-pytestmark = pytest.mark.integration
+import asyncio
 import os
 import tempfile
 import unittest
-import asyncio
 from datetime import datetime, timedelta
 from pathlib import Path
-from unittest.mock import patch, AsyncMock
+from unittest.mock import patch
 
-from services.service import VideoCrawlerService
-from services.cleanup_service import VideoCleanupService
+import pytest
+
 from config_loader import config
+from services.cleanup_service import VideoCleanupService
+
+
+pytestmark = pytest.mark.integration
 
 
 class TestCleanupIntegration(unittest.TestCase):
@@ -318,7 +318,7 @@ class TestCleanupIntegration(unittest.TestCase):
                     
                 # Should work with different retention periods
                 self.assertIsInstance(info, dict, f"Should return info for {retention} day retention")
-                self.assertEqual(info['retention_days'], retention, f"Should have correct retention days")
+                self.assertEqual(info['retention_days'], retention, "Should have correct retention days")
 
 
 

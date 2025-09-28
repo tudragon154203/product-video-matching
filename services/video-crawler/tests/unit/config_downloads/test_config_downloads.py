@@ -1,17 +1,18 @@
-import pytest
-pytestmark = pytest.mark.unit
 import asyncio
-from unittest.mock import AsyncMock, MagicMock, patch
-import tempfile
 import os
+import tempfile
+
+import pytest
 
 # Import config first to test environment variable loading
 import sys
-import os
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from config_loader import VideoCrawlerConfig
-config = VideoCrawlerConfig()
 from platform_crawler.youtube.youtube_crawler import YoutubeCrawler
+
+config = VideoCrawlerConfig()
+
+pytestmark = pytest.mark.unit
 
 class MockYoutubeDownloader:
     """Mock downloader for testing"""

@@ -1,17 +1,18 @@
-"""
-Unit tests for VideoCleanupService
-"""
+"""Unit tests for VideoCleanupService."""
 
-import pytest
-pytestmark = pytest.mark.unit
 import os
 import tempfile
 import unittest
-from unittest.mock import patch, MagicMock, AsyncMock
 from pathlib import Path
+from unittest.mock import patch
+
+import pytest
 
 from services.cleanup_service import VideoCleanupService
 from utils.file_cleanup import VideoCleanupManager
+
+
+pytestmark = pytest.mark.unit
 
 
 class TestVideoCleanupService(unittest.TestCase):
@@ -174,8 +175,11 @@ class TestVideoCleanupService(unittest.TestCase):
         mock_logger.info.assert_called()
         
         # Check for cleanup start log
-        cleanup_logs = [call for call in mock_logger.info.call_args_list 
-                       if any(x in call.args[0] for x in ['CLEANUP-START', 'CLEANUP-COMPLETE'])]
+        cleanup_logs = [
+            log_call
+            for log_call in mock_logger.info.call_args_list
+            if any(message in log_call.args[0] for message in ['CLEANUP-START', 'CLEANUP-COMPLETE'])
+        ]
         self.assertTrue(len(cleanup_logs) > 0, "Should log cleanup operations")
         
     @patch('services.cleanup_service.logger')
@@ -188,8 +192,11 @@ class TestVideoCleanupService(unittest.TestCase):
         mock_logger.info.assert_called()
         
         # Check for cleanup skipped log
-        skip_logs = [call for call in mock_logger.info.call_args_list 
-                    if 'CLEANUP-SKIPPED' in call.args[0]]
+        skip_logs = [
+            log_call
+            for log_call in mock_logger.info.call_args_list
+            if 'CLEANUP-SKIPPED' in log_call.args[0]
+        ]
         self.assertTrue(len(skip_logs) > 0, "Should log cleanup skipped")
         
     async def test_cleanup_error_handling(self):
