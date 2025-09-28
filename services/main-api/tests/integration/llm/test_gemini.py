@@ -145,7 +145,6 @@ async def test_call_llm_gemini_success():
     # Check if GEMINI_API_KEY is set
     if not config.GEMINI_API_KEY:
         pytest.skip("GEMINI_API_KEY not set, skipping test")
-# Local imports removed - now available at module level
 
     llm_service = LLMService()
 
