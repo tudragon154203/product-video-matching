@@ -2,6 +2,8 @@
 Integration tests for video cleanup workflow
 """
 
+import pytest
+pytestmark = pytest.mark.integration
 import os
 import tempfile
 import unittest
@@ -319,5 +321,4 @@ class TestCleanupIntegration(unittest.TestCase):
                 self.assertEqual(info['retention_days'], retention, f"Should have correct retention days")
 
 
-if __name__ == '__main__':
-    unittest.main()
+

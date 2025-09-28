@@ -1,5 +1,6 @@
 """Integration tests for TikTok crawler functionality."""
 import pytest
+pytestmark = pytest.mark.integration
 import asyncio
 import os
 from typing import Dict, Any, List

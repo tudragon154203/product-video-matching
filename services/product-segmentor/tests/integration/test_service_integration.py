@@ -1,6 +1,7 @@
 "Integration tests for Product Segmentor Service."
 
 import pytest
+pytestmark = pytest.mark.integration
 import asyncio
 import numpy as np
 from unittest.mock import AsyncMock, Mock, patch
@@ -358,6 +359,3 @@ class TestProductSegmentorServiceIntegration:
         service.broker.publish_event.assert_not_called()
     
 
-
-if __name__ == "__main__":
-    pytest.main([__file__])

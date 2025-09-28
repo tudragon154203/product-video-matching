@@ -7,7 +7,7 @@ desktop.ini
 *repomix*
 cline_mcp_settings.json
 model_cache/
-data/
+/data/
 .crush/
 /*.sh
 mcp.json

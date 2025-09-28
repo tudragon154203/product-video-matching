@@ -1,6 +1,6 @@
 """Unit tests for platform-specific query extraction logic."""
 import pytest
-
+pytestmark = pytest.mark.unit
 from services.service import VideoCrawlerService
 
 

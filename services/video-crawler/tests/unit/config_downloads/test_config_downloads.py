@@ -1,5 +1,6 @@
-import asyncio
 import pytest
+pytestmark = pytest.mark.unit
+import asyncio
 from unittest.mock import AsyncMock, MagicMock, patch
 import tempfile
 import os
@@ -91,13 +92,3 @@ async def test_semaphore_uses_config_value():
         finally:
             # Restore original config value
             config.NUM_PARALLEL_DOWNLOADS = original_value
-
-if __name__ == "__main__":
-    # Test config loading
-    test_config_loads_parallel_downloads()
-    print("SUCCESS: Config test passed - NUM_PARALLEL_DOWNLOADS loaded successfully")
-    
-    # Run the async test
-    import asyncio
-    asyncio.run(test_semaphore_uses_config_value())
-    print("SUCCESS: Semaphore config test passed")

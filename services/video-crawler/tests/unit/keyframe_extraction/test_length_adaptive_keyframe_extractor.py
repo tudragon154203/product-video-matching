@@ -1,12 +1,13 @@
 """
 Unit tests for LengthAdaptiveKeyframeExtractor class
 """
+import pytest
+pytestmark = pytest.mark.unit
 import asyncio
 import tempfile
 import shutil
 from pathlib import Path
 from unittest.mock import AsyncMock, patch, MagicMock
-import pytest
 import cv2
 import numpy as np
 

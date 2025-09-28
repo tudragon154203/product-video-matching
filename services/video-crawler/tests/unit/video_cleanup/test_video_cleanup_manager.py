@@ -2,6 +2,8 @@
 Unit tests for VideoCleanupManager
 """
 
+import pytest
+pytestmark = pytest.mark.unit
 import os
 import tempfile
 import time
@@ -271,6 +273,3 @@ class TestVideoCleanupManager(unittest.TestCase):
         # Restore permissions so cleanup can work in teardown
         readonly_file.parent.chmod(0o755)
 
-
-if __name__ == '__main__':
-    unittest.main()

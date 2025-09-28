@@ -1,5 +1,6 @@
-import asyncio
 import pytest
+pytestmark = pytest.mark.unit
+import asyncio
 from unittest.mock import AsyncMock, MagicMock, patch
 import tempfile
 import os
@@ -236,7 +237,3 @@ async def test_zero_result_path():
         
         # Verify that the event emitter was called to indicate completion
         assert service.event_emitter.broker.publish_event.called
-
-if __name__ == "__main__":
-    # Run the tests
-    pytest.main([__file__, "-v"])
