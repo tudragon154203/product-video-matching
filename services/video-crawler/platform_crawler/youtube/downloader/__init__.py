@@ -1,6 +1,5 @@
-"""
-YouTube Downloader Package
-"""
-from .downloader import YoutubeDownloader
+"""YouTube Downloader package exports."""
 
-__all__ = ['YoutubeDownloader']
+from .downloader import YoutubeDownloader  # noqa: F401
+
+__all__ = ["YoutubeDownloader"]

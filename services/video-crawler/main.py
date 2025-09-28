@@ -1,6 +1,5 @@
 import asyncio
 import sys
-import os
 from contextlib import asynccontextmanager
 
 # Add the app directory to the Python path for bind mount setup
@@ -37,7 +36,7 @@ async def main():
             )
             
             logger.info("Video crawler service started")
-            
+
             # Keep service running
             while True:
                 await asyncio.sleep(1)

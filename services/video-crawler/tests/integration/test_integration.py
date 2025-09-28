@@ -1,19 +1,19 @@
-import pytest
-pytestmark = pytest.mark.integration
 import asyncio
-import tempfile
 import os
-from pathlib import Path
-from unittest.mock import MagicMock, patch, AsyncMock
+import tempfile
+from unittest.mock import AsyncMock, MagicMock
 
-# Import the modules to test
-from services.service import VideoCrawlerService
+import pytest
+
 from fetcher.video_fetcher import VideoFetcher
 from platform_crawler.interface import PlatformCrawlerInterface
 from platform_crawler.mock_crawler import MockPlatformCrawler
+from services.service import VideoCrawlerService
+
+
+pytestmark = pytest.mark.integration
 
 # Mock VideoFrameCRUD since it's external dependency
-from unittest.mock import MagicMock
 VideoFrameCRUD = MagicMock
 
 
@@ -119,13 +119,19 @@ class TestVideoCrawlerIntegration:
         assert video_crawler_service.event_emitter.broker.publish_event.called
         
         # Check that batch keyframes ready event was published
-        batch_calls = [call for call in video_crawler_service.event_emitter.broker.publish_event.call_args_list
-                      if call[0][0] == "videos.keyframes.ready.batch"]
+        batch_calls = [
+            event_call
+            for event_call in video_crawler_service.event_emitter.broker.publish_event.call_args_list
+            if event_call[0][0] == "videos.keyframes.ready.batch"
+        ]
         assert len(batch_calls) > 0, "Batch keyframes ready event should be published"
         
         # Check that videos collections completed event was published
-        collection_calls = [call for call in video_crawler_service.event_emitter.broker.publish_event.call_args_list
-                           if call[0][0] == "videos.collections.completed"]
+        collection_calls = [
+            event_call
+            for event_call in video_crawler_service.event_emitter.broker.publish_event.call_args_list
+            if event_call[0][0] == "videos.collections.completed"
+        ]
         assert len(collection_calls) > 0, "Videos collections completed event should be published"
     
     @pytest.mark.asyncio

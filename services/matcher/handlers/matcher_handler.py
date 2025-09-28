@@ -1,11 +1,18 @@
-from .decorators import validate_event, handle_errors
-from services.service import MatcherService
+"""Event handler for matcher service operations."""
+
+from typing import Any, Dict
+
 from common_py.database import DatabaseManager
 from common_py.messaging import MessageBroker
+
 from config_loader import config
+from services.service import MatcherService
+
+from .decorators import handle_errors, validate_event
+
 
 class MatcherHandler:
-    def __init__(self):
+    def __init__(self) -> None:
         self.db = DatabaseManager(config.POSTGRES_DSN)
         self.broker = MessageBroker(config.BUS_BROKER)
         self.service = MatcherService(
@@ -17,16 +24,16 @@ class MatcherHandler:
             inliers_min=config.INLIERS_MIN,
             match_best_min=config.MATCH_BEST_MIN,
             match_cons_min=config.MATCH_CONS_MIN,
-            match_accept=config.MATCH_ACCEPT
+            match_accept=config.MATCH_ACCEPT,
         )
         self.initialized = False
-        
-    async def initialize(self):
+
+    async def initialize(self) -> None:
         if not self.initialized:
             await self.service.initialize()
             self.initialized = True
-        
+
     @handle_errors
     @validate_event("match_request")
-    async def handle_match_request(self, event_data):
+    async def handle_match_request(self, event_data: Dict[str, Any]) -> None:
         await self.service.handle_match_request(event_data)

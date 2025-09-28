@@ -1,12 +1,13 @@
 """Basic tests for vision embedding service."""
 
 import pytest
+
 pytestmark = pytest.mark.unit
 
 
 class TestVisionEmbeddingServiceBasic:
     """Basic vision embedding service tests."""
-    
+
     @pytest.mark.unit
     def test_import_service(self):
         """Test that service module can be imported."""
@@ -17,6 +18,6 @@ class TestVisionEmbeddingServiceBasic:
         except ImportError as e:
             # Expected due to missing dependencies in test environment
             pytest.skip(f"Skipping due to missing dependencies: {e}")
-            
+
         # If import succeeds, basic structure is correct
         assert VisionEmbeddingService is not None

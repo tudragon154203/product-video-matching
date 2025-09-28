@@ -1,4 +1,4 @@
-from typing import Optional, List, Tuple
+from typing import Optional
 from datetime import datetime, timezone
 import pytz
 
@@ -15,7 +15,7 @@ class ProductService:
         self.db = db
         self.product_crud = ProductCRUD(db)
         self.product_image_crud = ProductImageCRUD(db)
-    
+
     def _get_gmt7_time(self, dt: Optional[datetime]) -> Optional[datetime]:
         """Convert datetime to GMT+7 timezone"""
         if dt is None:
@@ -23,7 +23,7 @@ class ProductService:
         if dt.tzinfo is None:
             dt = dt.replace(tzinfo=timezone.utc)
         return dt.astimezone(pytz.timezone('Asia/Saigon'))
-    
+
     async def get_job_products(
         self,
         job_id: str,
@@ -36,7 +36,7 @@ class ProductService:
     ) -> ProductListResponse:
         """
         Get products for a specific job with filtering and pagination.
-        
+
         Args:
             job_id: The job ID to filter products by
             search_query: Search query for product titles, brands, or ASIN/ItemID
@@ -45,7 +45,7 @@ class ProductService:
             offset: Number of items to skip for pagination
             sort_by: Field to sort by
             order: Sort order (ASC or DESC)
-        
+
         Returns:
             ProductListResponse: Paginated list of products matching the criteria
         """
@@ -59,14 +59,14 @@ class ProductService:
             sort_by=sort_by,
             order=order
         )
-        
+
         # Get total count for pagination
         total = await self.product_crud.count_products_by_job(
             job_id=job_id,
             search_query=search_query,
             src=src
         )
-        
+
         # Convert to response format and get image counts
         product_items = []
         for product in products:
@@ -89,7 +89,7 @@ class ProductService:
                 primary_image_url=primary_image_url
             )
             product_items.append(product_item)
-        
+
         return ProductListResponse(
             items=product_items,
             total=total,

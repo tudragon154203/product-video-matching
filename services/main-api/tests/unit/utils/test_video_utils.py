@@ -1,12 +1,11 @@
 """
 Unit tests for video utility functions.
 """
+from utils.video_utils import select_preview_frame
+from datetime import datetime, timezone
+from unittest.mock import AsyncMock, MagicMock
 import pytest
 pytestmark = pytest.mark.unit
-from unittest.mock import AsyncMock, MagicMock
-from datetime import datetime, timezone
-
-from utils.video_utils import select_preview_frame
 
 
 class TestSelectPreviewFrame:
@@ -16,7 +15,8 @@ class TestSelectPreviewFrame:
     async def test_no_frames(self):
         """Test when no frames are available."""
         video_frame_crud = MagicMock()
-        video_frame_crud.list_video_frames_by_video = AsyncMock(return_value=[])
+        video_frame_crud.list_video_frames_by_video = AsyncMock(
+            return_value=[])
 
         result = await select_preview_frame("video-123", 120.0, video_frame_crud, "/app/data")
 
@@ -45,12 +45,14 @@ class TestSelectPreviewFrame:
             )
         ]
 
-        video_frame_crud.list_video_frames_by_video = AsyncMock(return_value=frames)
+        video_frame_crud.list_video_frames_by_video = AsyncMock(
+            return_value=frames)
 
         result = await select_preview_frame("video-123", 120.0, video_frame_crud, "/app/data")
 
         assert result is not None
-        assert result['frame_id'] == "frame-2"  # Should prefer segmented frame at middle
+        # Should prefer segmented frame at middle
+        assert result['frame_id'] == "frame-2"
         assert result['ts'] == 60.0
         assert result['url'] == "/files/videos/frames/frame-2.jpg"
         assert result['segment_url'] == "/files/videos/masked/frame-2.jpg"
@@ -78,7 +80,8 @@ class TestSelectPreviewFrame:
             )
         ]
 
-        video_frame_crud.list_video_frames_by_video = AsyncMock(return_value=frames)
+        video_frame_crud.list_video_frames_by_video = AsyncMock(
+            return_value=frames)
 
         result = await select_preview_frame("video-123", 120.0, video_frame_crud, "/app/data")
 
@@ -104,7 +107,8 @@ class TestSelectPreviewFrame:
             )
         ]
 
-        video_frame_crud.list_video_frames_by_video = AsyncMock(return_value=frames)
+        video_frame_crud.list_video_frames_by_video = AsyncMock(
+            return_value=frames)
 
         result = await select_preview_frame("video-123", 120.0, video_frame_crud, "/app/data")
 
@@ -129,11 +133,13 @@ class TestSelectPreviewFrame:
                 ts=60.0,
                 local_path="/app/data/videos/frames/frame-2.jpg",
                 segment_local_path=None,
-                updated_at=datetime(2024, 1, 15, 10, 35, tzinfo=timezone.utc)  # Newer
+                updated_at=datetime(2024, 1, 15, 10, 35,
+                                    tzinfo=timezone.utc)  # Newer
             )
         ]
 
-        video_frame_crud.list_video_frames_by_video = AsyncMock(return_value=frames)
+        video_frame_crud.list_video_frames_by_video = AsyncMock(
+            return_value=frames)
 
         result = await select_preview_frame("video-123", 120.0, video_frame_crud, "/app/data")
 
@@ -163,12 +169,10 @@ class TestSelectPreviewFrame:
             )
         ]
 
-        video_frame_crud.list_video_frames_by_video = AsyncMock(return_value=frames)
+        video_frame_crud.list_video_frames_by_video = AsyncMock(
+            return_value=frames)
 
         result = await select_preview_frame("video-123", 120.0, video_frame_crud, "/app/data")
 
         assert result is not None
         assert result['frame_id'] == "frame-1"  # Should prefer lower frame_id
-
-
-

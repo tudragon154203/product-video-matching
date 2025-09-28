@@ -1,9 +1,8 @@
 import os
 import time
 from pathlib import Path
-from typing import Dict, Any, List
+
 from common_py.logging_config import configure_logging
-from platform_crawler.youtube.youtube_utils import sanitize_filename
 
 logger = configure_logging("video-crawler:file_manager")
 

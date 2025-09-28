@@ -1,16 +1,17 @@
 """Tests for edge cases and error scenarios."""
 
-import pytest
-pytestmark = pytest.mark.unit
 import asyncio
-import numpy as np
-from unittest.mock import AsyncMock, Mock, patch
-import tempfile
 import shutil
+import tempfile
+from unittest.mock import AsyncMock, Mock, patch
+
+import numpy as np
+import pytest
 from PIL import Image
 
 from services.service import ProductSegmentorService
-from segmentation.models.rmbg20_segmentor import RMBG20Segmentor
+
+pytestmark = pytest.mark.unit
 
 
 class TestEdgeCases:

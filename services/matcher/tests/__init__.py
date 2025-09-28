@@ -1,3 +1,1 @@
-"""
-Tests for the matcher service.
-"""
+"""Test package for the matcher service."""

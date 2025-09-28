@@ -5,10 +5,13 @@ This module provides a common implementation foundation for all keyframe extract
 including shared utilities, logging, and common validation logic.
 """
 
+from __future__ import annotations
+
 import shutil
 from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import List, Tuple, Optional
+from typing import TYPE_CHECKING, List, Optional, Tuple
+
 import cv2
 import numpy as np
 from common_py.logging_config import configure_logging
@@ -16,6 +19,10 @@ from config_loader import config
 from .interface import KeyframeExtractorInterface
 
 logger = configure_logging("video-crawler:abstract_extractor")
+
+
+if TYPE_CHECKING:
+    from models.video import VideoProperties
 
 
 class AbstractKeyframeExtractor(KeyframeExtractorInterface, ABC):
@@ -258,7 +265,7 @@ class AbstractKeyframeExtractor(KeyframeExtractorInterface, ABC):
             logger.error("Failed to calculate blur score", error=str(e))
             return 0.0
     
-    def _get_video_properties(self, cap: cv2.VideoCapture, video_id: str) -> 'VideoProperties':
+    def _get_video_properties(self, cap: cv2.VideoCapture, video_id: str) -> VideoProperties:
         """
         Extract video properties from OpenCV VideoCapture object.
         

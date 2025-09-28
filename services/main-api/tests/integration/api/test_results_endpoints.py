@@ -2,14 +2,13 @@
 Unit tests for results endpoints.
 Minimal test cases focusing on core functionality.
 """
+from models.results_schemas import MatchListResponse, MatchDetailResponse, StatsResponse, MatchResponse
+from api.results_endpoints import router, get_results_service
+from fastapi import FastAPI
+from fastapi.testclient import TestClient
+from unittest.mock import AsyncMock, MagicMock
 import pytest
 pytestmark = pytest.mark.integration
-from unittest.mock import AsyncMock, MagicMock
-from fastapi.testclient import TestClient
-from fastapi import FastAPI
-
-from api.results_endpoints import router, get_results_service
-from models.results_schemas import MatchListResponse, MatchDetailResponse, StatsResponse, MatchResponse
 
 
 @pytest.fixture
@@ -28,10 +27,10 @@ def test_app(mock_results_service):
     """Create test FastAPI app with mocked dependencies"""
     app = FastAPI()
     app.include_router(router)
-    
+
     # Override dependency
     app.dependency_overrides[get_results_service] = lambda: mock_results_service
-    
+
     return app
 
 
@@ -55,19 +54,19 @@ def test_get_results_success(client, mock_results_service):
         video_title="Test Video",
         video_platform="youtube"
     )
-    
+
     mock_response = MatchListResponse(
         items=[mock_match],
         total=1,
         limit=100,
         offset=0
     )
-    
+
     mock_results_service.get_results.return_value = mock_response
-    
+
     # Execute
     response = client.get("/results")
-    
+
     # Verify
     assert response.status_code == 200
     data = response.json()
@@ -80,10 +79,11 @@ def test_get_results_with_filters(client, mock_results_service):
     """Test results endpoint with filters"""
     mock_response = MatchListResponse(items=[], total=0, limit=50, offset=10)
     mock_results_service.get_results.return_value = mock_response
-    
+
     # Execute
-    response = client.get("/results?industry=electronics&min_score=0.8&limit=50&offset=10")
-    
+    response = client.get(
+        "/results?industry=electronics&min_score=0.8&limit=50&offset=10")
+
     # Verify
     assert response.status_code == 200
     mock_results_service.get_results.assert_called_once_with(
@@ -99,7 +99,7 @@ def test_get_match_success(client, mock_results_service):
     """Test successful match detail endpoint"""
     # Setup mock response
     from models.results_schemas import ProductResponse, VideoResponse
-    
+
     mock_response = MatchDetailResponse(
         match_id="match1",
         job_id="job1",
@@ -119,12 +119,12 @@ def test_get_match_success(client, mock_results_service):
             frame_count=100
         )
     )
-    
+
     mock_results_service.get_match.return_value = mock_response
-    
+
     # Execute
     response = client.get("/matches/match1")
-    
+
     # Verify
     assert response.status_code == 200
     data = response.json()
@@ -136,10 +136,10 @@ def test_get_match_success(client, mock_results_service):
 def test_get_match_not_found(client, mock_results_service):
     """Test match not found"""
     mock_results_service.get_match.return_value = None
-    
+
     # Execute
     response = client.get("/matches/nonexistent")
-    
+
     # Verify
     assert response.status_code == 404
 
@@ -154,12 +154,12 @@ def test_get_stats_success(client, mock_results_service):
         matches=200,
         jobs=10
     )
-    
+
     mock_results_service.get_stats.return_value = mock_response
-    
+
     # Execute
     response = client.get("/stats")
-    
+
     # Verify
     assert response.status_code == 200
     data = response.json()

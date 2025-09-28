@@ -3,10 +3,12 @@
 import os
 import sys
 from dataclasses import dataclass
+from pathlib import Path
 
 from dotenv import load_dotenv
 
-load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), ".env"))
+BASE_DIR = Path(__file__).resolve().parent
+load_dotenv(BASE_DIR / ".env")
 
 # Add libs directory to PYTHONPATH for imports
 sys.path.insert(0, "/app/libs")
@@ -15,10 +17,11 @@ try:
     from config import config as global_config
 except ImportError:
     # Fallback for local development
-    sys.path.append(
-        os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-    )
+    REPO_ROOT = Path(__file__).resolve().parents[2]
+    sys.path.append(str(REPO_ROOT))
     from libs.config import config as global_config
+
+
 @dataclass
 class MatcherConfig:
     """Configuration for the matcher service."""

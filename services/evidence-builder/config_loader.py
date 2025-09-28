@@ -1,44 +1,43 @@
-"""
-Configuration loader for the evidence builder service.
-Uses environment variables directly since Docker Compose loads both shared and service-specific .env files.
-"""
+"""Configuration loader for the evidence builder service."""
+
 import os
 import sys
 from dataclasses import dataclass
+from pathlib import Path
 
 from dotenv import load_dotenv
-load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), '.env'))
 
-# Add libs directory to PYTHONPATH for imports
-sys.path.insert(0, '/app/libs')
+SERVICE_DIR = Path(__file__).resolve().parent
+load_dotenv(SERVICE_DIR / ".env")
+
+LIBS_PATH = Path("/app/libs")
+if str(LIBS_PATH) not in sys.path:
+    sys.path.insert(0, str(LIBS_PATH))
 
 try:
     from config import config as global_config
-except ImportError:
-    # Fallback for local development
-    sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+except ImportError:  # pragma: no cover - dev fallback
+    project_root = SERVICE_DIR.parents[2]
+    sys.path.append(str(project_root))
     from libs.config import config as global_config
+
 
 @dataclass
 class EvidenceBuilderConfig:
-    """Configuration for the evidence builder service"""
-    
-    # Database configuration (from global config)
+    """Configuration for the evidence builder service."""
+
     POSTGRES_DSN: str = global_config.POSTGRES_DSN
     POSTGRES_USER: str = global_config.POSTGRES_USER
     POSTGRES_PASSWORD: str = global_config.POSTGRES_PASSWORD
     POSTGRES_HOST: str = global_config.POSTGRES_HOST
     POSTGRES_PORT: str = os.getenv("POSTGRES_PORT", "5432")
     POSTGRES_DB: str = global_config.POSTGRES_DB
-    
-    # Message broker configuration (from global config)
+
     BUS_BROKER: str = global_config.BUS_BROKER
-    
-    # Data storage (from global config)
+
     DATA_ROOT: str = global_config.DATA_ROOT_CONTAINER
-    
-    # Logging (from global config)
+
     LOG_LEVEL: str = global_config.LOG_LEVEL
 
-# Create config instance
+
 config = EvidenceBuilderConfig()

@@ -2,15 +2,8 @@
 Static file serving endpoints for images and other media files.
 """
 import os
-from pathlib import Path
-from fastapi import APIRouter, HTTPException, Request, Depends, Response
+from fastapi import APIRouter, HTTPException, Request, Response, Depends
 from fastapi.responses import FileResponse
-from starlette.responses import RedirectResponse
-from typing import Optional
-
-from config_loader import config
-from utils.image_utils import get_mime_type, is_safe_path
-from api.dependency import get_db
 from services.static_file_service import StaticFileService
 from common_py.logging_config import configure_logging
 
@@ -19,6 +12,8 @@ logger = configure_logging("main-api:static_endpoints")
 router = APIRouter()
 
 # Dependency function
+
+
 def get_static_file_service() -> StaticFileService:
     return StaticFileService()
 
@@ -41,6 +36,7 @@ async def serve_static_file(
     Returns:
         FileResponse: The requested file
     """
+    file_path = None  # Initialize to avoid undefined variable in exception handlers
     try:
         # Use service for secure file path handling
         file_path = static_service.get_secure_file_path(filename)
@@ -66,29 +62,53 @@ async def serve_static_file(
         # Log error cases
         # Note: file_path might not be defined if an exception occurred early
         try:
-            static_service.log_request(request, filename, file_path, status=404 if "not found" in str(locals().get('file_path', '')) else 403)
-        except:
+            static_service.log_request(
+                request, filename, file_path, status=404 if "not found" in str(
+                    locals().get('file_path', '')) else 403
+            )
+        except Exception:
             pass  # Ignore logging errors
         raise
     except FileNotFoundError:
         # Handle file not found specifically
         try:
-            static_service.log_request(request, filename, file_path, status=404)
-        except:
+            static_service.log_request(
+                request, filename, file_path, status=404)
+        except Exception:
             pass  # Ignore logging errors
         raise HTTPException(status_code=404, detail="File not found")
+    except ValueError as e:  # Catch security-related value errors
+        error_message = str(e)
+        lowered_message = error_message.lower()
+        if "path traversal" in lowered_message or "outside data root" in lowered_message or "symlink path traversal" in lowered_message:
+            logger.warning(f"Security violation for file {filename}: {error_message}")
+            try:
+                static_service.log_request(request, filename, file_path, status=403)
+            except Exception:
+                pass  # Ignore logging errors
+            raise HTTPException(status_code=403, detail="Access denied")
+        else:
+            logger.error(f"Value error serving file {filename}: {error_message}")
+            try:
+                static_service.log_request(request, filename, file_path, status=500)
+            except Exception:
+                pass  # Ignore logging errors
+            raise HTTPException(status_code=500, detail="Internal server error")
     except Exception as e:
         logger.error(f"Error serving file {filename}: {e}")
         # Note: file_path might not be defined if an exception occurred early
         try:
-            static_service.log_request(request, filename, file_path, status=500)
-        except:
+            static_service.log_request(
+                request, filename, file_path, status=500)
+        except Exception:
             pass  # Ignore logging errors
         raise HTTPException(status_code=500, detail="Internal server error")
 
 
 @router.get("/health")
-async def static_files_health(static_service: StaticFileService = Depends(get_static_file_service)):
+async def static_files_health(
+    static_service: StaticFileService = Depends(get_static_file_service)
+):
     """
     Health check for static files service.
 
@@ -115,5 +135,4 @@ async def static_files_health(static_service: StaticFileService = Depends(get_st
 
     except Exception as e:
         logger.error(f"Static files health check failed: {e}")
-        return {"status": "error", "message": f"Health check failed: {e}"}
-
+        return {"status": "error", "message": f"Health check failed: {e}"}

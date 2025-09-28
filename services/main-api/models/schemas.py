@@ -1,4 +1,7 @@
+from datetime import datetime
+from typing import Optional
 from pydantic import BaseModel
+
 
 class StartJobRequest(BaseModel):
     query: str
@@ -7,12 +10,11 @@ class StartJobRequest(BaseModel):
     platforms: list
     recency_days: int
 
+
 class StartJobResponse(BaseModel):
     job_id: str
     status: str
 
-from datetime import datetime
-from typing import Optional
 
 class JobStatusResponse(BaseModel):
     job_id: str
@@ -23,11 +25,12 @@ class JobStatusResponse(BaseModel):
     collection: dict | None = None
     updated_at: Optional[datetime] = None
 
+
 class JobAssetTypes(BaseModel):
     """Schema for job asset types indicating which media types are present"""
     images: bool
     videos: bool
-    
+
     @property
     def job_type(self) -> str:
         """Return the job type based on asset types"""

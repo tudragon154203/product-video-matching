@@ -1,15 +1,16 @@
 """Tests for segmentation interface and implementations."""
 
-import pytest
-pytestmark = pytest.mark.unit
-import numpy as np
-from unittest.mock import Mock, AsyncMock, patch
-from PIL import Image
-import tempfile
 import os
+import tempfile
+
+import numpy as np
+import pytest
+from PIL import Image
 
 from segmentation.interface import SegmentationInterface
 from segmentation.models.rmbg20_segmentor import RMBG20Segmentor
+
+pytestmark = pytest.mark.unit
 
 
 class MockSegmentor(SegmentationInterface):

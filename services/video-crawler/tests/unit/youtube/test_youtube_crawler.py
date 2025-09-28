@@ -1,15 +1,12 @@
-import pytest
-pytestmark = pytest.mark.unit
-import os
 import tempfile
-import asyncio
-import re
-import logging
-from pathlib import Path
-from unittest.mock import patch, AsyncMock
-from datetime import datetime, timedelta
+from unittest.mock import patch
+
+import pytest
+
 from platform_crawler.youtube.youtube_crawler import YoutubeCrawler
 from platform_crawler.youtube.youtube_utils import is_url_like, sanitize_filename
+
+pytestmark = pytest.mark.unit
 
 
 class TestYoutubeCrawler:
@@ -37,7 +34,7 @@ class TestYoutubeCrawler:
         ]
         
         for query in url_queries:
-            assert is_url_like(query) == True
+            assert is_url_like(query)
         
         # Valid keyword queries that should NOT be skipped
         keyword_queries = [
@@ -49,7 +46,7 @@ class TestYoutubeCrawler:
         ]
         
         for query in keyword_queries:
-            assert is_url_like(query) == False
+            assert not is_url_like(query)
     
     def test_sanitize_filename(self):
         """Test filename sanitization"""
@@ -96,10 +93,6 @@ class TestYoutubeCrawler:
         recency_days = 7
         download_dir = self.temp_dir
         num_videos = 3
-        
-        # Mock search results with different dates
-        old_date = datetime.utcnow() - timedelta(days=30)
-        recent_date = datetime.utcnow() - timedelta(days=3)
         
         mock_videos = [
             {

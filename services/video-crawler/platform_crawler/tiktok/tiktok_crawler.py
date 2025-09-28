@@ -1,12 +1,12 @@
 """TikTok video crawler implementation."""
-import os
+
 import asyncio
-from typing import List, Dict, Any
 from pathlib import Path
+from typing import Any, Dict, List
+
 from common_py.logging_config import configure_logging
 from platform_crawler.interface import PlatformCrawlerInterface
 from platform_crawler.tiktok.tiktok_searcher import TikTokSearcher
-from config_loader import config
 
 logger = configure_logging("video-crawler:tiktok_crawler")
 

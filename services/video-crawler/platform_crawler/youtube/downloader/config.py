@@ -1,5 +1,5 @@
 import random
-import os
+
 from config_loader import config
 
 class DownloaderConfig:

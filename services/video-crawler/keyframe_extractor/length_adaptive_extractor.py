@@ -5,12 +5,10 @@ This module provides a concrete implementation of keyframe extraction that adapt
 the number and timing of extracted frames based on video duration.
 """
 
-import asyncio
 from pathlib import Path
 from typing import List, Tuple, Optional
 from dataclasses import dataclass
 import cv2
-import numpy as np
 from common_py.logging_config import configure_logging
 from .abstract_extractor import AbstractKeyframeExtractor
 

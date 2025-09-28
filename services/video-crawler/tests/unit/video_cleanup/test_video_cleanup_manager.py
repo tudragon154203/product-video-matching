@@ -2,18 +2,19 @@
 Unit tests for VideoCleanupManager
 """
 
-import pytest
-pytestmark = pytest.mark.unit
 import os
 import tempfile
-import time
 import unittest
 from datetime import datetime, timedelta
 from pathlib import Path
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch
+
+import pytest
 
 from utils.file_cleanup import VideoCleanupManager
 
+
+pytestmark = pytest.mark.unit
 
 class TestVideoCleanupManager(unittest.TestCase):
     """Test cases for VideoCleanupManager class"""
@@ -153,6 +154,8 @@ class TestVideoCleanupManager(unittest.TestCase):
                 os.chmod(old_file, 0o644)
         
         results = self.cleanup_manager.cleanup_old_files(self.test_dir, dry_run=False)
+        self.assertGreater(len(results['files_removed']), 0, "Cleanup should remove files when logging")
+        self.assertFalse(results['dry_run'], "Cleanup should run in non-dry mode")
         
         # Files should be removed
         self.assertEqual(len(results['files_removed']), 2, "Should remove 2 files")
@@ -226,12 +229,17 @@ class TestVideoCleanupManager(unittest.TestCase):
                 os.chmod(old_file, 0o644)
                 
         results = self.cleanup_manager.cleanup_old_files(self.test_dir, dry_run=False)
-        
+        self.assertGreater(len(results['files_removed']), 0, "Cleanup should remove files when logging")
+
         # Verify logging was called
         mock_logger.info.assert_called()
         
         # Should have cleanup summary logged (since files are removed)
-        log_calls = [call.args[0] for call in mock_logger.info.call_args_list if 'CLEANUP-SUMMARY' in call.args[0]]
+        log_calls = [
+            log_call.args[0]
+            for log_call in mock_logger.info.call_args_list
+            if 'CLEANUP-SUMMARY' in log_call.args[0]
+        ]
         self.assertTrue(len(log_calls) > 0, "Cleanup summary should be logged when files are removed")
         
     def test_error_handling_for_nonexistent_directory(self):

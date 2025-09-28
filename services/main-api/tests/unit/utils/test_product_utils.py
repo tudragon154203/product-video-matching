@@ -1,12 +1,11 @@
 """
 Unit tests for product utility functions.
 """
+from utils.product_utils import select_primary_images
+from datetime import datetime, timezone
+from unittest.mock import AsyncMock, MagicMock
 import pytest
 pytestmark = pytest.mark.unit
-from unittest.mock import AsyncMock, MagicMock
-from datetime import datetime, timezone
-
-from utils.product_utils import select_primary_images
 
 
 class TestSelectPrimaryImages:
@@ -77,7 +76,8 @@ class TestSelectPrimaryImages:
             MagicMock(
                 img_id="img-2",
                 local_path="/app/data/images/img-2.jpg",
-                updated_at=datetime(2024, 1, 15, 10, 35, tzinfo=timezone.utc)  # Newer
+                updated_at=datetime(2024, 1, 15, 10, 35,
+                                    tzinfo=timezone.utc)  # Newer
             )
         ]
 
@@ -85,7 +85,8 @@ class TestSelectPrimaryImages:
 
         result = await select_primary_images("product-123", product_image_crud, "/app/data")
 
-        assert result[0] == "/files/images/img-2.jpg"  # Should prefer newer image
+        # Should prefer newer image
+        assert result[0] == "/files/images/img-2.jpg"
 
     @pytest.mark.asyncio
     async def test_tie_breaking_by_img_id(self):
@@ -109,7 +110,8 @@ class TestSelectPrimaryImages:
 
         result = await select_primary_images("product-123", product_image_crud, "/app/data")
 
-        assert result[0] == "/files/images/img-1.jpg"  # Should prefer lower img_id
+        # Should prefer lower img_id
+        assert result[0] == "/files/images/img-1.jpg"
 
     @pytest.mark.asyncio
     async def test_no_valid_paths(self):
@@ -117,8 +119,10 @@ class TestSelectPrimaryImages:
         product_image_crud = MagicMock()
 
         images = [
-            MagicMock(img_id="img-1", local_path="/invalid/path/img-1.jpg", updated_at=datetime(2024, 1, 15, 10, 0, tzinfo=timezone.utc)),
-            MagicMock(img_id="img-2", local_path="/another/invalid/path/img-2.jpg", updated_at=datetime(2024, 1, 15, 10, 5, tzinfo=timezone.utc)),
+            MagicMock(img_id="img-1", local_path="/invalid/path/img-1.jpg",
+                      updated_at=datetime(2024, 1, 15, 10, 0, tzinfo=timezone.utc)),
+            MagicMock(img_id="img-2", local_path="/another/invalid/path/img-2.jpg",
+                      updated_at=datetime(2024, 1, 15, 10, 5, tzinfo=timezone.utc)),
         ]
 
         product_image_crud.list_product_images = AsyncMock(return_value=images)

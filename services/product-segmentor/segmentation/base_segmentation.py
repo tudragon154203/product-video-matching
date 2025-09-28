@@ -6,7 +6,7 @@ import numpy as np
 from .interface import SegmentationInterface
 
 
-class BaseSegmentation(SegmentationInterface):
+class BaseSegmentation(SegmentationInterface, ABC):
     """Abstract base class for segmentation models with common infrastructure."""
     
     @abstractmethod

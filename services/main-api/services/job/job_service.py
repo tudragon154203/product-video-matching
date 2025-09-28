@@ -5,14 +5,17 @@ from services.phase.phase_event_service import PhaseEventService
 from handlers.database_handler import DatabaseHandler
 from handlers.broker_handler import BrokerHandler
 
+
 class JobService:
     def __init__(self, db: DatabaseManager, broker: MessageBroker):
         self.db = db
         self.broker = broker
         self.db_handler = DatabaseHandler(db)
         self.broker_handler = BrokerHandler(broker)
-        self.job_management_service = JobManagementService(self.db_handler, self.broker_handler)
-        self.phase_event_service = PhaseEventService(self.db_handler, self.broker_handler)
+        self.job_management_service = JobManagementService(
+            self.db_handler, self.broker_handler)
+        self.phase_event_service = PhaseEventService(
+            self.db_handler, self.broker_handler)
 
     async def start_job(self, request):
         """Start a new job"""

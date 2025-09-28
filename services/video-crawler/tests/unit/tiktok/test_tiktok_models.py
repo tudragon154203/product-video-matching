@@ -1,7 +1,11 @@
 """Unit tests for TikTok data models."""
+
 import pytest
+
+from platform_crawler.tiktok.tiktok_models import TikTokSearchResponse, TikTokVideo
+
+
 pytestmark = pytest.mark.unit
-from platform_crawler.tiktok.tiktok_models import TikTokVideo, TikTokSearchResponse
 
 
 class TestTikTokVideo:

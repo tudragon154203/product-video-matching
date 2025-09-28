@@ -1,10 +1,12 @@
 """Tests for event handlers."""
 
+from unittest.mock import AsyncMock, patch
+
 import pytest
-pytestmark = pytest.mark.unit
-from unittest.mock import AsyncMock, Mock, patch
 
 from handlers.segmentor_handler import ProductSegmentorHandler
+
+pytestmark = pytest.mark.unit
 
 
 class TestProductSegmentorHandler:

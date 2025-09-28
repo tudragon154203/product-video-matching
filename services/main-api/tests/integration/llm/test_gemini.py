@@ -1,115 +1,158 @@
 """
-Test script for the Gemini integration in the main API service.
+Integration tests for the Gemini service that make real API calls.
 """
-import pytest
-pytestmark = pytest.mark.integration
-import asyncio
-import json
-import sys
+from services.llm.prompt_service import PromptService
+from services.llm.llm_service import LLMService
+from config_loader import config
 import os
+import sys
+import httpx
+from fastapi import HTTPException
+from unittest.mock import patch, Mock
+import pytest
 
 # Add the libs directory to the path
-sys.path.append(os.path.join(os.path.dirname(__file__), "..", "..", "..", "libs"))
+sys.path.append(os.path.join(os.path.dirname(
+    __file__), "..", "..", "..", "libs"))
 
 # Add the current directory to the path for imports
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 
-from config_loader import config
-from services.llm.llm_service import LLMService
-from services.llm.prompt_service import PromptService
+pytestmark = pytest.mark.integration
 
-async def test_gemini_integration():
-    """Test Gemini integration."""
-    try:
-        print("Testing Gemini integration...")
-        
-        # Check if GEMINI_API_KEY is set
-        if not config.GEMINI_API_KEY:
-            print("WARNING: GEMINI_API_KEY is not set in the configuration.")
-            print("To run this test successfully, please set GEMINI_API_KEY in your .env file.")
-            return True  # Return True since this is an environment issue, not a code issue
-        
-        print(f"Loaded config: GEMINI_API_KEY={'*' * len(config.GEMINI_API_KEY) if config.GEMINI_API_KEY else 'NOT SET'}")
-        print(f"Loaded config: GEMINI_MODEL={config.GEMINI_MODEL}")
-        
-        # Create service instances
-        llm_service = LLMService()
-        prompt_service = PromptService()
-        
-        # Test query
-        test_query = "ergonomic office chair"
-        industry_labels = config.INDUSTRY_LABELS
-        
-        print("\n1. Testing industry classification...")
-        cls_prompt = prompt_service.build_cls_prompt(test_query, industry_labels)
-        
-        try:
-            cls_response = await llm_service.call_gemini(
-                model=config.GEMINI_MODEL,
-                prompt=cls_prompt,
-                timeout_s=config.LLM_TIMEOUT
-            )
-            industry = cls_response["response"].strip()
-            print(f"Industry: {industry}")
-            assert industry in industry_labels, f"Industry '{industry}' not in allowed labels"
-        except Exception as e:
-            print(f"Error in industry classification: {e}")
-            return False
-        
-        print("\n2. Testing query generation...")
-        gen_prompt = prompt_service.build_gen_prompt(test_query, industry)
-        
-        try:
-            gen_response = await llm_service.call_gemini(
-                model=config.GEMINI_MODEL,
-                prompt=gen_prompt,
-                timeout_s=config.LLM_TIMEOUT
-            )
-            # Try to parse the response as JSON
-            try:
-                queries = json.loads(gen_response["response"])
-            except json.JSONDecodeError:
-                # If JSON parsing fails, try to extract JSON from the response
-                # This can happen with Gemini as it sometimes includes additional text
-                response_text = gen_response["response"]
-                # Find the first '{' and last '}' to extract JSON
-                start = response_text.find('{')
-                end = response_text.rfind('}') + 1
-                if start != -1 and end > start:
-                    json_str = response_text[start:end]
-                    queries = json.loads(json_str)
-                else:
-                    raise ValueError(f"Could not extract JSON from response: {response_text}")
-            
-            # Try to print the generated queries, handling encoding issues
-            try:
-                print(f"Generated queries: {json.dumps(queries, indent=2, ensure_ascii=False)}")
-            except UnicodeEncodeError:
-                # If there's an encoding issue, print with ascii encoding
-                print(f"Generated queries: {json.dumps(queries, indent=2, ensure_ascii=True)}")
-            
-            # Normalize and validate
-            normalized = prompt_service.normalize_queries(queries)
-            assert "product" in normalized, "Missing 'product' key"
-            assert "video" in normalized, "Missing 'video' key"
-            assert "en" in normalized["product"], "Missing 'en' in product queries"
-            assert "vi" in normalized["video"] or "zh" in normalized["video"], "Missing video queries for platforms"
-            
-        except Exception as e:
-            print(f"Error in query generation: {e}")
-            return False
-        
-        print("\nAll tests passed!")
-        return True
-    except Exception as e:
-        print(f"Unexpected error in test: {e}")
-        return False
 
-if __name__ == "__main__":
-    try:
-        result = asyncio.run(test_gemini_integration())
-        exit_code = 0 if result else 1
-    except Exception as e:
-        print(f"Unexpected error: {e}")
-        exit_code = 1
-    exit(exit_code)
+@pytest.mark.asyncio
+async def test_call_gemini_real_api():
+    """Test calling Gemini API with real API key from environment."""
+    # Check if GEMINI_API_KEY is set
+    if not config.GEMINI_API_KEY:
+        pytest.skip("GEMINI_API_KEY not set, skipping real API test")
+
+    llm_service = LLMService()
+
+    result = await llm_service.call_gemini(
+        model=config.GEMINI_MODEL,
+        prompt="Say 'Hello, World!' in a single sentence.",
+        timeout_s=30
+    )
+
+    assert "response" in result
+    assert isinstance(result["response"], str)
+    assert len(result["response"]) > 0
+
+
+@pytest.mark.asyncio
+async def test_full_llm_flow_with_real_gemini():
+    """Test the full LLM flow using real Gemini API."""
+    # Check if GEMINI_API_KEY is set
+    if not config.GEMINI_API_KEY:
+        pytest.skip("GEMINI_API_KEY not set, skipping real API test")
+
+    llm_service = LLMService()
+    prompt_service = PromptService()
+
+    # Test with a simple prompt
+    prompt = prompt_service.build_gen_prompt("simple test", "general")
+
+    result = await llm_service.call_llm("generate", prompt)
+
+    assert "response" in result
+    assert isinstance(result["response"], str)
+
+
+@pytest.mark.asyncio
+async def test_call_gemini_success():
+    """Test successful Gemini API call with mocked response."""
+    # Check if GEMINI_API_KEY is set
+    if not config.GEMINI_API_KEY:
+        pytest.skip("GEMINI_API_KEY not set, skipping test")
+
+    # Local imports removed - now available at module level
+
+    # Create mock response
+    mock_response = Mock()
+    mock_response.json.return_value = {
+        "candidates": [{
+            "content": {
+                "parts": [{"text": "test response"}]
+            }
+        }]
+    }
+    mock_response.raise_for_status.return_value = None
+
+    llm_service = LLMService()
+
+    with patch("httpx.AsyncClient.post", return_value=mock_response) as mock_post:
+        result = await llm_service.call_gemini(
+            model="gemini-2.5-flash",
+            prompt="test prompt",
+            timeout_s=30
+        )
+
+        assert result["response"] == "test response"
+        mock_post.assert_called_once()
+
+
+@pytest.mark.asyncio
+async def test_call_gemini_http_error():
+    """Test Gemini API call with HTTP error."""
+    # Check if GEMINI_API_KEY is set
+    if not config.GEMINI_API_KEY:
+        pytest.skip("GEMINI_API_KEY not set, skipping test")
+
+    # Local imports removed - now available at module level
+
+    llm_service = LLMService()
+
+    with patch("httpx.AsyncClient.post") as mock_post:
+        mock_post.side_effect = httpx.HTTPStatusError(
+            "Error", request=Mock(), response=Mock()
+        )
+
+        with pytest.raises(HTTPException):
+            await llm_service.call_gemini(
+                model="gemini-2.5-flash",
+                prompt="test prompt",
+                timeout_s=30
+            )
+
+
+@pytest.mark.asyncio
+async def test_call_gemini_request_error():
+    """Test Gemini API call with request error."""
+    # Check if GEMINI_API_KEY is set
+    if not config.GEMINI_API_KEY:
+        pytest.skip("GEMINI_API_KEY not set, skipping test")
+
+    # Local imports removed - now available at module level
+
+    llm_service = LLMService()
+
+    with patch("httpx.AsyncClient.post") as mock_post:
+        mock_post.side_effect = httpx.RequestError("Network error")
+
+        with pytest.raises(HTTPException):
+            await llm_service.call_gemini(
+                model="gemini-2.5-flash",
+                prompt="test prompt",
+                timeout_s=30
+            )
+
+
+@pytest.mark.asyncio
+async def test_call_llm_gemini_success():
+    """Test call_llm function with Gemini fallback."""
+    # Check if GEMINI_API_KEY is set
+    if not config.GEMINI_API_KEY:
+        pytest.skip("GEMINI_API_KEY not set, skipping test")
+
+    llm_service = LLMService()
+
+    # Mock Ollama to fail and Gemini to succeed
+    with patch.object(llm_service, 'call_ollama', side_effect=Exception("Ollama error")):
+        with patch.object(llm_service, 'call_gemini', return_value={"response": "gemini response"}):
+
+            result = await llm_service.call_llm("classify", "test prompt")
+
+            # Verify the result came from Gemini
+            assert result == {"response": "gemini response"}

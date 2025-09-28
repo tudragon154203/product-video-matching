@@ -5,7 +5,6 @@ Provides functionality to automatically remove old video files based on age.
 """
 
 import os
-import time
 from datetime import datetime, timedelta
 from pathlib import Path
 from typing import List, Dict, Any, Optional

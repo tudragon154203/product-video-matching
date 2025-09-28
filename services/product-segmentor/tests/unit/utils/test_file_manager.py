@@ -1,16 +1,17 @@
 """Tests for file manager functionality."""
 
-import pytest
-pytestmark = pytest.mark.unit
-from unittest.mock import patch
-import numpy as np
-import tempfile
 import shutil
+import tempfile
 from pathlib import Path
+from unittest.mock import patch
+
+import numpy as np
+import pytest
 from PIL import Image
 
 from utils.file_manager import FileManager
-from config_loader import config
+
+pytestmark = pytest.mark.unit
 
 
 class TestFileManager:
