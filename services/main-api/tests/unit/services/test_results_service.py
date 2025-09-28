@@ -2,7 +2,7 @@
 Unit tests for ResultsService.
 Minimal test cases focusing on core functionality.
 """
-from models.results_schemas import MatchResponse, MatchDetailResponse, StatsResponse
+from models.results_schemas import StatsResponse
 from services.results.results_service import ResultsService
 from datetime import datetime
 from unittest.mock import AsyncMock, MagicMock

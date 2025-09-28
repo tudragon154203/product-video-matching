@@ -1,4 +1,4 @@
-from main import app # Import app directly
+from main import app     # Import app directly
 from httpx import AsyncClient  # Use AsyncClient for async tests
 import pytz
 from datetime import datetime, timedelta, timezone
@@ -56,8 +56,8 @@ def setup_mocks(monkeypatch):  # Add monkeypatch as an argument
     monkeypatch.setenv("BUS_BROKER", "amqp://guest:guest@localhost:5672/")
 
     # Initialize mocks with default return values
-    job_service_mock = AsyncMock(spec=JobService)
-    job_management_service_mock = AsyncMock(spec=JobManagementService)
+    job_service_mock = AsyncMock(spec=JobService)  # noqa: F821
+    job_management_service_mock = AsyncMock(spec=JobManagementService)  # noqa: F821
 
     product_image_crud_mock = MagicMock()
     product_image_crud_mock.create_product_image = AsyncMock(
@@ -77,8 +77,8 @@ def setup_mocks(monkeypatch):  # Add monkeypatch as an argument
     product_crud_mock.get_product = AsyncMock(return_value=None)
     product_crud_mock.list_products = AsyncMock(return_value=[])
 
-    db_mock = AsyncMock(spec=DatabaseManager)
-    broker_mock = AsyncMock(spec=MessageBroker)
+    db_mock = AsyncMock(spec=DatabaseManager)  # noqa: F821
+    broker_mock = AsyncMock(spec=MessageBroker)  # noqa: F821
 
     # Set job_service_mock's job_management_service attribute to the mock
     job_service_mock.job_management_service = job_management_service_mock
@@ -153,7 +153,7 @@ async def test_get_job_images_not_found():
         counts={"products": 0, "videos": 0, "images": 0, "frames": 0},
         updated_at=None
     )
-    job_service_mock.get_job_status.return_value = mock_job_status
+    job_service_mock.get_job_status.return_value = mock_job_status  # noqa: F821
     async with AsyncClient(app=app, base_url="http://localhost:8888") as ac:
         response = await ac.get(f"/jobs/{nonexistent_job}/images")
 
@@ -167,11 +167,11 @@ async def test_get_job_images_not_found():
 @pytest.mark.asyncio
 async def test_get_job_images_with_product_id_filter():
     """Test GET /jobs/{job_id}/images with product_id filter."""
-    product_image_crud_mock.list_product_images_by_job.return_value = [
+    product_image_crud_mock.list_product_images_by_job.return_value = [  # noqa: F821
         MockProductImage(MOCK_IMAGE_ID_1, MOCK_PRODUCT_ID_1,
                          "/path/to/image1.jpg", "Product Title 1", datetime.now())
     ]
-    product_image_crud_mock.count_product_images_by_job.return_value = 1
+    product_image_crud_mock.count_product_images_by_job.return_value = 1  # noqa: F821
 
     params = {
         "product_id": MOCK_PRODUCT_ID_1
@@ -191,11 +191,11 @@ async def test_get_job_images_with_product_id_filter():
 @pytest.mark.asyncio
 async def test_get_job_images_with_search_query():
     """Test GET /jobs/{job_id}/images with search query."""
-    product_image_crud_mock.list_product_images_by_job.return_value = [
+    product_image_crud_mock.list_product_images_by_job.return_value = [  # noqa: F821
         MockProductImage(MOCK_IMAGE_ID_1, MOCK_PRODUCT_ID_1,
                          "/path/to/image1.jpg", "Specific Product Title", datetime.now())
     ]
-    product_image_crud_mock.count_product_images_by_job.return_value = 1
+    product_image_crud_mock.count_product_images_by_job.return_value = 1  # noqa: F821
 
     params = {
         "q": "Specific"
@@ -215,11 +215,11 @@ async def test_get_job_images_with_search_query():
 @pytest.mark.asyncio
 async def test_get_job_images_with_pagination():
     """Test GET /jobs/{job_id}/images with pagination."""
-    product_image_crud_mock.list_product_images_by_job.return_value = [
+    product_image_crud_mock.list_product_images_by_job.return_value = [  # noqa: F821
         MockProductImage(MOCK_IMAGE_ID_1, MOCK_PRODUCT_ID_1,
                          "/path/to/image1.jpg", "Product Title 1", datetime.now())
     ]
-    product_image_crud_mock.count_product_images_by_job.return_value = 1
+    product_image_crud_mock.count_product_images_by_job.return_value = 1  # noqa: F821
 
     params = {
         "limit": 1,
@@ -241,11 +241,11 @@ async def test_get_job_images_with_pagination():
 @pytest.mark.asyncio
 async def test_get_job_images_with_sorting():
     """Test GET /jobs/{job_id}/images with sorting."""
-    product_image_crud_mock.list_product_images_by_job.return_value = [
+    product_image_crud_mock.list_product_images_by_job.return_value = [  # noqa: F821
         MockProductImage(MOCK_IMAGE_ID_1, MOCK_PRODUCT_ID_1,
                          "/path/to/image1.jpg", "Product Title 1", datetime.now())
     ]
-    product_image_crud_mock.count_product_images_by_job.return_value = 1
+    product_image_crud_mock.count_product_images_by_job.return_value = 1  # noqa: F821
 
     params = {
         "sort_by": "img_id",

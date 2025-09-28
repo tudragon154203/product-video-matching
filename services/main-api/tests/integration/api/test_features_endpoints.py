@@ -41,7 +41,9 @@ def get_gmt7_time(dt: Optional[datetime]) -> Optional[datetime]:
 
 @pytest.fixture(autouse=True)
 def setup_mocks(monkeypatch):  # Add monkeypatch as an argument
-    global product_image_crud_mock, video_frame_crud_mock, product_crud_mock, video_crud_mock, job_service_mock, job_management_service_mock, db_mock, broker_mock
+    global product_image_crud_mock, video_frame_crud_mock, product_crud_mock, \
+           video_crud_mock, job_service_mock, job_management_service_mock, \
+           db_mock, broker_mock
 
     # Set environment variables for tests
     monkeypatch.setenv(
@@ -100,7 +102,8 @@ def setup_mocks(monkeypatch):  # Add monkeypatch as an argument
     job_service_mock.job_management_service = job_management_service_mock
 
     # Import dependency functions from the endpoint modules
-    from api.features_endpoints import get_db, get_broker, get_job_service, get_product_image_crud, get_video_frame_crud, get_product_crud, get_video_crud
+    from api.features_endpoints import get_db, get_broker, get_job_service, \
+        get_product_image_crud, get_video_frame_crud, get_product_crud, get_video_crud
 
     # Override dependencies in the FastAPI app by replacing the dependency functions
     app.dependency_overrides[get_db] = lambda: db_mock
@@ -133,18 +136,39 @@ def setup_mocks(monkeypatch):  # Add monkeypatch as an argument
     # This matches the job management service logic which returns phase="unknown" when job is not found
     product_image_crud_mock.count_product_images_by_job.side_effect = [
         10, 5, 3, 2]  # For summary test
-    product_image_crud_mock.list_product_images_by_job_with_features.return_value = [MagicMock(
-        img_id="img1", product_id="prod1", masked_local_path="/path/to/segment.png", emb_rgb=b"some_embedding", emb_gray=None, kp_blob_path="/path/to/keypoints.json", updated_at=datetime.now(timezone.utc), created_at=datetime.now(timezone.utc))]
-    product_image_crud_mock.get_product_image.return_value = MagicMock(img_id="test_img_id", product_id="prod1", masked_local_path="/path/to/segment.png",
-                                                                       emb_rgb=b"some_embedding", emb_gray=None, kp_blob_path="/path/to/keypoints.json", updated_at=datetime.now(timezone.utc), created_at=datetime.now(timezone.utc))
+    product_image_crud_mock.list_product_images_by_job_with_features.return_value = [
+        MagicMock(
+            img_id="img1", product_id="prod1",
+            masked_local_path="/path/to/segment.png",
+            emb_rgb=b"some_embedding", emb_gray=None,
+            kp_blob_path="/path/to/keypoints.json",
+            updated_at=datetime.now(timezone.utc),
+            created_at=datetime.now(timezone.utc)
+        )
+    ]  # noqa: F821
+    product_image_crud_mock.get_product_image.return_value = MagicMock(  # noqa: F821
+        img_id="test_img_id", product_id="prod1",
+        masked_local_path="/path/to/segment.png",
+        emb_rgb=b"some_embedding", emb_gray=None,
+        kp_blob_path="/path/to/keypoints.json",
+        updated_at=datetime.now(timezone.utc),
+        created_at=datetime.now(timezone.utc))
 
     # Configure mock video frame CRUD (specific for test_features_endpoints)
     video_frame_crud_mock.count_video_frames_by_job.side_effect = [
         20, 10, 6, 4]  # For summary test
-    video_frame_crud_mock.list_video_frames_by_job_with_features.return_value = [MagicMock(frame_id="frame1", video_id="video1", ts=1.23, masked_local_path="/path/to/frame_segment.png",
-                                                                                           emb_rgb=b"some_embedding", emb_gray=None, kp_blob_path="/path/to/frame_keypoints.json", updated_at=datetime.now(timezone.utc), created_at=datetime.now(timezone.utc))]
-    video_frame_crud_mock.get_video_frame.return_value = MagicMock(frame_id="test_frame_id", video_id="video1", ts=1.23, masked_local_path="/path/to/frame_segment.png",
-                                                                   emb_rgb=b"some_embedding", emb_gray=None, kp_blob_path="/path/to/frame_keypoints.json", updated_at=datetime.now(timezone.utc), created_at=datetime.now(timezone.utc))
+    video_frame_crud_mock.list_video_frames_by_job_with_features.return_value = [
+        MagicMock(frame_id="frame1", video_id="video1", ts=1.23,
+                  masked_local_path="/path/to/frame_segment.png",
+                  emb_rgb=b"some_embedding", emb_gray=None,
+                  kp_blob_path="/path/to/frame_keypoints.json",
+                  updated_at=datetime.now(timezone.utc), created_at=datetime.now(timezone.utc))]
+    video_frame_crud_mock.get_video_frame.return_value = MagicMock(
+        frame_id="test_frame_id", video_id="video1", ts=1.23,
+        masked_local_path="/path/to/frame_segment.png",
+        emb_rgb=b"some_embedding", emb_gray=None,
+        kp_blob_path="/path/to/frame_keypoints.json",
+        updated_at=datetime.now(timezone.utc), created_at=datetime.now(timezone.utc))
 
     yield  # Run the test
 
@@ -168,12 +192,12 @@ async def test_get_features_summary_success():
         counts={"products": 0, "videos": 0, "images": 0, "frames": 0},
         updated_at=mock_updated_at
     )
-    job_service_mock.get_job_status.return_value = mock_job_status
-    product_image_crud_mock.count_product_images_by_job.side_effect = [
+    job_service_mock.get_job_status.return_value = mock_job_status  # noqa: F821
+    product_image_crud_mock.count_product_images_by_job.side_effect = [  # noqa: F821
         10, 5, 3, 2]
-    video_frame_crud_mock.count_video_frames_by_job.side_effect = [
+    video_frame_crud_mock.count_video_frames_by_job.side_effect = [  # noqa: F821
         20, 10, 6, 4]
-    db_mock.fetch_one.return_value = {"updated_at": mock_updated_at}
+    db_mock.fetch_one.return_value = {"updated_at": mock_updated_at}  # noqa: F821
 
     async with AsyncClient(app=app, base_url="http://localhost:8888") as ac:
         response = await ac.get(f"/jobs/{job_id}/features/summary")
@@ -209,7 +233,7 @@ async def test_get_features_summary_job_not_found():
         counts={"products": 0, "videos": 0, "images": 0, "frames": 0},
         updated_at=None
     )
-    job_service_mock.get_job_status.return_value = mock_job_status
+    job_service_mock.get_job_status.return_value = mock_job_status  # noqa: F821
 
     async with AsyncClient(app=app, base_url="http://localhost:8888") as ac:
         response = await ac.get(f"/jobs/{job_id}/features/summary")
@@ -241,11 +265,11 @@ async def test_get_job_product_images_features_success():
         counts={"products": 0, "videos": 0, "images": 0, "frames": 0},
         updated_at=datetime.now(timezone.utc)
     )
-    job_service_mock.get_job_status.return_value = mock_job_status
-    product_image_crud_mock.list_product_images_by_job_with_features.return_value = [
+    job_service_mock.get_job_status.return_value = mock_job_status  # noqa: F821
+    product_image_crud_mock.list_product_images_by_job_with_features.return_value = [  # noqa: F821
         mock_image]
     # Reset the side_effect and set a direct return value for this test
-    product_image_crud_mock.count_product_images_by_job = AsyncMock(
+    product_image_crud_mock.count_product_images_by_job = AsyncMock(  # noqa: F821
         return_value=1)
 
     async with AsyncClient(app=app, base_url="http://localhost:8888") as ac:
@@ -278,7 +302,7 @@ async def test_get_job_product_images_features_job_not_found():
         counts={"products": 0, "videos": 0, "images": 0, "frames": 0},
         updated_at=None
     )
-    job_service_mock.get_job_status.return_value = mock_job_status
+    job_service_mock.get_job_status.return_value = mock_job_status  # noqa: F821
 
     async with AsyncClient(app=app, base_url="http://localhost:8888") as ac:
         response = await ac.get(f"/jobs/{job_id}/features/product-images")
@@ -311,10 +335,10 @@ async def test_get_job_video_frames_features_success():
         counts={"products": 0, "videos": 0, "images": 0, "frames": 0},
         updated_at=datetime.now(timezone.utc)
     )
-    job_service_mock.get_job_status.return_value = mock_job_status
-    video_frame_crud_mock.list_video_frames_by_job_with_features.return_value = [
+    job_service_mock.get_job_status.return_value = mock_job_status  # noqa: F821
+    video_frame_crud_mock.list_video_frames_by_job_with_features.return_value = [  # noqa: F821
         mock_frame]
-    video_frame_crud_mock.count_video_frames_by_job = AsyncMock(return_value=1)
+    video_frame_crud_mock.count_video_frames_by_job = AsyncMock(return_value=1)  # noqa: F821
 
     async with AsyncClient(app=app, base_url="http://localhost:8888") as ac:
         response = await ac.get(f"/jobs/{job_id}/features/video-frames")
@@ -347,7 +371,7 @@ async def test_get_job_video_frames_features_job_not_found():
         counts={"products": 0, "videos": 0, "images": 0, "frames": 0},
         updated_at=None
     )
-    job_service_mock.get_job_status.return_value = mock_job_status
+    job_service_mock.get_job_status.return_value = mock_job_status  # noqa: F821
 
     async with AsyncClient(app=app, base_url="http://localhost:8888") as ac:
         response = await ac.get(f"/jobs/{job_id}/features/video-frames")
@@ -371,7 +395,7 @@ async def test_get_product_image_feature_success():
     mock_image.updated_at = datetime.now(timezone.utc)
     mock_image.created_at = datetime.now(timezone.utc)
 
-    product_image_crud_mock.get_product_image = AsyncMock(
+    product_image_crud_mock.get_product_image = AsyncMock(  # noqa: F821
         return_value=mock_image)
 
     async with AsyncClient(app=app, base_url="http://localhost:8888") as ac:
@@ -394,7 +418,7 @@ async def test_get_product_image_feature_success():
 @pytest.mark.asyncio
 async def test_get_product_image_feature_not_found():
     img_id = "non_existent_img"
-    product_image_crud_mock.get_product_image = AsyncMock(return_value=None)
+    product_image_crud_mock.get_product_image = AsyncMock(return_value=None)  # noqa: F821
 
     async with AsyncClient(app=app, base_url="http://localhost:8888") as ac:
         response = await ac.get(f"/features/product-images/{img_id}")
@@ -419,7 +443,7 @@ async def test_get_video_frame_feature_success():
     mock_frame.updated_at = datetime.now(timezone.utc)
     mock_frame.created_at = datetime.now(timezone.utc)
 
-    video_frame_crud_mock.get_video_frame = AsyncMock(return_value=mock_frame)
+    video_frame_crud_mock.get_video_frame = AsyncMock(return_value=mock_frame)  # noqa: F821
 
     async with AsyncClient(app=app, base_url="http://localhost:8888") as ac:
         response = await ac.get(f"/features/video-frames/{frame_id}")
@@ -442,7 +466,7 @@ async def test_get_video_frame_feature_success():
 @pytest.mark.asyncio
 async def test_get_video_frame_feature_not_found():
     frame_id = "non_existent_frame"
-    video_frame_crud_mock.get_video_frame = AsyncMock(return_value=None)
+    video_frame_crud_mock.get_video_frame = AsyncMock(return_value=None)  # noqa: F821
 
     async with AsyncClient(app=app, base_url="http://localhost:8888") as ac:
         response = await ac.get(f"/features/video-frames/{frame_id}")

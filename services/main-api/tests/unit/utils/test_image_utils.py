@@ -3,7 +3,7 @@ Unit tests for image utility functions.
 """
 from utils.image_utils import to_public_url, get_mime_type, is_safe_path
 from pathlib import Path
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch
 import tempfile
 import os
 import pytest

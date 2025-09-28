@@ -70,7 +70,8 @@ class JobInitializer:
         finally:
             logger.debug(f"llm_generate_ms: {(time.time()-t0)*1000}")
 
-    async def _publish_initial_events(self, job_id: str, request: StartJobRequest, queries: Dict[str, Any], industry: str, original_query: str):
+    async def _publish_initial_events(self, job_id: str, request: StartJobRequest,
+                                      queries: Dict[str, Any], industry: str, original_query: str):
         try:
             await self.broker_handler.publish_product_collection_request(
                 job_id,

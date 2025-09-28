@@ -189,7 +189,7 @@ async def test_get_job_videos_not_found():
         counts={"products": 0, "videos": 0, "images": 0, "frames": 0},
         updated_at=None
     )
-    job_service_mock.get_job_status.return_value = mock_job_status
+    job_service_mock.get_job_status.return_value = mock_job_status  # noqa: F821
     async with AsyncClient(app=app, base_url="http://localhost:8888") as ac:
         response = await ac.get(f"/jobs/{nonexistent_job}/videos")
 
@@ -203,11 +203,11 @@ async def test_get_job_videos_not_found():
 @pytest.mark.asyncio
 async def test_get_job_videos_with_query_params():
     """Test GET /jobs/{job_id}/videos with query parameters."""
-    video_crud_mock.list_videos_by_job.return_value = [
+    video_crud_mock.list_videos_by_job.return_value = [  # noqa: F821
         MockVideo(MOCK_VIDEO_ID_1, "youtube", "url1",
                   "Specific Video Title", 120, datetime.now())
     ]
-    video_crud_mock.count_videos_by_job.return_value = 1
+    video_crud_mock.count_videos_by_job.return_value = 1  # noqa: F821
 
     params = {
         "q": "Specific",
@@ -263,10 +263,10 @@ async def test_get_job_videos_includes_new_fields():
                        datetime.now(timezone.utc), datetime.now(timezone.utc))
     ]
 
-    video_crud_mock.list_videos_by_job.return_value = [mock_video]
-    video_crud_mock.count_videos_by_job.return_value = 1
-    video_frame_crud_mock.get_video_frames_count = AsyncMock(return_value=2)
-    video_frame_crud_mock.list_video_frames_by_video = AsyncMock(
+    video_crud_mock.list_videos_by_job.return_value = [mock_video]  # noqa: F821
+    video_crud_mock.count_videos_by_job.return_value = 1  # noqa: F821
+    video_frame_crud_mock.get_video_frames_count = AsyncMock(return_value=2)  # noqa: F821
+    video_frame_crud_mock.list_video_frames_by_video = AsyncMock(  # noqa: F821
         return_value=mock_frames)
 
     async with AsyncClient(app=app, base_url="http://localhost:8888") as ac:
@@ -303,10 +303,10 @@ async def test_get_job_videos_no_frames():
     mock_video = MockVideo(MOCK_VIDEO_ID_1, "youtube", "url1",
                            "Video Title 1", 120, datetime.now(timezone.utc))
 
-    video_crud_mock.list_videos_by_job.return_value = [mock_video]
-    video_crud_mock.count_videos_by_job.return_value = 1
-    video_frame_crud_mock.get_video_frames_count = AsyncMock(return_value=0)
-    video_frame_crud_mock.list_video_frames_by_video = AsyncMock(
+    video_crud_mock.list_videos_by_job.return_value = [mock_video]  # noqa: F821
+    video_crud_mock.count_videos_by_job.return_value = 1  # noqa: F821
+    video_frame_crud_mock.get_video_frames_count = AsyncMock(return_value=0)  # noqa: F821
+    video_frame_crud_mock.list_video_frames_by_video = AsyncMock(  # noqa: F821
         return_value=[])
 
     async with AsyncClient(app=app, base_url="http://localhost:8888") as ac:

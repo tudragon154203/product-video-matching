@@ -6,7 +6,6 @@ from unittest.mock import patch, MagicMock
 from fastapi.testclient import TestClient
 from pathlib import Path
 import httpx
-import json
 import tempfile
 import os
 import pytest

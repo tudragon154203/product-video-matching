@@ -165,13 +165,17 @@ class DatabaseHandler:
         try:
             # Count products with features (embeddings or keypoints)
             products_with_features = await self.db.fetch_val(
-                "SELECT COUNT(DISTINCT product_id) FROM product_images WHERE product_id IN (SELECT product_id FROM products WHERE job_id = $1) AND (emb_rgb IS NOT NULL OR kp_blob_path IS NOT NULL)",
+                "SELECT COUNT(DISTINCT product_id) FROM product_images WHERE "
+                "product_id IN (SELECT product_id FROM products WHERE job_id = $1) "
+                "AND (emb_rgb IS NOT NULL OR kp_blob_path IS NOT NULL)",
                 job_id
             ) or 0
 
             # Count videos with features
             videos_with_features = await self.db.fetch_val(
-                "SELECT COUNT(DISTINCT video_id) FROM video_frames WHERE video_id IN (SELECT video_id FROM videos WHERE job_id = $1) AND (emb_rgb IS NOT NULL OR kp_blob_path IS NOT NULL)",
+                "SELECT COUNT(DISTINCT video_id) FROM video_frames WHERE "
+                "video_id IN (SELECT video_id FROM videos WHERE job_id = $1) "
+                "AND (emb_rgb IS NOT NULL OR kp_blob_path IS NOT NULL)",
                 job_id
             ) or 0
 
@@ -266,7 +270,8 @@ class DatabaseHandler:
         products_with_features, videos_with_features = await self.get_features_counts(job_id)
         return product_count, video_count, products_with_features, videos_with_features
 
-    def _determine_asset_presence(self, product_count: int, video_count: int, products_with_features: int, videos_with_features: int) -> tuple[bool, bool]:
+    def _determine_asset_presence(self, product_count: int, video_count: int,
+                                  products_with_features: int, videos_with_features: int) -> tuple[bool, bool]:
         has_images = product_count > 0 or products_with_features > 0
         has_videos = video_count > 0 or videos_with_features > 0
         return has_images, has_videos

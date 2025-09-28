@@ -19,7 +19,9 @@ def run_tests():
     env["PYTHONPATH"] = f"{project_root}{os.pathsep}{project_root}/libs{os.pathsep}{env.get('PYTHONPATH', '')}"
 
     result = subprocess.run([
-        sys.executable, "-m", "pytest", "tests/test_main_api.py", "tests/test_llm_fallback.py", "tests/test_ollama_unit.py", "tests/test_gemini_unit.py", "-v"
+        sys.executable, "-m", "pytest", "tests/test_main_api.py",
+        "tests/test_llm_fallback.py", "tests/test_ollama_unit.py",
+        "tests/test_gemini_unit.py", "-v"
     ], cwd=os.path.join(os.path.dirname(__file__), ".."), env=env)
 
     if result.returncode != 0:
