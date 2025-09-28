@@ -10,12 +10,7 @@ The service maintains a stable public API while internal responsibilities are mo
 """
 
 import asyncio
-import time
 import uuid
-from typing import Dict, List, Optional, Set
-from datetime import datetime
-import numpy as np
-import cv2
 from common_py.database import DatabaseManager
 from common_py.messaging import MessageBroker
 from common_py.logging_config import configure_logging
@@ -28,7 +23,7 @@ from .image_masking_processor import ImageMaskingProcessor
 from utils.db_updater import DatabaseUpdater
 from .foreground_segmentor_factory import create_segmentor
 from segmentation.models.yolo_segmentor import YOLOSegmentor
-from .asset_processor import AssetProcessor # New import
+from .asset_processor import AssetProcessor
 from vision_common import JobProgressManager
 
 logger = configure_logging("product-segmentor:service", config.LOG_LEVEL)
@@ -103,8 +98,7 @@ class ProductSegmentorService:
             image_masking_processor=self.image_masking_processor,
             db_updater=self.db_updater,
             event_emitter=self.event_emitter,
-            job_progress_manager=self.job_progress_manager
-            # completion_manager removed
+            job_progress_manager=self.job_progress_manager,
         )
         
         self.initialized = False
@@ -177,7 +171,10 @@ class ProductSegmentorService:
             # before batch event arrives with actual total
             if not self.job_progress_manager._is_batch_initialized(job_id, "image"):
                 await self.job_progress_manager.initialize_with_high_expected(job_id, "image")
-                logger.debug("Initialized job with high expected count for single image", job_id=job_id)
+                logger.debug(
+                    "Initialized job with high expected count for single image",
+                    job_id=job_id,
+                )
             
             await self.asset_processor.handle_single_asset_processing(
                 event_data=event_data,
@@ -188,36 +185,55 @@ class ProductSegmentorService:
                 job_id=job_id
             )
     
-    async def _handle_batch_event(self, job_id: str, asset_type: str, total_items: int, event_type: str, event_id: str = None) -> None:
-        logger.info("Batch event received",
-                   job_id=job_id,
-                   asset_type=asset_type,
-                   total_items=total_items,
-                   event_type=event_type,
-                   event_id=event_id)
+    async def _handle_batch_event(
+        self,
+        job_id: str,
+        asset_type: str,
+        total_items: int,
+        event_type: str,
+        event_id: str | None = None,
+    ) -> None:
+        logger.info(
+            "Batch event received",
+            job_id=job_id,
+            asset_type=asset_type,
+            total_items=total_items,
+            event_type=event_type,
+            event_id=event_id,
+        )
 
         await self.job_progress_manager._start_watermark_timer(job_id, 300, "segmentation")
 
         if total_items == 0:
-            logger.info("Zero-asset job - publishing immediate batch completion", job_id=job_id, asset_type=asset_type)
+            logger.info(
+                "Zero-asset job - publishing immediate batch completion",
+                job_id=job_id,
+                asset_type=asset_type,
+            )
             if asset_type == "image":
-                await self.job_progress_manager.publish_products_images_masked_batch(job_id=job_id, total_images=0)
+                await self.job_progress_manager.publish_products_images_masked_batch(
+                    job_id=job_id,
+                    total_images=0,
+                )
             else:
-                await self.job_progress_manager.publish_videos_keyframes_masked_batch(job_id=job_id, total_keyframes=0)
+                await self.job_progress_manager.publish_videos_keyframes_masked_batch(
+                    job_id=job_id,
+                    total_keyframes=0,
+                )
         else:
-            await self.job_progress_manager.update_job_progress(job_id, asset_type, total_items, 0, "segmentation")
-            logger.debug("Batch initialized - waiting for individual asset processing", job_id=job_id, total_items=total_items)
+            await self.job_progress_manager.update_job_progress(
+                job_id,
+                asset_type,
+                total_items,
+                0,
+                "segmentation",
+            )
+            logger.debug(
+                "Batch initialized - waiting for individual asset processing",
+                job_id=job_id,
+                total_items=total_items,
+            )
 
-    async def handle_products_images_ready_batch(self, event_data: dict) -> None:
-        """Handle product images batch completion event."""
-        try:
-            job_id = event_data["job_id"]
-            total_images = event_data["total_images"]
-            await self._handle_batch_event(job_id, "image", total_images, "products_images_ready_batch")
-        except Exception as e:
-            logger.error("Failed to handle products images ready batch", job_id=job_id, error=str(e))
-            raise
-    
     async def handle_videos_keyframes_ready(self, event_data: dict) -> None:
         """Handle video keyframes ready event. 
         
@@ -239,15 +255,14 @@ class ProductSegmentorService:
         for frame in frames:
             frame_id = frame["frame_id"]
             ts = frame["ts"]
-            local_path = frame["local_path"]
 
             mask_path = await self.asset_processor.handle_single_asset_processing(
                 event_data=frame,
                 asset_type="frame",
                 asset_id_key="frame_id",
                 db_update_func=self.db_updater.update_video_frame_mask,
-                emit_masked_func=None, # Individual frame masked event is handled by emit_video_keyframes_masked
-                job_id=job_id # Pass job_id explicitly for frames
+                emit_masked_func=None,  # Individual frame masked event handled by batch emitter
+                job_id=job_id,  # Pass job_id explicitly for frames
             )
 
             if mask_path:
@@ -258,11 +273,26 @@ class ProductSegmentorService:
                 })
 
         if processed_frames:
-            await self.event_emitter.emit_video_keyframes_masked(job_id=job_id, video_id=video_id, frames=processed_frames)
-            logger.info("Video keyframes processed", video_id=video_id, processed=len(processed_frames))
+            await self.event_emitter.emit_video_keyframes_masked(
+                job_id=job_id,
+                video_id=video_id,
+                frames=processed_frames,
+            )
+            logger.info(
+                "Video keyframes processed",
+                video_id=video_id,
+                processed=len(processed_frames),
+            )
 
-        # Update progress for the batch of frames (completion check handled by individual processing)  
-        await self.job_progress_manager.update_job_progress(job_id, "frame", len(frames), 0, "segmentation")
+        # Update progress for the batch of frames.
+        # Completion checks are handled by individual processing steps.
+        await self.job_progress_manager.update_job_progress(
+            job_id,
+            "frame",
+            len(frames),
+            0,
+            "segmentation",
+        )
         
         # Note: Completion check moved to individual asset processing to avoid duplicate events
     
@@ -272,26 +302,44 @@ class ProductSegmentorService:
         Args:
             event_data: Batch event payload
         """
+        event_id = event_data.get("event_id")
+        job_id = event_data.get("job_id")
         try:
             job_id = event_data["job_id"]
-            event_id = event_data.get("event_id", str(uuid.uuid4()))
             total_keyframes = event_data.get("total_keyframes", 0)
+            event_id = event_id or str(uuid.uuid4())
             
             # Create a unique identifier for this batch event to detect duplicates
             batch_event_key = f"{job_id}:{event_id}"
             
             # Check if we've already processed this batch event
             if batch_event_key in self.job_progress_manager.processed_batch_events:
-                logger.info("Ignoring duplicate batch event", job_id=job_id, event_id=event_id, asset_type="video")
+                logger.info(
+                    "Ignoring duplicate batch event",
+                    job_id=job_id,
+                    event_id=event_id,
+                    asset_type="video",
+                )
                 return
             
             # Mark this batch event as processed
             self.job_progress_manager.processed_batch_events.add(batch_event_key)
 
-            await self._handle_batch_event(job_id, "video", total_keyframes, "videos_keyframes_ready_batch", event_id)
+            await self._handle_batch_event(
+                job_id,
+                "video",
+                total_keyframes,
+                "videos_keyframes_ready_batch",
+                event_id,
+            )
 
         except Exception as e:
-            logger.error("Failed to handle videos keyframes ready batch", job_id=job_id, event_id=event_id, error=str(e))
+            logger.error(
+                "Failed to handle videos keyframes ready batch",
+                job_id=job_id,
+                event_id=event_id,
+                error=str(e),
+            )
             raise
 
     async def handle_products_images_ready_batch(self, event_data: dict) -> None:
@@ -300,32 +348,35 @@ class ProductSegmentorService:
         Args:
             event_data: Batch event payload
         """
+        event_id = event_data.get("event_id")
+        job_id = event_data.get("job_id")
         try:
             job_id = event_data["job_id"]
-            event_id = event_data.get("event_id", str(uuid.uuid4()))  # Generate if not provided
             total_images = event_data.get("total_images", 0)
+            event_id = event_id or str(uuid.uuid4())
 
-            logger.info("Batch event received",
-                       job_id=job_id,
-                       asset_type="image",
-                       total_items=total_images,
-                       event_type="products_images_ready_batch",
-                       event_id=event_id)
+            logger.info(
+                "Batch event received",
+                job_id=job_id,
+                asset_type="image",
+                total_items=total_images,
+                event_type="products_images_ready_batch",
+                event_id=event_id,
+            )
 
-            # Store the total image count for the job using job progress manager
-            # Start watermark timer first to handle timeout cases
-            await self.job_progress_manager._start_watermark_timer(job_id, 300, "segmentation")
-
-            # If there are zero images, publish batch completion immediately
-            if total_images == 0:
-                logger.info("Zero images job - publishing immediate batch completion", job_id=job_id, asset_type="image")
-                # Publish immediate batch completion event for empty batch
-                await self.job_progress_manager.publish_products_images_masked_batch(job_id=job_id, total_images=0)
-            else:
-                # Initialize job tracking and let individual asset processing trigger completion
-                await self.job_progress_manager.update_job_progress(job_id, "image", total_images, 0, "segmentation")
-                logger.debug("Products images batch initialized - waiting for individual asset processing", job_id=job_id, total_images=total_images)
+            await self._handle_batch_event(
+                job_id,
+                "image",
+                total_images,
+                "products_images_ready_batch",
+                event_id,
+            )
 
         except Exception as e:
-            logger.error("Failed to handle products images ready batch", job_id=job_id, event_id=event_id, error=str(e))
+            logger.error(
+                "Failed to handle products images ready batch",
+                job_id=job_id,
+                event_id=event_id,
+                error=str(e),
+            )
             raise

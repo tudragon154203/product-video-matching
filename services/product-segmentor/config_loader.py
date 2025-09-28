@@ -5,10 +5,9 @@ Uses environment variables directly since Docker Compose loads both shared and s
 import os
 import sys
 from dataclasses import dataclass
-from typing import Optional
 
 from dotenv import load_dotenv
-load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), '.env'))
+load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), ".env"))
 
 # Add libs directory to PYTHONPATH for imports
 sys.path.insert(0, '/app/libs')

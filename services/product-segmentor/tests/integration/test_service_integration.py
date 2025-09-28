@@ -1,20 +1,20 @@
 "Integration tests for Product Segmentor Service."
-
-import pytest
-pytestmark = pytest.mark.integration
-import asyncio
-import numpy as np
-from unittest.mock import AsyncMock, Mock, patch
-import tempfile
-import shutil
-import uuid
 import os
-from PIL import Image
-import cv2
+import shutil
+import tempfile
+import uuid
+from unittest.mock import AsyncMock, patch
 
-from services.service import ProductSegmentorService
-from segmentation.interface import SegmentationInterface
+import cv2
+import numpy as np
+import pytest
+from PIL import Image
+
 from config_loader import config
+from segmentation.interface import SegmentationInterface
+from services.service import ProductSegmentorService
+
+pytestmark = pytest.mark.integration
 
 
 class MockSegmentor(SegmentationInterface):
@@ -134,7 +134,7 @@ class TestProductSegmentorServiceIntegration:
         }
         
         # Mock save_product_final_mask to return a valid path and create a dummy file
-        mock_mask_path = os.path.join(temp_dir, f"product_mask_img_123.png")
+        mock_mask_path = os.path.join(temp_dir, "product_mask_img_123.png")
         with patch.object(service.file_manager, 'save_product_final_mask', return_value=mock_mask_path) as mock_save, \
              patch('cv2.imread', return_value=np.ones((100, 100), dtype=np.uint8) * 255):
             # Create a dummy mask file for cv2.imread to find
@@ -248,7 +248,7 @@ class TestProductSegmentorServiceIntegration:
         mock_mask_path_1 = os.path.join(temp_dir, "video_mask_frame_1.png")
         mock_mask_path_2 = os.path.join(temp_dir, "video_mask_frame_2.png")
         
-        with patch.object(service.file_manager, 'save_frame_mask', side_effect=[mock_mask_path_1, mock_mask_path_2]) as mock_save:
+        with patch.object(service.file_manager, 'save_frame_mask', side_effect=[mock_mask_path_1, mock_mask_path_2]):
             with patch('services.service.cv2.imread', return_value=np.ones((100, 100), dtype=np.uint8) * 255):
                 # Create dummy mask files for cv2.imread to find
                 Image.fromarray(np.ones((100, 100), dtype=np.uint8) * 255, mode='L').save(mock_mask_path_1)
@@ -264,7 +264,6 @@ class TestProductSegmentorServiceIntegration:
         
         # Verify event was published via event_emitter
         # Calculate the expected final mask paths based on FileManager's logic
-        from config_loader import config
         from pathlib import Path
         expected_mask_path_1_obj = Path(config.PRODUCT_MASK_DIR_PATH) / "video_frames" / f"{event_data['frames'][0]['frame_id']}.png"
         expected_mask_path_1 = str(expected_mask_path_1_obj)
