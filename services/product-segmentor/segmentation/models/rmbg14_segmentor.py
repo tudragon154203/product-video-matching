@@ -1,21 +1,21 @@
 """RMBG (Remove Background) segmentation implementation using Hugging Face transformers for version 1.4."""
 
-import os
 import asyncio
+import os
 from typing import Optional
+
 import numpy as np
-from PIL import Image
 import torch
 from torchvision import transforms
 from transformers import AutoModelForImageSegmentation
+
 from common_py.logging_config import configure_logging
 
+from config_loader import config
 from segmentation.base_segmentation import BaseSegmentation
-from segmentation.segmentation_utils import prepare_image, normalize_and_resize_mask # New import
+from segmentation.segmentation_utils import normalize_and_resize_mask, prepare_image
 
 logger = configure_logging("product-segmentor:rmbg14_segmentor")
-
-from config_loader import config
 
 
 class RMBG14Segmentor(BaseSegmentation):

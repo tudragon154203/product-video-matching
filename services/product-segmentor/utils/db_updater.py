@@ -10,7 +10,6 @@ delegating file management to the FileManager and image processing to other modu
 """
 from common_py.database import DatabaseManager
 from common_py.logging_config import configure_logging
-from utils.file_manager import FileManager
 
 logger = configure_logging("product-segmentor:db_updater")
 

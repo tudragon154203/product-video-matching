@@ -1,6 +1,6 @@
 """Base abstract class for segmentation models with common functionality."""
 
-from abc import ABC, abstractmethod
+from abc import abstractmethod
 from typing import Optional
 import numpy as np
 from .interface import SegmentationInterface

@@ -12,8 +12,10 @@ to other modules.
 """
 import time
 from typing import Optional
+
 from common_py.logging_config import configure_logging
 from segmentation.interface import SegmentationInterface
+from utils.file_manager import FileManager
 
 logger = configure_logging("product-segmentor:image_processor")
 
@@ -37,7 +39,7 @@ class ImageProcessor:
         image_id: str,
         local_path: str,
         image_type: str,
-        file_manager  # FileManager dependency will be injected
+        file_manager: FileManager
     ) -> Optional[str]:
         """Process a single image to generate mask.
         
@@ -74,9 +76,10 @@ class ImageProcessor:
             logger.info(
                 "Image segmented",
                 segmentation_time_seconds=f"{segmentation_time:.2f}",
-                local_path=local_path
-            )            
-                        # Save mask to filesystem
+                local_path=local_path,
+            )
+
+            # Save mask to filesystem
             if image_type == "product":
                 mask_path = await file_manager.save_product_mask(image_id, mask)
             else:  # frame

@@ -78,14 +78,14 @@ class FileManager:
         """Save people mask."""
         if image_type == "product":
             return await self._save_mask(self.people_products_dir, image_id, mask)
-        else: # frame
+        else:  # frame
             return await self._save_mask(self.people_frames_dir, image_id, mask)
 
     async def save_product_final_mask(self, image_id: str, mask: np.ndarray, image_type: str) -> str:
         """Save final product mask (foreground - people)."""
         if image_type == "product":
             return await self._save_mask(self.product_products_dir, image_id, mask)
-        else: # frame
+        else:  # frame
             return await self._save_mask(self.product_frames_dir, image_id, mask)
 
     async def _save_mask(self, base_dir: Path, image_id: str, mask: np.ndarray) -> str:

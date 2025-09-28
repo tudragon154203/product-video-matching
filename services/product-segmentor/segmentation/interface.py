@@ -11,16 +11,16 @@ class SegmentationInterface(ABC):
     @abstractmethod
     async def segment_image(self, image_path: str) -> Optional[np.ndarray]:
         """Generate product mask for image.
-        
+
         Args:
             image_path: Path to input image file
-            
+
         Returns:
-            Binary mask as numpy array (0=background, 255=foreground) 
+            Binary mask as numpy array (0=background, 255=foreground)
             or None if segmentation fails
-            
+
         Raises:
             FileNotFoundError: If image file doesn't exist
             Exception: If segmentation processing fails
         """
-        pass
+        raise NotImplementedError

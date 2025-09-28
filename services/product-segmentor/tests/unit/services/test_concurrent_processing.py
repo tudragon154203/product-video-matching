@@ -1,15 +1,17 @@
 """Tests for concurrent processing and resource management."""
 
-import pytest
-pytestmark = pytest.mark.unit
 import asyncio
-import numpy as np
-from unittest.mock import AsyncMock, Mock, patch
-import tempfile
 import shutil
+import tempfile
+from unittest.mock import AsyncMock, patch
 
-from services.service import ProductSegmentorService
+import numpy as np
+import pytest
+
 from segmentation.interface import SegmentationInterface
+from services.service import ProductSegmentorService
+
+pytestmark = pytest.mark.unit
 
 
 class MockSegmentor(SegmentationInterface):
