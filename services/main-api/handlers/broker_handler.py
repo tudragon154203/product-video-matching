@@ -4,6 +4,7 @@ from common_py.logging_config import configure_logging
 
 logger = configure_logging("main-api:broker_handler")
 
+
 class BrokerHandler:
     def __init__(self, broker: MessageBroker):
         self.broker = broker
@@ -22,7 +23,8 @@ class BrokerHandler:
                 correlation_id=job_id
             )
         except Exception as e:
-            logger.warning(f"Failed to publish product collection request: {e}")
+            logger.warning(
+                f"Failed to publish product collection request: {e}")
             raise
 
     async def publish_video_search_request(self, job_id: str, industry: str, queries: Dict[str, Any], platforms: list, recency_days: int):
@@ -59,7 +61,8 @@ class BrokerHandler:
             )
             logger.info(f"Published match request for job {job_id}")
         except Exception as e:
-            logger.error(f"Failed to publish match request for job {job_id}: {str(e)}")
+            logger.error(
+                f"Failed to publish match request for job {job_id}: {str(e)}")
             raise
 
     async def publish_job_completed(self, job_id: str):
@@ -74,5 +77,6 @@ class BrokerHandler:
             )
             logger.info(f"Published job completion for job {job_id}")
         except Exception as e:
-            logger.error(f"Failed to publish job completion for job {job_id}: {str(e)}")
+            logger.error(
+                f"Failed to publish job completion for job {job_id}: {str(e)}")
             raise

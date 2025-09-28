@@ -56,7 +56,8 @@ async def select_primary_images(
                 })
 
         if not valid_images:
-            logger.debug(f"No valid images with paths found for product {product_id}")
+            logger.debug(
+                f"No valid images with paths found for product {product_id}")
             return None, image_count
 
         # Sort images by: updated_at (newest first), then by img_id (lowest first)
@@ -65,7 +66,8 @@ async def select_primary_images(
             # Use negative updated_at for descending order (newest first)
             updated_at_val = getattr(image, 'updated_at', None)
             return (
-                -(updated_at_val.timestamp() if updated_at_val else float('-inf')),  # Newest first, None sorts last
+                # Newest first, None sorts last
+                -(updated_at_val.timestamp() if updated_at_val else float('-inf')),
                 image.img_id  # Lowest img_id as tiebreaker
             )
 
@@ -80,5 +82,6 @@ async def select_primary_images(
         )
 
     except Exception as e:
-        logger.warning(f"Error selecting primary images for product {product_id}: {e}")
+        logger.warning(
+            f"Error selecting primary images for product {product_id}: {e}")
         return None, 0

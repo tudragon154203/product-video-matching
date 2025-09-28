@@ -1,4 +1,4 @@
-name: "🧪 CI - main-api (Unit)"
+name: "?? CI - main-api (Unit)"
 
 on:
   push:
@@ -64,7 +64,7 @@ jobs:
           pip install -r requirements.txt -r ../../requirements-test.txt
 
       - name: Lint
-        run: flake8 api/ handlers/ middleware/ models/ services/ utils/ tests/ main.py config_loader.py
+        run: flake8 .
 
       - name: Run tests (skip integration)
-        run: pytest -q -m unit --disable-warnings --maxfail=1
+        run: pytest -q -m "not integration" --disable-warnings --maxfail=1 tests/unit tests/contract

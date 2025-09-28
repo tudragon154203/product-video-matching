@@ -19,6 +19,8 @@ logger = configure_logging("main-api:static_endpoints")
 router = APIRouter()
 
 # Dependency function
+
+
 def get_static_file_service() -> StaticFileService:
     return StaticFileService()
 
@@ -66,14 +68,16 @@ async def serve_static_file(
         # Log error cases
         # Note: file_path might not be defined if an exception occurred early
         try:
-            static_service.log_request(request, filename, file_path, status=404 if "not found" in str(locals().get('file_path', '')) else 403)
+            static_service.log_request(request, filename, file_path, status=404 if "not found" in str(
+                locals().get('file_path', '')) else 403)
         except:
             pass  # Ignore logging errors
         raise
     except FileNotFoundError:
         # Handle file not found specifically
         try:
-            static_service.log_request(request, filename, file_path, status=404)
+            static_service.log_request(
+                request, filename, file_path, status=404)
         except:
             pass  # Ignore logging errors
         raise HTTPException(status_code=404, detail="File not found")
@@ -81,7 +85,8 @@ async def serve_static_file(
         logger.error(f"Error serving file {filename}: {e}")
         # Note: file_path might not be defined if an exception occurred early
         try:
-            static_service.log_request(request, filename, file_path, status=500)
+            static_service.log_request(
+                request, filename, file_path, status=500)
         except:
             pass  # Ignore logging errors
         raise HTTPException(status_code=500, detail="Internal server error")
@@ -116,4 +121,3 @@ async def static_files_health(static_service: StaticFileService = Depends(get_st
     except Exception as e:
         logger.error(f"Static files health check failed: {e}")
         return {"status": "error", "message": f"Health check failed: {e}"}
-

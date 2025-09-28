@@ -66,16 +66,19 @@ async def select_preview_frame(
 
                 # Check if segmented frame exists and is valid
                 if hasattr(frame, 'segment_local_path') and frame.segment_local_path:
-                    segment_url = to_public_url(frame.segment_local_path, data_root)
+                    segment_url = to_public_url(
+                        frame.segment_local_path, data_root)
                     if segment_url:
                         frame_data['segment_url'] = segment_url
                         frame_data['has_segment'] = True
-                        frame_data['priority'] = 1  # Higher priority for segmented frames
+                        # Higher priority for segmented frames
+                        frame_data['priority'] = 1
 
                 valid_frames.append(frame_data)
 
         if not valid_frames:
-            logger.debug(f"No valid frames with paths found for video {video_id}")
+            logger.debug(
+                f"No valid frames with paths found for video {video_id}")
             return None
 
         # Sort frames by priority, then by distance from middle timestamp,
@@ -88,9 +91,11 @@ async def select_preview_frame(
             # Use negative updated_at for descending order (newest first)
             updated_at_val = getattr(frame, 'updated_at', None)
             return (
-                frame_data['priority'],  # Priority first (segmented frames preferred)
+                # Priority first (segmented frames preferred)
+                frame_data['priority'],
                 distance_from_middle,    # Closest to middle timestamp
-                -(updated_at_val.timestamp() if updated_at_val else float('-inf')),  # Newest first, None sorts last
+                # Newest first, None sorts last
+                -(updated_at_val.timestamp() if updated_at_val else float('-inf')),
                 frame.frame_id           # Lowest frame_id as tiebreaker
             )
 
@@ -108,7 +113,8 @@ async def select_preview_frame(
         }
 
     except Exception as e:
-        logger.warning(f"Error selecting preview frame for video {video_id}: {e}")
+        logger.warning(
+            f"Error selecting preview frame for video {video_id}: {e}")
         return None
 
 
@@ -159,10 +165,11 @@ async def get_first_keyframe_url(
             # To match, I'll return the relative URL like select_preview_frame does.
             return public_url
         else:
-            logger.debug(f"Could not generate public URL for first frame of video {video_id}")
+            logger.debug(
+                f"Could not generate public URL for first frame of video {video_id}")
             return None
 
     except Exception as e:
-        logger.warning(f"Error getting first keyframe for video {video_id}: {e}")
+        logger.warning(
+            f"Error getting first keyframe for video {video_id}: {e}")
         return None
-

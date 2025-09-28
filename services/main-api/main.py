@@ -1,3 +1,18 @@
+from contextlib import asynccontextmanager
+from middleware.static_file_logging import StaticFileLoggingMiddleware
+from middleware.cors import add_cors_middleware
+from api.results_endpoints import router as results_router
+from api.features_endpoints import router as features_router
+from api.product_endpoints import router as product_router
+from api.static_endpoints import router as static_router
+from api.image_endpoints import router as image_router
+from api.video_endpoints import router as video_router
+from api.health_endpoints import router as health_router
+from api.job_endpoints import router as job_router
+from handlers.lifecycle_handler import LifecycleHandler
+from services.job.job_service import JobService
+from api.dependency import init_dependencies, get_db, get_broker
+from config_loader import config
 from fastapi import FastAPI
 
 from common_py.logging_config import configure_logging
@@ -6,31 +21,17 @@ from common_py.logging_config import configure_logging
 logger = configure_logging("main-api:main")
 
 # Load service-specific configuration
-from config_loader import config
 
 # Initialize dependencies for the entire application
-from api.dependency import init_dependencies, get_db, get_broker
 init_dependencies()
 
 # Import services
-from services.job.job_service import JobService
 
 # Import handlers
-from handlers.lifecycle_handler import LifecycleHandler
 
 # Import API endpoints
-from api.job_endpoints import router as job_router
-from api.health_endpoints import router as health_router
-from api.video_endpoints import router as video_router
-from api.image_endpoints import router as image_router
-from api.static_endpoints import router as static_router
-from api.product_endpoints import router as product_router
-from api.features_endpoints import router as features_router
-from api.results_endpoints import router as results_router
 
 # Import middleware
-from middleware.cors import add_cors_middleware
-from middleware.static_file_logging import StaticFileLoggingMiddleware
 
 # Get shared instances only for lifecycle handler
 db = get_db()
@@ -42,7 +43,6 @@ job_service = JobService(db, broker)
 # Initialize lifecycle handler
 lifecycle_handler = LifecycleHandler(db, broker, job_service)
 
-from contextlib import asynccontextmanager
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -73,4 +73,3 @@ app.include_router(results_router)
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000)
-
