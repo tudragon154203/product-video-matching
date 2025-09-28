@@ -1,6 +1,5 @@
 import asyncio
 import sys
-import os
 from contextlib import asynccontextmanager
 
 # Add the app directory to the Python path for bind mount setup
@@ -8,7 +7,6 @@ sys.path.append("/app/app")
 
 from common_py.logging_config import configure_logging
 from handlers.keypoint_handler import VisionKeypointHandler
-from config_loader import config
 
 logger = configure_logging("vision-keypoint:main")
 
