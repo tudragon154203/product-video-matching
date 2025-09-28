@@ -1,6 +1,7 @@
 """TikTok HTTP client for searching videos via external API."""
 
 import asyncio
+from typing import Any, Dict, List
 
 import httpx
 
@@ -41,7 +42,7 @@ class TikTokSearcher:
                 logger.info(f"Attempting TikTok search for query: '{query}', num_videos: {num_videos} (attempt {attempt + 1}/{max_attempts})")
                 
                 # Prepare request payload
-                payload = {
+                payload: Dict[str, Any] = {
                     "query": query,
                     "numVideos": min(num_videos, 50),  # Cap at 50 as per API spec
                     "force_headful": False
@@ -57,8 +58,13 @@ class TikTokSearcher:
                 # Check if request was successful
                 if response.status_code == 200:
                     try:
-                        response_data = response.json()
-                        logger.info(f"Successfully retrieved TikTok search results for query '{query}', got {len(response_data.get('results', []))} results")
+                        response_data: Dict[str, Any] = response.json()
+                        results: List[Dict[str, Any]] = response_data.get("results", [])
+                        logger.info(
+                            "Successfully retrieved TikTok search results for query '%s', got %d results",
+                            query,
+                            len(results),
+                        )
                         return TikTokSearchResponse.from_api_response(response_data)
                     except ValueError as e:  # JSON decode error
                         logger.error(f"Invalid JSON response from TikTok API for query '{query}': {response.text}")
