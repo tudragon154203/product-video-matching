@@ -1,7 +1,6 @@
 param(
   [string]$WorktreePath = (Get-Location).Path,
   [string]$SecretsRoot = 'O:\product-video-matching\secrets',
-  [string]$MappingJson = '',
   [switch]$Force,
   [switch]$WhatIf
 )
@@ -65,14 +64,6 @@ $mapping = [ordered]@{
   'services\front-end'             = 'front-end.env'
 }
 
-if ($MappingJson) {
-  if (-not (Test-Path $MappingJson)) { throw "MappingJson not found: $MappingJson" }
-  $jsonMap = Get-Content $MappingJson -Raw | ConvertFrom-Json
-  $mapping = @{}
-  foreach ($k in $jsonMap.PSObject.Properties.Name) {
-    $mapping[$k -replace '/','\'] = $jsonMap.$k
-  }
-}
 
 Write-Host "==> Syncing .env and .env.test into $WorktreePath from $SecretsRoot" -ForegroundColor Cyan
 foreach ($kv in $mapping.GetEnumerator()) {
