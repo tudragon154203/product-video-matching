@@ -3,6 +3,12 @@
 Test script to validate eBay OAuth 2.0 authentication flow
 """
 
+from common_py.logging_config import configure_logging
+import httpx
+import aioredis
+from services.auth import eBayAuthService
+from config_loader import config
+import pytest
 import asyncio
 import sys
 from pathlib import Path
@@ -10,12 +16,6 @@ from pathlib import Path
 # Add current directory to Python path
 sys.path.insert(0, str(Path(__file__).parent))
 
-import pytest
-from config_loader import config
-from services.auth import eBayAuthService
-import aioredis
-import httpx
-from common_py.logging_config import configure_logging
 
 logger = configure_logging("dropship-product-finder:test_auth_flow")
 

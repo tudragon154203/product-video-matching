@@ -1,3 +1,7 @@
+import aioredis
+from config_loader import config
+from handlers.dropship_product_handler import DropshipProductHandler
+from common_py.logging_config import configure_logging
 import asyncio
 import sys
 from contextlib import asynccontextmanager
@@ -5,10 +9,6 @@ from contextlib import asynccontextmanager
 # Add the app directory to the Python path for bind mount setup
 sys.path.append("/app/app")
 
-from common_py.logging_config import configure_logging
-from handlers.dropship_product_handler import DropshipProductHandler
-from config_loader import config
-import aioredis
 
 logger = configure_logging("dropship-product-finder:main")
 

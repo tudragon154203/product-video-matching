@@ -3,6 +3,11 @@
 End-to-end test for eBay OAuth 2.0 authentication and product collection
 """
 
+from common_py.logging_config import configure_logging
+import aioredis
+from services.auth import eBayAuthService
+from collectors.ebay_product_collector import EbayProductCollector
+from config_loader import config
 import asyncio
 import pytest
 import sys
@@ -14,11 +19,6 @@ from datetime import datetime
 # Add current directory to Python path
 sys.path.insert(0, str(Path(__file__).parent))
 
-from config_loader import config
-from collectors.ebay_product_collector import EbayProductCollector
-from services.auth import eBayAuthService
-import aioredis
-from common_py.logging_config import configure_logging
 
 logger = configure_logging("dropship-product-finder:test_e2e_auth")
 

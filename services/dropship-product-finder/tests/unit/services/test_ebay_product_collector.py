@@ -525,4 +525,3 @@ class TestEbayProductCollector:
         # Verify affiliate URL is used as fallback
         assert len(products) == 1
         assert products[0]["url"] == "https://ebay.com/affiliate"
-
