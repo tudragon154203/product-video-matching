@@ -32,39 +32,36 @@ async def serve_static_file(
 ):
     """
     Serve static files directly through API routes.
-    
+
     Args:
         filename: The requested file path (relative to DATA_ROOT)
         request: The incoming HTTP request
         response: The outgoing HTTP response
-        
+
     Returns:
         FileResponse: The requested file
     """
     try:
         # Use service for secure file path handling
         file_path = static_service.get_secure_file_path(filename)
-        
+
         # Validate file access
         static_service.validate_file_access(file_path)
-        
-        # Set content type based on file extension
+
+        # Determine the content type so it can be applied to the response
         mime_type = static_service.get_content_type(file_path)
-        response.headers["content-type"] = mime_type
-        
-        # Add cache headers
-        response.headers["cache-control"] = "public, max-age=3600"
-        
+
         # Log the request for observability
         static_service.log_request(request, filename, file_path)
-        
-        # Serve the file
-        return FileResponse(
+
+        # Serve the file with appropriate headers
+        file_response = FileResponse(
             path=file_path,
             filename=file_path.name,
             media_type=mime_type
         )
-        
+        file_response.headers["cache-control"] = "public, max-age=3600"
+        return file_response
     except HTTPException:
         # Log error cases
         # Note: file_path might not be defined if an exception occurred early
@@ -94,7 +91,7 @@ async def serve_static_file(
 async def static_files_health(static_service: StaticFileService = Depends(get_static_file_service)):
     """
     Health check for static files service.
-    
+
     Returns:
         dict: Health status information
     """
@@ -102,7 +99,7 @@ async def static_files_health(static_service: StaticFileService = Depends(get_st
         # Check if data directory exists and is readable
         if not os.path.exists(static_service.data_root):
             return {"status": "error", "message": "Data directory not found"}
-        
+
         # Try to list files to verify permissions
         try:
             files = os.listdir(static_service.data_root)
@@ -115,7 +112,8 @@ async def static_files_health(static_service: StaticFileService = Depends(get_st
             }
         except PermissionError:
             return {"status": "error", "message": "Permission denied on data directory"}
-        
+
     except Exception as e:
         logger.error(f"Static files health check failed: {e}")
         return {"status": "error", "message": f"Health check failed: {e}"}
+

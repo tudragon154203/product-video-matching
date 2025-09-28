@@ -52,3 +52,52 @@ The TikTok crawler connects to an external TikTok Search API to search for video
 - Implement more efficient video segmentation strategies.
 - Add support for various video sources and formats.
 - Optimize frame extraction for performance.
+
+## Testing
+
+The video crawler service includes comprehensive unit and integration tests organized by category:
+
+### Test Categories
+- `unit`: Fast, isolated unit tests (default)
+- `integration`: Integration tests with external dependencies
+- `youtube`: YouTube-specific functionality tests
+- `real_api`: Tests requiring live API access (skipped by default)
+- `slow`: Performance and stress tests
+
+### Running Tests
+
+```bash
+# Navigate to service directory first
+cd services/video-crawler
+
+# Run only unit tests (fastest, recommended for development)
+python -m pytest -m unit
+
+# Run only integration tests
+python -m pytest -m integration
+
+# Run only YouTube-specific tests
+python -m pytest -m youtube
+
+# Run all tests (includes all categories)
+python -m pytest tests/ -v
+
+# Run with coverage
+python -m pytest --cov=platform_crawler --cov=keyframe_extractor --cov=services
+```
+
+### Test Organization
+```
+tests/
+├── unit/                    # Unit tests (pytest.mark.unit)
+│   ├── keyframe_extraction/
+│   ├── tiktok/
+│   ├── youtube/
+│   └── ...
+├── integration/            # Integration tests (pytest.mark.integration)
+│   ├── youtube/
+│   └── ...
+└── contract/               # API contract validation
+    ├── events/
+    └── http/
+```

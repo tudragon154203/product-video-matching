@@ -1,5 +1,6 @@
 """Unit tests for TikTok data models."""
 import pytest
+pytestmark = pytest.mark.unit
 from platform_crawler.tiktok.tiktok_models import TikTokVideo, TikTokSearchResponse
 
 

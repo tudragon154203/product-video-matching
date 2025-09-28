@@ -1,8 +1,4 @@
-import sys
 from fastapi import FastAPI
-
-# Add the app directory to the Python path for bind mount setup
-sys.path.append("/app/app")
 
 from common_py.logging_config import configure_logging
 
@@ -77,3 +73,4 @@ app.include_router(results_router)
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000)
+

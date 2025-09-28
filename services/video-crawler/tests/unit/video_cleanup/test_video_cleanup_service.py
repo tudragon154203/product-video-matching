@@ -2,6 +2,8 @@
 Unit tests for VideoCleanupService
 """
 
+import pytest
+pytestmark = pytest.mark.unit
 import os
 import tempfile
 import unittest
@@ -223,5 +225,4 @@ class TestVideoCleanupService(unittest.TestCase):
             self.assertEqual(service.cleanup_manager.retention_days, 10)
 
 
-if __name__ == '__main__':
-    unittest.main()
+

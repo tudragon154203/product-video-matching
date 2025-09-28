@@ -4,7 +4,7 @@ from typing import List, Dict, Any
 from datetime import datetime, timedelta
 import yt_dlp
 from common_py.logging_config import configure_logging
-from utils.filter_chain import FilterChain
+from ..utils.filter_chain import FilterChain
 from platform_crawler.youtube.youtube_filters import (
     filter_valid_entry,
     filter_duration

@@ -101,6 +101,59 @@ pytest tests/test_api_integration.py
 # Run tests from microservice directory (recommended)
 cd services\main-api
 python -m pytest tests\ -v
+
+## Pytest Test Markers
+
+Each microservice uses pytest markers for organizing and filtering tests by category:
+
+### Marker Categories
+- `unit`: Unit tests (fast, isolated) - **Recommended for most development**
+- `integration`: Integration tests (slower, may require external dependencies)
+- `youtube`: YouTube-specific tests (video crawler only)
+- `real_api`: Tests requiring real API access (skipped by default)
+- `slow`: Slow tests that take longer to run
+
+### Marker-Based Test Execution
+
+**Video Crawler Service:**
+```bash
+cd services\video-crawler
+# Run only unit tests (fastest, most common)
+python -m pytest -m unit
+
+# Run only integration tests
+python -m pytest -m integration
+
+# Run only YouTube tests
+python -m pytest -m youtube
+
+# Run all tests (unit + integration + YouTube)
+python -m pytest tests\ -v
+```
+
+**Dropship Product Finder Service:**
+```bash
+cd services\dropship-product-finder
+# Run only unit tests (fastest, most common)
+python -m pytest -m unit
+
+# Run only integration tests
+python -m pytest -m integration
+
+# Run all tests (unit + integration)
+python -m pytest tests\ -v
+```
+
+**All Microservices (best practices):**
+```bash
+# Fast development workflow - run only unit tests
+cd services\video-crawler && python -m pytest -m unit
+cd services\dropship-product-finder && python -m pytest -m unit
+
+# Before committing - run all tests including integration
+cd services\video-crawler && python -m pytest
+cd services\dropship-product-finder && python -m pytest
+```
 ```
 
 #### Testing Philosophy

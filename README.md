@@ -157,6 +157,40 @@ make smoke
 .\smoke.ps1
 ```
 
+## Testing
+
+Each microservice has its own comprehensive test suite with pytest markers for efficient test execution:
+
+### Video Crawler Tests
+```bash
+cd services/video-crawler
+python -m pytest -m unit          # Fast unit tests only
+python -m pytest -m integration  # Integration tests with external APIs
+python -m pytest -m youtube      # YouTube-specific tests
+python -m pytest tests/ -v       # All tests
+```
+
+### Dropship Product Finder Tests
+```bash
+cd services/dropship-product-finder  
+python -m pytest -m unit          # Fast unit tests only
+python -m pytest -m integration  # Integration with eBay APIs and Redis
+python -m pytest tests/ -v       # All tests
+```
+
+### Fast Development Workflow
+```bash
+# Run only unit tests for quick feedback
+cd services/video-crawler && python -m pytest -m unit
+cd services/dropship-product-finder && python -m pytest -m unit
+
+# Run comprehensive tests before commits
+cd services/video-crawler && python -m pytest
+cd services/dropship-product-finder && python -m pytest
+```
+
+For detailed test documentation, see [CLAUDE.md](CLAUDE.md#testing) and the service-specific README files.
+
 ## Usage
 
 ### Starting a Matching Job

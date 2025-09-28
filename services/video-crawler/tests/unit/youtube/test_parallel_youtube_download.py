@@ -1,5 +1,6 @@
-import asyncio
 import pytest
+pytestmark = pytest.mark.unit
+import asyncio
 from unittest.mock import AsyncMock, MagicMock, patch
 import tempfile
 import os
@@ -101,7 +102,3 @@ async def test_semaphore_concurrency_limit():
         # Verify concurrency was limited (semaphore limits to 5)
         # In reality it might reach 5-6 depending on timing
         assert mock_downloader.max_concurrent <= 6, f"Max concurrent downloads was {mock_downloader.max_concurrent}, expected <= 6"
-
-if __name__ == "__main__":
-    # Run the tests
-    pytest.main([__file__, "-v"])

@@ -69,6 +69,7 @@ class RMBG20Segmentor(BaseSegmentation):
             ])
             
             logger.info("RMBG-2.0 model initialized successfully")
+            self._initialized = True
             
         except Exception as e:
             logger.error("Failed to initialize RMBG model", error=str(e))
@@ -140,10 +141,14 @@ class RMBG20Segmentor(BaseSegmentation):
             # Clear GPU cache if using CUDA
             if self._device == "cuda" and torch.cuda.is_available():
                 torch.cuda.empty_cache()
+                
+            # Mark as not initialized
+            self._initialized = False
             logger.info("RMBG-2.0 model resources cleaned up")
             
         except Exception as e:
             logger.error("Error during cleanup", error=str(e))
+            self._initialized = False
     
     @property
     def model_name(self) -> str:

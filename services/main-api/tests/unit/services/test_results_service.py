@@ -3,6 +3,7 @@ Unit tests for ResultsService.
 Minimal test cases focusing on core functionality.
 """
 import pytest
+pytestmark = pytest.mark.unit
 from unittest.mock import AsyncMock, MagicMock
 from datetime import datetime
 

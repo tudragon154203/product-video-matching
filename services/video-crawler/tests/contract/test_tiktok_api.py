@@ -1,5 +1,6 @@
 """Contract tests for TikTok Search API integration."""
 import pytest
+pytestmark = pytest.mark.contract
 import httpx
 from unittest.mock import AsyncMock, patch
 

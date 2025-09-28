@@ -49,10 +49,11 @@
 
 - [ ] **I. Microservice Structure**: Adherence to standardized microservice layout.
 - [ ] **II. Event Contracts**: All inter-service communication conforms to defined event contracts.
-- [ ] **III. Testing Discipline**: Prioritization of integration tests, correct test execution, and passing tests.
+- [ ] **III. Testing Discipline**: Prioritization of integration tests, standardized test structure, pytest markers, and test execution.
 - [ ] **IV. Development Environment & Configuration**: Correct environment setup, configuration management, and efficient development practices.
 - [ ] **V. Data Flow Enforcement**: Strict adherence to the defined data processing pipeline and technology usage.
 - [ ] **VI. Unified Logging Standard**: Implementation of structured logging with ContextLogger, correlation ID tracking, and environment-based configuration.
+- [ ] **VII. Quality Assurance**: flake8 linting passes and all unit tests pass before code commits and merges.
 
 ## Project Structure
 
@@ -79,6 +80,10 @@ src/
 tests/
 ├── contract/
 ├── integration/
+│   ├── api/
+│   ├── auth/
+│   ├── core/
+│   └── llm/
 └── unit/
 
 # Option 2: Web application (when "frontend" + "backend" detected)
@@ -214,4 +219,4 @@ ios/ or android/
 - [ ] Complexity deviations documented
 
 ---
-*Based on Constitution v1.0.0 - See `/memory/constitution.md`*
+*Based on Constitution v1.4.0 - See `/memory/constitution.md`*
