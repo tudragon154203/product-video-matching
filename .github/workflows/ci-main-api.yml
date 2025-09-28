@@ -1,4 +1,4 @@
-name: "?? CI - main-api (Unit)"
+name: "🧪 CI - main-api (Unit)"
 
 on:
   push:
@@ -16,6 +16,10 @@ on:
       - "requirements-test.txt"
       - ".github/workflows/ci-main-api.yml"
   workflow_call:
+
+concurrency:
+  group: main-api-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   unit_api:
