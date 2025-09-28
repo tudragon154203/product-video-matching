@@ -5,6 +5,7 @@ from common_py.logging_config import configure_logging
 
 logger = configure_logging("dropship-product-finder:ebay_auth_api_client")
 
+
 class EbayAuthAPIClient:
     """Client for interacting with the eBay OAuth 2.0 token endpoint."""
 
@@ -15,13 +16,13 @@ class EbayAuthAPIClient:
         self.scopes = scopes
 
     async def request_access_token(self) -> Dict[str, Any]:
-        """
-        Requests a new access token from the eBay OAuth 2.0 token endpoint.
-        
+        """Request a new token from the eBay OAuth 2.0 token endpoint.
+
         Raises:
-            httpx.HTTPStatusError: If the API call returns an unsuccessful HTTP status code.
-            httpx.RequestError: If a network-related error occurs.
-            Exception: For any other unexpected errors.
+            httpx.HTTPStatusError: Raised when the response status code is not
+                successful.
+            httpx.RequestError: Raised for network-related failures.
+            Exception: Raised for any other unexpected errors.
         """
         try:
             credentials = f"{self.client_id}:{self.client_secret}"
@@ -29,13 +30,10 @@ class EbayAuthAPIClient:
 
             headers = {
                 "Content-Type": "application/x-www-form-urlencoded",
-                "Authorization": f"Basic {encoded_credentials}"
+                "Authorization": f"Basic {encoded_credentials}",
             }
 
-            data = {
-                "grant_type": "client_credentials",
-                "scope": self.scopes
-            }
+            data = {"grant_type": "client_credentials", "scope": self.scopes}
 
             async with httpx.AsyncClient(timeout=30.0) as client:
                 response = await client.post(self.token_url, headers=headers, data=data)
@@ -43,9 +41,11 @@ class EbayAuthAPIClient:
                 return response.json()
 
         except httpx.HTTPStatusError as e:
-            logger.error("eBay token request failed with HTTP error", 
-                        status_code=e.response.status_code, 
-                        error_response=e.response.text)
+            logger.error(
+                "eBay token request failed with HTTP error",
+                status_code=e.response.status_code,
+                error_response=e.response.text,
+            )
             raise
         except httpx.RequestError as e:
             logger.error("eBay token request failed with network error", error=str(e))
