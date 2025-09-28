@@ -6,21 +6,34 @@ logger = configure_logging("dropship-product-finder:mock_ebay_collector")
 
 
 class MockEbayCollector(BaseProductCollector):
-    """Mock eBay collector that returns fixed phone products without external dependencies"""
-    
-    def __init__(self, data_root: str, marketplaces: Optional[List[str]] = None,
-                 httpx_client: Optional[Any] = None, redis_client: Optional[Any] = None):
+    """Mock collector returning fixed phone products without dependencies."""
+
+    def __init__(
+        self,
+        data_root: str,
+        marketplaces: Optional[List[str]] = None,
+        httpx_client: Optional[Any] = None,
+        redis_client: Optional[Any] = None,
+    ):
         super().__init__(data_root)
         # Use default marketplace
         self.marketplaces = marketplaces or ["EBAY_US"]
         self.base_url = "https://api.sandbox.ebay.com/buy/browse/v1"
         self.browse_clients = {}
-        logger.info(f"Initialized MockEbayCollector for marketplaces: {self.marketplaces}")
-    
+        logger.info(
+            "Initialized MockEbayCollector for marketplaces: %s",
+            self.marketplaces,
+        )
+
     async def collect_products(self, query: str, top_k: int) -> List[Dict[str, Any]]:
-        """Collect products for eBay marketplace with fixed 'phone' query"""
-        logger.info(f"Collecting eBay products - query=phone (fixed) - top_k={top_k} - marketplaces={self.marketplaces}")
-        
+        """Collect products for the eBay marketplace with a fixed query."""
+        logger.info(
+            "Collecting eBay products",
+            query="phone",
+            top_k=top_k,
+            marketplaces=self.marketplaces,
+        )
+
         # Return mock phone products without calling real eBay API
         mock_products = [
             {
@@ -31,14 +44,16 @@ class MockEbayCollector(BaseProductCollector):
                 "brand": "Samsung",
                 "url": "https://mock.ebay.com/itm/samsung-galaxy-s21",
                 "image_url": "https://via.placeholder.com/300x300?text=Samsung+Galaxy+S21",
-                "images": ["https://via.placeholder.com/300x300?text=Samsung+Galaxy+S21"],
+                "images": [
+                    "https://via.placeholder.com/300x300?text=Samsung+Galaxy+S21"
+                ],
                 "marketplace": "us",
                 "price": 699.99,
                 "currency": "USD",
                 "epid": None,
                 "totalPrice": 699.99,
                 "shippingCost": 0,
-                "source": "ebay"
+                "source": "ebay",
             },
             {
                 "id": "mock-phone-002",
@@ -55,12 +70,12 @@ class MockEbayCollector(BaseProductCollector):
                 "epid": None,
                 "totalPrice": 999.99,
                 "shippingCost": 0,
-                "source": "ebay"
-            }
+                "source": "ebay",
+            },
         ]
-        
+
         return mock_products[:top_k]
-    
+
     def get_source_name(self) -> str:
         """Return the source name"""
         return "ebay"
