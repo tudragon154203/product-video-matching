@@ -50,34 +50,31 @@ class EvidencePublisher:
         event_data: Dict[str, Any],
     ) -> None:
         """Handle matchings completion events, covering zero-match cases."""
-        try:
-            job_id = event_data["job_id"]
+        job_id = event_data.get("job_id")
+        if not job_id:
+            raise ValueError("matchings.completed event is missing job_id")
 
+        logger.info(
+            "Checking job for matches after matching completed",
+            job_id=job_id,
+        )
+
+        match_count = await self.db.fetch_val(
+            "SELECT COUNT(*) FROM matches WHERE job_id = $1",
+            job_id,
+        ) or 0
+
+        logger.info(
+            "Match count for job",
+            job_id=job_id,
+            match_count=match_count,
+        )
+
+        if match_count == 0:
+            await self.check_and_complete_zero_matches_job(job_id)
+        else:
             logger.info(
-                "Checking job for matches after matching completed",
-                job_id=job_id,
-            )
-
-            match_count = await self.db.fetch_val(
-                "SELECT COUNT(*) FROM matches WHERE job_id = $1",
-                job_id,
-            ) or 0
-
-            logger.info(
-                "Match count for job",
+                "Job has matches, evidence will be generated via match.result events",
                 job_id=job_id,
                 match_count=match_count,
             )
-
-            if match_count == 0:
-                await self.check_and_complete_zero_matches_job(job_id)
-            else:
-                logger.info(
-                    "Job has matches, evidence will be generated via match.result events",
-                    job_id=job_id,
-                    match_count=match_count,
-                )
-
-        except Exception as exc:  # noqa: BLE001
-            logger.error("Failed to handle matchings completed", error=str(exc))
-            raise

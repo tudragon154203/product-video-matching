@@ -75,7 +75,7 @@ class EvidenceGenerator:
                 score=score,
             )
             return str(evidence_path)
-        except Exception as exc:  # noqa: BLE001
+        except (cv2.error, OSError, ValueError) as exc:
             logger.error(
                 "Failed to create evidence",
                 img_id=img_id,
@@ -107,7 +107,13 @@ class EvidenceGenerator:
 
                 cv2.circle(evidence_img, (left_x, left_y), 3, (0, 0, 255), -1)
                 cv2.circle(evidence_img, (right_x, right_y), 3, (0, 0, 255), -1)
-                cv2.line(evidence_img, (left_x, left_y), (right_x, right_y), (255, 0, 0), 1)
+                cv2.line(
+                    evidence_img,
+                    (left_x, left_y),
+                    (right_x, right_y),
+                    (255, 0, 0),
+                    1,
+                )
 
             legend_y = height - 30
             cv2.putText(
@@ -120,6 +126,6 @@ class EvidenceGenerator:
                 1,
             )
             return evidence_img
-        except Exception as exc:  # noqa: BLE001
+        except (cv2.error, ValueError) as exc:
             logger.error("Failed to add keypoint overlays", error=str(exc))
             return evidence_img

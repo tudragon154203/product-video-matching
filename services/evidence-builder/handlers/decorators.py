@@ -36,6 +36,8 @@ def handle_errors(func: F) -> F:
     async def wrapper(*args: Any, **kwargs: Any):
         try:
             return await func(*args, **kwargs)
+        # We intentionally log and propagate every unexpected error so the caller
+        # can decide how to handle it while still capturing a stack trace.
         except Exception as exc:  # noqa: BLE001
             logger.exception("Error in handler %s: %s", func.__name__, exc)
             raise

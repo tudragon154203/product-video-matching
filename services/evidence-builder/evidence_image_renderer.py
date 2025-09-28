@@ -40,7 +40,7 @@ class EvidenceImageRenderer:
                 frame_id,
             )
             return combined
-        except Exception as exc:  # noqa: BLE001
+        except (cv2.error, ValueError, TypeError) as exc:
             logger.error(
                 "Failed to create side-by-side comparison",
                 error=str(exc),
