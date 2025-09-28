@@ -1,12 +1,12 @@
 """Base abstract class for segmentation models with common functionality."""
 
-from abc import abstractmethod
+from abc import ABC, abstractmethod
 from typing import Optional
 import numpy as np
 from .interface import SegmentationInterface
 
 
-class BaseSegmentation(SegmentationInterface):
+class BaseSegmentation(SegmentationInterface, ABC):
     """Abstract base class for segmentation models with common infrastructure."""
     
     @abstractmethod
