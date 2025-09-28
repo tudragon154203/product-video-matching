@@ -136,7 +136,7 @@ class TestEventHandling:
     @pytest.mark.asyncio
     async def test_zero_assets_handling(self, phase_event_service, mock_db_handler, mock_broker_handler, caplog):
         """Test handling of zero assets in job"""
-        with patch.object(phase_event_service_logger, 'info') as mock_logger_info:
+        with patch.object(phase_event_service_logger, 'debug') as mock_logger_info:
             event_id = str(uuid.uuid4())
             job_id = "zero-assets-job"
             event_data = {
@@ -255,7 +255,23 @@ class TestEventHandling:
         
         # Configure mock to return images and videos asset types
         mock_db_handler.get_job_asset_types.return_value = {"images": True, "videos": True}
+
+        # Track stored events for phase transition checking
+        stored_events = set()
         
+        def has_phase_event_side_effect(job_id, event_name):
+            # Always return True for collection completion events
+            if event_name in ["products.collections.completed", "videos.collections.completed"]:
+                return True
+            # For other events, check if they've been stored
+            return event_name in stored_events
+            
+        def store_phase_event_side_effect(event_id, job_id, event_name):
+            stored_events.add(event_name)
+            
+        mock_db_handler.has_phase_event.side_effect = has_phase_event_side_effect
+        mock_db_handler.store_phase_event.side_effect = store_phase_event_side_effect
+
         # Track current phase for proper mocking
         current_phase = "collection"
         
@@ -347,7 +363,7 @@ class TestEventHandling:
     @pytest.mark.asyncio
     async def test_duplicate_event_handling(self, phase_event_service, mock_db_handler, mock_broker_handler, caplog):
         """Test idempotency with duplicate events"""
-        with patch.object(phase_event_service_logger, 'info') as mock_logger_info:
+        with patch.object(phase_event_service_logger, 'debug') as mock_logger_info:
             event_id = str(uuid.uuid4())
             job_id = "duplicate-test-job"
             event_data = {

@@ -71,7 +71,7 @@ class TestFileManager:
         # Verify file exists
         assert Path(mask_path).exists()
         assert mask_path.endswith(f"{image_id}.png")
-        assert "products" in mask_path
+        assert "product_images" in mask_path
         
         # Verify mask content
         saved_mask = np.array(Image.open(mask_path))
@@ -161,12 +161,12 @@ class TestFileManager:
         # Product mask path
         product_path = file_manager.get_product_mask_path("img_123")
         assert product_path.endswith("img_123.png")
-        assert "products" in product_path
+        assert "product_images" in product_path
         
         # Frame mask path
         frame_path = file_manager.get_frame_mask_path("frame_456")
         assert frame_path.endswith("frame_456.png")
-        assert "frames" in frame_path
+        assert "video_frames" in frame_path
     
     @pytest.mark.asyncio
     async def test_atomic_save_on_error(self, file_manager, temp_dir):

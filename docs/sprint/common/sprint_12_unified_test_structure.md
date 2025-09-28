@@ -56,11 +56,13 @@ tests/
 |   |-- domain/
 |   |-- __init__.py
 |-- integration/
+|   |-- auth/
+|   |   |-- test_<feature>.py
 |   |-- api/
 |   |   |-- test_<feature>.py
-|   |-- database/
+|   |-- core/
 |   |   |-- test_<feature>.py
-|   |-- message_broker/
+|   |-- llm/
 |   |   |-- test_<feature>.py
 |   |-- __init__.py
 |-- contract/
@@ -69,7 +71,7 @@ tests/
     |-- __init__.py
 ```
 
-*Integration tests MAY be organized under logical subdirectories within `tests/integration/` (e.g. `api/`, `database/`, `message_broker/`) for better organization by domain. Each module MUST be marked at the top level (for example `pytestmark = pytest.mark.integration`) so pytest filters remain reliable, while unit tests remain unmarked to keep `pytest -m "not integration"` focused on the unit suite. Every subdirectory that holds Python modules (including `unit/`, `integration/`, `contract/`, and any nested folders within them) MUST contain an empty `__init__.py` so pytest treats them as packages consistently. These `__init__.py` files SHOULD remain empty; they simply signal package boundaries to Python and pytest.*
+*Integration tests MAY be organized under logical subdirectories within `tests/integration/` (e.g. `auth/`, `api/`, `core/`, `llm/`) for better organization by domain, feature, or service boundary. Each module MUST be marked at the top level (for example `pytestmark = pytest.mark.integration`) so pytest filters remain reliable, while unit tests remain unmarked to keep `pytest -m "not integration"` focused on the unit suite. Every subdirectory that holds Python modules (including `unit/`, `integration/`, `contract/`, and any nested folders within them) MUST contain an empty `__init__.py` so pytest treats them as packages consistently. These `__init__.py` files SHOULD remain empty; they simply signal package boundaries to Python and pytest.*
 
 ## Success Metrics
 - 100% of microservices replicate the structure above within one sprint of adoption.

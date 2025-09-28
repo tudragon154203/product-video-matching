@@ -170,22 +170,23 @@ class ProductSegmentorService:
         Args:
             event_data: Event payload containing image information
         """
-        job_id = event_data["job_id"]
-        
-        # Initialize job with high expected count to prevent premature completion 
-        # before batch event arrives with actual total
-        if not self.job_progress_manager._is_batch_initialized(job_id, "image"):
-            await self.job_progress_manager.initialize_with_high_expected(job_id, "image")
-            logger.debug("Initialized job with high expected count for single image", job_id=job_id)
-        
-        await self.asset_processor.handle_single_asset_processing(
-            event_data=event_data,
-            asset_type="image",
-            asset_id_key="image_id",
-            db_update_func=self.db_updater.update_product_image_mask,
-            emit_masked_func=self.event_emitter.emit_product_image_masked,
-            job_id=job_id
-        )
+        async with self._processing_semaphore:
+            job_id = event_data["job_id"]
+            
+            # Initialize job with high expected count to prevent premature completion 
+            # before batch event arrives with actual total
+            if not self.job_progress_manager._is_batch_initialized(job_id, "image"):
+                await self.job_progress_manager.initialize_with_high_expected(job_id, "image")
+                logger.debug("Initialized job with high expected count for single image", job_id=job_id)
+            
+            await self.asset_processor.handle_single_asset_processing(
+                event_data=event_data,
+                asset_type="image",
+                asset_id_key="image_id",
+                db_update_func=self.db_updater.update_product_image_mask,
+                emit_masked_func=self.event_emitter.emit_product_image_masked,
+                job_id=job_id
+            )
     
     async def _handle_batch_event(self, job_id: str, asset_type: str, total_items: int, event_type: str, event_id: str = None) -> None:
         logger.info("Batch event received",

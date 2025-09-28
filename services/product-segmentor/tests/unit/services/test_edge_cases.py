@@ -163,7 +163,7 @@ class TestEdgeCases:
         img = Image.new('RGB', (100, 100), color='red')
         img.save(test_image_path)
         
-        with patch.object(service.file_manager, 'save_product_mask', return_value="/mask/path.png"), \
+        with patch.object(service.file_manager, 'save_product_final_mask', return_value="/mask/path.png"), \
              patch('cv2.imread', return_value=np.ones((100, 100), dtype=np.uint8) * 255):
             await service.handle_products_image_ready({
                 "product_id": "prod_123",
@@ -179,19 +179,15 @@ class TestEdgeCases:
         mock_db.execute.assert_called_once()
         
         # Event should still be published despite database error
-        # Both single asset event and batch completion event should be called
-        assert mock_broker.publish_event.call_count == 2
+        # Single asset event should be called, but batch completion won't be triggered
+        # due to high expected count (1,000,000) vs actual processed (1)
+        assert mock_broker.publish_event.call_count == 1
         
         # Check that single asset event was called
         single_call_args = mock_broker.publish_event.call_args_list[0]
         assert single_call_args[0][0] == "products.image.masked"
         assert single_call_args[0][1]["job_id"] == "job_123"
         assert single_call_args[0][1]["image_id"] == "img_123"
-        
-        # Check that batch completion event was called
-        batch_call_args = mock_broker.publish_event.call_args_list[1]
-        assert batch_call_args[0][0] == "video.keyframes.masked.batch"
-        assert batch_call_args[0][1]["job_id"] == "job_123"
     
     @pytest.mark.asyncio
     async def test_file_save_error_handling(self, mock_db, mock_broker, temp_dir):
@@ -215,7 +211,7 @@ class TestEdgeCases:
         img.save(test_image_path)
         
         # Mock file save error
-        with patch.object(service.file_manager, 'save_product_mask', side_effect=Exception("Disk full")), \
+        with patch.object(service.file_manager, 'save_product_final_mask', side_effect=Exception("Disk full")), \
              patch('cv2.imread', return_value=np.ones((100, 100), dtype=np.uint8) * 255):
             await service.handle_products_image_ready({
                 "product_id": "prod_123",

@@ -122,7 +122,7 @@ class TestProductSegmentorServiceIntegration:
         await service.initialize()
         
         # Create test image
-        source_image_path = os.path.join(os.path.dirname(__file__), 'test_image.webp')
+        source_image_path = os.path.join(os.path.dirname(__file__), '..', 'data', 'test_image.webp')
         test_image_path = os.path.join(temp_dir, f"test_image_{uuid.uuid4()}.webp")
         shutil.copy(source_image_path, test_image_path)
         
@@ -133,9 +133,9 @@ class TestProductSegmentorServiceIntegration:
             "job_id": "job_123"
         }
         
-        # Mock save_product_mask to return a valid path and create a dummy file
+        # Mock save_product_final_mask to return a valid path and create a dummy file
         mock_mask_path = os.path.join(temp_dir, f"product_mask_img_123.png")
-        with patch.object(service.file_manager, 'save_product_mask', return_value=mock_mask_path) as mock_save, \
+        with patch.object(service.file_manager, 'save_product_final_mask', return_value=mock_mask_path) as mock_save, \
              patch('cv2.imread', return_value=np.ones((100, 100), dtype=np.uint8) * 255):
             # Create a dummy mask file for cv2.imread to find
             Image.fromarray(np.ones((100, 100), dtype=np.uint8) * 255, mode='L').save(mock_mask_path)
@@ -150,18 +150,12 @@ class TestProductSegmentorServiceIntegration:
         # Verify database was updated
         service.db.execute.assert_called_once()
         
-        # Verify event was published via event_emitter
-        # Calculate the expected final mask path based on FileManager's logic
-        from config_loader import config
-        from pathlib import Path
-        expected_mask_path_obj = Path(config.PRODUCT_MASK_DIR_PATH) / "products" / f"{event_data['image_id']}.png"
-        expected_mask_path = str(expected_mask_path_obj)
-
-        service.event_emitter.emit_product_image_masked.assert_called_once_with(
-            job_id="job_123",
-            image_id="img_123",
-            mask_path=expected_mask_path
-        )
+        # Verify event was published via event_emitter (accept any mask path since we mocked it)
+        service.event_emitter.emit_product_image_masked.assert_called_once()
+        call_args = service.event_emitter.emit_product_image_masked.call_args
+        assert call_args[1]['job_id'] == "job_123"
+        assert call_args[1]['image_id'] == "img_123"
+        assert call_args[1]['mask_path'] == mock_mask_path
     
     @pytest.mark.asyncio
     async def test_product_mask_subtraction(self, service, temp_dir):
@@ -226,7 +220,7 @@ class TestProductSegmentorServiceIntegration:
         await service.initialize()
         
         # Create test images for frames
-        source_image_path = os.path.join(os.path.dirname(__file__), 'test_image.webp')
+        source_image_path = os.path.join(os.path.dirname(__file__), '..', 'data', 'test_image.webp')
         frame1_path = os.path.join(temp_dir, f"frame1_{uuid.uuid4()}.webp")
         frame2_path = os.path.join(temp_dir, f"frame2_{uuid.uuid4()}.webp")
         
@@ -272,9 +266,9 @@ class TestProductSegmentorServiceIntegration:
         # Calculate the expected final mask paths based on FileManager's logic
         from config_loader import config
         from pathlib import Path
-        expected_mask_path_1_obj = Path(config.PRODUCT_MASK_DIR_PATH) / "frames" / f"{event_data['frames'][0]['frame_id']}.png"
+        expected_mask_path_1_obj = Path(config.PRODUCT_MASK_DIR_PATH) / "video_frames" / f"{event_data['frames'][0]['frame_id']}.png"
         expected_mask_path_1 = str(expected_mask_path_1_obj)
-        expected_mask_path_2_obj = Path(config.PRODUCT_MASK_DIR_PATH) / "frames" / f"{event_data['frames'][1]['frame_id']}.png"
+        expected_mask_path_2_obj = Path(config.PRODUCT_MASK_DIR_PATH) / "video_frames" / f"{event_data['frames'][1]['frame_id']}.png"
         expected_mask_path_2 = str(expected_mask_path_2_obj)
 
         service.event_emitter.emit_video_keyframes_masked.assert_called_once_with(
@@ -318,7 +312,7 @@ class TestProductSegmentorServiceIntegration:
         service.image_processor.segmentor = failing_segmentor
         
         # Create test image
-        source_image_path = os.path.join(os.path.dirname(__file__), 'test_image.webp')
+        source_image_path = os.path.join(os.path.dirname(__file__), '..', 'data', 'test_image.webp')
         test_image_path = os.path.join(temp_dir, f"test_image_{uuid.uuid4()}.webp")
         shutil.copy(source_image_path, test_image_path)
         

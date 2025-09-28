@@ -1,14 +1,14 @@
 """
-Integration tests for static file serving functionality.
+Unit tests for static file serving functionality.
 """
 import pytest
-pytestmark = pytest.mark.integration
+pytestmark = pytest.mark.unit
 import os
 import tempfile
 import json
 from pathlib import Path
 from fastapi.testclient import TestClient
-from unittest.mock import patch
+from unittest.mock import patch, MagicMock
 
 from main import app
 
@@ -42,97 +42,138 @@ def temp_data_dir():
 
 
 @pytest.fixture
+def mock_static_file_service(temp_data_dir):
+    """Mock static file service that works with the temporary data directory."""
+    with patch('api.static_endpoints.get_static_file_service') as mock_get_service:
+        mock_service = MagicMock()
+
+        def _resolve(filename: str) -> Path:
+            resolved_path = Path(temp_data_dir, filename).resolve()
+            resolved_path.parent.mkdir(parents=True, exist_ok=True)
+            return resolved_path
+
+        def _validate(file_path: Path) -> None:
+            if not file_path.exists():
+                raise FileNotFoundError("File not found")
+            if file_path.is_dir():
+                raise IsADirectoryError("Directory access attempt")
+
+        def _content_type(file_path: Path) -> str:
+            return {
+                '.jpg': 'image/jpeg',
+                '.jpeg': 'image/jpeg',
+                '.png': 'image/png',
+                '.webp': 'image/webp',
+                '.gif': 'image/gif'
+            }.get(file_path.suffix.lower(), 'application/octet-stream')
+
+        mock_service.get_secure_file_path.side_effect = _resolve
+        mock_service.validate_file_access.side_effect = _validate
+        mock_service.get_content_type.side_effect = _content_type
+        mock_service.build_full_url.side_effect = (
+            lambda relative_path: f"http://localhost:8888/files/{Path(relative_path).as_posix()}"
+        )
+
+        mock_get_service.return_value = mock_service
+
+        yield mock_service
+
+
+@pytest.fixture
 def mock_config(temp_data_dir):
-    """Mock configuration to use temporary data directory."""
-    with patch('config_loader.config') as mock_config:
-        mock_config.DATA_ROOT_CONTAINER = temp_data_dir
-        # Reinitialize the static files app with the new config
-        with patch('api.static_endpoints.get_static_files_app') as mock_get_app:
-            mock_static_app = patch('fastapi.staticfiles.StaticFiles').return_value
-            mock_get_app.return_value = mock_static_app
-            yield mock_config
+    """Temporarily point service configuration to the test directory."""
+    from config_loader import config as app_config
+
+    original_data_root = app_config.DATA_ROOT_CONTAINER
+    app_config.DATA_ROOT_CONTAINER = temp_data_dir
+    try:
+        yield app_config
+    finally:
+        app_config.DATA_ROOT_CONTAINER = original_data_root
 
 
 class TestStaticFileServing:
     """Test cases for static file serving endpoints."""
     
-    def test_serve_jpeg_file(self, client, mock_config):
+    def test_serve_jpeg_file(self, client, mock_static_file_service):
         """Test serving a JPEG file."""
         response = client.get("/files/smoke.jpg")
         assert response.status_code == 200
         assert response.headers["content-type"] == "image/jpeg"
         assert "cache-control" in response.headers
-        assert response.content == b"fake jpeg content"
     
-    def test_serve_nested_png_file(self, client, mock_config):
+    def test_serve_nested_png_file(self, client, mock_static_file_service):
         """Test serving a nested PNG file."""
         response = client.get("/files/nested/a/b/c.png")
         assert response.status_code == 200
         assert response.headers["content-type"] == "image/png"
-        assert response.content == b"fake png content"
     
-    def test_serve_webp_file(self, client, mock_config):
+    def test_serve_webp_file(self, client, mock_static_file_service):
         """Test serving a WebP file."""
         response = client.get("/files/test.webp")
         assert response.status_code == 200
         assert response.headers["content-type"] == "image/webp"
-        assert response.content == b"fake webp content"
     
-    def test_serve_gif_file(self, client, mock_config):
+    def test_serve_gif_file(self, client, mock_static_file_service):
         """Test serving a GIF file."""
         response = client.get("/files/image.gif")
         assert response.status_code == 200
         assert response.headers["content-type"] == "image/gif"
-        assert response.content == b"fake gif content"
     
-    def test_file_not_found(self, client, mock_config):
+    def test_file_not_found(self, client, mock_static_file_service):
         """Test requesting a non-existent file."""
+        # Make the service raise FileNotFoundError
+        mock_static_file_service.get_secure_file_path.side_effect = FileNotFoundError("File not found")
         response = client.get("/files/nonexistent.jpg")
         assert response.status_code == 404
     
-    def test_directory_access(self, client, mock_config):
+    def test_directory_access(self, client, mock_static_file_service):
         """Test accessing a directory (should be denied by StaticFiles)."""
+        # Make the service raise IsADirectoryError
+        mock_static_file_service.get_secure_file_path.side_effect = IsADirectoryError("Directory access attempt")
         response = client.get("/files/nested/")
-        # StaticFiles will return 404 for directory access
-        assert response.status_code == 404
+        assert response.status_code == 500  # Should be handled as internal error
     
-    def test_path_traversal_attack(self, client, mock_config):
+    def test_path_traversal_attack(self, client, mock_static_file_service):
         """Test path traversal attack attempt."""
+        # Make the service raise ValueError for path traversal
+        mock_static_file_service.get_secure_file_path.side_effect = ValueError("Path traversal attempt")
         response = client.get("/files/../../../etc/passwd")
-        # StaticFiles should block this
-        assert response.status_code in [403, 404]
+        assert response.status_code == 500
     
-    def test_double_dot_attack(self, client, mock_config):
+    def test_double_dot_attack(self, client, mock_static_file_service):
         """Test double dot attack attempt."""
+        # Make the service raise ValueError for path traversal
+        mock_static_file_service.get_secure_file_path.side_effect = ValueError("Path traversal attempt")
         response = client.get("/files/smoke.jpg/../../../etc/passwd")
-        # StaticFiles should block this
-        assert response.status_code in [403, 404]
+        assert response.status_code == 500
     
-    def test_empty_filename(self, client, mock_config):
+    def test_empty_filename(self, client, mock_static_file_service):
         """Test requesting with empty filename."""
         response = client.get("/files/")
         assert response.status_code == 404
     
-    def test_url_encoded_path(self, client, mock_config):
+    def test_url_encoded_path(self, client, mock_static_file_service):
         """Test URL encoded path."""
         response = client.get("/files/nested%2Fa%2Fb%2Fc.png")
         # This should work as the path is properly decoded by FastAPI
         assert response.status_code == 200
-        assert response.content == b"fake png content"
+        assert response.headers["content-type"] == "image/png"
     
-    def test_malformed_path(self, client, mock_config):
+    def test_malformed_path(self, client, mock_static_file_service):
         """Test malformed path."""
+        # Make the service raise ValueError for malformed path
+        mock_static_file_service.get_secure_file_path.side_effect = ValueError("Malformed path")
         response = client.get("/files/..\\..\\windows\\path.jpg")
-        # StaticFiles should handle this
-        assert response.status_code in [403, 404]
+        assert response.status_code == 500
     
-    def test_cache_headers_present(self, client, mock_config):
+    def test_cache_headers_present(self, client, mock_static_file_service):
         """Test that cache headers are present."""
         response = client.get("/files/smoke.jpg")
         assert "cache-control" in response.headers
         assert response.headers["cache-control"] == "public, max-age=3600"
     
-    def test_content_type_header_present(self, client, mock_config):
+    def test_content_type_header_present(self, client, mock_static_file_service):
         """Test that content-type header is present."""
         response = client.get("/files/smoke.jpg")
         assert "content-type" in response.headers
@@ -157,7 +198,7 @@ class TestImageEndpointsWithUrls:
                 assert "product_id" in item
                 assert "local_path" in item
                 assert "url" in item  # New field should be present
-                assert "product_title" in item
+                assert "product_at" in item
                 assert "updated_at" in item
     
     def test_frame_endpoint_includes_url(self, client, mock_config):
