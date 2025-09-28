@@ -47,12 +47,17 @@
 - [ ] T002 Initialize [language] project with [framework] dependencies
 - [ ] T003 [P] Configure linting and formatting tools
 
-## Phase 3.2: Tests First (TDD) ⚠️ MUST COMPLETE BEFORE 3.3
-**CRITICAL: These tests MUST be written and MUST FAIL before ANY implementation**
-- [ ] T004 [P] Contract test POST /api/users in tests/contract/test_users_post.py
-- [ ] T005 [P] Contract test GET /api/users/{id} in tests/contract/test_users_get.py
-- [ ] T006 [P] Integration test user registration in tests/integration/test_registration.py
-- [ ] T007 [P] Integration test auth flow in tests/integration/test_auth.py
+## Phase 3.2: Quality and Tests Setup ⚠️ MUST COMPLETE BEFORE 3.3
+**CRITICAL: Quality gates MUST be configured and tests MUST FAIL before ANY implementation**
+- [ ] T004 [P] Install flake8 with E, W, F rulesets in service/requirements.txt
+- [ ] T005 [P] Configure pytest for strict markers and unit/integration separation
+- [ ] T006 [P] Configure pre-commit hooks for flake8 and unit test validation
+- [ ] T007 [P] Contract test POST /api/users in tests/contract/test_users_post.py
+- [ ] T008 [P] Contract test GET /api/users/{id} in tests/contract/test_users_get.py
+- [ ] T009 [P] Integration test user registration in tests/integration/api/test_registration.py
+- [ ] T010 [P] Integration test auth flow in tests/integration/auth/test_auth.py
+- [ ] T011 Validate flake8 passes with microservice codebase
+- [ ] T012 Validate `python -m pytest -m unit` passes (all green state)
 
 ## Phase 3.3: Core Implementation (ONLY after tests are failing)
 - [ ] T008 [P] User model in src/models/user.py
@@ -77,18 +82,27 @@
 - [ ] T023 Run manual-testing.md
 
 ## Dependencies
-- Tests (T004-T007) before implementation (T008-T014)
-- T008 blocks T009, T015
-- T016 blocks T018
-- Implementation before polish (T019-T023)
+- Quality setup (T004-T006) before any tests (T007-T010)
+- Quality validation (T011-T012) after tests but before implementation
+- Tests (T007-T010) before implementation (T013-T019)
+- T013 blocks T014, T020
+- T017 blocks T019
+- T008 blocks T014, T020
+- T019 blocks T022
+- Implementation before polish (T022-T027)
 
 ## Parallel Example
 ```
-# Launch T004-T007 together:
+# Launch T004-T006 together for quality setup:
+Task: "Install flake8 with E, W, F rulesets in service/requirements.txt"
+Task: "Configure pytest for strict markers and unit/integration separation"
+Task: "Configure pre-commit hooks for flake8 and unit test validation"
+
+# Launch T007-T010 together for contract and integration tests:
 Task: "Contract test POST /api/users in tests/contract/test_users_post.py"
 Task: "Contract test GET /api/users/{id} in tests/contract/test_users_get.py"
-Task: "Integration test registration in tests/integration/test_registration.py"
-Task: "Integration test auth in tests/integration/test_auth.py"
+Task: "Integration test registration in tests/integration/api/test_registration.py"
+Task: "Integration test auth in tests/integration/auth/test_auth.py"
 ```
 
 ## Notes

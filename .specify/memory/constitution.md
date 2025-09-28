@@ -1,16 +1,16 @@
 <!--
 Sync Impact Report:
-- Version change: 1.0.1 → 1.1.0
-- List of modified principles: Added Principle VI. Unified Logging Standard.
-- Added sections: VI. Unified Logging Standard
-- Removed sections: None.
+- Version change: 1.2.0 → 1.4.0
+- List of modified principles: III. Testing Discipline (expanded and merged with VII), VIII. Quality Assurance (renamed to VII)
+- Added sections: None (merged VII into III)
+- Removed sections: VII. Unified Test Structure (merged into III)
 - Templates requiring updates:
-    - .specify/templates/plan-template.md: ✅ updated
-    - .specify/templates/spec-template.md: ⚠ pending (no explicit changes needed for logging)
-    - .specify/templates/tasks-template.md: ⚠ pending (no explicit changes needed for logging)
+    - .specify/templates/plan-template.md: ✅ updated (renumbered VII to VII, updated constitution reference)
+    - .specify/templates/spec-template.md: ✅ updated (no changes needed for testing discipline)
+    - .specify/templates/tasks-template.md: ✅ updated (no conceptual changes, task numbers remain)
     - .specify/templates/commands/*.md: ✅ updated (no changes needed)
-    - README.md: ✅ updated (no changes needed, already aligned)
-    - RUN.md: ✅ updated (no changes needed, already aligned)
+    - README.md: ✅ updated (already aligned with unified testing requirements)
+    - RUN.md: ✅ updated (no test content found, already aligned)
 - Follow-up TODOs: None required
 -->
 # Product-Video Matching System Constitution
@@ -24,7 +24,9 @@ All microservices MUST adhere to a standardized structure: `app/main.py` (entry 
 All inter-service communication via RabbitMQ MUST conform to defined event contracts. Events in `libs/contracts/contracts/schemas/` MUST utilize JSON schema validation. Routing keys MUST follow a dotted notation (e.g., `image.embeddings.completed`), leveraging topic exchange routing. Each event MUST include a unique `event_id` to support idempotency in message processing.
 
 ### III. Testing Discipline
-Testing efforts MUST prioritize integration tests for core functionality, critical paths, and identified edge cases. Exhaustive unit tests are to be avoided in favor of broader integration coverage. When testing, developers MUST `cd` into the specific microservice directory before executing `python -m pytest tests/ -v` to ensure correct `PYTHONPATH` resolution. Tests for each microservice MUST be kept within that service's `tests/` folder. The root `tests/` directory is reserved for a manual smoke test and project-wide integration tests. External dependencies (e.g., Playwright) SHOULD be mocked. Basic smoke tests for API endpoints are mandatory. All tests MUST pass before a task is considered complete.
+Testing efforts MUST prioritize integration tests for core functionality, critical paths, and identified edge cases over exhaustive unit tests. All microservices MUST adopt a standardized test directory structure within their `tests/` folder, with integration tests MAY be organized under logical subdirectories (e.g., `auth/`, `api/`, `core/`, `llm/`) for better organization by domain or feature. Integration test modules MUST follow the naming convention `test_<feature>.py` within their subdirectories and MUST define `pytestmark = pytest.mark.integration`, exercising real network or service boundaries in the dev stack while minimizing mocks to prevent destructive side effects. Unit tests MUST avoid applying the `integration` marker (optionally using `pytestmark = pytest.mark.unit`) so `pytest -m "not integration"` reliably executes only the unit suite. All test directories (including nested subdirectories) MUST contain empty `__init__.py` files for pytest discovery, with shared fixtures under `tests/fixtures/` and static assets under `tests/data/`. Each service's `pytest.ini` MUST register repository-wide markers (`unit` and `integration`) and SHOULD declare service-specific markers.
+
+When testing, developers MUST `cd` into the specific microservice directory before executing `python -m pytest tests/ -v` to ensure correct `PYTHONPATH` resolution. Tests for each microservice MUST be kept within that service's `tests/` folder, with the root `tests/` directory reserved for a manual smoke test and project-wide integration tests. External dependencies (e.g., Playwright) SHOULD be mocked. Basic smoke tests for API endpoints are mandatory. All tests MUST pass before a task is considered complete.
 
 ### IV. Development Environment & Configuration
 The development environment MUST be initiated using `./up-dev.ps1` (Windows) or `docker compose -f infra/pvm/docker-compose.dev.yml up -d --build`. Database migrations MUST be run via `./migrate.ps1` and optional seeding with `./seed.ps1`. Shared environment variables (e.g., database credentials, common ports) MUST be managed in a common `.env` file, with service-specific overrides in `services/<service_name>/.env`. Shared libraries (`libs/`) MUST be volume-mounted for live development updates. Container rebuilds SHOULD be avoided; use `docker compose down` followed by `docker compose up` for service restarts. Logs MUST be monitored using `docker compose logs -f`.
@@ -34,6 +36,10 @@ The system's data processing MUST strictly adhere to the defined pipeline: job c
 
 ### VI. Unified Logging Standard
 All microservices MUST implement unified logging using Python's standard `logging` module with the `ContextLogger` wrapper from `common_py.logging_config`. Logger names MUST follow the `service:file` pattern (e.g., `main-api:main`) and use structured logging with keyword arguments instead of string formatting. Each service MUST support correlation ID tracking for request tracing across services, with automatic extraction from RabbitMQ events. Log configuration MUST be environment-based, supporting `LOG_LEVEL` and `LOG_FORMAT` variables. Error logging MUST include exception details and structured context data. The `JsonFormatter` MUST be used for JSON format logs, ensuring all logs include standard fields: `timestamp`, `name`, `level`, `message`, `correlation_id`, and extra structured data.
+
+
+### VII. Quality Assurance
+All microservices MUST pass both flake8 linting and all unit tests before any code can be committed or merged. The flake8 configuration MUST include at least E (errors), W (warnings), and F (pyflakes) rulesets to catch syntax errors, style violations, and programming errors. Unit tests MUST be run after every code change using `python -m pytest -m unit` from the microservice directory. NO code can be merged if either flake8 fails or any unit test fails. External dependencies in unit tests SHOULD be mocked to ensure deterministic execution. Development workflows MUST include pre-commit hooks for flake8 and unit test validation to catch violations early.
 
 ## Architectural Guidelines
 
@@ -62,4 +68,4 @@ All microservices MUST implement unified logging using Python's standard `loggin
 *   **Compliance Review:** All code changes and architectural decisions MUST be reviewed for compliance with these principles. Non-compliance MUST be justified and approved by the project lead.
 *   **Guidance:** The `RUN.md` document provides runtime development guidance and MUST be consulted for day-to-day operations.
 
-**Version**: 1.1.0 | **Ratified**: TODO(RATIFICATION_DATE): Original adoption date unknown | **Last Amended**: 2025-09-27
+**Version**: 1.4.0 | **Ratified**: TODO(RATIFICATION_DATE): Original adoption date unknown | **Last Amended**: 2025-09-28
