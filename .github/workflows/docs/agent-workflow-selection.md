@@ -6,10 +6,10 @@ dispatcher lives in `.github/workflows/main.yml` (named **🤖 Main (Dispatcher)
 and calls the
 following reusable workflows:
 
-- `.github/workflows/aider.yml`
-- `.github/workflows/claude.yml`
-- `.github/workflows/gemini.yml`
-- `.github/workflows/opencode.yml`
+- `.github/workflows/bots/aider.yml`
+- `.github/workflows/bots/claude.yml`
+- `.github/workflows/bots/gemini.yml`
+- `.github/workflows/bots/opencode.yml`
 
 ## Controlling the selection
 

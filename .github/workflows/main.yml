@@ -60,7 +60,7 @@ jobs:
   aider:
     needs: dispatcher
     if: needs.dispatcher.outputs.run_aider == 'true'
-    uses: ./.github/workflows/aider.yml
+    uses: ./.github/workflows/bots/aider.yml
     secrets: inherit
     with:
       event-name: ${{ github.event_name }}
@@ -71,7 +71,7 @@ jobs:
   claude:
     needs: dispatcher
     if: needs.dispatcher.outputs.run_claude == 'true'
-    uses: ./.github/workflows/claude.yml
+    uses: ./.github/workflows/bots/claude.yml
     secrets: inherit
     with:
       event-name: ${{ github.event_name }}
@@ -82,7 +82,7 @@ jobs:
   gemini:
     needs: dispatcher
     if: needs.dispatcher.outputs.run_gemini == 'true'
-    uses: ./.github/workflows/gemini.yml
+    uses: ./.github/workflows/bots/gemini.yml
     secrets: inherit
     with:
       event-name: ${{ github.event_name }}
@@ -93,7 +93,7 @@ jobs:
   opencode:
     needs: dispatcher
     if: needs.dispatcher.outputs.run_opencode == 'true'
-    uses: ./.github/workflows/opencode.yml
+    uses: ./.github/workflows/bots/opencode.yml
     secrets: inherit
     with:
       event-name: ${{ github.event_name }}
