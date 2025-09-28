@@ -11,7 +11,7 @@ from api.health_endpoints import router as health_router
 from api.job_endpoints import router as job_router
 from handlers.lifecycle_handler import LifecycleHandler
 from services.job.job_service import JobService
-from api.dependency import init_dependencies, get_db
+from api.dependency import init_dependencies, get_db, get_broker
 from fastapi import FastAPI
 
 from common_py.logging_config import configure_logging
@@ -36,7 +36,8 @@ init_dependencies()
 db = get_db()
 
 # Initialize services
-job_service = JobService(db)
+broker = get_broker()
+job_service = JobService(db, broker)
 
 # Initialize lifecycle handler
 lifecycle_handler = LifecycleHandler(db, job_service)
