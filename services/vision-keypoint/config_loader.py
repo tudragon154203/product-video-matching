@@ -1,22 +1,27 @@
+"""Configuration loader for the vision keypoint service.
+
+The loader reads environment variables directly because Docker Compose already
+loads both shared and service-specific ``.env`` files.
 """
-Configuration loader for the vision keypoint service.
-Uses environment variables directly since Docker Compose loads both shared and service-specific .env files.
-"""
+
 import os
 import sys
 from dataclasses import dataclass
+from pathlib import Path
 
 from dotenv import load_dotenv
-load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), '.env'))
 
-# Add libs directory to PYTHONPATH for imports
-sys.path.insert(0, '/app/libs')
+load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), ".env"))
+
+# Add libs directory to ``PYTHONPATH`` for imports
+sys.path.insert(0, "/app/libs")
 
 try:
     from config import config as global_config
 except ImportError:
     # Fallback for local development
-    sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+    repo_root = Path(__file__).resolve().parents[2]
+    sys.path.append(str(repo_root))
     from libs.config import config as global_config
 
 @dataclass
