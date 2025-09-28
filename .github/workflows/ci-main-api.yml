@@ -66,5 +66,5 @@ jobs:
       - name: Lint
         run: flake8 .
 
-      - name: Run tests (skip integration)
-        run: pytest -q -m "not integration" --disable-warnings --maxfail=1 tests/unit tests/contract
+      - name: Run unit tests
+        run: pytest -q -m unit --disable-warnings --maxfail=1
