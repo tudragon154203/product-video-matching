@@ -12,8 +12,6 @@ from services.results.results_service import ResultsService
 from common_py.database import DatabaseManager
 from common_py.logging_config import configure_logging
 from api.dependency import get_db
-from config_loader import config
-from utils.image_utils import to_public_url
 
 logger = configure_logging("main-api:results_endpoints")
 
@@ -35,10 +33,14 @@ def get_results_service(db: DatabaseManager = Depends(get_db)) -> ResultsService
 async def get_results(
     industry: Optional[str] = Query(None, description="Filter by industry"),
     min_score: Optional[float] = Query(
-        None, ge=0.0, le=1.0, description="Minimum match score"),
+        None, ge=0.0, le=1.0,
+        description="Minimum match score"
+    ),
     job_id: Optional[str] = Query(None, description="Filter by job ID"),
-    limit: int = Query(100, ge=1, le=1000,
-                       description="Maximum number of results"),
+    limit: int = Query(
+        100, ge=1, le=1000,
+        description="Maximum number of results"
+    ),
     offset: int = Query(0, ge=0, description="Number of results to skip"),
     results_service: ResultsService = Depends(get_results_service)
 ) -> MatchListResponse:
@@ -70,7 +72,8 @@ async def get_results(
     except Exception as e:
         logger.error(f"Failed to get results: {e}")
         raise HTTPException(
-            status_code=500, detail=f"Internal server error: {str(e)}")
+            status_code=500, detail=f"Internal server error: {str(e)}"
+        )
 
 
 @router.get(
@@ -99,7 +102,8 @@ async def get_match(
     except Exception as e:
         logger.error(f"Failed to get match {match_id}: {e}")
         raise HTTPException(
-            status_code=500, detail=f"Internal server error: {str(e)}")
+            status_code=500, detail=f"Internal server error: {str(e)}"
+        )
 
 
 @router.get(
@@ -118,7 +122,8 @@ async def get_evidence_image(
 
         if not evidence_path:
             raise HTTPException(
-                status_code=404, detail=f"Evidence image for match {match_id} not found")
+                status_code=404, detail=f"Evidence image for match {match_id} not found"
+            )
 
         logger.info(f"Retrieved evidence for match {match_id}")
         return EvidenceResponse(evidence_path=evidence_path)
@@ -128,7 +133,8 @@ async def get_evidence_image(
     except Exception as e:
         logger.error(f"Failed to get evidence for match {match_id}: {e}")
         raise HTTPException(
-            status_code=500, detail=f"Internal server error: {str(e)}")
+            status_code=500, detail=f"Internal server error: {str(e)}"
+        )
 
 
 @router.get(
@@ -150,4 +156,5 @@ async def get_stats(
     except Exception as e:
         logger.error(f"Failed to get stats: {e}")
         raise HTTPException(
-            status_code=500, detail=f"Internal server error: {str(e)}")
+            status_code=500, detail=f"Internal server error: {str(e)}"
+        )

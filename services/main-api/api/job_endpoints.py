@@ -1,11 +1,7 @@
-import os
 from fastapi import APIRouter, Depends, Query, HTTPException
 from services.job.job_service import JobService
 from models.schemas import StartJobRequest, StartJobResponse, JobStatusResponse, JobListResponse, JobItem
-from common_py.database import DatabaseManager
-from common_py.messaging import MessageBroker
-from datetime import datetime
-from api.dependency import get_db, get_broker, get_job_service
+from api.dependency import get_job_service
 
 
 # Create router for job endpoints (no prefix)
@@ -47,9 +43,12 @@ async def get_job(job_id: str, job_service: JobService = Depends(get_job_service
 @router.get("/jobs", response_model=JobListResponse)
 async def list_jobs(
     limit: int = Query(
-        50, ge=1, le=100, description="Maximum number of jobs to return"),
+        50, ge=1, le=100,
+        description="Maximum number of jobs to return"
+    ),
     offset: int = Query(
-        0, ge=0, description="Number of jobs to skip for pagination"),
+        0, ge=0, description="Number of jobs to skip for pagination"
+    ),
     status: str = Query(None, description="Filter by job status (phase)"),
     job_service: JobService = Depends(get_job_service)
 ):

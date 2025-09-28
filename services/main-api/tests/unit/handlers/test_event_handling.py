@@ -7,7 +7,6 @@ import os
 import sys
 import uuid
 from unittest.mock import AsyncMock, Mock, patch
-import asyncio
 import pytest
 pytestmark = pytest.mark.unit
 
@@ -163,7 +162,7 @@ class TestEventHandling:
 
             # Verify event was stored normally
             mock_logger_info.assert_any_call(
-                f"Stored phase event: image.embeddings.completed for job zero-assets-job")
+                f"Stored phase event: image.embeddings.completed for job {job_id}")
 
     @pytest.mark.asyncio
     async def test_timeout_partial_completion(self, phase_event_service, mock_db_handler, mock_broker_handler, caplog):
@@ -361,7 +360,6 @@ class TestEventHandling:
 
         # Verify phase transitions
         phase_calls = mock_db_handler.update_job_phase.call_args_list
-        phase_transitions = [call.args for call in phase_calls]
 
         # We expect transitions: collection -> feature_extraction -> matching -> evidence -> completed
         assert any(call[0] == (job_id, "feature_extraction")
@@ -520,7 +518,7 @@ class TestEventHandling:
 
             # Verify validation errors are logged
             mock_logger_error.assert_any_call(
-                f"Missing event_id or job_id in event: image.embeddings.completed")
+                "Missing event_id or job_id in event: image.embeddings.completed")
 
             event_data = {
                 "event_id": str(uuid.uuid4()),
@@ -536,4 +534,4 @@ class TestEventHandling:
 
             # Verify validation errors are logged
             mock_logger_error.assert_any_call(
-                f"Missing event_id or job_id in event: image.embeddings.completed")
+                "Missing event_id or job_id in event: image.embeddings.completed")

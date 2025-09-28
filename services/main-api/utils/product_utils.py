@@ -1,8 +1,7 @@
 """
 Utility functions for product-related operations.
 """
-from typing import Optional, List, Dict, Any, Tuple
-from datetime import datetime
+from typing import Optional, Tuple
 
 from common_py.logging_config import configure_logging
 from common_py.crud.product_image_crud import ProductImageCRUD

@@ -1,9 +1,7 @@
-import os  # Import os for environment variables
 from unittest.mock import AsyncMock, MagicMock
 from typing import Optional
 import pytz
 from datetime import datetime, timezone
-from handlers.database_handler import DatabaseHandler  # Import DatabaseHandler
 from common_py.messaging import MessageBroker  # Import MessageBroker
 from common_py.database import DatabaseManager  # Import DatabaseManager
 # Import JobManagementService
@@ -19,15 +17,15 @@ import pytest
 pytestmark = pytest.mark.integration
 
 # Mock instances (will be set by setup_mocks fixture)
-product_image_crud_mock: ProductImageCRUD
-video_frame_crud_mock: VideoFrameCRUD
-product_crud_mock: ProductCRUD
-video_crud_mock: VideoCRUD
-job_service_mock: JobService
+product_image_crud_mock: ProductImageCRUD  # noqa: F821
+video_frame_crud_mock: VideoFrameCRUD  # noqa: F821
+product_crud_mock: ProductCRUD  # noqa: F821
+video_crud_mock: VideoCRUD  # noqa: F821
+job_service_mock: JobService  # noqa: F821
 # New mock for JobManagementService
-job_management_service_mock: JobManagementService
-db_mock: DatabaseManager
-broker_mock: MessageBroker
+job_management_service_mock: JobManagementService  # noqa: F821
+db_mock: DatabaseManager  # noqa: F821
+broker_mock: MessageBroker  # noqa: F821
 
 # Helper to convert datetime to GMT+7
 

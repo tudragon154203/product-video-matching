@@ -1,7 +1,6 @@
 import json
 import time
 from typing import Dict, Any
-from fastapi import HTTPException
 from common_py.logging_config import configure_logging
 from config_loader import config
 from models.schemas import StartJobRequest
@@ -14,7 +13,10 @@ logger = configure_logging("main-api:job_initializer")
 
 
 class JobInitializer:
-    def __init__(self, db_handler: DatabaseHandler, broker_handler: BrokerHandler, llm_service: LLMService, prompt_service: PromptService):
+    def __init__(
+        self, db_handler: DatabaseHandler, broker_handler: BrokerHandler,
+        llm_service: LLMService, prompt_service: PromptService
+    ):
         self.db_handler = db_handler
         self.broker_handler = broker_handler
         self.llm_service = llm_service

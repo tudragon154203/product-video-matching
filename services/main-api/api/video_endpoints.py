@@ -1,6 +1,5 @@
-import os
 from fastapi import APIRouter, HTTPException, Query, Depends
-from typing import Optional, List
+from typing import Optional
 from datetime import datetime, timezone
 import pytz
 
@@ -14,9 +13,8 @@ from services.job.job_service import JobService
 from common_py.crud.video_crud import VideoCRUD
 from common_py.crud.video_frame_crud import VideoFrameCRUD
 from common_py.database import DatabaseManager  # Import DatabaseManager
-from common_py.messaging import MessageBroker  # Import MessageBroker
 from common_py.logging_config import configure_logging
-from api.dependency import get_db, get_broker, get_job_service
+from api.dependency import get_db, get_job_service
 from config_loader import config
 from utils.image_utils import to_public_url
 from utils.video_utils import select_preview_frame, get_first_keyframe_url
@@ -54,13 +52,19 @@ async def get_job_videos(
     platform: Optional[str] = Query(None, description="Filter by platform"),
     min_frames: Optional[int] = Query(
         None, description="Minimum number of frames"),
-    limit: int = Query(100, ge=1, le=1000,
-                       description="Maximum number of items to return"),
+    limit: int = Query(
+        100, ge=1, le=1000,
+        description="Maximum number of items to return"
+    ),
     offset: int = Query(0, ge=0, description="Number of items to skip"),
     sort_by: str = Query(
-        "created_at", pattern="^(created_at|duration_s|title|platform)$", description="Field to sort by"),
-    order: str = Query("DESC", pattern="^(ASC|DESC)$",
-                       description="Sort order"),
+        "created_at", pattern="^(created_at|duration_s|title|platform)$",
+        description="Field to sort by"
+    ),
+    order: str = Query(
+        "DESC", pattern="^(ASC|DESC)$",
+        description="Sort order"
+    ),
     job_service: JobService = Depends(get_job_service),
     video_crud: VideoCRUD = Depends(get_video_crud),
     video_frame_crud: VideoFrameCRUD = Depends(get_video_frame_crud)
@@ -88,10 +92,10 @@ async def get_job_videos(
         # If job_status.phase is "unknown", it means the job was not found in the database
         if job_status.phase == "unknown":
             raise HTTPException(
-                status_code=404, detail=f"Job {job_id} not found")
+                status_code=404, detail=f"Job {job_id} not found"
+            )
 
-        job = {"job_id": job_status.job_id, "updated_at": job_status.updated_at,
-               "phase": job_status.phase, "percent": job_status.percent, "counts": job_status.counts}
+        # job variable was assigned but never used - removing it
 
         # Get videos with filtering and pagination
         videos = await video_crud.list_videos_by_job(
@@ -168,20 +172,27 @@ async def get_job_videos(
         raise
     except Exception as e:
         raise HTTPException(
-            status_code=500, detail=f"Internal server error: {str(e)}")
+            status_code=500, detail=f"Internal server error: {str(e)}"
+        )
 
 
 @router.get("/jobs/{job_id}/videos/{video_id}/frames", response_model=FrameListResponse)
 async def get_video_frames(
     job_id: str,
     video_id: str,
-    limit: int = Query(100, ge=1, le=1000,
-                       description="Maximum number of items to return"),
+    limit: int = Query(
+        100, ge=1, le=1000,
+        description="Maximum number of items to return"
+    ),
     offset: int = Query(0, ge=0, description="Number of items to skip"),
-    sort_by: str = Query("ts", pattern="^(ts|frame_id)$",
-                         description="Field to sort by"),
-    order: str = Query("ASC", pattern="^(ASC|DESC)$",
-                       description="Sort order"),
+    sort_by: str = Query(
+        "ts", pattern="^(ts|frame_id)$",
+        description="Field to sort by"
+    ),
+    order: str = Query(
+        "ASC", pattern="^(ASC|DESC)$",
+        description="Sort order"
+    ),
     job_service: JobService = Depends(get_job_service),
     video_crud: VideoCRUD = Depends(get_video_crud),
     video_frame_crud: VideoFrameCRUD = Depends(get_video_frame_crud)
@@ -207,20 +218,22 @@ async def get_video_frames(
         # If job_status.phase is "unknown", it means the job was not found in the database
         if job_status.phase == "unknown":
             raise HTTPException(
-                status_code=404, detail=f"Job {job_id} not found")
+                status_code=404, detail=f"Job {job_id} not found"
+            )
 
-        job = {"job_id": job_status.job_id, "updated_at": job_status.updated_at,
-               "phase": job_status.phase, "percent": job_status.percent, "counts": job_status.counts}
+        # job variable was assigned but never used - removing it
 
         # Validate video exists and belongs to the job
         video = await video_crud.get_video(video_id)
         if not video:
             raise HTTPException(
-                status_code=404, detail=f"Video {video_id} not found")
+                status_code=404, detail=f"Video {video_id} not found"
+            )
 
         if video.job_id != job_id:
             raise HTTPException(
-                status_code=404, detail=f"Video {video_id} does not belong to job {job_id}")
+                status_code=404, detail=f"Video {video_id} does not belong to job {job_id}"
+            )
 
         # Get frames with pagination and sorting
         frames = await video_frame_crud.list_video_frames_by_video(
@@ -268,4 +281,5 @@ async def get_video_frames(
         raise
     except Exception as e:
         raise HTTPException(
-            status_code=500, detail=f"Internal server error: {str(e)}")
+            status_code=500, detail=f"Internal server error: {str(e)}"
+        )

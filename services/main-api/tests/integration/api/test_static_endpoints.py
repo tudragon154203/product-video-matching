@@ -2,10 +2,8 @@
 Unit tests for static file serving endpoints.
 Minimal test cases focusing on core functionality.
 """
-from services.static_file_service import StaticFileService
 from api.static_endpoints import router, get_static_file_service
 from pathlib import Path
-import os
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 from unittest.mock import MagicMock, patch

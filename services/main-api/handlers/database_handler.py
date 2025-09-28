@@ -1,5 +1,5 @@
 from common_py.database import DatabaseManager
-from typing import Optional, Dict, Any
+from typing import Dict, Any
 from common_py.logging_config import configure_logging
 
 logger = configure_logging("main-api:database_handler")
@@ -9,7 +9,9 @@ class DatabaseHandler:
     def __init__(self, db: DatabaseManager):
         self.db = db
 
-    async def store_job(self, job_id: str, query: str, industry: str, queries: Dict[str, Any], phase: str = "collection"):
+    async def store_job(
+        self, job_id: str, query: str, industry: str, queries: Dict[str, Any], phase: str = "collection"
+    ):
         """Store a new job in the database."""
         try:
             await self.db.execute(
@@ -19,7 +21,9 @@ class DatabaseHandler:
             await self.db.execute("COMMIT")  # Explicitly commit
             logger.debug(f"Successfully stored job {job_id} in database.")
         except Exception as e:
-            logger.warning(f"Failed to store job in database: {e}")
+            logger.warning(
+                f"Failed to store job in database: {e}"
+            )
             raise
 
     async def get_job(self, job_id: str):
@@ -33,7 +37,9 @@ class DatabaseHandler:
                 logger.debug(f"Job {job_id} not found in database.")
             return job
         except Exception as e:
-            logger.warning(f"Failed to fetch job from database: {e}")
+            logger.warning(
+                f"Failed to fetch job from database: {e}"
+            )
             return None
 
     async def get_job_counts(self, job_id: str):
@@ -64,7 +70,9 @@ class DatabaseHandler:
             )
             return result["updated_at"] if result else None
         except Exception as e:
-            logger.error(f"Failed to fetch job updated_at: {e}")
+            logger.error(
+                f"Failed to fetch job updated_at: {e}"
+            )
             return None
 
     async def get_job_counts_with_frames(self, job_id: str):
@@ -97,7 +105,8 @@ class DatabaseHandler:
             return product_count, video_count, image_count, frame_count, match_count
         except Exception as e:
             logger.warning(
-                f"Failed to fetch counts with frames from database: {e}")
+                f"Failed to fetch counts with frames from database: {e}"
+            )
             return 0, 0, 0, 0, 0
 
     async def update_job_phase(self, job_id: str, new_phase: str):
@@ -108,7 +117,9 @@ class DatabaseHandler:
                 new_phase, job_id
             )
         except Exception as e:
-            logger.error(f"Failed to update job phase: {e}")
+            logger.error(
+                f"Failed to update job phase: {e}"
+            )
             raise
 
     async def get_jobs_for_phase_update(self):
@@ -118,7 +129,9 @@ class DatabaseHandler:
                 "SELECT job_id, phase FROM jobs WHERE phase NOT IN ('completed', 'failed')"
             )
         except Exception as e:
-            logger.error(f"Failed to fetch jobs for phase update: {e}")
+            logger.error(
+                f"Failed to fetch jobs for phase update: {e}"
+            )
             return []
 
     async def get_job_industry(self, job_id: str):
@@ -129,7 +142,9 @@ class DatabaseHandler:
             )
             return job_record["industry"] if job_record else "unknown"
         except Exception as e:
-            logger.error(f"Failed to fetch job industry: {e}")
+            logger.error(
+                f"Failed to fetch job industry: {e}"
+            )
             return "unknown"
 
     async def get_job_age(self, job_id: str):
@@ -140,7 +155,9 @@ class DatabaseHandler:
                 job_id
             )
         except Exception as e:
-            logger.error(f"Failed to fetch job age: {e}")
+            logger.error(
+                f"Failed to fetch job age: {e}"
+            )
             return None
 
     async def get_features_counts(self, job_id: str):
@@ -160,7 +177,9 @@ class DatabaseHandler:
 
             return products_with_features, videos_with_features
         except Exception as e:
-            logger.error(f"Failed to fetch features counts: {e}")
+            logger.error(
+                f"Failed to fetch features counts: {e}"
+            )
             return 0, 0
 
     async def get_job_phase(self, job_id: str) -> str:
@@ -171,7 +190,9 @@ class DatabaseHandler:
             )
             return result["phase"] if result else "unknown"
         except Exception as e:
-            logger.error(f"Failed to fetch job phase: {e}")
+            logger.error(
+                f"Failed to fetch job phase: {e}"
+            )
             return "unknown"
 
     async def store_phase_event(self, event_id: str, job_id: str, event_name: str):
@@ -182,7 +203,9 @@ class DatabaseHandler:
                 event_id, job_id, event_name
             )
         except Exception as e:
-            logger.error(f"Failed to store phase event: {e}")
+            logger.error(
+                f"Failed to store phase event: {e}"
+            )
             raise
 
     async def has_phase_event(self, job_id: str, event_name: str) -> bool:
@@ -194,13 +217,19 @@ class DatabaseHandler:
             )
             count = result or 0
             logger.debug(
-                f"Checking phase event (job_id: {job_id}, event_name: {event_name}, count: {count})")
+                f"Checking phase event (job_id: {job_id}, "
+                f"event_name: {event_name}, count: {count})"
+            )
             if count > 1:
                 logger.warning(
-                    f"MULTIPLE phase events found for same job/event (job_id: {job_id}, event_name: {event_name}, count: {count})")
+                    f"MULTIPLE phase events found for same job/event "
+                    f"(job_id: {job_id}, event_name: {event_name}, count: {count})"
+                )
             return count > 0
         except Exception as e:
-            logger.error(f"Failed to check phase event: {e}")
+            logger.error(
+                f"Failed to check phase event: {e}"
+            )
             return False
 
     async def get_job_asset_types(self, job_id: str) -> Dict[str, bool]:
@@ -217,12 +246,19 @@ class DatabaseHandler:
             has_images, has_videos = self._determine_asset_presence(
                 product_count, video_count, products_with_features, videos_with_features)
 
-            logger.debug(f"Job {job_id} asset types determined: images={has_images} (products={product_count}, with_features={products_with_features}), videos={has_videos} (videos={video_count}, with_features={videos_with_features})")
+            logger.debug(
+                f"Job {job_id} asset types determined: "
+                f"images={has_images} (products={product_count}, "
+                f"with_features={products_with_features}), "
+                f"videos={has_videos} (videos={video_count}, "
+                f"with_features={videos_with_features})"
+            )
 
             return {"images": has_images, "videos": has_videos}
         except Exception as e:
             logger.error(
-                f"Failed to determine job asset types for job {job_id}: {str(e)}")
+                f"Failed to determine job asset types for job {job_id}: {str(e)}"
+            )
             return {"images": True, "videos": True}
 
     async def _get_raw_asset_counts(self, job_id: str) -> tuple[int, int, int, int]:
@@ -243,7 +279,9 @@ class DatabaseHandler:
                 job_id
             )
         except Exception as e:
-            logger.error(f"Failed to clear phase events: {e}")
+            logger.error(
+                f"Failed to clear phase events: {e}"
+            )
             raise
 
     async def list_jobs(self, limit: int = 50, offset: int = 0, status: str = None):
@@ -294,5 +332,7 @@ class DatabaseHandler:
             return jobs, total or 0
 
         except Exception as e:
-            logger.error(f"Failed to list jobs: {e}")
+            logger.error(
+                f"Failed to list jobs: {e}"
+            )
             return [], 0

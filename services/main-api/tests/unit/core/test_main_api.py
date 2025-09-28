@@ -3,9 +3,7 @@ from common_py.database import DatabaseManager
 from services.llm.prompt_service import PromptService
 from config_loader import config
 import sys
-import httpx
-from fastapi import HTTPException
-from unittest.mock import patch, AsyncMock, Mock
+from unittest.mock import Mock
 import os
 import pytest
 pytestmark = pytest.mark.unit

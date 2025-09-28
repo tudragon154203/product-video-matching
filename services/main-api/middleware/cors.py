@@ -1,6 +1,7 @@
 """
-CORS (Cross-Origin Resource Sharing) middleware configuration for the main-api service.
-This module handles cross-origin requests from the frontend application.
+CORS (Cross-Origin Resource Sharing) middleware configuration
+for the main-api service. This module handles cross-origin requests
+from the frontend application.
 """
 
 from fastapi import FastAPI

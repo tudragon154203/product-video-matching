@@ -2,7 +2,6 @@
 Unit tests for the Ollama-related functions.
 """
 from services.llm.prompt_service import PromptService
-import json
 import os
 import sys
 import pytest

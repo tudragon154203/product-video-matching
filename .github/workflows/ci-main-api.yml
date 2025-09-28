@@ -1,4 +1,4 @@
-name: "?? CI - main-api (Unit)"
+name: "🧪 CI - main-api (Unit)"
 
 on:
   push:

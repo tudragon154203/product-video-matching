@@ -1,6 +1,5 @@
-import os
 from fastapi import APIRouter, HTTPException, Query, Depends
-from typing import Optional, List
+from typing import Optional
 from datetime import datetime, timezone
 import pytz
 
@@ -10,13 +9,9 @@ from models.schemas import (
 )
 from services.job.job_service import JobService
 from common_py.crud.product_image_crud import ProductImageCRUD
-from common_py.crud.product_crud import ProductCRUD
-from common_py.database import DatabaseManager  # Import DatabaseManager
-from common_py.messaging import MessageBroker  # Import MessageBroker
 from common_py.logging_config import configure_logging
-from api.dependency import get_db, get_broker, get_product_image_crud, get_product_crud, get_job_service
+from api.dependency import get_product_image_crud, get_job_service
 from config_loader import config
-from services.static_file_service import StaticFileService
 
 logger = configure_logging("main-api:image_endpoints")
 
@@ -41,13 +36,17 @@ async def get_job_images(
         None, description="Filter by product ID"),
     q: Optional[str] = Query(
         None, description="Search query for product titles and image IDs"),
-    limit: int = Query(100, ge=1, le=1000,
-                       description="Maximum number of items to return"),
+    limit: int = Query(
+        10, ge=1, le=1000,
+        description="Maximum number of items to return"
+    ),
     offset: int = Query(0, ge=0, description="Number of items to skip"),
     sort_by: str = Query(
         "created_at", pattern="^(img_id|created_at)$", description="Field to sort by"),
-    order: str = Query("DESC", pattern="^(ASC|DESC)$",
-                       description="Sort order"),
+    order: str = Query(
+        "DESC", pattern="^(ASC|DESC)$",
+        description="Sort order"
+    ),
     job_service: JobService = Depends(get_job_service),
     product_image_crud: ProductImageCRUD = Depends(get_product_image_crud)
 ):
@@ -73,10 +72,10 @@ async def get_job_images(
         # If job_status.phase is "unknown", it means the job was not found in the database
         if job_status.phase == "unknown":
             raise HTTPException(
-                status_code=404, detail=f"Job {job_id} not found")
+                status_code=404, detail=f"Job {job_id} not found"
+            )
 
-        job = {"job_id": job_status.job_id, "updated_at": job_status.updated_at,
-               "phase": job_status.phase, "percent": job_status.percent, "counts": job_status.counts}
+        # job variable was assigned but never used - removing it
 
         # Get images with filtering and pagination
         images = await product_image_crud.list_product_images_by_job(
@@ -109,7 +108,8 @@ async def get_job_images(
             else:
                 # Handle case where public_url cannot be generated (e.g., invalid path)
                 logger.warning(
-                    f"Could not generate public URL for local_path: {image.local_path}")
+                    f"Could not generate public URL for local_path: {image.local_path}"
+                )
                 public_url = None  # Or a default placeholder URL
 
             image_item = ImageItem(
@@ -134,4 +134,5 @@ async def get_job_images(
         raise
     except Exception as e:
         raise HTTPException(
-            status_code=500, detail=f"Internal server error: {str(e)}")
+            status_code=500, detail=f"Internal server error: {str(e)}"
+        )

@@ -7,7 +7,6 @@ from typing import Optional
 from urllib.parse import quote
 
 from common_py.logging_config import configure_logging
-from config_loader import config
 
 logger = configure_logging("main-api:image_utils")
 

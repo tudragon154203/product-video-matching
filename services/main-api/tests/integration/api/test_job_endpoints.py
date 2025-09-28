@@ -1,11 +1,8 @@
 """
 Test script for the main API service job endpoints.
 """
-from config_loader import config as MainAPIConfig
 import httpx
-import sys
 import json
-import asyncio
 import pytest
 pytestmark = pytest.mark.integration
 
@@ -103,7 +100,7 @@ async def test_status_endpoint():
                 try:
                     error_data = response.json()
                     print(f"Error: {json.dumps(error_data, indent=2)}")
-                except:
+                except Exception:
                     print(f"Error: {response.text}")
                 assert False, f"HTTP {response.status_code}"
 
@@ -162,7 +159,7 @@ async def test_status_endpoint_invalid_job():
                 try:
                     error_data = response.json()
                     print(f"Error: {json.dumps(error_data, indent=2)}")
-                except:
+                except Exception:
                     print(f"Error: {response.text}")
                 assert False, f"HTTP {response.status_code} - Expected 200 or 404 for invalid job ID"
 

@@ -1,19 +1,8 @@
-import os  # Import os for environment variables
-from handlers.database_handler import DatabaseHandler  # Import DatabaseHandler
-from common_py.messaging import MessageBroker
-from common_py.database import DatabaseManager
-from common_py.crud.product_crud import ProductCRUD
-from common_py.crud.product_image_crud import ProductImageCRUD
-# Import JobManagementService
-from services.job.job_management_service import JobManagementService
-from services.job.job_service import JobService
-from main import app  # Import app directly
+from main import app # Import app directly
 from httpx import AsyncClient  # Use AsyncClient for async tests
 import pytz
-import json
 from datetime import datetime, timedelta, timezone
-from unittest.mock import AsyncMock, patch, MagicMock
-import asyncio
+from unittest.mock import AsyncMock, MagicMock
 import pytest
 pytestmark = pytest.mark.integration
 
@@ -48,13 +37,13 @@ def to_gmt7(dt: datetime) -> datetime:
 
 
 # Global mock instances (will be set by setup_mocks fixture)
-job_service_mock: JobService
+job_service_mock: JobService  # noqa: F821
 # New mock for JobManagementService
-job_management_service_mock: JobManagementService
-product_image_crud_mock: ProductImageCRUD
-product_crud_mock: ProductCRUD
-db_mock: DatabaseHandler
-broker_mock: MessageBroker
+job_management_service_mock: JobManagementService  # noqa: F821
+product_image_crud_mock: ProductImageCRUD  # noqa: F821
+product_crud_mock: ProductCRUD  # noqa: F821
+db_mock: DatabaseHandler  # noqa: F821
+broker_mock: MessageBroker  # noqa: F821
 
 
 @pytest.fixture(autouse=True)
@@ -156,8 +145,9 @@ async def test_get_job_images_success():
 async def test_get_job_images_not_found():
     """Test GET /jobs/{job_id}/images for job not found."""
     from models.schemas import JobStatusResponse
+    nonexistent_job = "nonexistent_job"  # Define the variable
     mock_job_status = JobStatusResponse(
-        job_id="nonexistent_job",
+        job_id=nonexistent_job,
         phase="unknown",
         percent=0.0,
         counts={"products": 0, "videos": 0, "images": 0, "frames": 0},
@@ -165,7 +155,7 @@ async def test_get_job_images_not_found():
     )
     job_service_mock.get_job_status.return_value = mock_job_status
     async with AsyncClient(app=app, base_url="http://localhost:8888") as ac:
-        response = await ac.get(f"/jobs/nonexistent_job/images")
+        response = await ac.get(f"/jobs/{nonexistent_job}/images")
 
     if response.status_code != 404:
         print(f"Error Response: {response.json()}")

@@ -1,6 +1,5 @@
 import httpx
 import json
-from typing import Dict, Any
 from fastapi import HTTPException
 from common_py.logging_config import configure_logging
 

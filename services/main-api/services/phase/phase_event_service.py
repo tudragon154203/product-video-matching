@@ -1,5 +1,3 @@
-import asyncio
-import uuid
 from typing import Dict, Any, Set
 from common_py.logging_config import configure_logging
 from handlers.database_handler import DatabaseHandler

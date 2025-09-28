@@ -4,7 +4,6 @@ Integration tests for API contract updates to include URL fields.
 from main import app
 from fastapi.testclient import TestClient
 from unittest.mock import patch, MagicMock
-import json
 import pytest
 pytestmark = pytest.mark.integration
 

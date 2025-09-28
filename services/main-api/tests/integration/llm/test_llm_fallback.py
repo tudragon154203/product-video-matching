@@ -28,7 +28,7 @@ async def test_call_gemini_http_error():
 
         # Set a dummy API key for testing
         with patch.object(config, 'GEMINI_API_KEY', 'test-api-key'):
-            with pytest.raises(HTTPException) as exc_info:
+            with pytest.raises(HTTPException):
                 await llm_service.call_gemini(
                     model="gemini-pro",
                     prompt="test prompt",
@@ -46,7 +46,7 @@ async def test_call_gemini_request_error():
 
         # Set a dummy API key for testing
         with patch.object(config, 'GEMINI_API_KEY', 'test-api-key'):
-            with pytest.raises(HTTPException) as exc_info:
+            with pytest.raises(HTTPException):
                 await llm_service.call_gemini(
                     model="gemini-pro",
                     prompt="test prompt",

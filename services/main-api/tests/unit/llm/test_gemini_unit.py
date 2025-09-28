@@ -10,7 +10,6 @@ from unittest.mock import patch, AsyncMock, Mock
 import pytest
 import sys
 import os
-import json
 
 # Add the libs directory to the path
 sys.path.append(os.path.join(os.path.dirname(

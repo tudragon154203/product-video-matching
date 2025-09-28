@@ -3,7 +3,7 @@ Results service layer for main-api.
 Contains business logic for product-video matching results.
 """
 import os
-from typing import Optional, List, Dict, Any, Tuple
+from typing import Optional, Any, Tuple
 from uuid import uuid4
 from datetime import datetime, timezone
 import pytz

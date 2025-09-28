@@ -39,13 +39,18 @@ def get_broker() -> MessageBroker:
     return _broker_instance
 
 
-def get_job_service(db: DatabaseManager = Depends(get_db), broker: MessageBroker = Depends(get_broker)) -> JobService:
+def get_job_service(
+    db: DatabaseManager = Depends(get_db),
+    broker: MessageBroker = Depends(get_broker)
+) -> JobService:
     # Import here to avoid circular dependency
     from services.job.job_service import JobService
     return JobService(db, broker)
 
 
-def get_product_image_crud(db: DatabaseManager = Depends(get_db)) -> ProductImageCRUD:
+def get_product_image_crud(
+    db: DatabaseManager = Depends(get_db)
+) -> ProductImageCRUD:
     return ProductImageCRUD(db)
 
 

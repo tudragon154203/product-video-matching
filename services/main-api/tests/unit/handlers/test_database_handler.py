@@ -1,6 +1,5 @@
 from handlers.database_handler import DatabaseHandler
 from unittest.mock import AsyncMock, Mock
-import asyncio
 import pytest
 pytestmark = pytest.mark.unit
 

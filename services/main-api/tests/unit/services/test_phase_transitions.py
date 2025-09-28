@@ -4,8 +4,7 @@ from services.phase.phase_event_service import PhaseEventService
 import os
 import sys
 import uuid
-from unittest.mock import AsyncMock, Mock, patch
-import asyncio
+from unittest.mock import AsyncMock, Mock
 import pytest
 pytestmark = pytest.mark.unit
 
@@ -188,7 +187,8 @@ class TestPhaseTransitionWithAssetTypes:
         db_handler.get_job_industry = AsyncMock(return_value="office_products")
 
         # To transition from feature_extraction to matching, we need all required events.
-        # For images and videos, required events are: "image.embeddings.completed", "image.keypoints.completed", "video.embeddings.completed", "video.keypoints.completed"
+        # For images and videos, required events are: "image.embeddings.completed",
+        # "image.keypoints.completed", "video.embeddings.completed", "video.keypoints.completed"
         # We will send all four events one by one.
 
         # Send first event

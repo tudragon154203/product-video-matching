@@ -1,10 +1,6 @@
 import uuid
-import json
-import time
-from typing import Dict, Any
 from fastapi import HTTPException
 from common_py.logging_config import configure_logging
-from config_loader import config
 from models.schemas import StartJobRequest, StartJobResponse, JobStatusResponse
 from services.llm.llm_service import LLMService
 from services.llm.prompt_service import PromptService

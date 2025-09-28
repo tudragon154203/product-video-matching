@@ -1,5 +1,3 @@
-import os
-from handlers.database_handler import DatabaseHandler
 from common_py.messaging import MessageBroker
 from common_py.database import DatabaseManager
 from common_py.crud.video_frame_crud import VideoFrameCRUD
@@ -9,10 +7,8 @@ from services.job.job_service import JobService
 from main import app
 from httpx import AsyncClient
 import pytz
-import json
 from datetime import datetime, timedelta, timezone
-from unittest.mock import AsyncMock, patch, MagicMock
-import asyncio
+from unittest.mock import AsyncMock, MagicMock
 import pytest
 pytestmark = pytest.mark.integration
 
@@ -59,12 +55,12 @@ def to_gmt7(dt: datetime) -> datetime:
 
 
 # Global mock instances
-job_service_mock: JobService
-job_management_service_mock: JobManagementService
-video_crud_mock: VideoCRUD
-video_frame_crud_mock: VideoFrameCRUD
-db_mock: DatabaseManager
-broker_mock: MessageBroker
+job_service_mock: JobService  # noqa: F821
+job_management_service_mock: JobManagementService  # noqa: F821
+video_crud_mock: VideoCRUD  # noqa: F821
+video_frame_crud_mock: VideoFrameCRUD  # noqa: F821
+db_mock: DatabaseManager  # noqa: F821
+broker_mock: MessageBroker  # noqa: F821
 
 
 @pytest.fixture(autouse=True)
@@ -141,7 +137,8 @@ def setup_mocks(monkeypatch):
     ]
     video_crud_mock.count_videos_by_job.return_value = 2
     video_crud_mock.get_video.side_effect = lambda video_id: {
-        MOCK_VIDEO_ID_1: MockVideo(MOCK_VIDEO_ID_1, "youtube", "url1", "Video Title 1", 120, datetime.now(timezone.utc) - timedelta(days=5)),
+        MOCK_VIDEO_ID_1: MockVideo(MOCK_VIDEO_ID_1, "youtube", "url1", "Video Title 1", 120,
+                                   datetime.now(timezone.utc) - timedelta(days=5)),
         MOCK_VIDEO_ID_2: MockVideo(MOCK_VIDEO_ID_2, "bilibili", "url2",
                                    "Another Video", 240, datetime.now(timezone.utc) - timedelta(days=10))
     }.get(video_id)
@@ -184,8 +181,9 @@ async def test_get_job_videos_success():
 async def test_get_job_videos_not_found():
     """Test GET /jobs/{job_id}/videos for job not found."""
     from models.schemas import JobStatusResponse
+    nonexistent_job = "nonexistent_job"  # Define the variable
     mock_job_status = JobStatusResponse(
-        job_id="nonexistent_job",
+        job_id=nonexistent_job,
         phase="unknown",
         percent=0.0,
         counts={"products": 0, "videos": 0, "images": 0, "frames": 0},
@@ -193,7 +191,7 @@ async def test_get_job_videos_not_found():
     )
     job_service_mock.get_job_status.return_value = mock_job_status
     async with AsyncClient(app=app, base_url="http://localhost:8888") as ac:
-        response = await ac.get(f"/jobs/nonexistent_job/videos")
+        response = await ac.get(f"/jobs/{nonexistent_job}/videos")
 
     if response.status_code != 404:
         print(f"Error Response: {response.json()}")

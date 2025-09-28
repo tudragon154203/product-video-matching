@@ -1,6 +1,7 @@
 """
 Simplified configuration loader for the main API service.
-Uses environment variables directly since Docker Compose loads both shared and service-specific .env files.
+Uses environment variables directly since Docker Compose loads both
+shared and service-specific .env files.
 """
 import os
 import sys
@@ -8,6 +9,7 @@ from dataclasses import dataclass, field
 from typing import List
 
 from dotenv import load_dotenv
+
 load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), '.env'))
 
 # Add libs directory to PYTHONPATH for imports
@@ -26,11 +28,14 @@ except ImportError:
 class MainAPIConfig:
     # Ollama configuration
     OLLAMA_HOST: str = os.getenv(
-        "OLLAMA_HOST", "http://host.docker.internal:11434")
+        "OLLAMA_HOST", "http://host.docker.internal:11434"
+    )
     OLLAMA_MODEL_CLASSIFY: str = os.getenv(
-        "OLLAMA_MODEL_CLASSIFY", "qwen3:4b-instruct")
+        "OLLAMA_MODEL_CLASSIFY", "qwen3:4b-instruct"
+    )
     OLLAMA_MODEL_GENERATE: str = os.getenv(
-        "OLLAMA_MODEL_GENERATE", "qwen3:4b-instruct")
+        "OLLAMA_MODEL_GENERATE", "qwen3:4b-instruct"
+    )
 
     # LLM configuration
     LLM_TIMEOUT: int = int(os.getenv("LLM_TIMEOUT", "60"))
@@ -43,7 +48,10 @@ class MainAPIConfig:
     INDUSTRY_LABELS: List[str] = field(
         default_factory=lambda: os.getenv(
             "INDUSTRY_LABELS",
-            "fashion,beauty_personal_care,books,electronics,home_garden,sports_outdoors,baby_products,pet_supplies,toys_games,automotive,office_products,business_industrial,collectibles_art,jewelry_watches,other"
+            "fashion,beauty_personal_care,books,electronics,"
+            "home_garden,sports_outdoors,baby_products,pet_supplies,"
+            "toys_games,automotive,office_products,business_industrial,"
+            "collectibles_art,jewelry_watches,other"
         ).split(",")
     )
 

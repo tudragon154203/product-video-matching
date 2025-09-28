@@ -5,11 +5,8 @@ from models.schemas import ProductListResponse
 from services.job.job_service import JobService
 from services.product.product_service import ProductService
 from common_py.database import DatabaseManager
-from common_py.messaging import MessageBroker
-from api.dependency import get_db, get_broker, get_job_service
+from api.dependency import get_db, get_job_service
 from common_py.logging_config import configure_logging
-from utils.product_utils import select_primary_images
-from config_loader import config
 
 logger = configure_logging("main-api:product_endpoints")
 
@@ -29,13 +26,19 @@ async def get_job_products(
         None, description="Search query for product titles, brands, or ASIN/ItemID"),
     src: Optional[str] = Query(
         None, description="Filter by source (amazon, ebay)"),
-    limit: int = Query(100, ge=1, le=1000,
-                       description="Maximum number of items to return"),
+    limit: int = Query(
+        10, ge=1, le=1000,
+        description="Maximum number of items to return"
+    ),
     offset: int = Query(0, ge=0, description="Number of items to skip"),
     sort_by: str = Query(
-        "created_at", pattern="^(product_id|title|brand|src|created_at)$", description="Field to sort by"),
-    order: str = Query("DESC", pattern="^(ASC|DESC)$",
-                       description="Sort order"),
+        "created_at", pattern="^(product_id|title|brand|src|created_at)$",
+        description="Field to sort by"
+    ),
+    order: str = Query(
+        "DESC", pattern="^(ASC|DESC)$",
+        description="Sort order"
+    ),
     job_service: JobService = Depends(get_job_service),
     product_service: ProductService = Depends(get_product_service)
 ):
@@ -63,7 +66,8 @@ async def get_job_products(
         # If job_status.phase is "unknown", it means the job was not found in the database
         if job_status.phase == "unknown":
             raise HTTPException(
-                status_code=404, detail=f"Job {job_id} not found")
+                status_code=404, detail=f"Job {job_id} not found"
+            )
 
         # Delegate to service
         return await product_service.get_job_products(
@@ -80,4 +84,5 @@ async def get_job_products(
         raise
     except Exception as e:
         raise HTTPException(
-            status_code=500, detail=f"Internal server error: {str(e)}")
+            status_code=500, detail=f"Internal server error: {str(e)}"
+        )

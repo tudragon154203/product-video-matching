@@ -1,9 +1,7 @@
 """
 Utility functions for video-related operations.
 """
-from typing import Optional, List, Dict, Any
-from datetime import datetime
-import math
+from typing import Optional, Dict, Any
 
 from common_py.logging_config import configure_logging
 from common_py.crud.video_frame_crud import VideoFrameCRUD

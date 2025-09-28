@@ -1,6 +1,5 @@
-import os
 from fastapi import APIRouter, HTTPException, Query, Depends
-from typing import Optional, List
+from typing import Optional
 from datetime import datetime, timezone
 import pytz
 
@@ -17,8 +16,7 @@ from common_py.crud.video_frame_crud import VideoFrameCRUD
 from common_py.crud.product_crud import ProductCRUD
 from common_py.crud.video_crud import VideoCRUD
 from common_py.database import DatabaseManager  # Import DatabaseManager
-from common_py.messaging import MessageBroker  # Import MessageBroker
-from api.dependency import get_db, get_broker, get_job_service
+from api.dependency import get_db, get_job_service
 
 
 router = APIRouter()
@@ -51,7 +49,9 @@ def get_gmt7_time(dt: Optional[datetime]) -> Optional[datetime]:
     return dt.astimezone(pytz.timezone('Asia/Saigon'))
 
 
-async def get_job_or_404(job_id: str, job_service: JobService = Depends(get_job_service)):
+async def get_job_or_404(
+    job_id: str, job_service: JobService = Depends(get_job_service)
+):
     """Get job or raise 404 if not found"""
     job_status = await job_service.get_job_status(job_id)
 
@@ -59,8 +59,13 @@ async def get_job_or_404(job_id: str, job_service: JobService = Depends(get_job_
     if job_status.phase == "unknown":
         raise HTTPException(status_code=404, detail=f"Job {job_id} not found")
 
-    job = {"job_id": job_status.job_id, "updated_at": job_status.updated_at,
-           "phase": job_status.phase, "percent": job_status.percent, "counts": job_status.counts}
+    job = {
+        "job_id": job_status.job_id,
+        "updated_at": job_status.updated_at,
+        "phase": job_status.phase,
+        "percent": job_status.percent,
+        "counts": job_status.counts
+    }
     return job
 
 
@@ -117,7 +122,8 @@ async def get_features_summary(
         # Get job updated_at
         job_record = await db.fetch_one("SELECT updated_at FROM jobs WHERE job_id = $1", job_id)
         updated_at = get_gmt7_time(
-            job_record["updated_at"] if job_record else None)
+            job_record["updated_at"] if job_record else None
+        )
 
         return FeaturesSummaryResponse(
             job_id=job_id,
@@ -140,21 +146,29 @@ async def get_features_summary(
         raise
     except Exception as e:
         raise HTTPException(
-            status_code=500, detail=f"Internal server error: {str(e)}")
+            status_code=500, detail=f"Internal server error: {str(e)}"
+        )
 
 
 @router.get("/jobs/{job_id}/features/product-images", response_model=ProductImageFeaturesResponse)
 async def get_job_product_images_features(
     job_id: str,
-    has: str = Query("any", pattern="^(segment|embedding|keypoints|none|any)$",
-                     description="Filter by feature presence"),
-    limit: int = Query(100, ge=1, le=1000,
-                       description="Maximum number of items to return"),
+    has: str = Query(
+        "any", pattern="^(segment|embedding|keypoints|none|any)$",
+        description="Filter by feature presence"
+    ),
+    limit: int = Query(
+        10, ge=1, le=1000,
+        description="Maximum number of items to return"
+    ),
     offset: int = Query(0, ge=0, description="Number of items to skip"),
     sort_by: str = Query(
-        "created_at", pattern="^(created_at|img_id)$", description="Field to sort by"),
-    order: str = Query("DESC", pattern="^(ASC|DESC)$",
-                       description="Sort order"),
+        "created_at", pattern="^(created_at|img_id)$", description="Field to sort by"
+    ),
+    order: str = Query(
+        "DESC", pattern="^(ASC|DESC)$",
+        description="Sort order"
+    ),
     product_image_crud: ProductImageCRUD = Depends(get_product_image_crud),
     job_service: JobService = Depends(get_job_service)
 ):
@@ -218,22 +232,33 @@ async def get_job_product_images_features(
         raise
     except Exception as e:
         raise HTTPException(
-            status_code=500, detail=f"Internal server error: {str(e)}")
+            status_code=500, detail=f"Internal server error: {str(e)}"
+        )
 
 
 @router.get("/jobs/{job_id}/features/video-frames", response_model=VideoFrameFeaturesResponse)
 async def get_job_video_frames_features(
     job_id: str,
-    video_id: Optional[str] = Query(None, description="Filter by video ID"),
-    has: str = Query("any", pattern="^(segment|embedding|keypoints|none|any)$",
-                     description="Filter by feature presence"),
-    limit: int = Query(100, ge=1, le=1000,
-                       description="Maximum number of items to return"),
+    video_id: Optional[str] = Query(
+        None, description="Filter by video ID"
+    ),
+    has: str = Query(
+        "any", pattern="^(segment|embedding|keypoints|none|any)$",
+        description="Filter by feature presence"
+    ),
+    limit: int = Query(
+        100, ge=1, le=1000,
+        description="Maximum number of items to return"
+    ),
     offset: int = Query(0, ge=0, description="Number of items to skip"),
-    sort_by: str = Query("ts", pattern="^(ts|frame_id)$",
-                         description="Field to sort by"),
-    order: str = Query("DESC", pattern="^(ASC|DESC)$",
-                       description="Sort order"),
+    sort_by: str = Query(
+        "ts", pattern="^(ts|frame_id)$",
+        description="Field to sort by"
+    ),
+    order: str = Query(
+        "DESC", pattern="^(ASC|DESC)$",
+        description="Sort order"
+    ),
     video_frame_crud: VideoFrameCRUD = Depends(get_video_frame_crud),
     job_service: JobService = Depends(get_job_service)
 ):
@@ -300,7 +325,8 @@ async def get_job_video_frames_features(
         raise
     except Exception as e:
         raise HTTPException(
-            status_code=500, detail=f"Internal server error: {str(e)}")
+            status_code=500, detail=f"Internal server error: {str(e)}"
+        )
 
 
 @router.get("/features/product-images/{img_id}", response_model=ProductImageFeatureItem)
@@ -317,7 +343,8 @@ async def get_product_image_feature(
         image = await product_image_crud.get_product_image(img_id)
         if not image:
             raise HTTPException(
-                status_code=404, detail=f"Product image {img_id} not found")
+                status_code=404, detail=f"Product image {img_id} not found"
+            )
 
         # Determine feature presence
         has_segment = image.masked_local_path is not None
@@ -345,7 +372,8 @@ async def get_product_image_feature(
         raise
     except Exception as e:
         raise HTTPException(
-            status_code=500, detail=f"Internal server error: {str(e)}")
+            status_code=500, detail=f"Internal server error: {str(e)}"
+        )
 
 
 @router.get("/features/video-frames/{frame_id}", response_model=VideoFrameFeatureItem)
@@ -362,7 +390,8 @@ async def get_video_frame_feature(
         frame = await video_frame_crud.get_video_frame(frame_id)
         if not frame:
             raise HTTPException(
-                status_code=404, detail=f"Video frame {frame_id} not found")
+                status_code=404, detail=f"Video frame {frame_id} not found"
+            )
 
         # Determine feature presence
         has_segment = frame.masked_local_path is not None
@@ -391,4 +420,5 @@ async def get_video_frame_feature(
         raise
     except Exception as e:
         raise HTTPException(
-            status_code=500, detail=f"Internal server error: {str(e)}")
+            status_code=500, detail=f"Internal server error: {str(e)}"
+        )

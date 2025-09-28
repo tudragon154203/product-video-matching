@@ -2,8 +2,7 @@
 Tests for the new GET /jobs endpoint in job_endpoints.py
 """
 from main import app
-from datetime import datetime
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock
 import httpx
 import pytest
 pytestmark = pytest.mark.integration
