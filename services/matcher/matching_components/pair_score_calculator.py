@@ -6,15 +6,23 @@ import numpy as np
 
 from common_py.logging_config import configure_logging
 
+from embedding_similarity import EmbeddingSimilarity
+
 logger = configure_logging("matcher:pair_score_calculator")
 
 
 class PairScoreCalculator:
     """Calculate similarity scores for image/frame pairs."""
 
-    def __init__(self, sim_deep_min: float, inliers_min: float) -> None:
+    def __init__(
+        self,
+        sim_deep_min: float,
+        inliers_min: float,
+        embedding_similarity: EmbeddingSimilarity | None = None,
+    ) -> None:
         self.sim_deep_min = sim_deep_min
         self.inliers_min = inliers_min
+        self.embedding_similarity = embedding_similarity or EmbeddingSimilarity()
 
     async def calculate_pair_score(
         self,
@@ -60,11 +68,9 @@ class PairScoreCalculator:
             if not image.get("emb_rgb") or not frame.get("emb_rgb"):
                 return np.random.uniform(0.7, 0.9)
 
-            image_emb = np.array(image["emb_rgb"], dtype=np.float32)
-            frame_emb = np.array(frame["emb_rgb"], dtype=np.float32)
-
-            similarity = np.dot(image_emb, frame_emb) / (
-                np.linalg.norm(image_emb) * np.linalg.norm(frame_emb)
+            similarity = await self.embedding_similarity.calculate_similarity(
+                image,
+                frame,
             )
 
             return max(0.0, min(1.0, similarity))
