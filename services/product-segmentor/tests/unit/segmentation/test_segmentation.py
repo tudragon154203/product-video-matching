@@ -98,6 +98,7 @@ class TestRMBG20Segmentor:
     
     
     @pytest.mark.asyncio
+    @pytest.mark.unit
     async def test_rmbg_segmentor_file_not_found(self):
         """Test RMBG segmentor with non-existent file."""
         segmentor = RMBG20Segmentor()
@@ -109,6 +110,7 @@ class TestRMBG20Segmentor:
             await segmentor.segment_image("/nonexistent/path.jpg")
     
     @pytest.mark.asyncio
+    @pytest.mark.unit
     async def test_rmbg_segmentor_not_initialized(self):
         """Test RMBG segmentor when not initialized."""
         segmentor = RMBG20Segmentor()
@@ -135,6 +137,7 @@ class TestSegmentorFactory:
     """Test segmentor factory with both RMBG versions."""
     
     @pytest.mark.asyncio
+    @pytest.mark.unit
     @pytest.mark.parametrize("model_name,expected_class", [
         ("briaai/RMBG-2.0", "RMBG20Segmentor"),
         ("briaai/RMBG-1.4", "RMBG14Segmentor"),
@@ -164,6 +167,7 @@ class TestSegmentorFactory:
             assert segmentor.model_name == "briaai/RMBG-1.4"
     
     @pytest.mark.asyncio
+    @pytest.mark.unit
     async def test_factory_uses_config_default(self):
         """Test that factory uses config default when no model name provided."""
         from services.foreground_segmentor_factory import create_segmentor
@@ -183,6 +187,7 @@ class TestSegmentorFactory:
             config.FOREGROUND_SEG_MODEL_NAME = original_model
     
     @pytest.mark.asyncio
+    @pytest.mark.unit
     async def test_factory_config_rmbg14_default(self):
         """Test that factory creates RMBG-1.4 when config uses RMBG-1.4."""
         from services.foreground_segmentor_factory import create_segmentor

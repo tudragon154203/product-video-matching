@@ -2,6 +2,7 @@
 Unit tests for eBay Browse API client and eBay product collector.
 """
 import pytest
+pytestmark = pytest.mark.unit
 import asyncio
 from unittest.mock import patch, MagicMock, AsyncMock, Mock
 from httpx import HTTPStatusError, RequestError

@@ -57,6 +57,7 @@ class TestFileManager:
         assert file_manager.product_frames_dir.exists()
     
     @pytest.mark.asyncio
+    @pytest.mark.unit
     async def test_save_product_mask(self, file_manager, temp_dir):
         """Test saving product mask."""
         await file_manager.initialize()
@@ -79,6 +80,7 @@ class TestFileManager:
         assert np.all(saved_mask == 255)
     
     @pytest.mark.asyncio
+    @pytest.mark.unit
     async def test_save_frame_mask(self, file_manager, temp_dir):
         """Test saving frame mask."""
         await file_manager.initialize()
@@ -101,6 +103,7 @@ class TestFileManager:
         assert np.all(saved_mask == 0)
     
     @pytest.mark.asyncio
+    @pytest.mark.unit
     async def test_mask_normalization(self, file_manager):
         """Test that masks are normalized to 0/255 values."""
         await file_manager.initialize()
@@ -125,6 +128,7 @@ class TestFileManager:
         np.testing.assert_array_equal(saved_mask, expected)
     
     @pytest.mark.asyncio
+    @pytest.mark.unit
     async def test_mask_exists(self, file_manager):
         """Test mask existence checking."""
         await file_manager.initialize()
@@ -140,6 +144,7 @@ class TestFileManager:
         assert await file_manager.mask_exists(mask_path)
     
     @pytest.mark.asyncio
+    @pytest.mark.unit
     async def test_get_mask_size(self, file_manager):
         """Test getting mask dimensions."""
         await file_manager.initialize()
@@ -156,6 +161,7 @@ class TestFileManager:
         size = await file_manager.get_mask_size(mask_path)
         assert size == (120, 80)  # PIL returns (width, height)
     
+    @pytest.mark.unit
     def test_get_expected_paths(self, file_manager):
         """Test getting expected mask paths."""
         # Product mask path
@@ -169,6 +175,7 @@ class TestFileManager:
         assert "video_frames" in frame_path
     
     @pytest.mark.asyncio
+    @pytest.mark.unit
     async def test_atomic_save_on_error(self, file_manager, temp_dir):
         """Test that failed saves don't leave partial files."""
         await file_manager.initialize()

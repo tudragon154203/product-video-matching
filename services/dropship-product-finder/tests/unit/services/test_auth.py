@@ -2,6 +2,7 @@
 Unit tests for eBay authentication service with Redis token management.
 """
 import pytest
+pytestmark = pytest.mark.unit
 import json
 from unittest.mock import patch, MagicMock, AsyncMock
 from datetime import datetime, timedelta

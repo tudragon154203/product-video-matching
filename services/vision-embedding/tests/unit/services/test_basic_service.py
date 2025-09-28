@@ -20,6 +20,7 @@ class TestBasicVisionEmbeddingService:
         service.handle_videos_keyframes_ready = AsyncMock()
         return service
     
+    @pytest.mark.unit
     def test_event_handler_interface(self, mock_service):
         """Test that all expected handler methods exist."""
         # These should be async methods

@@ -91,6 +91,7 @@ class TestConcurrentProcessing:
         return service, mock_segmentor
     
     @pytest.mark.asyncio
+    @pytest.mark.unit
     async def test_concurrent_processing_limit(self, service_with_mock_segmentor):
         """Test that concurrent processing respects the limit."""
         service, mock_segmentor = service_with_mock_segmentor
@@ -121,6 +122,7 @@ class TestConcurrentProcessing:
         assert mock_segmentor.call_count == 5
     
     @pytest.mark.asyncio
+    @pytest.mark.unit
     async def test_backpressure_handling(self, service_with_mock_segmentor):
         """Test that backpressure prevents memory exhaustion."""
         service, mock_segmentor = service_with_mock_segmentor
@@ -153,6 +155,7 @@ class TestConcurrentProcessing:
         assert mock_segmentor.max_concurrent_calls <= 2
     
     @pytest.mark.asyncio
+    @pytest.mark.unit
     async def test_error_handling_in_concurrent_processing(self, service_with_mock_segmentor):
         """Test error handling doesn't break concurrent processing."""
         service, mock_segmentor = service_with_mock_segmentor
@@ -189,6 +192,7 @@ class TestConcurrentProcessing:
         assert True  # If we get here, concurrent processing handled errors gracefully
     
     @pytest.mark.asyncio
+    @pytest.mark.unit
     async def test_batch_completion_tracking(self, service_with_mock_segmentor):
         """Test batch completion tracking with concurrent processing."""
         service, mock_segmentor = service_with_mock_segmentor
@@ -215,6 +219,7 @@ class TestConcurrentProcessing:
         assert job_tracking[job_id]["asset_type"] == "image"
     
     @pytest.mark.asyncio
+    @pytest.mark.unit
     async def test_empty_batch_handling(self, service_with_mock_segmentor):
         """Test handling of empty batches."""
         service, mock_segmentor = service_with_mock_segmentor

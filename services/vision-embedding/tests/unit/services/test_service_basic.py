@@ -7,6 +7,7 @@ pytestmark = pytest.mark.unit
 class TestVisionEmbeddingServiceBasic:
     """Basic vision embedding service tests."""
     
+    @pytest.mark.unit
     def test_import_service(self):
         """Test that service module can be imported."""
         # This test will fail if dependencies are missing, but that's expected

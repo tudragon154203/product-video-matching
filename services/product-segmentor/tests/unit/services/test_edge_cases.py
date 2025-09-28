@@ -140,6 +140,7 @@ class TestEdgeCases:
         mock_broker.publish_event.assert_not_called()
     
     @pytest.mark.asyncio
+    @pytest.mark.unit
     async def test_database_error_handling(self, mock_db, mock_broker, temp_dir):
         """Test handling of database errors."""
         service = ProductSegmentorService(
@@ -190,6 +191,7 @@ class TestEdgeCases:
         assert single_call_args[0][1]["image_id"] == "img_123"
     
     @pytest.mark.asyncio
+    @pytest.mark.unit
     async def test_file_save_error_handling(self, mock_db, mock_broker, temp_dir):
         """Test handling of file save errors."""
         service = ProductSegmentorService(
@@ -229,6 +231,7 @@ class TestEdgeCases:
     
     
     @pytest.mark.asyncio
+    @pytest.mark.unit
     async def test_concurrent_processing_limits(self, mock_db, mock_broker, temp_dir):
         """Test that concurrent processing respects limits."""
         service = ProductSegmentorService(
@@ -271,6 +274,7 @@ class TestEdgeCases:
         mock_segmentor.segment_image.assert_called_once()
     
     @pytest.mark.asyncio
+    @pytest.mark.unit
     async def test_service_cleanup_with_ongoing_processing(self, mock_db, mock_broker, temp_dir):
         """Test service cleanup while processing is ongoing."""
         service = ProductSegmentorService(

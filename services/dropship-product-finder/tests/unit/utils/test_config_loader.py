@@ -2,6 +2,7 @@
 Unit tests for eBay configuration in config_loader.py
 """
 import pytest
+pytestmark = pytest.mark.unit
 import os
 from unittest.mock import patch, MagicMock
 import sys

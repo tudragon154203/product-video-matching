@@ -2,6 +2,7 @@
 Unit tests for eBay collectors with authentication integration.
 """
 import pytest
+pytestmark = pytest.mark.unit
 from unittest.mock import patch, MagicMock, AsyncMock
 
 from collectors.ebay_product_collector import EbayProductCollector

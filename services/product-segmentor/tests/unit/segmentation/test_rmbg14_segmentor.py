@@ -17,6 +17,7 @@ from segmentation.models.rmbg20_segmentor import RMBG20Segmentor
 class TestRMBG14Segmentor:
     """Test RMBG-1.4 segmentor implementation."""
     
+    @pytest.mark.unit
     def test_rmbg14_segmentor_creation(self):
         """Test RMBG-1.4 segmentor creation."""
         segmentor = RMBG14Segmentor()
@@ -26,6 +27,7 @@ class TestRMBG14Segmentor:
     
     
     @pytest.mark.asyncio
+    @pytest.mark.unit
     async def test_rmbg14_segmentor_file_not_found(self):
         """Test RMBG-1.4 segmentor with non-existent file."""
         segmentor = RMBG14Segmentor()
@@ -37,6 +39,7 @@ class TestRMBG14Segmentor:
             await segmentor.segment_image("/nonexistent/path.jpg")
     
     @pytest.mark.asyncio
+    @pytest.mark.unit
     async def test_rmbg14_segmentor_not_initialized(self):
         """Test RMBG-1.4 segmentor when not initialized."""
         segmentor = RMBG14Segmentor()
@@ -59,6 +62,7 @@ class TestRMBG14Segmentor:
             os.unlink(tmp_path)
     
     @pytest.mark.asyncio
+    @pytest.mark.unit
     async def test_rmbg14_segmentor_normalization_difference(self):
         """Test that RMBG-1.4 uses different normalization than RMBG-2.0."""
         segmentor = RMBG14Segmentor()
@@ -85,6 +89,7 @@ class TestRMBG14Segmentor:
             segmentor.cleanup()
     
     @pytest.mark.asyncio
+    @pytest.mark.unit
     async def test_rmbg14_segmentor_output_processing(self):
         """Test RMBG-1.4 output processing with sigmoid activation."""
         # This test is skipped for now due to mocking complexity
@@ -92,6 +97,7 @@ class TestRMBG14Segmentor:
         pytest.skip("Skipping due to mocking complexity - will be tested in integration tests")
 
     @pytest.mark.asyncio
+    @pytest.mark.unit
     async def test_rmbg14_segmentor_real_image_segmentation(self):
         """Test RMBG-1.4 segmentor with a real mock image and verify mask output."""
         segmentor = RMBG14Segmentor()
@@ -127,6 +133,7 @@ class TestSegmentorFactoryRMBG14:
     """Test segmentor factory with RMBG-1.4 models."""
     
     @pytest.mark.asyncio
+    @pytest.mark.unit
     async def test_factory_creates_rmbg14_segmentor(self):
         """Test that factory creates RMBG-14 segmentor for RMBG-14 model."""
         from services.foreground_segmentor_factory import create_segmentor
@@ -137,6 +144,7 @@ class TestSegmentorFactoryRMBG14:
         assert segmentor.model_name == "briaai/RMBG-1.4"
     
     @pytest.mark.asyncio
+    @pytest.mark.unit
     async def test_factory_creates_rmbg14_segmentor_case_insensitive(self):
         """Test that factory creates RMBG-14 segmentor case-insensitive."""
         from services.foreground_segmentor_factory import create_segmentor
@@ -151,6 +159,7 @@ class TestSegmentorFactoryRMBG14:
         assert segmentor2.model_name == "briaai/RMBG-1.4"
     
     @pytest.mark.asyncio
+    @pytest.mark.unit
     async def test_factory_uses_config_default(self):
         """Test that factory uses config default when no model name provided."""
         from services.foreground_segmentor_factory import create_segmentor
@@ -181,6 +190,7 @@ class TestModelSelection:
         ("rmbg-1.4", RMBG14Segmentor),
         ("unknown/model", RMBG20Segmentor),  # Should default to RMBG-2.0
     ])
+    @pytest.mark.unit
     async def test_factory_model_selection(self, model_name, expected_class):
         """Test factory creates correct segmentor based on model name."""
         from services.foreground_segmentor_factory import create_segmentor
@@ -194,6 +204,7 @@ class TestModelSelection:
         "briaai/RMBG-2.0",
     ])
     @pytest.mark.asyncio
+    @pytest.mark.unit
     async def test_segmentor_initialization(self, model_name):
         """Test that segmentors can be initialized successfully."""
         from services.foreground_segmentor_factory import create_segmentor

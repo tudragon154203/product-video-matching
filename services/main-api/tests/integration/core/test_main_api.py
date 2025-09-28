@@ -1,5 +1,5 @@
 import pytest
-pytestmark = pytest.mark.unit
+pytestmark = pytest.mark.integration
 import os
 from unittest.mock import patch, AsyncMock, Mock
 from fastapi import HTTPException
