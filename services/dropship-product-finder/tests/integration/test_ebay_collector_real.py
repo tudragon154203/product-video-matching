@@ -5,7 +5,7 @@ Tests the complete flow from authentication to product collection with real data
 """
 
 from common_py.logging_config import configure_logging
-import aioredis
+import redis.asyncio as redis
 from collectors.ebay_product_collector import EbayProductCollector
 from services.auth import eBayAuthService
 from config_loader import config
@@ -715,7 +715,7 @@ async def run_comprehensive_test():
     logger.info("Starting comprehensive eBay collector integration test...")
 
     # Initialize components
-    redis_client = aioredis.from_url(config.REDIS_URL, decode_responses=True)
+    redis_client = redis.from_url(config.REDIS_URL, decode_responses=True)
     collector = EbayProductCollector(
         "/tmp/test_integration", redis_client=redis_client, marketplaces=["EBAY_US"]
     )

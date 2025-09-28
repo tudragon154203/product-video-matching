@@ -4,7 +4,7 @@ End-to-end test for eBay OAuth 2.0 authentication and product collection
 """
 
 from common_py.logging_config import configure_logging
-import aioredis
+import redis.asyncio as redis
 from services.auth import eBayAuthService
 from collectors.ebay_product_collector import EbayProductCollector
 from config_loader import config
@@ -29,7 +29,7 @@ async def test_e2e_flow():
     print("=== eBay OAuth 2.0 End-to-End Test ===")
 
     # Initialize components
-    redis_client = aioredis.from_url(config.REDIS_URL, decode_responses=True)
+    redis_client = redis.from_url(config.REDIS_URL, decode_responses=True)
     collector = EbayProductCollector("/tmp/test", redis_client=redis_client)
     auth_service = eBayAuthService(config, redis_client)
 

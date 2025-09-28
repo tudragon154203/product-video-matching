@@ -1,8 +1,8 @@
-import aioredis
+import asyncio
+import redis.asyncio as redis
 from config_loader import config
 from handlers.dropship_product_handler import DropshipProductHandler
 from common_py.logging_config import configure_logging
-import asyncio
 import sys
 from contextlib import asynccontextmanager
 
@@ -25,7 +25,7 @@ async def service_context():
         await handler.broker.connect()
 
         # Initialize Redis client
-        redis_client = aioredis.from_url(config.REDIS_URL, decode_responses=True)
+        redis_client = redis.from_url(config.REDIS_URL, decode_responses=True)
         await redis_client.ping()  # Test connection
         logger.info("Redis connection established")
 
