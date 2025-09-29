@@ -12,7 +12,7 @@ logger = configure_logging("product-segmentor:segmentor_handler")
 
 class ProductSegmentorHandler:
     """Event handler for product segmentation operations."""
-    
+
     def __init__(self):
         """Initialize the handler."""
         self.db = DatabaseManager(config.POSTGRES_DSN)
@@ -24,14 +24,14 @@ class ProductSegmentorHandler:
             max_concurrent=config.MAX_CONCURRENT_IMAGES
         )
         self.initialized = False
-    
+
     async def initialize(self) -> None:
         """Initialize the handler and service."""
         if not self.initialized:
             await self.service.initialize()
             self.initialized = True
             logger.info("Product Segmentor Handler initialized")
-    
+
     async def cleanup(self) -> None:
         """Cleanup handler resources."""
         try:
@@ -39,12 +39,12 @@ class ProductSegmentorHandler:
             logger.info("Handler cleanup completed")
         except Exception as e:
             logger.error("Error during handler cleanup", error=str(e))
-    
+
     @validate_event("products_image_ready")
     @handle_errors
     async def handle_products_image_ready(self, event_data: dict) -> None:
         """Handle product images ready event.
-        
+
         Args:
             event_data: Event payload containing product image information
         """
@@ -55,14 +55,14 @@ class ProductSegmentorHandler:
             asset_type="image",
             event_type="products_image_ready"
         )
-        
+
         await self.service.handle_products_image_ready(event_data)
-    
+
     @validate_event("products_images_ready_batch")
     @handle_errors
     async def handle_products_images_ready_batch(self, event_data: dict) -> None:
         """Handle product images ready batch event.
-        
+
         Args:
             event_data: Batch event payload
         """
@@ -73,14 +73,14 @@ class ProductSegmentorHandler:
             total_items=event_data.get("total_images"),
             event_type="products_images_ready_batch"
         )
-        
+
         await self.service.handle_products_images_ready_batch(event_data)
-    
+
     @validate_event("videos_keyframes_ready")
     @handle_errors
     async def handle_videos_keyframes_ready(self, event_data: dict) -> None:
         """Handle video keyframes ready event.
-        
+
         Args:
             event_data: Event payload containing video keyframe information
         """
@@ -91,14 +91,14 @@ class ProductSegmentorHandler:
             total_items=len(event_data.get("frames", [])),
             event_type="videos_keyframes_ready"
         )
-        
+
         await self.service.handle_videos_keyframes_ready(event_data)
-    
+
     @validate_event("videos_keyframes_ready_batch")
     @handle_errors
     async def handle_videos_keyframes_ready_batch(self, event_data: dict) -> None:
         """Handle video keyframes ready batch event.
-        
+
         Args:
             event_data: Batch event payload
         """
@@ -109,5 +109,5 @@ class ProductSegmentorHandler:
             total_items=event_data.get("total_keyframes"),
             event_type="videos_keyframes_ready_batch"
         )
-        
+
         await self.service.handle_videos_keyframes_ready_batch(event_data)

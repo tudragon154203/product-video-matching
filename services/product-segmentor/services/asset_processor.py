@@ -5,6 +5,7 @@ from vision_common import JobProgressManager
 
 logger = configure_logging("product-segmentor:asset_processor")
 
+
 class AssetProcessor:
     def __init__(self, image_masking_processor, db_updater, event_emitter, job_progress_manager: JobProgressManager):
         self.image_masking_processor = image_masking_processor
@@ -18,10 +19,10 @@ class AssetProcessor:
         local_path = event_data["local_path"]
 
         logger.info("Processing item",
-                   job_id=job_id,
-                   asset_id=asset_id,
-                   asset_type=asset_type,
-                   item_path=local_path)
+                    job_id=job_id,
+                    asset_id=asset_id,
+                    asset_type=asset_type,
+                    item_path=local_path)
 
         mask_path = await self.image_masking_processor.process_single_image(
             image_id=asset_id,
@@ -40,10 +41,10 @@ class AssetProcessor:
             total_expected = self.job_progress_manager.job_tracking[job_id]["expected"]
 
             logger.debug("Progress update",
-                        job_id=job_id,
-                        asset_type=asset_type,
-                        processed=current_processed,
-                        total=total_expected)
+                         job_id=job_id,
+                         asset_type=asset_type,
+                         processed=current_processed,
+                         total=total_expected)
 
             # Emit individual masked event if provided
             if emit_masked_func:
@@ -53,21 +54,21 @@ class AssetProcessor:
             # The update_job_progress() call above already triggers completion when done >= expected
             if current_processed >= total_expected:
                 logger.info("Batch completion condition met (handled automatically by update_job_progress)",
-                           job_id=job_id,
-                           asset_type=asset_type,
-                           processed=current_processed,
-                           total=total_expected,
-                           completion_trigger="automatic_from_update_job_progress")
+                            job_id=job_id,
+                            asset_type=asset_type,
+                            processed=current_processed,
+                            total=total_expected,
+                            completion_trigger="automatic_from_update_job_progress")
 
             logger.info("Item processed successfully",
-                       job_id=job_id,
-                       asset_id=asset_id,
-                       asset_type=asset_type)
+                        job_id=job_id,
+                        asset_id=asset_id,
+                        asset_type=asset_type)
             return mask_path
         else:
             logger.error("Item processing failed",
-                        job_id=job_id,
-                        asset_id=asset_id,
-                        asset_type=asset_type,
-                        error="Mask generation failed")
+                         job_id=job_id,
+                         asset_id=asset_id,
+                         asset_type=asset_type,
+                         error="Mask generation failed")
             return None

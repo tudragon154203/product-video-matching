@@ -11,7 +11,7 @@ pytestmark = pytest.mark.unit
 
 class TestProductSegmentorHandler:
     """Test event handler functionality."""
-    
+
     @pytest.fixture
     def handler(self):
         """Create handler with mocked dependencies."""
@@ -23,67 +23,67 @@ class TestProductSegmentorHandler:
             mock_config.foreground_mask_dir_path = "/tmp/masks"
             mock_config.max_concurrent_images = 2
             mock_config.LOG_LEVEL = "INFO"
-            
+
             handler = ProductSegmentorHandler()
-            
+
             # Mock the service
             handler.service = AsyncMock()
             handler.service.initialize = AsyncMock()
             handler.service.cleanup = AsyncMock()
-            
+
             return handler
-    
+
     @pytest.mark.asyncio
     async def test_handler_initialization(self, handler):
         """Test handler initialization."""
         await handler.initialize()
-        
+
         assert handler.initialized
         handler.service.initialize.assert_called_once()
-    
+
     @pytest.mark.asyncio
     async def test_handler_cleanup(self, handler):
         """Test handler cleanup."""
         await handler.cleanup()
-        
+
         handler.service.cleanup.assert_called_once()
-    
+
     @pytest.mark.asyncio
     async def test_handle_products_image_ready(self, handler):
         """Test product images ready event handling."""
         await handler.initialize()
-        
+
         event_data = {
             "product_id": "prod_123",
             "image_id": "img_123",
             "local_path": "/path/to/image.jpg",
             "job_id": "job_123"
         }
-        
+
         await handler.handle_products_image_ready(event_data)
-        
+
         handler.service.handle_products_image_ready.assert_called_once_with(event_data)
-    
+
     @pytest.mark.asyncio
     async def test_handle_products_images_ready_batch(self, handler):
         """Test product images ready batch event handling."""
         await handler.initialize()
-        
+
         event_data = {
             "job_id": "job_123",
             "event_id": "event_123",
             "total_images": 5
         }
-        
+
         await handler.handle_products_images_ready_batch(event_data)
-        
+
         handler.service.handle_products_images_ready_batch.assert_called_once_with(event_data)
-    
+
     @pytest.mark.asyncio
     async def test_handle_videos_keyframes_ready(self, handler):
         """Test video keyframes ready event handling."""
         await handler.initialize()
-        
+
         event_data = {
             "video_id": "video_123",
             "job_id": "job_123",
@@ -95,42 +95,41 @@ class TestProductSegmentorHandler:
                 }
             ]
         }
-        
+
         await handler.handle_videos_keyframes_ready(event_data)
-        
+
         handler.service.handle_videos_keyframes_ready.assert_called_once_with(event_data)
-    
+
     @pytest.mark.asyncio
     async def test_handle_videos_keyframes_ready_batch(self, handler):
         """Test video keyframes ready batch event handling."""
         await handler.initialize()
-        
+
         event_data = {
             "job_id": "job_123",
             "event_id": "event_123",
             "total_keyframes": 10
         }
-        
+
         await handler.handle_videos_keyframes_ready_batch(event_data)
-        
+
         handler.service.handle_videos_keyframes_ready_batch.assert_called_once_with(event_data)
-    
+
     @pytest.mark.asyncio
     async def test_error_handling_in_handler(self, handler):
         """Test error handling in event handlers."""
         await handler.initialize()
-        
+
         # Make service method raise an exception
         handler.service.handle_products_image_ready.side_effect = Exception("Test error")
-        
+
         event_data = {
             "product_id": "prod_123",
             "image_id": "img_123",
             "local_path": "/path/to/image.jpg",
             "job_id": "job_123"
         }
-        
+
         # Handler should propagate the exception
         with pytest.raises(Exception, match="Test error"):
             await handler.handle_products_image_ready(event_data)
-

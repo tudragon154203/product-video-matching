@@ -28,18 +28,19 @@ from vision_common import JobProgressManager
 
 logger = configure_logging("product-segmentor:service", config.LOG_LEVEL)
 
+
 class ProductSegmentorService:
     """Core business logic for product segmentation.
-     
+
     This service orchestrates segmentation operations by delegating to specialized modules:
     - SegmentorFactory: Creates and manages segmentation engines
     - JobProgressManager: Tracks job progress and handles batch completion and watermark emission
     - ForegroundProcessor: Handles image segmentation operations
     - DatabaseUpdater: Manages database operations
-     
+
     The service maintains a stable public API while internal responsibilities are modularized.
     """
-    
+
     def __init__(
         self,
         db: DatabaseManager,
@@ -48,13 +49,13 @@ class ProductSegmentorService:
         max_concurrent: int = 4
     ):
         """Initialize segmentation service. 
-        
+
         Args:
             db: Database manager instance
             broker: Message broker instance
             model_name: Hugging Face model name
             max_concurrent: Maximum concurrent image processing
-            
+
         Initializes specialized modules:
         - SegmentorFactory: Creates segmentation engines
         - JobProgressManager: Tracks job progress and handles batch completion
@@ -69,30 +70,30 @@ class ProductSegmentorService:
             product_mask_dir_path=config.PRODUCT_MASK_DIR_PATH
         )
         self.max_concurrent = max_concurrent
-        
+
         # Initialize segmentation engine using factory
         self.foreground_segmentor = create_segmentor(foreground_model_name, config.HF_TOKEN)
         self.people_segmentor = YOLOSegmentor(config.PEOPLE_SEG_MODEL_NAME)
-        
+
         # Initialize event emitter
         self.event_emitter = EventEmitter(broker)
-        
+
         # Initialize processing helpers
         self.image_processor = ForegroundProcessor(self.foreground_segmentor)
         self.db_updater = DatabaseUpdater(self.db)
-        
+
         # Initialize new modules
         self.job_progress_manager = JobProgressManager(broker)
-        
+
         self.image_masking_processor = ImageMaskingProcessor(
             self.foreground_segmentor,
             self.people_segmentor,
             self.file_manager,
             self.image_processor
         )
-        
+
         self._processing_semaphore = asyncio.Semaphore(int(max_concurrent))
-        
+
         # Initialize AssetProcessor
         self.asset_processor = AssetProcessor(
             image_masking_processor=self.image_masking_processor,
@@ -100,36 +101,34 @@ class ProductSegmentorService:
             event_emitter=self.event_emitter,
             job_progress_manager=self.job_progress_manager,
         )
-        
+
         self.initialized = False
-    
-    
-    
+
     async def initialize(self) -> None:
         """Initialize the service."""
         try:
             logger.info("Initializing Product Segmentor Service")
-            
+
             # Initialize file manager
             await self.file_manager.initialize()
-            
+
             # Initialize segmentation model
             await self.foreground_segmentor.initialize()
             await self.people_segmentor.initialize()
-            
+
             self.initialized = True
             logger.info("Product Segmentor Service initialized successfully")
-            
+
         except Exception as e:
             logger.error("Failed to initialize service", error=str(e))
             raise
-    
+
     async def cleanup(self) -> None:
         """Cleanup service resources."""
         try:
             # Wait for any ongoing processing to complete
             logger.info("Waiting for ongoing processing to complete")
-            
+
             # Acquire all semaphore permits to ensure no new processing starts
             permits_acquired = 0
             try:
@@ -138,36 +137,36 @@ class ProductSegmentorService:
                     permits_acquired += 1
             except asyncio.TimeoutError:
                 logger.warning("Timeout waiting for processing to complete")
-            
+
             # Cleanup segmentation model
             if self.foreground_segmentor:
                 self.foreground_segmentor.cleanup()
             if self.people_segmentor:
                 self.people_segmentor.cleanup()
-            
+
             # Cleanup progress tracking using JobProgressManager
             await self.job_progress_manager.cleanup_all()
-            
+
             # Release acquired permits
             for _ in range(permits_acquired):
                 self._processing_semaphore.release()
-            
+
             self.initialized = False
             logger.info("Service cleanup completed")
-            
+
         except Exception as e:
             logger.error("Error during cleanup", error=str(e))
-    
+
     async def handle_products_image_ready(self, event_data: dict) -> None:
         """Handle single product image ready event. 
-        
+
         Args:
             event_data: Event payload containing image information
         """
         async with self._processing_semaphore:
             job_id = event_data["job_id"]
-            
-            # Initialize job with high expected count to prevent premature completion 
+
+            # Initialize job with high expected count to prevent premature completion
             # before batch event arrives with actual total
             if not self.job_progress_manager._is_batch_initialized(job_id, "image"):
                 await self.job_progress_manager.initialize_with_high_expected(job_id, "image")
@@ -175,7 +174,7 @@ class ProductSegmentorService:
                     "Initialized job with high expected count for single image",
                     job_id=job_id,
                 )
-            
+
             await self.asset_processor.handle_single_asset_processing(
                 event_data=event_data,
                 asset_type="image",
@@ -184,7 +183,7 @@ class ProductSegmentorService:
                 emit_masked_func=self.event_emitter.emit_product_image_masked,
                 job_id=job_id
             )
-    
+
     async def _handle_batch_event(
         self,
         job_id: str,
@@ -236,7 +235,7 @@ class ProductSegmentorService:
 
     async def handle_videos_keyframes_ready(self, event_data: dict) -> None:
         """Handle video keyframes ready event. 
-        
+
         Args:
             event_data: Event payload containing keyframe information
         """
@@ -245,10 +244,10 @@ class ProductSegmentorService:
         job_id = event_data["job_id"]
 
         logger.info("Starting batch processing",
-                   job_id=job_id,
-                   asset_type="video",
-                   total_items=len(frames),
-                   operation="segmentation")
+                    job_id=job_id,
+                    asset_type="video",
+                    total_items=len(frames),
+                    operation="segmentation")
 
         processed_frames = []
 
@@ -293,9 +292,9 @@ class ProductSegmentorService:
             0,
             "segmentation",
         )
-        
+
         # Note: Completion check moved to individual asset processing to avoid duplicate events
-    
+
     async def handle_videos_keyframes_ready_batch(self, event_data: dict) -> None:
         """Handle video keyframes batch completion event.
 
@@ -308,10 +307,10 @@ class ProductSegmentorService:
             job_id = event_data["job_id"]
             total_keyframes = event_data.get("total_keyframes", 0)
             event_id = event_id or str(uuid.uuid4())
-            
+
             # Create a unique identifier for this batch event to detect duplicates
             batch_event_key = f"{job_id}:{event_id}"
-            
+
             # Check if we've already processed this batch event
             if batch_event_key in self.job_progress_manager.processed_batch_events:
                 logger.info(
@@ -321,7 +320,7 @@ class ProductSegmentorService:
                     asset_type="video",
                 )
                 return
-            
+
             # Mark this batch event as processed
             self.job_progress_manager.processed_batch_events.add(batch_event_key)
 

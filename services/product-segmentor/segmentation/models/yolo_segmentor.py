@@ -10,6 +10,7 @@ from common_py.logging_config import configure_logging
 
 logger = configure_logging("product-segmentor:yolo_segmentor")
 
+
 class YOLOSegmentor(BaseSegmentation):
     """YOLOv8 segmentation model for people segmentation."""
 
@@ -27,17 +28,17 @@ class YOLOSegmentor(BaseSegmentation):
         """Initialize the YOLO segmentation model."""
         try:
             logger.info("Initializing model",
-                       model_name=self.model_name,
-                       model_path=self._model_path)
+                        model_name=self.model_name,
+                        model_path=self._model_path)
             self._model = YOLO(self._model_path)
             logger.info("Model initialized successfully",
-                       model_name=self.model_name)
+                        model_name=self.model_name)
         except Exception as e:
             logger.error("Model initialization failed",
-                        model_name=self.model_name,
-                        model_path=self._model_path,
-                        error=str(e),
-                        error_type=type(e).__name__)
+                         model_name=self.model_name,
+                         model_path=self._model_path,
+                         error=str(e),
+                         error_type=type(e).__name__)
             raise
 
     async def segment_image(self, image_path: str) -> Optional[np.ndarray]:
@@ -78,25 +79,25 @@ class YOLOSegmentor(BaseSegmentation):
                     people_mask = combined_mask
                 else:
                     logger.debug("No persons detected",
-                               image_path=image_path)
+                                 image_path=image_path)
 
             # If no people mask was generated, return None
             if people_mask is None:
                 return None
-                
+
             return people_mask.reshape(people_mask.shape[0], people_mask.shape[1], 1)
 
         except Exception as e:
             logger.error("Item processing failed",
-                        image_path=image_path,
-                        error=str(e),
-                        error_type=type(e).__name__)
+                         image_path=image_path,
+                         error=str(e),
+                         error_type=type(e).__name__)
             return None
 
     def cleanup(self) -> None:
         """Cleanup model resources."""
         logger.info("Cleaning up model resources",
-                   model_name=self.model_name)
+                    model_name=self.model_name)
         self._model = None
         self._initialized = False
 
