@@ -44,7 +44,7 @@ class RMBG20Segmentor(BaseSegmentation):
                 torch.set_float32_matmul_precision('high')
 
             # Load model in executor to avoid blocking
-            loop = asyncio.get_event_loop()
+            loop = asyncio.get_running_loop()
 
             logger.info("Loading RMBG-2.0 model with trust_remote_code=True", model_name=self._model_name)
             # Load model
@@ -97,7 +97,7 @@ class RMBG20Segmentor(BaseSegmentation):
         try:
             logger.debug("Processing image for segmentation", path=image_path)
 
-            loop = asyncio.get_event_loop()
+            loop = asyncio.get_running_loop()
             image, input_tensor = await loop.run_in_executor(
                 None,
                 prepare_image,

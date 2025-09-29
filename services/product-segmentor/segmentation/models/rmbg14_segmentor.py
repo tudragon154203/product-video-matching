@@ -44,7 +44,7 @@ class RMBG14Segmentor(BaseSegmentation):
                 torch.set_float32_matmul_precision('high')
 
             # Load model in executor to avoid blocking
-            loop = asyncio.get_event_loop()
+            loop = asyncio.get_running_loop()
 
             logger.info("Loading RMBG-1.4 model", model_name=self._model_name)
             # Load model
@@ -95,7 +95,7 @@ class RMBG14Segmentor(BaseSegmentation):
             raise FileNotFoundError(f"Image file not found: {image_path}")
 
         try:
-            loop = asyncio.get_event_loop()
+            loop = asyncio.get_running_loop()
             image, input_tensor = await loop.run_in_executor(
                 None,
                 prepare_image,

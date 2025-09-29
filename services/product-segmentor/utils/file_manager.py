@@ -43,7 +43,7 @@ class FileManager:
             logger.info("Initializing mask directory structure", foreground_base_path=str(self.foreground_mask_base_path))
 
             # Create directories in executor to avoid blocking
-            loop = asyncio.get_event_loop()
+            loop = asyncio.get_running_loop()
             await loop.run_in_executor(None, self._create_directories)
 
             logger.info("Mask directories created successfully")
@@ -111,7 +111,7 @@ class FileManager:
         # Create temporary file in the same directory as target
         temp_dir = target_path.parent
 
-        loop = asyncio.get_event_loop()
+        loop = asyncio.get_running_loop()
 
         # Save to temporary file first
         with tempfile.NamedTemporaryFile(
@@ -183,7 +183,7 @@ class FileManager:
             True if mask file exists and is readable
         """
         try:
-            loop = asyncio.get_event_loop()
+            loop = asyncio.get_running_loop()
             return await loop.run_in_executor(
                 None,
                 lambda: os.path.isfile(mask_path) and os.access(mask_path, os.R_OK)
@@ -201,7 +201,7 @@ class FileManager:
             (width, height) tuple or None if file cannot be read
         """
         try:
-            loop = asyncio.get_event_loop()
+            loop = asyncio.get_running_loop()
             return await loop.run_in_executor(
                 None,
                 self._get_image_size,

@@ -156,9 +156,9 @@ class TestConcurrentProcessing:
                     tasks.append(task)
 
         # Start tasks and check that they don't all run at once
-        start_time = asyncio.get_event_loop().time()
+        start_time = asyncio.get_running_loop().time()
         await asyncio.gather(*tasks)
-        end_time = asyncio.get_event_loop().time()
+        end_time = asyncio.get_running_loop().time()
 
         # With 10 tasks, 2 concurrent, and 0.2s delay each, minimum time should be around 1s
         # (5 batches of 2 tasks each)
