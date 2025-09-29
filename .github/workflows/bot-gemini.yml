@@ -1,4 +1,4 @@
-name: '🪐 Gemini'
+name: '🪐 Bot - Gemini'
 
 on:
   workflow_call:

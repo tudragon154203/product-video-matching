@@ -1,4 +1,4 @@
-name: '🏹 Main (Dispatcher)'
+name: "🏹 Bot - Main (Dispatcher)"
 
 on:
   pull_request:
@@ -22,7 +22,7 @@ permissions:
 jobs:
   dispatcher:
     runs-on: ${{ vars.OS || 'ubuntu-latest' }}
-    environment: 'Agents/Bots'
+    environment: "Agents/Bots"
     outputs:
       run_aider: ${{ steps.filter.outputs.run_aider }}
       run_claude: ${{ steps.filter.outputs.run_claude }}
@@ -39,7 +39,7 @@ jobs:
       - id: filter
         shell: bash
         env:
-          ACTIVE_BOTS_VAR: ${{ vars.ACTIVE_BOTS || '["aider", "gemini", "claude"]' }}
+          ACTIVE_BOTS_VAR: ${{ vars.ACTIVE_BOTS || '["aider", "gemini", "claude", "opencode"]' }}
           EVENT_NAME: ${{ github.event_name }}
           EVENT_PAYLOAD: ${{ toJSON(github.event) }}
         run: python .github/workflows/scripts/bots/common/dispatcher_filter.py
@@ -60,7 +60,7 @@ jobs:
   aider:
     needs: dispatcher
     if: needs.dispatcher.outputs.run_aider == 'true'
-    uses: ./.github/workflows/aider.yml
+    uses: ./.github/workflows/bot-aider.yml
     secrets: inherit
     with:
       event-name: ${{ github.event_name }}
@@ -71,7 +71,7 @@ jobs:
   claude:
     needs: dispatcher
     if: needs.dispatcher.outputs.run_claude == 'true'
-    uses: ./.github/workflows/claude.yml
+    uses: ./.github/workflows/bot-claude.yml
     secrets: inherit
     with:
       event-name: ${{ github.event_name }}
@@ -82,7 +82,7 @@ jobs:
   gemini:
     needs: dispatcher
     if: needs.dispatcher.outputs.run_gemini == 'true'
-    uses: ./.github/workflows/gemini.yml
+    uses: ./.github/workflows/bot-gemini.yml
     secrets: inherit
     with:
       event-name: ${{ github.event_name }}
@@ -93,7 +93,7 @@ jobs:
   opencode:
     needs: dispatcher
     if: needs.dispatcher.outputs.run_opencode == 'true'
-    uses: ./.github/workflows/opencode.yml
+    uses: ./.github/workflows/bot-opencode.yml
     secrets: inherit
     with:
       event-name: ${{ github.event_name }}

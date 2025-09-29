@@ -1,4 +1,4 @@
-name: "💬 Opencode"
+name: "💬 Bot - Opencode"
 
 on:
   workflow_call:

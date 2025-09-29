@@ -1,4 +1,4 @@
-name: '🤖 Claude'
+name: '🤖 Bot - Claude'
 
 on:
   workflow_call:
