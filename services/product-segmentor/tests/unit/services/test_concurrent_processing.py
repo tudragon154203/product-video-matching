@@ -1,6 +1,7 @@
 """Tests for concurrent processing and resource management."""
 
 import asyncio
+import os
 import shutil
 import tempfile
 from unittest.mock import AsyncMock, patch
@@ -10,6 +11,7 @@ import pytest
 
 from segmentation.interface import SegmentationInterface
 from services.service import ProductSegmentorService
+from utils.file_manager import FileManager
 
 pytestmark = pytest.mark.unit
 
@@ -89,6 +91,13 @@ class TestConcurrentProcessing:
         mock_segmentor = MockSegmentor(processing_delay=0.2)
         service.segmentor = mock_segmentor
         service.image_processor.segmentor = mock_segmentor
+
+        # Replace file manager with one that uses temp directory
+        service.file_manager = FileManager(
+            foreground_mask_dir_path=os.path.join(temp_dir, "masks_foreground"),
+            people_mask_dir_path=os.path.join(temp_dir, "masks_people"),
+            product_mask_dir_path=os.path.join(temp_dir, "masks_product")
+        )
 
         return service, mock_segmentor
 
