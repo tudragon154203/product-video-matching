@@ -1,4 +1,4 @@
-name: '🏹 Bot - Main (Dispatcher)'
+name: "🏹 Bot - Main (Dispatcher)"
 
 on:
   pull_request:
@@ -22,7 +22,7 @@ permissions:
 jobs:
   dispatcher:
     runs-on: ${{ vars.OS || 'ubuntu-latest' }}
-    environment: 'Agents/Bots'
+    environment: "Agents/Bots"
     outputs:
       run_aider: ${{ steps.filter.outputs.run_aider }}
       run_claude: ${{ steps.filter.outputs.run_claude }}
@@ -39,7 +39,7 @@ jobs:
       - id: filter
         shell: bash
         env:
-          ACTIVE_BOTS_VAR: ${{ vars.ACTIVE_BOTS || '["aider", "gemini", "claude"]' }}
+          ACTIVE_BOTS_VAR: ${{ vars.ACTIVE_BOTS || '["aider", "gemini", "claude", "opencode"]' }}
           EVENT_NAME: ${{ github.event_name }}
           EVENT_PAYLOAD: ${{ toJSON(github.event) }}
         run: python .github/workflows/scripts/bots/common/dispatcher_filter.py
