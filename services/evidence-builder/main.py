@@ -58,7 +58,7 @@ async def main() -> None:
     # We log and propagate unexpected errors so orchestration can restart us.
     except Exception as exc:  # noqa: BLE001
         logger.error("Service error", error=str(exc))
-        
+
 
 if __name__ == "__main__":
     asyncio.run(main())

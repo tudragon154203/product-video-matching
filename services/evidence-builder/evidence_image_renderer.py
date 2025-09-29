@@ -72,12 +72,12 @@ class EvidenceImageRenderer:
 
         y_offset = header_height
         combined[
-            y_offset : y_offset + product_resized.shape[0],
-            padding : padding + product_resized.shape[1],
+            y_offset: y_offset + product_resized.shape[0],
+            padding: padding + product_resized.shape[1],
         ] = product_resized
         combined[
-            y_offset : y_offset + product_resized.shape[0],
-            padding * 2 + product_resized.shape[1] : padding * 2
+            y_offset: y_offset + product_resized.shape[0],
+            padding * 2 + product_resized.shape[1]: padding * 2
             + product_resized.shape[1]
             + frame_resized.shape[1],
         ] = frame_resized
