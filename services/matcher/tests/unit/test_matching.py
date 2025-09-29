@@ -153,7 +153,7 @@ class TestMatchingEngine:
     ) -> None:
         sample_image["emb_rgb"] = None
 
-        similar_frames = await matching_engine.retrieve_similar_frames(
+        similar_frames = await matching_engine.vector_searcher.retrieve_similar_frames(
             sample_image,
             sample_video_frames,
         )
@@ -169,14 +169,14 @@ class TestMatchingEngine:
         sample_video_frames: List[Dict[str, Any]],
     ) -> None:
         with patch.object(
-            matching_engine,
+            matching_engine.vector_searcher,
             "_vector_similarity_search",
             return_value=[
                 {"frame_id": "frame_001", "similarity": 0.95},
                 {"frame_id": "frame_002", "similarity": 0.85},
             ],
         ) as mock_vector_search:
-            similar_frames = await matching_engine.retrieve_similar_frames(
+            similar_frames = await matching_engine.vector_searcher.retrieve_similar_frames(
                 sample_image,
                 sample_video_frames,
             )
@@ -200,7 +200,7 @@ class TestMatchingEngine:
         )
 
         image_emb = np.array(sample_image["emb_rgb"], dtype=np.float32)
-        similar_frames = await matching_engine._vector_similarity_search(
+        similar_frames = await matching_engine.vector_searcher._vector_similarity_search(
             image_emb,
             sample_video_frames,
         )
@@ -221,7 +221,7 @@ class TestMatchingEngine:
         )
 
         image_emb = np.array(sample_image["emb_rgb"], dtype=np.float32)
-        similar_frames = await matching_engine._vector_similarity_search(
+        similar_frames = await matching_engine.vector_searcher._vector_similarity_search(
             image_emb,
             sample_video_frames,
         )
@@ -236,7 +236,7 @@ class TestMatchingEngine:
         sample_image: Dict[str, Any],
         sample_video_frames: List[Dict[str, Any]],
     ) -> None:
-        similar_frames = await matching_engine._fallback_similarity_search(
+        similar_frames = await matching_engine.vector_searcher._fallback_similarity_search(
             sample_image,
             sample_video_frames,
         )
@@ -251,7 +251,7 @@ class TestMatchingEngine:
         sample_image: Dict[str, Any],
         sample_video_frames: List[Dict[str, Any]],
     ) -> None:
-        similarity = await matching_engine.calculate_embedding_similarity(
+        similarity = await matching_engine.pair_score_calculator.calculate_embedding_similarity(
             sample_image,
             sample_video_frames[0],
         )
@@ -268,7 +268,7 @@ class TestMatchingEngine:
         sample_image["emb_rgb"] = None
         sample_video_frames[0]["emb_rgb"] = None
 
-        similarity = await matching_engine.calculate_embedding_similarity(
+        similarity = await matching_engine.pair_score_calculator.calculate_embedding_similarity(
             sample_image,
             sample_video_frames[0],
         )
@@ -282,7 +282,7 @@ class TestMatchingEngine:
         sample_image: Dict[str, Any],
         sample_video_frames: List[Dict[str, Any]],
     ) -> None:
-        similarity = await matching_engine.calculate_keypoint_similarity(
+        similarity = await matching_engine.pair_score_calculator.calculate_keypoint_similarity(
             sample_image,
             sample_video_frames[0],
         )
@@ -299,7 +299,7 @@ class TestMatchingEngine:
         sample_image["kp_blob_path"] = None
         sample_video_frames[0]["kp_blob_path"] = None
 
-        similarity = await matching_engine.calculate_keypoint_similarity(
+        similarity = await matching_engine.pair_score_calculator.calculate_keypoint_similarity(
             sample_image,
             sample_video_frames[0],
         )
@@ -314,15 +314,15 @@ class TestMatchingEngine:
         sample_video_frames: List[Dict[str, Any]],
     ) -> None:
         with patch.object(
-            matching_engine,
+            matching_engine.pair_score_calculator,
             "calculate_embedding_similarity",
             return_value=0.8,
         ) as mock_emb, patch.object(
-            matching_engine,
+            matching_engine.pair_score_calculator,
             "calculate_keypoint_similarity",
             return_value=0.7,
         ) as mock_kp:
-            score = await matching_engine.calculate_pair_score(
+            score = await matching_engine.pair_score_calculator.calculate_pair_score(
                 sample_image,
                 sample_video_frames[0],
             )
