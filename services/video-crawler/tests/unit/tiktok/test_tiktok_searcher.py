@@ -7,6 +7,7 @@ import pytest
 
 from platform_crawler.tiktok.tiktok_models import TikTokSearchResponse
 from platform_crawler.tiktok.tiktok_searcher import TikTokSearcher
+from config_loader import config
 
 pytestmark = pytest.mark.unit
 
@@ -66,7 +67,7 @@ class TestTikTokSearcher:
             # Verify the API was called with correct parameters
             mock_post.assert_called_once()
             call_args = mock_post.call_args
-            from config_loader import config&#10;assert call_args[0][0] == f"http://{config.TIKTOK_CRAWL_HOST}:{config.TIKTOK_CRAWL_HOST_PORT}/tiktok/search"
+            assert call_args[0][0] == f"http://{config.TIKTOK_CRAWL_HOST}:{config.TIKTOK_CRAWL_HOST_PORT}/tiktok/search"
             assert call_args[1]["json"]["query"] == "test query"
             assert call_args[1]["json"]["numVideos"] == 5
             assert call_args[1]["json"]["force_headful"] is False
