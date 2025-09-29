@@ -1,5 +1,4 @@
-import asyncio
-from unittest.mock import Mock, AsyncMock, patch
+from unittest.mock import Mock, AsyncMock
 
 import pytest
 
@@ -14,22 +13,22 @@ class TestVisionKeypointService:
         self.mock_db = Mock()
         self.mock_broker = Mock()
         self.mock_data_root = "/tmp/test_data"
-        
+
         # Create a mock extractor with async methods
         self.mock_extractor = Mock()
         self.mock_extractor.extract_keypoints = AsyncMock()
         self.mock_extractor.extract_keypoints_with_mask = AsyncMock()
-        
+
         # Create a mock progress manager
         self.mock_progress_manager = Mock()
         self.mock_progress_manager.cleanup_all = AsyncMock()
-        
+
         # Create a mock asset processor
         self.mock_asset_processor = Mock()
         self.mock_asset_processor.process_single_asset = AsyncMock()
         self.mock_asset_processor.update_and_check_completion_per_asset_first = AsyncMock()
         self.mock_asset_processor.handle_batch_initialization = AsyncMock()
-        
+
         # Create the service instance
         self.service = VisionKeypointService(self.mock_db, self.mock_broker, self.mock_data_root)
         # Override internal components with mocks to avoid complex initialization
@@ -43,10 +42,10 @@ class TestVisionKeypointService:
         # Mock the cleanup method
         self.mock_progress_manager.cleanup_all = AsyncMock()
         self.service.progress_manager = self.mock_progress_manager
-        
+
         # Call the method
         await self.service.cleanup()
-        
+
         # Assert that cleanup was called
         self.mock_progress_manager.cleanup_all.assert_called_once()
 
@@ -59,14 +58,14 @@ class TestVisionKeypointService:
             "image_id": "img_456",
             "local_path": "/path/to/image.jpg"
         }
-        
+
         # Mock the process_single_asset to return True (success)
         self.mock_asset_processor.process_single_asset.return_value = True
         self.service.asset_processor = self.mock_asset_processor
-        
+
         # Call the method
         await self.service.handle_products_image_ready(event_data)
-        
+
         # Assert that process_single_asset was called with correct parameters
         self.mock_asset_processor.process_single_asset.assert_called_once_with(
             "job_123",
@@ -74,7 +73,7 @@ class TestVisionKeypointService:
             "image",
             "/path/to/image.jpg",
         )
-        
+
         # Assert that update_progress was called
         self.mock_asset_processor.update_and_check_completion_per_asset_first.assert_called_once_with(
             "job_123", "image"
@@ -89,17 +88,17 @@ class TestVisionKeypointService:
             "image_id": "img_456",
             "local_path": "/path/to/image.jpg"
         }
-        
+
         # Mock the process_single_asset to return False (failure)
         self.mock_asset_processor.process_single_asset.return_value = False
         self.service.asset_processor = self.mock_asset_processor
-        
+
         # Call the method
         await self.service.handle_products_image_ready(event_data)
-        
+
         # Assert that process_single_asset was called
         self.mock_asset_processor.process_single_asset.assert_called_once()
-        
+
         # Since processing failed, update_progress should not be called
         self.mock_asset_processor.update_and_check_completion_per_asset_first.assert_not_called()
 
@@ -114,17 +113,17 @@ class TestVisionKeypointService:
                 {"frame_id": "frame_002", "local_path": "/path/to/frame2.jpg"}
             ]
         }
-        
+
         # Mock the process_single_asset to return True (success)
         self.mock_asset_processor.process_single_asset.return_value = True
         self.service.asset_processor = self.mock_asset_processor
-        
+
         # Call the method
         await self.service.handle_videos_keyframes_ready(event_data)
-        
+
         # Assert that process_single_asset was called twice (once for each frame)
         assert self.mock_asset_processor.process_single_asset.call_count == 2
-        
+
         # Assert that update_progress was called twice
         assert self.mock_asset_processor.update_and_check_completion_per_asset_first.call_count == 2
 
@@ -137,14 +136,14 @@ class TestVisionKeypointService:
             "image_id": "img_def",
             "mask_path": "/path/to/mask.png"
         }
-        
+
         # Mock the process_single_asset to return True (success)
         self.mock_asset_processor.process_single_asset.return_value = True
         self.service.asset_processor = self.mock_asset_processor
-        
+
         # Call the method
         await self.service.handle_products_image_masked(event_data)
-        
+
         # Verify the call to process_single_asset included the masked parameters
         self.mock_asset_processor.process_single_asset.assert_called_once_with(
             "job_abc",
@@ -154,7 +153,7 @@ class TestVisionKeypointService:
             is_masked=True,
             mask_path="/path/to/mask.png"
         )
-        
+
         # Verify that update progress was called
         self.mock_asset_processor.update_and_check_completion_per_asset_first.assert_called_once_with(
             "job_abc", "image"
@@ -171,17 +170,17 @@ class TestVisionKeypointService:
                 {"frame_id": "frame_222", "mask_path": "/path/to/mask2.png"}
             ]
         }
-        
+
         # Mock the process_single_asset to return True (success)
         self.mock_asset_processor.process_single_asset.return_value = True
         self.service.asset_processor = self.mock_asset_processor
-        
+
         # Call the method
         await self.service.handle_video_keyframes_masked(event_data)
-        
+
         # Verify that process_single_asset was called twice (once for each frame)
         assert self.mock_asset_processor.process_single_asset.call_count == 2
-        
+
         # Verify that update progress was called twice
         assert self.mock_asset_processor.update_and_check_completion_per_asset_first.call_count == 2
 
@@ -193,10 +192,10 @@ class TestVisionKeypointService:
             "job_id": "job_jkl",
             "total_images": 10
         }
-        
+
         # Call the method
         await self.service.handle_products_images_masked_batch(event_data)
-        
+
         # Verify the call to handle batch initialization
         self.mock_asset_processor.handle_batch_initialization.assert_called_once_with(
             "job_jkl",
@@ -214,13 +213,13 @@ class TestVisionKeypointService:
             "event_id": "event_123",
             "total_keyframes": 5
         }
-        
+
         # Create a mock for processed_batch_events set
         self.service.progress_manager.processed_batch_events = set()
-        
+
         # Call the method
         await self.service.handle_videos_keyframes_masked_batch(event_data)
-        
+
         # Verify the call to handle batch initialization
         self.mock_asset_processor.handle_batch_initialization.assert_called_once_with(
             "job_mno",
@@ -229,7 +228,7 @@ class TestVisionKeypointService:
             "videos_keyframes_masked_batch",
             "event_123"
         )
-        
+
         # Verify the event was added to processed_batch_events
         assert "job_mno:event_123" in self.service.progress_manager.processed_batch_events
 
@@ -242,12 +241,12 @@ class TestVisionKeypointService:
             "event_id": "event_456",
             "total_keyframes": 8
         }
-        
+
         # Add the event to processed_batch_events to simulate a duplicate
         self.service.progress_manager.processed_batch_events = {"job_pqr:event_456"}
-        
+
         # Call the method
         await self.service.handle_videos_keyframes_masked_batch(event_data)
-        
+
         # Verify that handle_batch_initialization was NOT called for duplicate event
         self.mock_asset_processor.handle_batch_initialization.assert_not_called()

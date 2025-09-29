@@ -11,7 +11,7 @@ class TestKeypointAssetProcessor:
         self.mock_db = Mock()
         self.mock_broker = Mock()
         self.mock_extractor = Mock()
-        
+
         # Create a proper mock for progress manager with expected attributes
         self.mock_progress_manager = Mock()
         self.mock_progress_manager.processed_assets = set()
@@ -19,7 +19,7 @@ class TestKeypointAssetProcessor:
         self.mock_progress_manager.job_image_counts = {}
         self.mock_progress_manager.job_frame_counts = {}
         self.mock_progress_manager.expected_total_frames = {}
-        
+
         # Create the asset processor instance
         self.processor = KeypointAssetProcessor(
             self.mock_db,
@@ -38,7 +38,7 @@ class TestKeypointAssetProcessor:
         self.mock_progress_manager.processed_assets = set()
         self.mock_db.execute = AsyncMock()
         self.mock_broker.publish_event = AsyncMock()
-        
+
         # Call the method
         result = await self.processor.process_single_asset(
             job_id="job_123",
@@ -48,7 +48,7 @@ class TestKeypointAssetProcessor:
             is_masked=False,
             mask_path=None
         )
-        
+
         # Assertions
         assert result is True
         self.mock_extractor.extract_keypoints.assert_called_once_with("/path/to/image.jpg", "asset_456")
@@ -73,7 +73,7 @@ class TestKeypointAssetProcessor:
         self.mock_db.execute = AsyncMock()
         self.mock_broker.publish_event = AsyncMock()
         self.mock_db.fetch_one = AsyncMock(return_value={"local_path": "/original/image.jpg"})
-        
+
         # Call the method
         result = await self.processor.process_single_asset(
             job_id="job_789",
@@ -83,7 +83,7 @@ class TestKeypointAssetProcessor:
             is_masked=True,
             mask_path="/path/to/mask.png"
         )
-        
+
         # Assertions
         assert result is True
         self.mock_db.fetch_one.assert_called_once_with(
@@ -107,7 +107,7 @@ class TestKeypointAssetProcessor:
         self.mock_db.execute = AsyncMock()
         self.mock_broker.publish_event = AsyncMock()
         self.mock_db.fetch_one = AsyncMock(return_value={"local_path": "/original/frame.jpg"})
-        
+
         # Call the method
         result = await self.processor.process_single_asset(
             job_id="job_abc",
@@ -117,7 +117,7 @@ class TestKeypointAssetProcessor:
             is_masked=True,
             mask_path="/path/to/mask.png"
         )
-        
+
         # Assertions
         assert result is True
         self.mock_db.fetch_one.assert_called_once_with(
@@ -135,7 +135,7 @@ class TestKeypointAssetProcessor:
         """Test processing a duplicate asset (should skip)"""
         # Setup with duplicate asset in processed set
         self.mock_progress_manager.processed_assets = {"job_123:asset_456"}
-        
+
         # Call the method
         result = await self.processor.process_single_asset(
             job_id="job_123",
@@ -145,7 +145,7 @@ class TestKeypointAssetProcessor:
             is_masked=False,
             mask_path=None
         )
-        
+
         # Assertions
         assert result is False
         # Extractor should not be called for duplicate asset
@@ -157,7 +157,7 @@ class TestKeypointAssetProcessor:
         # Setup
         self.mock_progress_manager.processed_assets = set()
         self.mock_db.fetch_one = AsyncMock(return_value=None)  # Simulate missing resource
-        
+
         # Call the method
         result = await self.processor.process_single_asset(
             job_id="job_xyz",
@@ -167,7 +167,7 @@ class TestKeypointAssetProcessor:
             is_masked=True,
             mask_path="/path/to/mask.png"
         )
-        
+
         # Assertions
         assert result is False
         self.mock_db.fetch_one.assert_called_once()
@@ -180,7 +180,7 @@ class TestKeypointAssetProcessor:
         # Setup
         self.mock_progress_manager.processed_assets = set()
         self.mock_extractor.extract_keypoints = AsyncMock(return_value=None)  # Simulate failure
-        
+
         # Call the method
         result = await self.processor.process_single_asset(
             job_id="job_fail",
@@ -190,7 +190,7 @@ class TestKeypointAssetProcessor:
             is_masked=False,
             mask_path=None
         )
-        
+
         # Assertions
         assert result is False
         self.mock_extractor.extract_keypoints.assert_called_once()
@@ -205,10 +205,10 @@ class TestKeypointAssetProcessor:
         self.mock_progress_manager.job_tracking = {"job_img": {"image": {"expected": 10, "completed": 0}}}
         self.mock_progress_manager._is_batch_initialized = Mock(return_value=False)
         self.mock_progress_manager.update_job_progress = AsyncMock()
-        
+
         # Call the method
         await self.processor.update_and_check_completion_per_asset_first("job_img", "image")
-        
+
         # Assertions
         self.mock_progress_manager.update_job_progress.assert_called_once()
 
@@ -221,10 +221,10 @@ class TestKeypointAssetProcessor:
         self.mock_progress_manager.expected_total_frames = {"job_vid": 20}
         self.mock_progress_manager.update_job_progress = AsyncMock()
         self.mock_progress_manager.update_expected_and_recheck_completion = AsyncMock()
-        
+
         # Call the method
         await self.processor.update_and_check_completion_per_asset_first("job_vid", "video")
-        
+
         # Assertions
         self.mock_progress_manager.update_job_progress.assert_called_once()
         self.mock_progress_manager.update_expected_and_recheck_completion.assert_called_once()
@@ -238,7 +238,7 @@ class TestKeypointAssetProcessor:
         self.mock_progress_manager.initialize_with_high_expected = AsyncMock()
         self.mock_progress_manager.update_job_progress = AsyncMock()
         self.mock_progress_manager.update_expected_and_recheck_completion = AsyncMock()
-        
+
         # Call the method
         await self.processor.handle_batch_initialization(
             job_id="batch_job",
@@ -246,7 +246,7 @@ class TestKeypointAssetProcessor:
             total_items=5,
             event_type="test_event"
         )
-        
+
         # Assertions
         assert self.mock_progress_manager.job_image_counts["batch_job"]["total"] == 5
         self.mock_progress_manager._mark_batch_initialized.assert_called_once_with("batch_job", "image")
@@ -261,7 +261,7 @@ class TestKeypointAssetProcessor:
         self.mock_progress_manager.initialize_with_high_expected = AsyncMock()
         self.mock_progress_manager.update_job_progress = AsyncMock()
         self.mock_progress_manager.update_expected_and_recheck_completion = AsyncMock()
-        
+
         # Call the method
         await self.processor.handle_batch_initialization(
             job_id="batch_job_vid",
@@ -269,7 +269,7 @@ class TestKeypointAssetProcessor:
             total_items=8,
             event_type="test_event"
         )
-        
+
         # Assertions
         assert self.mock_progress_manager.expected_total_frames["batch_job_vid"] == 8
         assert self.mock_progress_manager.job_frame_counts["batch_job_vid"]["total"] == 8
@@ -284,7 +284,7 @@ class TestKeypointAssetProcessor:
         self.mock_progress_manager.initialize_with_high_expected = AsyncMock()
         self.mock_progress_manager.update_job_progress = AsyncMock()
         self.mock_progress_manager.update_expected_and_recheck_completion = AsyncMock()
-        
+
         # Call the method
         await self.processor.handle_batch_initialization(
             job_id="zero_job",
@@ -292,7 +292,7 @@ class TestKeypointAssetProcessor:
             total_items=0,
             event_type="test_event"
         )
-        
+
         # Assertions - initialize_with_high_expected should be called for zero-asset job when tracking doesn't exist
         self.mock_progress_manager.initialize_with_high_expected.assert_called_once_with("zero_job", "image", 0)
         self.mock_progress_manager.update_job_progress.assert_called_once()

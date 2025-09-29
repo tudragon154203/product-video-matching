@@ -9,6 +9,7 @@ from vision_common import JobProgressManager
 
 logger = configure_logging("vision-keypoint:keypoint_asset_processor")
 
+
 class KeypointAssetProcessor:
     def __init__(
         self,
@@ -42,9 +43,9 @@ class KeypointAssetProcessor:
                 asset_type=asset_type,
             )
             return False
-            
+
         self.progress_manager.processed_assets.add(asset_key)
-        
+
         logger.info(
             "Processing item",
             job_id=job_id,
@@ -55,7 +56,7 @@ class KeypointAssetProcessor:
                 "masked_keypoint_extraction" if is_masked else "keypoint_extraction"
             ),
         )
-        
+
         kp_blob_path = None
         if is_masked and mask_path:
             # Get the original image/frame path from database
@@ -69,7 +70,7 @@ class KeypointAssetProcessor:
                     "SELECT local_path FROM video_frames WHERE frame_id = $1",
                     asset_id,
                 )
-            
+
             if not result:
                 logger.error(
                     "Resource not found",
@@ -86,7 +87,7 @@ class KeypointAssetProcessor:
             )
         else:
             kp_blob_path = await self.extractor.extract_keypoints(local_path, asset_id)
-        
+
         if kp_blob_path:
             # Update database with keypoint path
             if asset_type == "image":
@@ -101,7 +102,7 @@ class KeypointAssetProcessor:
                     kp_blob_path,
                     asset_id,
                 )
-            
+
             # Emit keypoint ready event (per asset)
             event_id = str(uuid.uuid4())
             await self.broker.publish_event(

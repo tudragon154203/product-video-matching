@@ -1,3 +1,5 @@
+from handlers.keypoint_handler import VisionKeypointHandler
+from common_py.logging_config import configure_logging
 import asyncio
 import sys
 from contextlib import asynccontextmanager
@@ -5,10 +7,9 @@ from contextlib import asynccontextmanager
 # Add the app directory to the Python path for bind mount setup
 sys.path.append("/app/app")
 
-from common_py.logging_config import configure_logging
-from handlers.keypoint_handler import VisionKeypointHandler
 
 logger = configure_logging("vision-keypoint:main")
+
 
 @asynccontextmanager
 async def service_context():
@@ -24,6 +25,7 @@ async def service_context():
         # Cleanup resources
         await handler.broker.disconnect()
         await handler.db.disconnect()
+
 
 async def main():
     """Main service loop"""
@@ -41,27 +43,25 @@ async def main():
                 handler.handle_videos_keyframes_masked_batch,
                 queue_name="q.vision_keypoint.keyframes.masked.batch"
             )
-            
+
             await handler.broker.subscribe_to_topic(
                 "products.image.masked",
                 handler.handle_products_image_masked,
                 queue_name="q.vision-keypoint.image.masked"
             )
-            
+
             await handler.broker.subscribe_to_topic(
                 "video.keyframes.masked",
                 handler.handle_video_keyframes_masked,
                 queue_name="q.vision_keypoint.keyframes.masked"
             )
-            
-           
-            
+
             logger.info("Vision keypoint service started")
-            
+
             # Keep service running
             while True:
                 await asyncio.sleep(1)
-                
+
     except KeyboardInterrupt:
         logger.info("Shutting down vision keypoint service")
     except Exception as e:
