@@ -2,12 +2,11 @@ import asyncio
 import sys
 from contextlib import asynccontextmanager
 
+from common_py.logging_config import configure_logging
+from handlers.embedding_handler import VisionEmbeddingHandler
+
 # Add the app directory to the Python path for bind mount setup
 sys.path.append("/app/app")
-
-from common_py.logging_config import configure_logging
-from config_loader import config  # noqa: F401
-from handlers.embedding_handler import VisionEmbeddingHandler
 
 logger = configure_logging("vision-embedding:main")
 

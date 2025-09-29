@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import asyncio
 import uuid
 from typing import Any, Dict, Optional
 
@@ -357,7 +356,6 @@ class VisionEmbeddingService:
     ) -> None:
         """Handle product image ready events."""
         try:
-            product_id = event_data["product_id"]
             image_id = event_data["image_id"]
             local_path = event_data["local_path"]
             job_id = event_data.get("job_id")
@@ -394,7 +392,6 @@ class VisionEmbeddingService:
     ) -> None:
         """Handle video keyframe ready events."""
         try:
-            video_id = event_data["video_id"]
             frames = event_data["frames"]
             job_id = event_data["job_id"]
 
@@ -485,7 +482,6 @@ class VisionEmbeddingService:
         """Handle masked video keyframe events."""
         try:
             job_id = event_data["job_id"]
-            video_id = event_data["video_id"]
             frames = event_data["frames"]
 
             for frame_data in frames:

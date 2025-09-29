@@ -9,6 +9,7 @@ from common_py.logging_config import configure_logging
 
 logger = configure_logging("vision-embedding:mock_generator")
 
+
 class MockEmbeddingGenerator:
     """Generate deterministic mock embeddings for testing flows."""
 

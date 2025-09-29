@@ -4,6 +4,7 @@ from contracts.validator import validator
 
 logger = configure_logging("vision-embedding:decorators")
 
+
 def validate_event(schema_name):
     """Decorator to validate event data against a schema."""
 
@@ -32,6 +33,7 @@ def validate_event(schema_name):
         return wrapper
 
     return decorator
+
 
 def handle_errors(func):
     """Decorator to handle and log errors in event handlers."""
