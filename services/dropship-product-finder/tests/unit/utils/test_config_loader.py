@@ -203,4 +203,3 @@ class TestDropshipProductFinderConfigSuite:
         with patch.dict(os.environ, {"USE_MOCK_FINDERS": "true"}):
             config = TestDropshipProductFinderConfig()
             assert config.USE_MOCK_FINDERS
-

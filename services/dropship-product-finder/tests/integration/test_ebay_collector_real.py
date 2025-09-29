@@ -4,6 +4,11 @@ Integration test for eBay product collector using real eBay API calls.
 Tests the complete flow from authentication to product collection with real data.
 """
 
+from common_py.logging_config import configure_logging
+import redis.asyncio as redis
+from collectors.ebay_product_collector import EbayProductCollector
+from services.auth import eBayAuthService
+from config_loader import config
 import asyncio
 import pytest
 import sys
@@ -14,11 +19,6 @@ import json
 # Add current directory to Python path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from config_loader import config
-from services.auth import eBayAuthService
-from collectors.ebay_product_collector import EbayProductCollector
-import aioredis
-from common_py.logging_config import configure_logging
 
 logger = configure_logging("dropship-product-finder:test_ebay_collector_real")
 
@@ -715,7 +715,7 @@ async def run_comprehensive_test():
     logger.info("Starting comprehensive eBay collector integration test...")
 
     # Initialize components
-    redis_client = aioredis.from_url(config.REDIS_URL, decode_responses=True)
+    redis_client = redis.from_url(config.REDIS_URL, decode_responses=True)
     collector = EbayProductCollector(
         "/tmp/test_integration", redis_client=redis_client, marketplaces=["EBAY_US"]
     )

@@ -1,14 +1,14 @@
 import asyncio
+import redis.asyncio as redis
+from config_loader import config
+from handlers.dropship_product_handler import DropshipProductHandler
+from common_py.logging_config import configure_logging
 import sys
 from contextlib import asynccontextmanager
 
 # Add the app directory to the Python path for bind mount setup
 sys.path.append("/app/app")
 
-from common_py.logging_config import configure_logging
-from handlers.dropship_product_handler import DropshipProductHandler
-from config_loader import config
-import aioredis
 
 logger = configure_logging("dropship-product-finder:main")
 
@@ -25,7 +25,7 @@ async def service_context():
         await handler.broker.connect()
 
         # Initialize Redis client
-        redis_client = aioredis.from_url(config.REDIS_URL, decode_responses=True)
+        redis_client = redis.from_url(config.REDIS_URL, decode_responses=True)
         await redis_client.ping()  # Test connection
         logger.info("Redis connection established")
 

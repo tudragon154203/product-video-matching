@@ -3,6 +3,12 @@
 Test script to validate eBay OAuth 2.0 authentication flow
 """
 
+from common_py.logging_config import configure_logging
+import httpx
+import redis.asyncio as redis
+from services.auth import eBayAuthService
+from config_loader import config
+import pytest
 import asyncio
 import sys
 from pathlib import Path
@@ -10,12 +16,6 @@ from pathlib import Path
 # Add current directory to Python path
 sys.path.insert(0, str(Path(__file__).parent))
 
-import pytest
-from config_loader import config
-from services.auth import eBayAuthService
-import aioredis
-import httpx
-from common_py.logging_config import configure_logging
 
 logger = configure_logging("dropship-product-finder:test_auth_flow")
 
@@ -50,7 +50,7 @@ async def test_ebay_auth_flow():
     # Test 2: Redis connection
     print("\n2. Testing Redis connection...")
     try:
-        redis_client = aioredis.from_url(config.REDIS_URL, decode_responses=True)
+        redis_client = redis.from_url(config.REDIS_URL, decode_responses=True)
         await redis_client.ping()
         print("   ✅ Redis connection successful")
         print(f"   Redis URL: {config.REDIS_URL}")
