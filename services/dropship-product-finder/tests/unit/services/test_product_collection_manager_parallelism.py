@@ -269,11 +269,7 @@ async def test_product_id_logging_in_storage_error():
         mock_logger.exception.assert_called()
         # Debug: print what was actually logged
         exception_calls = [call for call in mock_logger.exception.call_args_list]
-        print(f"DEBUG: Exception calls: {exception_calls}")
-        for i, call in enumerate(exception_calls):
-            print(f"DEBUG: Call {i}: {call}")
-            print(f"DEBUG: Call {i} args: {call[0]}")
-            print(f"DEBUG: Call {i} kwargs: {call[1]}")
+
         # Check that one of the exception calls contains the expected product ID
         # The call contains format string and arguments separately
         assert any("test_prod_123" in call[0] for call in exception_calls)
