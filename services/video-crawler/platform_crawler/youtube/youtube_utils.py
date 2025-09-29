@@ -1,5 +1,6 @@
 import re
 
+
 def is_url_like(query: str) -> bool:
     """Check if query looks like a URL (should be skipped)"""
     url_patterns = [
@@ -14,6 +15,7 @@ def is_url_like(query: str) -> bool:
         if re.match(pattern, query):
             return True
     return False
+
 
 def sanitize_filename(filename: str) -> str:
     """Sanitize filename for safe file system usage"""

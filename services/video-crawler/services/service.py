@@ -23,7 +23,7 @@ logger = configure_logging("video-crawler:service")
 
 class VideoCrawlerService:
     """Main service class for mvideo crawl"""
-    
+
     def __init__(self, db: DatabaseManager, broker: MessageBroker, video_dir_override: Optional[str] = None):
         self.db = db
         self.broker = broker
@@ -41,7 +41,7 @@ class VideoCrawlerService:
             logger.info("Video cleanup enabled with retention period of {} days".format(config.VIDEO_RETENTION_DAYS))
         else:
             logger.info("Video cleanup is disabled")
-    
+
     async def handle_videos_search_request(self, event_data: Dict[str, Any]):
         """Handle video search request with cross-platform parallelism"""
         try:
@@ -52,7 +52,7 @@ class VideoCrawlerService:
             recency_days = event_data["recency_days"]
 
             logger.info("Processing video search request",
-                       job_id=job_id, industry=industry, platforms=platforms)
+                        job_id=job_id, industry=industry, platforms=platforms)
 
             platform_queries = self._extract_platform_queries(queries, platforms)
 
@@ -91,13 +91,12 @@ class VideoCrawlerService:
             await self._process_and_emit_videos(all_videos, job_id)
 
             logger.info("Completed video search",
-                       job_id=job_id,
-                       total_videos=len(all_videos))
+                        job_id=job_id,
+                        total_videos=len(all_videos))
 
         except Exception as e:
             logger.error(f"Failed to process video search request: {str(e)}")
             raise
-
 
     def _extract_platform_queries(self, queries: Any, platforms: List[str]) -> List[str]:
         if not platforms:
@@ -149,8 +148,8 @@ class VideoCrawlerService:
         if self.event_emitter:
             await self.event_emitter.publish_videos_collections_completed(job_id)
         logger.info("Completed video search with zero videos",
-                   job_id=job_id,
-                   total_videos=0)
+                    job_id=job_id,
+                    total_videos=0)
 
     async def _process_and_emit_videos(self, all_videos: List[Dict[str, Any]], job_id: str):
         batch_payload: List[Dict[str, Any]] = []
@@ -180,8 +179,8 @@ class VideoCrawlerService:
             if self.job_progress_manager:
                 await self.job_progress_manager.update_job_progress(job_id, "video", 0, 1, "crawling")
 
-            logger.info("Processed video", video_id=video.video_id, 
-                       frame_count=len(keyframes_data))
+            logger.info("Processed video", video_id=video.video_id,
+                        frame_count=len(keyframes_data))
             return {
                 "video_id": video.video_id,
                 "platform": video.platform,
@@ -214,12 +213,12 @@ class VideoCrawlerService:
     async def _extract_and_save_keyframes(self, video: Video, video_data: Dict[str, Any]) -> List[Dict[str, Any]]:
         # Get the local path from video_data if available
         local_path = video_data.get("local_path")
-        
+
         # Extract keyframes from downloaded video or create dummy frames
         keyframes = await self.keyframe_extractor.extract_keyframes(
             video_data["url"], video.video_id, local_path
         )
-        
+
         frame_data = []
         for i, (timestamp, frame_path) in enumerate(keyframes):
             frame_id = f"{video.video_id}_frame_{i}"
@@ -245,7 +244,7 @@ class VideoCrawlerService:
             await self.event_emitter.publish_videos_keyframes_ready(
                 video.video_id, keyframes_data, job_id
             )
-    
+
     def _initialize_platform_crawlers(self) -> Dict[str, PlatformCrawlerInterface]:
         """Initialize platform crawlers for each supported platform"""
         crawlers = {}
@@ -261,52 +260,51 @@ class VideoCrawlerService:
         crawlers["douyin"] = MockPlatformCrawler("douyin")
 
         return crawlers
-    
+
     async def _run_auto_cleanup(self, job_id: str):
         """Run automatic video cleanup after processing"""
         try:
             logger.info(f"[AUTO-CLEANUP] Starting cleanup for job {job_id}")
-            
+
             # Create directory structure for cleanup based on config
             video_dir = self._get_video_dir()
-            
+
             # Perform cleanup (dry run is False for actual cleanup)
             cleanup_results = await cleanup_service.perform_cleanup(video_dir, dry_run=False)
-            
+
             if cleanup_results['files_removed']:
                 logger.info(f"[AUTO-CLEANUP] Successfully cleaned up {len(cleanup_results['files_removed'])} files for job {job_id}")
             else:
                 logger.info(f"[AUTO-CLEANUP] No files to cleanup for job {job_id}")
-                
+
         except Exception as e:
             logger.error(f"[AUTO-CLEANUP-ERROR] Failed to run cleanup for job {job_id}: {str(e)}")
-    
+
     async def run_manual_cleanup(self, dry_run: bool = False) -> Dict[str, Any]:
         """Run manual cleanup for debugging/testing purposes
-        
+
         Args:
             dry_run: If True, only list files without removing them
-            
+
         Returns:
             Dictionary with cleanup results
         """
         try:
             logger.info(f"[MANUAL-CLEANUP] Starting cleanup (dry_run={dry_run})")
-            
+
             # Get cleanup information first
             base_dir = self._get_video_dir()
             cleanup_info = await cleanup_service.get_cleanup_info(base_dir)
-            
+
             # Perform cleanup
             cleanup_results = await cleanup_service.perform_cleanup(base_dir, dry_run)
-            
+
             return {
                 'cleanup_info': cleanup_info,
                 'cleanup_results': cleanup_results,
                 'config': cleanup_service.get_status()
             }
-            
+
         except Exception as e:
             logger.error(f"[MANUAL-CLEANUP-ERROR] Failed to run manual cleanup: {str(e)}")
             raise
-    

@@ -10,7 +10,7 @@ pytestmark = pytest.mark.unit
 
 class TestTikTokVideo:
     """Unit tests for TikTokVideo model."""
-    
+
     def test_tiktok_video_creation(self):
         """Test creating a TikTokVideo instance."""
         video = TikTokVideo(
@@ -21,14 +21,14 @@ class TestTikTokVideo:
             upload_time="2024-01-01T12:00:00Z",
             web_view_url="https://www.tiktok.com/@testuser/video/123456789"
         )
-        
+
         assert video.id == "123456789"
         assert video.caption == "Test video caption"
         assert video.author_handle == "@testuser"
         assert video.like_count == 1500
         assert video.upload_time == "2024-01-01T12:00:00Z"
         assert video.web_view_url == "https://www.tiktok.com/@testuser/video/123456789"
-    
+
     def test_from_api_response(self):
         """Test creating TikTokVideo from API response."""
         api_data = {
@@ -39,32 +39,32 @@ class TestTikTokVideo:
             "uploadTime": "2024-02-01T15:30:00Z",
             "webViewUrl": "https://www.tiktok.com/@anotheruser/video/987654321"
         }
-        
+
         video = TikTokVideo.from_api_response(api_data)
-        
+
         assert video.id == "987654321"
         assert video.caption == "Another test video"
         assert video.author_handle == "@anotheruser"
         assert video.like_count == 2500
         assert video.upload_time == "2024-02-01T15:30:00Z"
         assert video.web_view_url == "https://www.tiktok.com/@anotheruser/video/987654321"
-    
+
     def test_from_api_response_missing_fields(self):
         """Test TikTokVideo.from_api_response with missing fields."""
         api_data = {
             "id": "test_id",
             # Missing other fields
         }
-        
+
         video = TikTokVideo.from_api_response(api_data)
-        
+
         assert video.id == "test_id"
-        assert video.caption == ""
-        assert video.author_handle == ""
+        assert video.caption is None
+        assert video.author_handle is None
         assert video.like_count == 0
-        assert video.upload_time == ""
-        assert video.web_view_url == ""
-    
+        assert video.upload_time is None
+        assert video.web_view_url is None
+
     def test_to_video_metadata_dict(self):
         """Test converting TikTokVideo to video metadata dictionary."""
         video = TikTokVideo(
@@ -75,9 +75,9 @@ class TestTikTokVideo:
             upload_time="2024-03-01T10:00:00Z",
             web_view_url="https://www.tiktok.com/@metadatatest/video/111222333"
         )
-        
+
         metadata = video.to_video_metadata_dict()
-        
+
         assert metadata["platform"] == "tiktok"
         assert metadata["url"] == "https://www.tiktok.com/@metadatatest/video/111222333"
         assert metadata["title"] == "Metadata test video"
@@ -89,7 +89,7 @@ class TestTikTokVideo:
 
 class TestTikTokSearchResponse:
     """Unit tests for TikTokSearchResponse model."""
-    
+
     def test_tiktok_search_response_creation(self):
         """Test creating a TikTokSearchResponse instance."""
         video1 = TikTokVideo(
@@ -100,7 +100,7 @@ class TestTikTokSearchResponse:
             upload_time="2024-01-01T10:00:00Z",
             web_view_url="https://www.tiktok.com/@test1/video/123"
         )
-        
+
         video2 = TikTokVideo(
             id="456",
             caption="Test video 2",
@@ -109,19 +109,19 @@ class TestTikTokSearchResponse:
             upload_time="2024-01-01T11:00:00Z",
             web_view_url="https://www.tiktok.com/@test2/video/456"
         )
-        
+
         response = TikTokSearchResponse(
             results=[video1, video2],
             total_results=2,
             query="test query",
             search_metadata={"execution_time": 100}
         )
-        
+
         assert len(response.results) == 2
         assert response.total_results == 2
         assert response.query == "test query"
         assert response.search_metadata == {"execution_time": 100}
-    
+
     def test_from_api_response(self):
         """Test creating TikTokSearchResponse from API response."""
         api_data = {
@@ -143,16 +143,16 @@ class TestTikTokSearchResponse:
                 "request_hash": "test-hash-123"
             }
         }
-        
+
         response = TikTokSearchResponse.from_api_response(api_data)
-        
+
         assert len(response.results) == 1
         assert response.total_results == 1
         assert response.query == "api test query"
         assert response.search_metadata["executed_path"] == "/tiktok/search"
         assert response.search_metadata["execution_time"] == 200
         assert response.search_metadata["request_hash"] == "test-hash-123"
-        
+
         # Verify the video was properly created
         video = response.results[0]
         assert video.id == "789"
@@ -161,7 +161,7 @@ class TestTikTokSearchResponse:
         assert video.like_count == 500
         assert video.upload_time == "2024-01-01T12:00:00Z"
         assert video.web_view_url == "https://www.tiktok.com/@apitest/video/789"
-    
+
     def test_from_api_response_empty_results(self):
         """Test creating TikTokSearchResponse from API response with empty results."""
         api_data = {
@@ -170,9 +170,9 @@ class TestTikTokSearchResponse:
             "query": "empty test",
             "search_metadata": {}
         }
-        
+
         response = TikTokSearchResponse.from_api_response(api_data)
-        
+
         assert len(response.results) == 0
         assert response.total_results == 0
         assert response.query == "empty test"

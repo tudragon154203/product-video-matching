@@ -1,18 +1,19 @@
 from typing import Any, Dict
 
+
 class YTDLPOptionsBuilder:
     """Builds yt-dlp options for video downloads"""
-    
+
     @staticmethod
     def build_options(user_agent: str, format_selection: str, proxy_config: str = None) -> Dict[str, Any]:
         """
         Build yt-dlp options with enhanced reliability settings
-        
+
         Args:
             user_agent: User agent string
             format_selection: Format selection string
             proxy_config: Proxy configuration (optional)
-            
+
         Returns:
             Dict[str, Any]: yt-dlp options
         """
@@ -51,9 +52,9 @@ class YTDLPOptionsBuilder:
             'http_chunk_size': 10485760,  # 10MB chunks for bypassing throttling
             'concurrent_fragment_downloads': 3,  # Concurrent fragment downloads
         }
-        
+
         # Add proxy configuration if specified
         if proxy_config:
             ydl_opts['proxy'] = proxy_config
-            
+
         return ydl_opts

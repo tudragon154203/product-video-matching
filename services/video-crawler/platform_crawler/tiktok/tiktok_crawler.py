@@ -13,7 +13,7 @@ logger = configure_logging("video-crawler:tiktok_crawler")
 
 class TikTokCrawler(PlatformCrawlerInterface):
     """TikTok video crawler implementation."""
-    
+
     def __init__(self):
         self.platform_name = "tiktok"
         self.searcher = TikTokSearcher(self.platform_name)
@@ -23,26 +23,27 @@ class TikTokCrawler(PlatformCrawlerInterface):
     ) -> List[Dict[str, Any]]:
         """
         Search for videos on TikTok and return metadata.
-        
+
         Args:
             queries: List of search queries
             recency_days: How many days back to search for videos (not used by TikTok API)
             download_dir: Directory path where videos should be saved
             num_videos: Number of TikTok videos to search for per query
-            
+
         Returns:
             List of video metadata dictionaries
         """
-        logger.info(f"Starting search_and_download_videos with {len(queries)} queries, recency_days={recency_days}, num_videos={num_videos}")
-        
+        logger.info(
+            f"Starting search_and_download_videos with {len(queries)} queries, recency_days={recency_days}, num_videos={num_videos}")
+
         Path(download_dir).mkdir(parents=True, exist_ok=True)
-        
+
         all_videos = await self._search_videos_for_queries(queries, num_videos)
         logger.info(f"Total videos found across all queries: {len(all_videos)}")
-        
+
         unique_videos = self._deduplicate_videos(all_videos)
         logger.info(f"Unique videos after deduplication: {len(unique_videos)}")
-        
+
         # Convert to the expected format (no actual download for TikTok as videos are not downloaded directly)
         result_videos = []
         for video in unique_videos.values():
@@ -58,7 +59,7 @@ class TikTokCrawler(PlatformCrawlerInterface):
                 'duration_s': None   # TikTok API doesn't provide duration in search results
             }
             result_videos.append(result_video)
-        
+
         logger.info(f"Returning {len(result_videos)} videos for platform {self.platform_name}")
         return result_videos
 
@@ -69,7 +70,7 @@ class TikTokCrawler(PlatformCrawlerInterface):
                 logger.info(f"Searching TikTok for: {query}")
                 search_response = await self.searcher.search_tiktok(query, num_videos)
                 logger.info(f"Found {len(search_response.results)} videos for query '{query}'")
-                
+
                 # Convert TikTokVideo objects to dictionaries
                 for tiktok_video in search_response.results:
                     video_data = {
@@ -81,7 +82,7 @@ class TikTokCrawler(PlatformCrawlerInterface):
                         'webViewUrl': tiktok_video.web_view_url
                     }
                     all_videos.append(video_data)
-                
+
                 # Add a small delay between queries to avoid rate limiting
                 if i < len(queries) - 1:  # Don't delay after the last query
                     delay = 1.0  # 1 second delay between queries
