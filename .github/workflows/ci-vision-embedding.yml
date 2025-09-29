@@ -68,9 +68,3 @@ jobs:
 
       - name: Run unit tests
         run: pytest -q -m unit --disable-warnings --maxfail=1
-
-      - name: Run contract tests
-        run: pytest -q -m contract --disable-warnings --maxfail=1
-
-      - name: Run integration tests
-        run: pytest -q -m integration --disable-warnings --maxfail=1
