@@ -38,7 +38,7 @@ class EvidenceBuilderService:
         score = event_data.get("score")
         timestamp = event_data.get("ts")
 
-        if None in {job_id, product_id, video_id, best_pair, score, timestamp}:
+        if None in [job_id, product_id, video_id, best_pair, score, timestamp]:
             raise ValueError("match.result event is missing required fields")
 
         logger.info(

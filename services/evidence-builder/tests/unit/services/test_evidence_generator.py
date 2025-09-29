@@ -8,7 +8,7 @@ import cv2
 import numpy as np
 import pytest
 
-from ..evidence import EvidenceGenerator
+from evidence import EvidenceGenerator
 
 pytestmark = pytest.mark.unit
 
@@ -51,7 +51,7 @@ def test_create_side_by_side_comparison(evidence_generator, sample_images):
     """Test creating side-by-side comparison image."""
     product_img, frame_img = sample_images
 
-    result = evidence_generator.create_side_by_side_comparison(
+    result = evidence_generator.image_renderer.create_side_by_side_comparison(
         product_img,
         frame_img,
         0.95,
