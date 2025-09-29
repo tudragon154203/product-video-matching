@@ -16,7 +16,3 @@ ultralytics==8.3.179
 
 kornia==0.7.2
 timm==1.0.9
-
-# Testing
-pytest==7.4.3
-pytest-asyncio==0.23.7
