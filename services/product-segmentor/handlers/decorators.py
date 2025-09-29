@@ -19,7 +19,8 @@ def validate_event(schema_name):
                 # Log the event data structure before validation
                 logger.info(f"Validating event for {schema_name}",
                             schema_name=schema_name,
-                            event_keys=list(event_data.keys()) if isinstance(event_data, dict) else "not_dict",
+                            event_keys=list(event_data.keys())
+                            if isinstance(event_data, dict) else "not_dict",
                             event_type=type(event_data).__name__)
 
                 # Log specific required fields for videos_keyframes_ready
@@ -28,7 +29,9 @@ def validate_event(schema_name):
                                 video_id=event_data.get("video_id"),
                                 job_id=event_data.get("job_id"),
                                 frames_count=len(event_data.get("frames", [])),
-                                frames_keys=list(event_data.get("frames", [{}])[0].keys()) if event_data.get("frames") and len(event_data.get("frames", [])) > 0 else "no_frames")
+                                frames_keys=list(event_data.get("frames", [{}])[0].keys())
+                                if event_data.get("frames") and len(event_data.get("frames", [])) > 0
+                                else "no_frames")
 
                 validator.validate_event(schema_name, event_data)
                 return await func(*args, **kwargs)

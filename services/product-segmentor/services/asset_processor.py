@@ -13,7 +13,10 @@ class AssetProcessor:
         self.event_emitter = event_emitter
         self.job_progress_manager = job_progress_manager
 
-    async def handle_single_asset_processing(self, event_data: dict, asset_type: str, asset_id_key: str, db_update_func, emit_masked_func, job_id: str = "unknown") -> Optional[str]:
+    async def handle_single_asset_processing(
+        self, event_data: dict, asset_type: str, asset_id_key: str,
+        db_update_func, emit_masked_func, job_id: str = "unknown"
+    ) -> Optional[str]:
         """Generic handler for single asset processing (image or frame)."""
         asset_id = event_data[asset_id_key]
         local_path = event_data["local_path"]

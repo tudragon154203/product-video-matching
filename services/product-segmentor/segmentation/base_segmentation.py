@@ -17,7 +17,7 @@ class BaseSegmentation(SegmentationInterface, ABC):
             image_path: Path to input image file
 
         Returns:
-            Binary mask as numpy array (0=background, 255=foreground) 
+            Binary mask as numpy array (0=background, 255=foreground)
             or None if segmentation fails
 
         Raises:

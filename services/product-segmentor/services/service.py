@@ -48,7 +48,7 @@ class ProductSegmentorService:
         foreground_model_name: str = config.FOREGROUND_SEG_MODEL_NAME,
         max_concurrent: int = 4
     ):
-        """Initialize segmentation service. 
+        """Initialize segmentation service.
 
         Args:
             db: Database manager instance
@@ -158,7 +158,7 @@ class ProductSegmentorService:
             logger.error("Error during cleanup", error=str(e))
 
     async def handle_products_image_ready(self, event_data: dict) -> None:
-        """Handle single product image ready event. 
+        """Handle single product image ready event.
 
         Args:
             event_data: Event payload containing image information
@@ -234,7 +234,7 @@ class ProductSegmentorService:
             )
 
     async def handle_videos_keyframes_ready(self, event_data: dict) -> None:
-        """Handle video keyframes ready event. 
+        """Handle video keyframes ready event.
 
         Args:
             event_data: Event payload containing keyframe information

@@ -52,7 +52,9 @@ class ImageMaskingProcessor:
                          error_type=type(e).__name__)
             return None
 
-    async def _generate_and_load_foreground_mask(self, image_id: str, local_path: str, image_type: str, job_id: str) -> Optional[np.ndarray]:
+    async def _generate_and_load_foreground_mask(
+        self, image_id: str, local_path: str, image_type: str, job_id: str
+    ) -> Optional[np.ndarray]:
         foreground_mask_path = await self.image_processor.process_image(
             image_id=image_id,
             local_path=local_path,
@@ -104,7 +106,10 @@ class ImageMaskingProcessor:
                          error_type=type(people_e).__name__, local_path=local_path)
             return None
 
-    async def _subtract_people_mask(self, foreground_mask: np.ndarray, people_mask: Optional[np.ndarray], image_id: str, job_id: str) -> np.ndarray:
+    async def _subtract_people_mask(
+        self, foreground_mask: np.ndarray, people_mask: Optional[np.ndarray],
+        image_id: str, job_id: str
+    ) -> np.ndarray:
         final_mask = foreground_mask
         if people_mask is not None:
             logger.info("Foreground mask shape: {foreground_mask_shape}", foreground_mask_shape=foreground_mask.shape)
