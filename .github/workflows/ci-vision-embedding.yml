@@ -67,4 +67,4 @@ jobs:
         run: flake8 .
 
       - name: Run unit tests
-        run: pytest -q -m unit --disable-warnings --maxfail=1
+        run: python -m pytest -q -m unit --disable-warnings --maxfail=1
