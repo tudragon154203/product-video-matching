@@ -2,7 +2,7 @@
 
 **Feature Branch**: `001-tiktok-video-download`
 **Created**: Tuesday, September 30, 2025
-**Status**: Draft
+**Status**: Completed
 **Input**: User description: "tiktok video download and extract keyframes: PRD: TikTok Video Download & Keyframe Extraction Integration in video-crawler 1. Overview The video-crawler service currently supports TikTok search and metadata crawling. It lacks the ability to download TikTok videos and extract keyframes for downstream processing. This PRD specifies integration of yt-dlp for downloading and the existing keyframe_extractor module (already used for YouTube) to process TikTok videos post-download. 2. Goals & Objectives Extend TikTok crawler to support downloading videos from webViewUrl. Automatically extract keyframes from downloaded videos. Save keyframes metadata into the database using video_frame_crud from libs/common-py. Reuse the job/phase/event-driven model from YouTube integration. 3. Functional Requirements Video Download Add TikTokDownloader wrapping yt-dlp.  Store downloaded file in temp/videos/tiktok/. Keyframe Extraction After successful download, trigger keyframe_extractor (reuse length_adaptive_extractor.py). Extract representative frames (configurable interval/length adaptive). Save frames to temp/keyframes/tiktok/{video_id}/. Persist metadata (frame paths, timestamps) into DB via video_frame_crud. Data Model Changes Extend Video model (models/video.py): class Video(BaseModel): id: str url: str title: str | None uploader: str | None download_url: str | None local_path: str | None has_download: bool = False keyframes: list[str] | None # list of saved keyframe paths API & Contracts Extend videos_collections_completed.json and videos_keyframes_ready.json to include: has_keyframes: true/false keyframes_count keyframes_paths (relative paths in storage). Job Flow New job phases: video.download.started video.download.completed video.keyframes.ready On failure: video.download.failed or video.keyframes.failed. 4. Non-Functional Requirements Performance: Extract max 20 keyframes per video (configurable). Resilience: If extraction fails, still persist do... [truncated]
 
 ## Execution Flow (main)
@@ -118,11 +118,18 @@ The `video-crawler` service needs to download TikTok videos from a `webViewUrl` 
 
 ---
 
+## Implementation Status
+- All tasks from tasks.md completed.
+- Feature ready for production, pending infrastructure setup.
+- Date: 2025-09-30
+- Key outcomes: TikTok download pipeline integrated with yt-dlp, keyframe extraction, 7-day cleanup, tests passing.
+
 ## Execution Status
 *Updated by main() during processing*
 
 - [x] User description parsed
 - [x] Key concepts extracted
+- [x] Review checklist passed
 ## Clarifications
 
 ### Session 2025-09-30
