@@ -57,6 +57,9 @@ When creating this spec from a user prompt:
 ### Primary User Story
 The `video-crawler` service needs to download TikTok videos from a `webViewUrl` and extract keyframes for further processing, similar to how YouTube videos are handled, to enable product-video matching for TikTok content.
 
+### Test Video Link
+- Test Video: https://www.tiktok.com/@lanxinx/video/7548644205690670337
+
 ### Acceptance Scenarios
 
 
@@ -70,13 +73,11 @@ The `video-crawler` service needs to download TikTok videos from a `webViewUrl` 
 
 - **FR-001**: The `video-crawler` service MUST be able to download TikTok videos from a `webViewUrl`.
 - **FR-002**: The system MUST extract keyframes from downloaded TikTok videos.
-- **FR-003**: The system MUST store downloaded TikTok videos in a temporary location (`temp/videos/tiktok/`).
-- **FR-004**: The system MUST save extracted keyframes to a temporary location (`temp/keyframes/tiktok/{video_id}/`).
+- **FR-003**: The system MUST store downloaded TikTok videos in the appropriate video directory (`DATA_ROOT_CONTAINER/videos/tiktok/`) like the YouTube counterpart.
+- **FR-004**: The system MUST save extracted keyframes to the keyframe directory (`DATA_ROOT_CONTAINER/keyframes/tiktok/{video_id}/`) like the YouTube counterpart.
 - **FR-005**: The system MUST persist keyframe metadata (paths, timestamps) into the database.
 - **FR-006**: The system MUST extend the `Video` model to include `download_url`, `local_path`, `has_download`, and `keyframes`.
-- **FR-007**: The system MUST extend `videos_collections_completed.json` and `videos_keyframes_ready.json` event contracts to include `has_keyframes`, `keyframes_count`, and `keyframes_paths`.
-- **FR-008**: The system MUST emit new job phases: `video.download.started`, `video.download.completed`, `video.keyframes.ready`.
-- **FR-009**: The system MUST handle download and keyframe extraction failures by emitting `video.download.failed` or `video.keyframes.failed` events.
+- **FR-007**: The system MUST persist keyframe metadata (paths, timestamps) into the database.
 
 
 ### Key Entities *(include if feature involves data)*
