@@ -62,18 +62,20 @@ The `video-crawler` service needs to download TikTok videos from a `webViewUrl` 
 
 ### Acceptance Scenarios
 
-3. **Given** a downloaded TikTok video and extracted keyframes, **When** 7 days pass, **Then** the video files are cleaned up from storage (keyframe files are kept permanently).
+1. **Given** TikTok video URLs are provided, **When** system processes them, **Then** videos are downloaded to DATA_ROOT_CONTAINER/videos/tiktok/ and keyframes extracted to DATA_ROOT_CONTAINER/keyframes/tiktok/{video_id}/.
+2. **Given** videos and keyframes are processed, **When** job completes, **Then** metadata is persisted to database with video paths and keyframe information.
+3. **Given** videos have been stored for 7 days, **When** cleanup process runs, **Then** video files are removed while keyframe files are kept permanently.
 4. **Given** TikTok anti-bot measures block download, **When** download attempts fail, **Then** system logs specific error and continues processing with retry logic.
 5. **Given** video cleanup fails, **When** cleanup process runs, **Then** system logs error but maintains normal operation.
 
 ### Edge Cases
 
 ## Anti-Bot Measures Handling
-- **FR-008**: When TikTok anti-bot measures prevent downloading, the system MUST log the failure with specific error details and continue processing the next video in the queue.
-- **FR-009**: The system MUST retry failed downloads up to 3 times with exponential backoff before marking them as permanently failed.
+- **FR-011**: When TikTok anti-bot measures prevent downloading, the system MUST log the failure with specific error details and continue processing the next video in the queue.
+- **FR-012**: The system MUST retry failed downloads up to 3 times with exponential backoff before marking them as permanently failed.
 
 ## Cleanup Failure Resilience
-- **FR-010**: If video cleanup after 7 days fails, the system MUST log the error and continue normal operation, not impact video processing or matching functionality.
+- **FR-013**: If video cleanup after 7 days fails, the system MUST log the error and continue normal operation, not impact video processing or matching functionality.
 
 ## Requirements *(mandatory)*
 
@@ -87,6 +89,9 @@ The `video-crawler` service needs to download TikTok videos from a `webViewUrl` 
 - **FR-008**: The system MUST handle anti-bot measures by logging specific failure details and continuing processing.
 - **FR-009**: The system MUST retry failed downloads up to 3 times with exponential backoff.
 - **FR-010**: The system MUST maintain normal operation if cleanup fails, with error logging.
+- **FR-011**: The system MUST log specific failure details and continue processing when anti-bot measures block downloads.
+- **FR-012**: The system MUST retry failed downloads up to 3 times with exponential backoff before marking them as permanently failed.
+- **FR-013**: The system MUST maintain normal operation if cleanup fails, with error logging and no impact on processing functionality.
 
 
 ### Key Entities *(include if feature involves data)*
@@ -105,8 +110,8 @@ The `video-crawler` service needs to download TikTok videos from a `webViewUrl` 
 - [x] All mandatory sections completed
 
 ### Requirement Completeness
-- [ ] No [NEEDS CLARIFICATION] markers remain
-- [x] Requirements are testable and unambiguous  
+- [x] No [NEEDS CLARIFICATION] markers remain
+- [x] Requirements are testable and unambiguous
 - [x] Success criteria are measurable
 - [x] Scope is clearly bounded
 - [x] Dependencies and assumptions identified

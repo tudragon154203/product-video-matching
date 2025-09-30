@@ -81,22 +81,22 @@
 ## Phase 3.5: Polish
 - [ ] T028 [P] Unit tests for download logic in services/video-crawler/tests/unit/tiktok/test_download_logic.py
 - [ ] T029 [P] Unit tests for error handling in services/video-crawler/tests/unit/tiktok/test_error_handling.py
-- [ ] T030 Performance tests for video download and keyframe extraction
-- [ ] T031 [P] Update documentation for TikTok integration
-- [ ] T032 [P] Implement cleanup logic for video files after 7 days (keyframe files kept permanently)
-- [ ] T033 Run manual validation with test video: https://www.tiktok.com/@lanxinx/video/7548644205690670337
+- [ ] T030 [P] Update documentation for TikTok integration
+- [ ] T031 [P] Implement cleanup logic for video files after 7 days (keyframe files kept permanently)
+- [ ] T032 Run manual validation with test video: https://www.tiktok.com/@lanxinx/video/7548644205690670337
 
 ## Dependencies
 - Quality setup (T005-T007) before any tests (T008-T011)
 - Quality validation (T012-T013) after tests but before implementation
 - Tests (T008-T011) before implementation (T014-T023)
-- T014 blocks T016, T22, T23
-- T015 blocks T017, T18, T19
-- T020 blocks T21
-- T022 blocks T21, T23
-- T023 blocks T32
-- T032 blocks T33
-- Implementation before polish (T028-T033)
+- T014 blocks T016, T021, T022
+- T015 blocks T017, T018, T019
+- T020 blocks T022
+- T021 blocks T022
+- T022 blocks T23
+- T023 blocks T31
+- T031 blocks T32
+- Implementation before polish (T028-T032)
 
 ## Parallel Example
 ```
