@@ -36,7 +36,7 @@ Extend the video-crawler service to download TikTok videos using yt-dlp from web
 ## Technical Context
 **Language/Version**: Python 3.10.8 (as per constitution)  
 **Primary Dependencies**: yt-dlp, existing keyframe_extractor module (length_adaptive_extractor.py), video_frame_crud from libs/common-py  
-**Storage**: PostgreSQL with pgvector for metadata, local filesystem for temporary video/keyframe storage  
+**Storage**: PostgreSQL with pgvector for metadata, local filesystem using DATA_ROOT_CONTAINER for video/keyframe storage following the YouTube implementation pattern  
 **Testing**: pytest for unit and integration tests  
 **Target Platform**: Linux server (Docker container)  
 **Project Type**: single - extending existing video-crawler service  

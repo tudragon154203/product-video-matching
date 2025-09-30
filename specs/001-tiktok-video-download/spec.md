@@ -63,7 +63,7 @@ The `video-crawler` service needs to download TikTok videos from a `webViewUrl` 
 ### Acceptance Scenarios
 
 
-3. **Given** a downloaded TikTok video and extracted keyframes, **When** 7 days pass, **Then** the video and keyframe files are cleaned up from storage.
+3. **Given** a downloaded TikTok video and extracted keyframes, **When** 7 days pass, **Then** the video files are cleaned up from storage (keyframe files are kept permanently).
 
 ### Edge Cases
 - What happens when TikTok anti-bot measures prevent `yt-dlp` from downloading a video?
@@ -77,7 +77,7 @@ The `video-crawler` service needs to download TikTok videos from a `webViewUrl` 
 - **FR-004**: The system MUST save extracted keyframes to the keyframe directory (`DATA_ROOT_CONTAINER/keyframes/tiktok/{video_id}/`) like the YouTube counterpart.
 - **FR-005**: The system MUST persist keyframe metadata (paths, timestamps) into the database.
 - **FR-006**: The system MUST extend the `Video` model to include `download_url`, `local_path`, `has_download`, and `keyframes`.
-- **FR-007**: The system MUST persist keyframe metadata (paths, timestamps) into the database.
+- **FR-007**: The system MUST implement cleanup logic to remove video files after 7 days (keyframe files are kept permanently).
 
 
 ### Key Entities *(include if feature involves data)*
