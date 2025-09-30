@@ -79,6 +79,25 @@ jobs:
             echo "EVENT_PAYLOAD_SIZE=$(wc -c < "$RUNNER_TEMP/opencode-event.json" | tr -d ' ')"
           } >> "$GITHUB_ENV"
 
+      - name: Capture git diff for analysis
+        id: capture_git_diff
+        run: |
+          GIT_DIFF_FILE="$RUNNER_TEMP/opencode-git-diff.patch"
+          : >"$GIT_DIFF_FILE"
+          git diff >"$GIT_DIFF_FILE" || true
+          git ls-files --others --exclude-standard -z >"$RUNNER_TEMP/opencode-untracked-files.txt" || true
+          if [ -s "$RUNNER_TEMP/opencode-untracked-files.txt" ]; then
+            while IFS= read -r -d '' file; do
+              if [ -f "$file" ]; then
+                printf '\n' >>"$GIT_DIFF_FILE"
+                git diff --no-index -- /dev/null "$file" >>"$GIT_DIFF_FILE" || true
+              fi
+            done <"$RUNNER_TEMP/opencode-untracked-files.txt"
+          fi
+          {
+            echo "OPENCODE_GIT_DIFF_FILE=$GIT_DIFF_FILE"
+          } >>"$GITHUB_ENV"
+
       - name: Prepare opencode prompt
         id: prepare_prompt
         env:
