@@ -106,7 +106,7 @@ This system processes industry keywords to find visual matches between products 
 ### Prerequisites
 
 - Docker and Docker Compose
-- Python 3.10+ (for development)
+- Python 3.10.8 (for development)
 - Make (optional, for convenience commands)
 
 

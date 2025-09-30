@@ -46,6 +46,7 @@
 - [ ] T001 Create project structure per implementation plan
 - [ ] T002 Initialize [language] project with [framework] dependencies
 - [ ] T003 [P] Configure linting and formatting tools
+- [ ] T004 Pin Python version to 3.10.8
 
 ## Phase 3.2: Quality and Tests Setup ⚠️ MUST COMPLETE BEFORE 3.3
 **CRITICAL: Quality gates MUST be configured and tests MUST FAIL before ANY implementation**

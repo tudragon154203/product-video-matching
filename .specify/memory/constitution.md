@@ -1,17 +1,17 @@
 <!--
 Sync Impact Report:
-- Version change: 1.2.0 → 1.4.0
-- List of modified principles: III. Testing Discipline (expanded and merged with VII), VIII. Quality Assurance (renamed to VII)
-- Added sections: None (merged VII into III)
-- Removed sections: VII. Unified Test Structure (merged into III)
+- Version change: 1.4.0 → 1.5.0
+- List of modified principles: VIII. Python Version Pinning (new)
+- Added sections: VIII. Python Version Pinning
+- Removed sections: None
 - Templates requiring updates:
-    - .specify/templates/plan-template.md: ✅ updated (renumbered VII to VII, updated constitution reference)
-    - .specify/templates/spec-template.md: ✅ updated (no changes needed for testing discipline)
-    - .specify/templates/tasks-template.md: ✅ updated (no conceptual changes, task numbers remain)
-    - .specify/templates/commands/*.md: ✅ updated (no changes needed)
-    - README.md: ✅ updated (already aligned with unified testing requirements)
-    - RUN.md: ✅ updated (no test content found, already aligned)
-- Follow-up TODOs: None required
+    - .specify/templates/plan-template.md: ✅ updated
+    - .specify/templates/spec-template.md: ✅ updated (no changes needed)
+    - .specify/templates/tasks-template.md: ✅ updated
+    - .claude/commands/*.md: ✅ updated (no changes needed)
+    - README.md: ✅ updated
+    - RUN.md: ✅ updated (no changes needed)
+- Follow-up TODOs: TODO(RATIFICATION_DATE): Original adoption date unknown
 -->
 # Product-Video Matching System Constitution
 
@@ -41,6 +41,9 @@ All microservices MUST implement unified logging using Python's standard `loggin
 ### VII. Quality Assurance
 All microservices MUST pass both flake8 linting and all unit tests before any code can be committed or merged. The flake8 configuration MUST include at least E (errors), W (warnings), and F (pyflakes) rulesets to catch syntax errors, style violations, and programming errors. Unit tests MUST be run after every code change using `python -m pytest -m unit` from the microservice directory. NO code can be merged if either flake8 fails or any unit test fails. External dependencies in unit tests SHOULD be mocked to ensure deterministic execution. Development workflows MUST include pre-commit hooks for flake8 and unit test validation to catch violations early.
 
+### VIII. Python Version Pinning
+Python environments MUST be pinned to version 3.10.8 to ensure consistent development and deployment across all services.
+
 ## Architectural Guidelines
 
 *   **Event-Driven Microservices:** The system is built on an event-driven microservices architecture, utilizing RabbitMQ as the message broker for asynchronous communication.
@@ -68,4 +71,4 @@ All microservices MUST pass both flake8 linting and all unit tests before any co
 *   **Compliance Review:** All code changes and architectural decisions MUST be reviewed for compliance with these principles. Non-compliance MUST be justified and approved by the project lead.
 *   **Guidance:** The `RUN.md` document provides runtime development guidance and MUST be consulted for day-to-day operations.
 
-**Version**: 1.4.0 | **Ratified**: TODO(RATIFICATION_DATE): Original adoption date unknown | **Last Amended**: 2025-09-28
+**Version**: 1.5.0 | **Ratified**: TODO(RATIFICATION_DATE): Original adoption date unknown | **Last Amended**: 2025-09-30

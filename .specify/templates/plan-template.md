@@ -54,6 +54,7 @@
 - [ ] **V. Data Flow Enforcement**: Strict adherence to the defined data processing pipeline and technology usage.
 - [ ] **VI. Unified Logging Standard**: Implementation of structured logging with ContextLogger, correlation ID tracking, and environment-based configuration.
 - [ ] **VII. Quality Assurance**: flake8 linting passes and all unit tests pass before code commits and merges.
+- [ ] **VIII. Python Version Pinning**: Python environments are pinned to version 3.10.8.
 
 ## Project Structure
 
@@ -219,4 +220,4 @@ ios/ or android/
 - [ ] Complexity deviations documented
 
 ---
-*Based on Constitution v1.4.0 - See `/memory/constitution.md`*
+*Based on Constitution v1.5.0 - See `/memory/constitution.md`*
