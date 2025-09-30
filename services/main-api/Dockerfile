@@ -17,9 +17,6 @@ COPY libs/common-py /app/libs/common-py
 COPY libs/contracts /app/libs/contracts
 COPY libs/config.py /app/libs/config.py
 
-# Copy main-api service code
-COPY services/main-api /app
-
 # Install shared libraries in development mode
 RUN pip install -e /app/libs/common-py
 RUN pip install -e /app/libs/contracts

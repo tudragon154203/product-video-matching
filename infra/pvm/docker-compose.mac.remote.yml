@@ -80,7 +80,7 @@ services:
       context: ../../
       dockerfile: services/main-api/Dockerfile
     env_file:
-      - .env  # Shared environment variables      
+      - .env  # Shared environment variables
     environment:
       PYTHONPATH: /app/libs:/app/libs/common-py:/app/libs/contracts
       PUBLIC_IMAGE_BASE_URL: ${PUBLIC_IMAGE_BASE_URL}
@@ -90,14 +90,13 @@ services:
       - O:/product-video-matching/libs:/app/libs:ro
       - O:/product-video-matching/infra:/app/infra:ro
       - O:/product-video-matching/${DATA_ROOT_HOST}:${DATA_ROOT_CONTAINER}
-      - O:/product-video-matching/services/main-api:/app/app
     depends_on:
       postgres:
         condition: service_healthy
       rabbitmq:
         condition: service_healthy
     restart: unless-stopped
-    command: ["python", "-m", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+    command: ["python", "-m", "uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
       interval: 10s
