@@ -79,6 +79,13 @@ jobs:
             echo "EVENT_PAYLOAD_SIZE=$(wc -c < "$RUNNER_TEMP/opencode-event.json" | tr -d ' ')"
           } >> "$GITHUB_ENV"
 
+      - name: Capture git diff for analysis
+        id: capture_git_diff
+        run: |
+          python ./.github/workflows/scripts/bots/opencode/capture_git_diff.py \
+            --diff-file "$RUNNER_TEMP/opencode-git-diff.patch" \
+            --env-file "$GITHUB_ENV"
+
       - name: Prepare opencode prompt
         id: prepare_prompt
         env:

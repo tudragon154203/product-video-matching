@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import sys
 from dataclasses import dataclass
 from pathlib import Path
@@ -32,6 +33,42 @@ class PromptContext:
 
 class WorkflowError(RuntimeError):
     """Raised when the workflow cannot continue."""
+
+
+def _git_diff_hint() -> str | None:
+    diff_path = os.environ.get("OPENCODE_GIT_DIFF_FILE", "").strip()
+    if not diff_path:
+        return None
+
+    path = Path(diff_path)
+    try:
+        if not path.exists():
+            return None
+        if path.stat().st_size == 0:
+            return None
+    except OSError:
+        return None
+
+    return (
+        dedent(
+            f"""
+            ### 📄 Repository diff available
+            A Git diff of the current workspace has been saved to `{diff_path}`.
+            Run `cat \"{diff_path}\"` or execute `git diff` to review the pending changes.
+            """
+        )
+        .strip()
+    )
+
+
+def _maybe_append_git_diff_hint(prompt: str) -> str:
+    base = prompt.strip()
+    hint = _git_diff_hint()
+    if hint:
+        if base:
+            return f"{base}\n\n{hint}"
+        return hint
+    return base
 
 
 def load_event_payload(path: Path) -> Dict[str, Any]:
@@ -126,8 +163,9 @@ def build_prompt(
                 """
             ).strip()
         )
+        prompt_text = _maybe_append_git_diff_hint("\n\n".join(sections))
         return PromptContext(
-            prompt="\n\n".join(sections).strip(),
+            prompt=prompt_text,
             summary=f"Automated review of pull request #{target_id}",
             command_text=None,
         )
@@ -169,8 +207,9 @@ def build_prompt(
                 if target_id
                 else f"Command `{prefix}` handled"
             )
+        prompt_text = _maybe_append_git_diff_hint("\n\n".join(sections))
         return PromptContext(
-            prompt="\n\n".join(sections).strip(),
+            prompt=prompt_text,
             summary=summary,
             command_text=command_text.strip() or None,
         )
@@ -201,8 +240,9 @@ def build_prompt(
                 if target_id
                 else f"Command `{prefix}` handled"
             )
+        prompt_text = _maybe_append_git_diff_hint("\n\n".join(sections))
         return PromptContext(
-            prompt="\n\n".join(sections).strip(),
+            prompt=prompt_text,
             summary=summary,
             command_text=command_text.strip() or None,
         )
@@ -216,8 +256,9 @@ def build_prompt(
             """
         ).strip()
     )
+    prompt_text = _maybe_append_git_diff_hint("\n\n".join(sections))
     return PromptContext(
-        prompt="\n\n".join(sections).strip(),
+        prompt=prompt_text,
         summary=f"opencode run for {event_name}",
         command_text=None,
     )
