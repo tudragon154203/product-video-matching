@@ -33,15 +33,17 @@ class AbstractKeyframeExtractor(KeyframeExtractorInterface, ABC):
     blur score calculation, and provides template methods for the extraction workflow.
     """
 
-    def __init__(self, keyframe_root_dir: Optional[str] = None):
+    def __init__(self, keyframe_root_dir: Optional[str] = None, create_dirs: bool = True):
         """
         Initialize the abstract keyframe extractor.
 
         Args:
             keyframe_root_dir: Custom root directory for keyframes (optional)
+            create_dirs: Whether to create directories on initialization (default: True)
         """
         self.keyframe_root_dir = Path(keyframe_root_dir or config.KEYFRAME_DIR)
-        self.keyframe_root_dir.mkdir(parents=True, exist_ok=True)
+        if create_dirs:
+            self.keyframe_root_dir.mkdir(parents=True, exist_ok=True)
         self.supported_formats = ['.mp4', '.avi', '.mov', '.mkv', '.flv', '.wmv', '.webm']
 
     def calculate_blur_score_from_file(self, image_path: str) -> float:

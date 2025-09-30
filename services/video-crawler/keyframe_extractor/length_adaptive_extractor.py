@@ -44,15 +44,16 @@ class LengthAdaptiveKeyframeExtractor(AbstractKeyframeExtractor):
     - Very long videos (>120s): Use fixed timestamps [10s, 30s, 60s, 90s, 120s]
     """
 
-    def __init__(self, keyframe_root_dir: Optional[str] = None, config_override: Optional[KeyframeConfig] = None):
+    def __init__(self, keyframe_root_dir: Optional[str] = None, config_override: Optional[KeyframeConfig] = None, create_dirs: bool = True):
         """
         Initialize the length-adaptive keyframe extractor.
 
         Args:
             keyframe_root_dir: Custom root directory for keyframes (optional)
             config_override: Optional configuration override for testing
+            create_dirs: Whether to create directories on initialization (default: True)
         """
-        super().__init__(keyframe_root_dir)
+        super().__init__(keyframe_root_dir, create_dirs)
         self.config = config_override or KeyframeConfig()
 
     async def _extract_frames_from_video(

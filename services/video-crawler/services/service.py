@@ -33,7 +33,7 @@ class VideoCrawlerService:
         self.frame_crud = VideoFrameCRUD(db) if db else None
         self.platform_crawlers = self._initialize_platform_crawlers()
         self.video_fetcher = VideoFetcher(platform_crawlers=self.platform_crawlers)
-        self.keyframe_extractor = LengthAdaptiveKeyframeExtractor()
+        self.keyframe_extractor = LengthAdaptiveKeyframeExtractor(create_dirs=False)
         self.event_emitter = EventEmitter(broker) if broker else None
         self.job_progress_manager = JobProgressManager(broker) if broker else None
 
@@ -41,6 +41,19 @@ class VideoCrawlerService:
             logger.info("Video cleanup enabled with retention period of {} days".format(config.VIDEO_RETENTION_DAYS))
         else:
             logger.info("Video cleanup is disabled")
+
+    def initialize_keyframe_extractor(self, keyframe_dir: Optional[str] = None):
+        """
+        Initialize the keyframe extractor with a specific directory.
+
+        Args:
+            keyframe_dir: Optional keyframe directory path. If None, creates directories using config.
+        """
+        if self.keyframe_extractor:
+            self.keyframe_extractor = LengthAdaptiveKeyframeExtractor(
+                keyframe_root_dir=keyframe_dir,
+                create_dirs=True
+            )
 
     async def handle_videos_search_request(self, event_data: Dict[str, Any]):
         """Handle video search request with cross-platform parallelism"""

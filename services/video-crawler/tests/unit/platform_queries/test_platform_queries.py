@@ -1,6 +1,7 @@
 """Unit tests for platform-specific query extraction logic."""
 
 import pytest
+import tempfile
 
 from services.service import VideoCrawlerService
 
@@ -15,7 +16,10 @@ class TestPlatformQueryExtraction:
         """Test that TikTok platform extracts Vietnamese queries."""
         # This test should fail initially until TikTok query extraction is implemented
 
-        service = VideoCrawlerService(None, None)  # DB and broker not needed for this test
+        # Create a temporary directory for keyframes to avoid permission issues
+        with tempfile.TemporaryDirectory() as temp_dir:
+            service = VideoCrawlerService(None, None)  # DB and broker not needed for this test
+            service.initialize_keyframe_extractor(keyframe_dir=temp_dir)
 
         queries = {
             "vi": ["gối ergonomic", "pillow thoải mái"],
@@ -33,7 +37,9 @@ class TestPlatformQueryExtraction:
 
     def test_extract_platform_queries_multiple_platforms(self):
         """Test query extraction with multiple platforms including TikTok."""
-        service = VideoCrawlerService(None, None)
+        with tempfile.TemporaryDirectory() as temp_dir:
+            service = VideoCrawlerService(None, None)
+            service.initialize_keyframe_extractor(keyframe_dir=temp_dir)
 
         queries = {
             "vi": ["query vi 1", "query vi 2"],
@@ -50,7 +56,9 @@ class TestPlatformQueryExtraction:
 
     def test_extract_platform_queries_tiktok_only(self):
         """Test query extraction for TikTok platform only."""
-        service = VideoCrawlerService(None, None)
+        with tempfile.TemporaryDirectory() as temp_dir:
+            service = VideoCrawlerService(None, None)
+            service.initialize_keyframe_extractor(keyframe_dir=temp_dir)
 
         queries = {
             "vi": ["đánh giá tai nghe không dây", "unbox iphone 15"],
@@ -70,7 +78,9 @@ class TestPlatformQueryExtraction:
 
     def test_extract_platform_queries_invalid_input(self):
         """Test query extraction with invalid input formats."""
-        service = VideoCrawlerService(None, None)
+        with tempfile.TemporaryDirectory() as temp_dir:
+            service = VideoCrawlerService(None, None)
+            service.initialize_keyframe_extractor(keyframe_dir=temp_dir)
 
         # Test with non-dict queries
         extracted = service._extract_platform_queries(["query1", "query2"], ["tiktok"])
@@ -86,7 +96,9 @@ class TestPlatformQueryExtraction:
 
     def test_extract_platform_queries_edge_cases(self):
         """Test edge cases for query extraction."""
-        service = VideoCrawlerService(None, None)
+        with tempfile.TemporaryDirectory() as temp_dir:
+            service = VideoCrawlerService(None, None)
+            service.initialize_keyframe_extractor(keyframe_dir=temp_dir)
 
         # Empty queries
         extracted = service._extract_platform_queries({"vi": [], "zh": []}, ["tiktok"])
