@@ -13,16 +13,18 @@ from common_py.logging_config import configure_logging
 
 logger = configure_logging("product-segmentor:db_updater")
 
+
 class DatabaseUpdater:
     """Handles database updates for segmentation results.
-    
+
     This class focuses solely on database operations for storing segmentation results,
     updating product images and video frames with their corresponding mask file paths.
     File management and image processing are delegated to other modules.
     """
+
     def __init__(self, db: DatabaseManager):
         """Initialize database updater with database connection.
-        
+
         Args:
             db: Database manager instance for database operations
         """
@@ -30,14 +32,14 @@ class DatabaseUpdater:
 
     async def update_product_image_mask(self, image_id: str, mask_path: str) -> None:
         """Update product image record with mask file path.
-        
+
         Updates the product_images table to store the path to the generated mask file.
         This allows downstream services to access the segmented product region.
-        
+
         Args:
             image_id: Unique identifier for the product image
             mask_path: Filesystem path to the generated mask file
-            
+
         Note:
             Errors are logged but not raised to allow processing to continue
             with other images even if one fails.
@@ -49,21 +51,21 @@ class DatabaseUpdater:
                 WHERE img_id = $2
             """
             await self.db.execute(query, mask_path, image_id)
-            
+
         except Exception as e:
             logger.error("Failed to update product image mask", image_id=image_id, error=str(e))
 
     async def update_video_frame_mask(self, frame_id: str, mask_path: str) -> None:
         """Update video frame record with mask file path.
-        
+
         Updates the video_frames table to store the path to the generated mask file.
         This allows downstream services to access the segmented product region
         in video frames for matching operations.
-        
+
         Args:
             frame_id: Unique identifier for the video frame
             mask_path: Filesystem path to the generated mask file
-            
+
         Note:
             Errors are logged but not raised to allow processing to continue
             with other frames even if one fails.
@@ -75,6 +77,6 @@ class DatabaseUpdater:
                 WHERE frame_id = $2
             """
             await self.db.execute(query, mask_path, frame_id)
-            
+
         except Exception as e:
             logger.error("Failed to update video frame mask", frame_id=frame_id, error=str(e))

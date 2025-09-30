@@ -1,3 +1,6 @@
+from config_loader import config
+from handlers.video_crawl_handler import VideoCrawlHandler
+from common_py.logging_config import configure_logging
 import asyncio
 import sys
 from contextlib import asynccontextmanager
@@ -5,11 +8,9 @@ from contextlib import asynccontextmanager
 # Add the app directory to the Python path for bind mount setup
 sys.path.append("/app/app")
 
-from common_py.logging_config import configure_logging
-from handlers.video_crawl_handler import VideoCrawlHandler
-from config_loader import config
 
 logger = configure_logging("video-crawler:main", log_level=config.LOG_LEVEL)
+
 
 @asynccontextmanager
 async def service_context():
@@ -25,6 +26,7 @@ async def service_context():
         await handler.db.disconnect()
         await handler.broker.disconnect()
 
+
 async def main():
     """Main service loop"""
     try:
@@ -34,13 +36,13 @@ async def main():
                 "videos.search.request",
                 handler.handle_videos_search_request
             )
-            
+
             logger.info("Video crawler service started")
 
             # Keep service running
             while True:
                 await asyncio.sleep(1)
-                
+
     except KeyboardInterrupt:
         logger.info("Shutting down Video Crawler service")
     except Exception as e:

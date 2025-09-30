@@ -2,11 +2,12 @@
 
 import os
 import tempfile
-import unittest
+import shutil
 from pathlib import Path
 from unittest.mock import patch
 
 import pytest
+from datetime import datetime, timedelta
 
 from services.cleanup_service import VideoCleanupService
 from utils.file_cleanup import VideoCleanupManager
@@ -15,61 +16,45 @@ from utils.file_cleanup import VideoCleanupManager
 pytestmark = pytest.mark.unit
 
 
-class TestVideoCleanupService(unittest.TestCase):
+@pytest.fixture
+async def cleanup_service_fixture():
+    test_dir = tempfile.mkdtemp()
+
+    # Create test files with different ages
+    uploader1 = Path(test_dir) / "uploader1"
+    uploader1.mkdir(parents=True)
+    old_time = datetime.now() - timedelta(days=10)
+    old_file = uploader1 / "old_video.mp4"
+    old_file.write_text("old content")
+    os.utime(old_file, (old_time.timestamp(), old_time.timestamp()))
+
+    # Persistently patch specific config attributes for this test case
+    with patch.object(
+        __import__('services.cleanup_service', fromlist=['config']).config,
+        'VIDEO_RETENTION_DAYS', 7
+    ), patch.object(
+        __import__('services.cleanup_service', fromlist=['config']).config,
+        'VIDEO_DIR', test_dir
+    ), patch.object(
+        __import__('services.cleanup_service', fromlist=['config']).config,
+        'CLEANUP_OLD_VIDEOS', True
+    ):
+        cleanup_service = VideoCleanupService()
+        yield cleanup_service, test_dir
+
+    shutil.rmtree(test_dir, ignore_errors=True)
+
+
+class TestVideoCleanupService:
     """Test cases for VideoCleanupService class"""
-    
-    def setUp(self):
-        """Set up test fixtures"""
-        self.test_dir = tempfile.mkdtemp()
-        self.create_test_files()
-        
-        # Persistently patch specific config attributes for this test case
-        self.patcher_retention = patch.object(
-            __import__('services.cleanup_service', fromlist=['config']).config,
-            'VIDEO_RETENTION_DAYS', 7
-        )
-        self.patcher_video_dir = patch.object(
-            __import__('services.cleanup_service', fromlist=['config']).config,
-            'VIDEO_DIR', self.test_dir
-        )
-        self.patcher_enable = patch.object(
-            __import__('services.cleanup_service', fromlist=['config']).config,
-            'CLEANUP_OLD_VIDEOS', True
-        )
-        self.patcher_retention.start()
-        self.patcher_video_dir.start()
-        self.patcher_enable.start()
-        self.addCleanup(self.patcher_retention.stop)
-        self.addCleanup(self.patcher_video_dir.stop)
-        self.addCleanup(self.patcher_enable.stop)
-        
-        self.cleanup_service = VideoCleanupService()
-            
-    def tearDown(self):
-        """Clean up test fixtures"""
-        import shutil
-        shutil.rmtree(self.test_dir, ignore_errors=True)
-        
-    def create_test_files(self):
-        """Create test files with different ages"""
-        from datetime import datetime, timedelta
-        
-        # Create uploader directories
-        uploader1 = Path(self.test_dir) / "uploader1"
-        uploader1.mkdir(parents=True)
-        
-        # Create an old file (10 days old)
-        old_time = datetime.now() - timedelta(days=10)
-        old_file = uploader1 / "old_video.mp4"
-        old_file.write_text("old content")
-        os.utime(old_file, (old_time.timestamp(), old_time.timestamp()))
-        
-    def test_service_initialization(self):
+
+    def test_service_initialization(self, cleanup_service_fixture):
         """Test service initialization with enabled cleanup"""
-        self.assertTrue(self.cleanup_service.enabled, "Cleanup should be enabled by default")
-        self.assertIsInstance(self.cleanup_service.cleanup_manager, VideoCleanupManager, 
-                            "Should have a cleanup manager instance")
-        
+        cleanup_service, _ = cleanup_service_fixture
+        assert cleanup_service.enabled is True, "Cleanup should be enabled by default"
+        assert isinstance(cleanup_service.cleanup_manager, VideoCleanupManager), \
+            "Should have a cleanup manager instance"
+
     def test_service_initialization_disabled(self):
         """Test service initialization with disabled cleanup"""
         with patch.object(
@@ -77,149 +62,171 @@ class TestVideoCleanupService(unittest.TestCase):
             'CLEANUP_OLD_VIDEOS', False
         ):
             service = VideoCleanupService()
-            self.assertFalse(service.enabled, "Cleanup should be disabled")
-            
-    async def test_perform_cleanup_enabled(self):
+            assert service.enabled is False, "Cleanup should be disabled"
+
+    @pytest.mark.asyncio
+    async def test_perform_cleanup_enabled(self, cleanup_service_fixture):
         """Test cleanup when enabled"""
-        results = await self.cleanup_service.perform_cleanup(self.test_dir, dry_run=False)
-        
+        cleanup_service, test_dir = cleanup_service_fixture
+        results = await cleanup_service.perform_cleanup(test_dir, dry_run=False)
+
         # Should have performed cleanup
-        self.assertTrue(results['enabled'], "Cleanup should be enabled")
-        self.assertEqual(len(results['files_removed']), 1, "Should remove 1 file")
-        self.assertEqual(results['total_files'], 1, "Should have found 1 file to remove")
-        self.assertTrue(results['total_size_freed'] > 0, "Should have freed space")
-        
-    async def test_perform_cleanup_disabled(self):
+        assert results['enabled'] is True, "Cleanup should be enabled"
+        assert len(results['files_removed']) == 1, "Should remove 1 file"
+        assert results['total_files'] == 1, "Should have found 1 file to remove"
+        assert results['total_size_freed'] > 0, "Should have freed space"
+
+    @pytest.mark.asyncio
+    async def test_perform_cleanup_disabled(self, cleanup_service_fixture):
         """Test cleanup when disabled"""
-        self.cleanup_service.enabled = False
-        
-        results = await self.cleanup_service.perform_cleanup(self.test_dir, dry_run=False)
-        
+        cleanup_service, test_dir = cleanup_service_fixture
+        cleanup_service.enabled = False
+
+        results = await cleanup_service.perform_cleanup(test_dir, dry_run=False)
+
         # Should have skipped cleanup
-        self.assertFalse(results['enabled'], "Cleanup should be disabled")
-        self.assertEqual(len(results['files_removed']), 0, "Should remove no files")
-        self.assertEqual(results['total_files'], 0, "Should have found no files")
-        
-    async def test_perform_cleanup_dry_run(self):
+        assert results['enabled'] is False, "Cleanup should be disabled"
+        assert len(results['files_removed']) == 0, "Should remove no files"
+        assert results['total_files'] == 0, "Should have found no files"
+
+    @pytest.mark.asyncio
+    async def test_perform_cleanup_dry_run(self, cleanup_service_fixture):
         """Test cleanup in dry run mode"""
-        results = await self.cleanup_service.perform_cleanup(self.test_dir, dry_run=True)
-        
+        cleanup_service, test_dir = cleanup_service_fixture
+        results = await cleanup_service.perform_cleanup(test_dir, dry_run=True)
+
         # Should be marked as dry run
-        self.assertTrue(results['dry_run'], "Should be marked as dry run")
-        self.assertTrue(results['enabled'], "Cleanup should still be enabled")
-        self.assertEqual(len(results['files_skipped']), 1, "Should have 1 file listed")
-        self.assertEqual(len(results['files_removed']), 0, "Should remove no files")
-        
+        assert results['dry_run'] is True, "Should be marked as dry run"
+        assert results['enabled'] is True, "Cleanup should still be enabled"
+        assert len(results['files_skipped']) == 1, "Should have 1 file listed"
+        assert len(results['files_removed']) == 0, "Should remove no files"
+
         # Files should still exist
-        self.assertTrue(os.path.exists(self.test_dir), "Test directory should still exist")
-        
-    async def test_get_cleanup_info(self):
+        assert os.path.exists(test_dir), "Test directory should still exist"
+
+    @pytest.mark.asyncio
+    async def test_get_cleanup_info(self, cleanup_service_fixture):
         """Test getting cleanup information"""
-        info = await self.cleanup_service.get_cleanup_info(self.test_dir)
-        
+        cleanup_service, test_dir = cleanup_service_fixture
+        info = await cleanup_service.get_cleanup_info(test_dir)
+
         # Should return cleanup information
-        self.assertIn('total_old_files', info, "Should have total old files count")
-        self.assertIn('total_size_bytes', info, "Should have total size in bytes")
-        self.assertIn('total_size_mb', info, "Should have total size in MB")
-        self.assertIn('retention_days', info, "Should have retention days")
-        self.assertIn('cleanup_enabled', info, "Should have cleanup enabled status")
-        self.assertTrue(info['cleanup_enabled'], "Cleanup should be enabled")
-        
-    async def test_get_cleanup_info_no_old_files(self):
+        assert 'total_old_files' in info, "Should have total old files count"
+        assert 'total_size_bytes' in info, "Should have total size in bytes"
+        assert 'total_size_mb' in info, "Should have total size in MB"
+        assert 'retention_days' in info, "Should have retention days"
+        assert 'cleanup_enabled' in info, "Should have cleanup enabled status"
+        assert info['cleanup_enabled'] is True, "Cleanup should be enabled"
+
+    @pytest.mark.asyncio
+    async def test_get_cleanup_info_no_old_files(self, cleanup_service_fixture):
         """Test cleanup info when no old files exist"""
+        cleanup_service, test_dir = cleanup_service_fixture
         # Remove old files
-        import shutil
-        shutil.rmtree(self.test_dir)
-        os.makedirs(self.test_dir)
-        
-        info = await self.cleanup_service.get_cleanup_info(self.test_dir)
-        
-        self.assertEqual(info['total_old_files'], 0, "Should find no old files")
-        self.assertEqual(info['total_size_bytes'], 0, "Should have 0 total size")
-        self.assertIsNone(info['oldest_file'], "Should have no oldest file")
-        self.assertIsNone(info['newest_file'], "Should have no newest file")
-        
-    async def test_enable_cleanup(self):
+        shutil.rmtree(test_dir)
+        os.makedirs(test_dir)
+
+        info = await cleanup_service.get_cleanup_info(test_dir)
+
+        assert info['total_old_files'] == 0, "Should find no old files"
+        assert info['total_size_bytes'] == 0, "Should have 0 total size"
+        assert info['oldest_file'] is None, "Should have no oldest file"
+        assert info['newest_file'] is None, "Should have no newest file"
+
+    @pytest.mark.asyncio
+    async def test_enable_cleanup(self, cleanup_service_fixture):
         """Test enabling cleanup"""
-        self.cleanup_service.enabled = False
-        await self.cleanup_service.enable_cleanup(True)
-        
-        self.assertTrue(self.cleanup_service.enabled, "Cleanup should be enabled")
-        
-    async def test_disable_cleanup(self):
+        cleanup_service, _ = cleanup_service_fixture
+        cleanup_service.enabled = False
+        await cleanup_service.enable_cleanup(True)
+
+        assert cleanup_service.enabled is True, "Cleanup should be enabled"
+
+    @pytest.mark.asyncio
+    async def test_disable_cleanup(self, cleanup_service_fixture):
         """Test disabling cleanup"""
-        self.cleanup_service.enabled = True
-        await self.cleanup_service.enable_cleanup(False)
-        
-        self.assertFalse(self.cleanup_service.enabled, "Cleanup should be disabled")
-        
-    def test_get_status(self):
+        cleanup_service, _ = cleanup_service_fixture
+        cleanup_service.enabled = True
+        await cleanup_service.enable_cleanup(False)
+
+        assert cleanup_service.enabled is False, "Cleanup should be disabled"
+
+    def test_get_status(self, cleanup_service_fixture):
         """Test getting service status"""
-        status = self.cleanup_service.get_status()
-        
+        cleanup_service, test_dir = cleanup_service_fixture
+        status = cleanup_service.get_status()
+
         # Should return status information
-        self.assertIn('enabled', status, "Should have enabled status")
-        self.assertIn('retention_days', status, "Should have retention days")
-        self.assertIn('video_dir', status, "Should have video directory")
-        
-        self.assertTrue(status['enabled'], "Cleanup should be enabled")
-        self.assertEqual(status['retention_days'], 7, "Should have 7 day retention")
-        self.assertEqual(status['video_dir'], self.test_dir, "Should have correct video directory")
-        
+        assert 'enabled' in status, "Should have enabled status"
+        assert 'retention_days' in status, "Should have retention days"
+        assert 'video_dir' in status, "Should have video directory"
+
+        assert status['enabled'] is True, "Cleanup should be enabled"
+        assert status['retention_days'] == 7, "Should have 7 day retention"
+        assert status['video_dir'] == test_dir, "Should have correct video directory"
+
     @patch('services.cleanup_service.logger')
-    async def test_logging_enabled(self, mock_logger):
+    @pytest.mark.asyncio
+    async def test_logging_enabled(self, mock_logger, cleanup_service_fixture):
         """Test logging when cleanup is enabled"""
-        await self.cleanup_service.perform_cleanup(self.test_dir, dry_run=False)
-        
+        cleanup_service, test_dir = cleanup_service_fixture
+        await cleanup_service.perform_cleanup(test_dir, dry_run=False)
+
         # Should log cleanup operations
         mock_logger.info.assert_called()
-        
+
         # Check for cleanup start log
         cleanup_logs = [
             log_call
             for log_call in mock_logger.info.call_args_list
             if any(message in log_call.args[0] for message in ['CLEANUP-START', 'CLEANUP-COMPLETE'])
         ]
-        self.assertTrue(len(cleanup_logs) > 0, "Should log cleanup operations")
-        
+        assert len(cleanup_logs) > 0, "Should log cleanup operations"
+
     @patch('services.cleanup_service.logger')
-    async def test_logging_disabled(self, mock_logger):
+    @pytest.mark.asyncio
+    async def test_logging_disabled(self, mock_logger, cleanup_service_fixture):
         """Test logging when cleanup is disabled"""
-        self.cleanup_service.enabled = False
-        await self.cleanup_service.perform_cleanup(self.test_dir, dry_run=False)
-        
+        cleanup_service, test_dir = cleanup_service_fixture
+        cleanup_service.enabled = False
+        await cleanup_service.perform_cleanup(test_dir, dry_run=False)
+
         # Should log that cleanup is skipped
         mock_logger.info.assert_called()
-        
+
         # Check for cleanup skipped log
         skip_logs = [
             log_call
             for log_call in mock_logger.info.call_args_list
             if 'CLEANUP-SKIPPED' in log_call.args[0]
         ]
-        self.assertTrue(len(skip_logs) > 0, "Should log cleanup skipped")
-        
-    async def test_cleanup_error_handling(self):
+        assert len(skip_logs) > 0, "Should log cleanup skipped"
+
+    @pytest.mark.asyncio
+    async def test_cleanup_error_handling(self, cleanup_service_fixture):
         """Test error handling during cleanup"""
+        cleanup_service, _ = cleanup_service_fixture
         # Test with invalid directory
         invalid_dir = "/nonexistent/directory"
-        results = await self.cleanup_service.perform_cleanup(invalid_dir, dry_run=False)
-        
+        results = await cleanup_service.perform_cleanup(invalid_dir, dry_run=False)
+
         # Should handle error gracefully and still return results
-        self.assertIsInstance(results, dict, "Should return results dict")
-        self.assertFalse(results['enabled'], "Cleanup should handle errors gracefully")
-        
-    async def test_cleanup_info_error_handling(self):
+        assert isinstance(results, dict), "Should return results dict"
+        assert results['enabled'] is False, "Cleanup should handle errors gracefully"
+
+    @pytest.mark.asyncio
+    async def test_cleanup_info_error_handling(self, cleanup_service_fixture):
         """Test error handling during cleanup info retrieval"""
+        cleanup_service, _ = cleanup_service_fixture
         # Test with invalid directory
         invalid_dir = "/nonexistent/directory"
-        
+
         # Should raise an exception or handle gracefully
         try:
-            await self.cleanup_service.get_cleanup_info(invalid_dir)
+            await cleanup_service.get_cleanup_info(invalid_dir)
         except Exception as e:
             # If it raises an exception, that's acceptable behavior
-            self.assertIn(str(e), ['Path does not exist', 'No such file or directory'])
+            assert str(e) in ['Path does not exist', 'No such file or directory']
 
     def test_video_cleanup_manager_instantiation(self):
         """Test that VideoCleanupManager is properly instantiated"""
@@ -229,7 +236,4 @@ class TestVideoCleanupService(unittest.TestCase):
         ):
             service = VideoCleanupService()
             # Cleanup manager should use configured retention days
-            self.assertEqual(service.cleanup_manager.retention_days, 10)
-
-
-
+            assert service.cleanup_manager.retention_days == 10

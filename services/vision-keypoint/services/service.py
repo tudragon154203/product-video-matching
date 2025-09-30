@@ -14,7 +14,7 @@ logger = configure_logging("vision-keypoint:service")
 
 class VisionKeypointService:
     """Main service class for vision keypoint extraction with progress tracking"""
-    
+
     def __init__(
         self, db: DatabaseManager, broker: MessageBroker, data_root: str
     ):
@@ -25,11 +25,11 @@ class VisionKeypointService:
         self.asset_processor = KeypointAssetProcessor(
             db, broker, self.extractor, self.progress_manager
         )
-    
+
     async def cleanup(self):
         """Clean up resources"""
         await self.progress_manager.cleanup_all()
-    
+
     async def handle_products_image_ready(self, event_data: Dict[str, Any]):
         """Handle product images ready event"""
         try:
@@ -61,7 +61,7 @@ class VisionKeypointService:
                 error_type=type(e).__name__,
             )
             raise
-    
+
     async def handle_videos_keyframes_ready(self, event_data: Dict[str, Any]):
         """Handle video keyframes ready event"""
         try:
@@ -75,7 +75,7 @@ class VisionKeypointService:
             for frame_data in frames:
                 frame_id = frame_data["frame_id"]
                 local_path = frame_data["local_path"]
-                
+
                 success = await self.asset_processor.process_single_asset(
                     job_id,
                     frame_id,
@@ -106,7 +106,7 @@ class VisionKeypointService:
             update_progress = (
                 self.asset_processor.update_and_check_completion_per_asset_first
             )
-            
+
             success = await self.asset_processor.process_single_asset(
                 job_id,
                 image_id,
@@ -139,11 +139,11 @@ class VisionKeypointService:
             update_progress = (
                 self.asset_processor.update_and_check_completion_per_asset_first
             )
-            
+
             for frame_data in frames:
                 frame_id = frame_data["frame_id"]
                 mask_path = frame_data["mask_path"]
-                
+
                 success = await self.asset_processor.process_single_asset(
                     job_id,
                     frame_id,
@@ -171,7 +171,7 @@ class VisionKeypointService:
         try:
             job_id = event_data["job_id"]
             total_images = event_data["total_images"]
-            
+
             await self.asset_processor.handle_batch_initialization(
                 job_id,
                 "image",
@@ -194,10 +194,10 @@ class VisionKeypointService:
             job_id = event_data["job_id"]
             event_id = event_data["event_id"]
             total_keyframes = event_data["total_keyframes"]
-            
+
             # Create a unique identifier for this batch event to detect duplicates
             batch_event_key = f"{job_id}:{event_id}"
-            
+
             # Check if we've already processed this batch event
             if batch_event_key in self.progress_manager.processed_batch_events:
                 logger.info(
@@ -207,10 +207,10 @@ class VisionKeypointService:
                     asset_type="video",
                 )
                 return
-            
+
             # Mark this batch event as processed
             self.progress_manager.processed_batch_events.add(batch_event_key)
-            
+
             await self.asset_processor.handle_batch_initialization(
                 job_id,
                 "video",

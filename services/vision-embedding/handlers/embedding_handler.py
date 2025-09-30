@@ -1,8 +1,9 @@
-from .decorators import validate_event, handle_errors
+from .decorators import validate_event
 from services.service import VisionEmbeddingService
 from common_py.database import DatabaseManager
 from common_py.messaging import MessageBroker
 from config_loader import config
+
 
 class VisionEmbeddingHandler:
     def __init__(self):

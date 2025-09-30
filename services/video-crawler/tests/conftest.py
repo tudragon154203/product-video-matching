@@ -13,6 +13,7 @@ import sys
 import os
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
+
 @pytest.fixture(scope="session")
 def event_loop():
     """Create an instance of the default event loop for the test session."""
@@ -20,11 +21,13 @@ def event_loop():
     yield loop
     loop.close()
 
+
 @pytest.fixture
 def temp_dir():
     """Create temporary directory for tests"""
     with tempfile.TemporaryDirectory() as temp_dir:
         yield temp_dir
+
 
 @pytest.fixture
 def mock_video_data():
@@ -55,6 +58,7 @@ def mock_video_data():
         }
     ]
 
+
 @pytest.fixture
 def mock_downloaded_video_data(mock_video_data, temp_dir):
     """Mock downloaded video data with local paths"""
@@ -78,7 +82,7 @@ def vietnamese_test_videos():
         },
         {
             "title": "English tech review",
-            "author": "tech_global", 
+            "author": "tech_global",
             "view_count": 30000,
             "video_id": "global_video_1"
         },
@@ -89,6 +93,7 @@ def vietnamese_test_videos():
             "video_id": "vn_video_2"
         }
     ]
+
 
 @pytest.fixture
 def mock_config():

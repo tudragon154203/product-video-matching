@@ -14,7 +14,7 @@ logger = configure_logging("video-crawler:tiktok_searcher", log_level=config.LOG
 
 class TikTokSearcher:
     """HTTP client for interacting with TikTok Search API."""
-    
+
     def __init__(self, platform_name: str):
         self.platform_name = platform_name
         self.base_url = f"http://{config.TIKTOK_CRAWL_HOST}:{config.TIKTOK_CRAWL_HOST_PORT}"
@@ -26,35 +26,36 @@ class TikTokSearcher:
     async def search_tiktok(self, query: str, num_videos: int = 10) -> TikTokSearchResponse:
         """
         Search TikTok for videos matching the query using exponential backoff for error handling.
-        
+
         Args:
             query: Search query
             num_videos: Maximum number of videos to retrieve (max 50)
-            
+
         Returns:
             TikTokSearchResponse with video results
         """
         max_attempts = 3
         base_delay = 15.0  # Base delay in seconds for exponential backoff
-        
+
         for attempt in range(max_attempts):
             try:
-                logger.info(f"Attempting TikTok search for query: '{query}', num_videos: {num_videos} (attempt {attempt + 1}/{max_attempts})")
-                
+                logger.info(
+                    f"Attempting TikTok search for query: '{query}', num_videos: {num_videos} (attempt {attempt + 1}/{max_attempts})")
+
                 # Prepare request payload
                 payload: Dict[str, Any] = {
                     "query": query,
                     "numVideos": min(num_videos, 50),  # Cap at 50 as per API spec
                     "force_headful": False
                 }
-                
+
                 # Make the API call
                 response = await self.client.post(
                     f"{self.base_url}/tiktok/search",
                     json=payload,
                     headers={"Content-Type": "application/json"}
                 )
-                
+
                 # Check if request was successful
                 if response.status_code == 200:
                     try:
@@ -93,7 +94,7 @@ class TikTokSearcher:
                         continue
                     else:
                         raise Exception(f"TikTok API error (status {response.status_code}) for query '{query}': {response.text}")
-                        
+
             except httpx.TimeoutException:
                 logger.warning(f"Timeout searching TikTok for query '{query}' - attempt {attempt + 1}")
                 if attempt < max_attempts - 1:  # Don't retry after last attempt
@@ -103,7 +104,7 @@ class TikTokSearcher:
                     continue
                 else:
                     raise Exception(f"TikTok API timeout after {max_attempts} attempts for query '{query}'")
-                    
+
             except httpx.RequestError as e:
                 logger.error(f"Request error searching TikTok for query '{query}': {str(e)}")
                 if attempt < max_attempts - 1:  # Don't retry after last attempt
@@ -113,7 +114,7 @@ class TikTokSearcher:
                     continue
                 else:
                     raise Exception(f"TikTok API request error after {max_attempts} attempts for query '{query}': {str(e)}")
-                    
+
         # This line should not be reached if max_attempts logic works properly
         raise Exception(f"Failed to search TikTok after {max_attempts} attempts for query '{query}'")
 

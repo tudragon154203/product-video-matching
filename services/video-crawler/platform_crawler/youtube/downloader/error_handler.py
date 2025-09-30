@@ -7,12 +7,12 @@ logger = configure_logging("video-crawler:error_handler")
 
 class ErrorHandler:
     """Handles error logging and debugging for YouTube downloads"""
-    
+
     @staticmethod
     async def log_formats_for_debugging(video_url: str, video_id: str):
         """
         Log available formats for debugging purposes
-        
+
         Args:
             video_url: URL of the video
             video_id: ID of the video
@@ -24,16 +24,16 @@ class ErrorHandler:
                 logger.debug(f"Available formats for {video_id}: {[f.get('format_id', '') for f in formats]}")
         except Exception as debug_e:
             logger.debug(f"Could not retrieve formats for debugging: {debug_e}")
-    
+
     @staticmethod
     def determine_wait_time(error_msg: str, attempt: int) -> int:
         """
         Determine appropriate wait time based on error type
-        
+
         Args:
             error_msg: Error message
             attempt: Current attempt number
-            
+
         Returns:
             Wait time in seconds
         """

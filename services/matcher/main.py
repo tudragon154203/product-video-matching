@@ -1,3 +1,5 @@
+from handlers.matcher_handler import MatcherHandler
+from common_py.logging_config import configure_logging
 import asyncio
 import sys
 from contextlib import asynccontextmanager
@@ -5,10 +7,9 @@ from contextlib import asynccontextmanager
 # Add the app directory to the Python path for bind mount setup
 sys.path.append("/app/app")
 
-from common_py.logging_config import configure_logging
-from handlers.matcher_handler import MatcherHandler
 
 logger = configure_logging("matcher:main")
+
 
 @asynccontextmanager
 async def service_context():
@@ -26,6 +27,7 @@ async def service_context():
         await handler.db.disconnect()
         await handler.broker.disconnect()
 
+
 async def main():
     """Main service loop"""
     try:
@@ -35,13 +37,13 @@ async def main():
                 "match.request",
                 handler.handle_match_request
             )
-            
+
             logger.info("Matcher service started")
-            
+
             # Keep service running
             while True:
                 await asyncio.sleep(1)
-                
+
     except KeyboardInterrupt:
         logger.info("Shutting down matcher service")
     except Exception as e:

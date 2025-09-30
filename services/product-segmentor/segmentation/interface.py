@@ -7,7 +7,7 @@ import numpy as np
 
 class SegmentationInterface(ABC):
     """Abstract interface for segmentation models."""
-    
+
     @abstractmethod
     async def segment_image(self, image_path: str) -> Optional[np.ndarray]:
         """Generate product mask for image.

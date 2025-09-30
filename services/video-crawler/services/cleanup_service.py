@@ -13,19 +13,19 @@ logger = configure_logging("video-crawler:cleanup_service")
 
 class VideoCleanupService:
     """Service for managing automatic video cleanup."""
-    
+
     def __init__(self):
         self.cleanup_manager = VideoCleanupManager(config.VIDEO_RETENTION_DAYS)
         self.enabled = config.CLEANUP_OLD_VIDEOS
-        
+
     async def perform_cleanup(self, video_dir: str, dry_run: bool = False) -> Dict[str, Any]:
         """
         Perform automatic cleanup of old video files.
-        
+
         Args:
             video_dir: Directory containing video files
             dry_run: If True, only list files without removing them
-            
+
         Returns:
             Dictionary with cleanup results
         """
@@ -39,10 +39,10 @@ class VideoCleanupService:
                 'dry_run': dry_run,
                 'enabled': False
             }
-        
+
         try:
             logger.info(f"[CLEANUP-START] Starting cleanup of videos older than {config.VIDEO_RETENTION_DAYS} days (dry_run={dry_run})")
-            
+
             # Validate directory exists
             from pathlib import Path
             if not Path(video_dir).exists():
@@ -57,13 +57,13 @@ class VideoCleanupService:
                     'empty_dirs_removed': [],
                     'total_dirs_removed': 0,
                 }
-            
+
             # Clean up old files
             cleanup_results = self.cleanup_manager.cleanup_old_files(video_dir, dry_run)
-            
+
             # Clean up empty directories
             removed_dirs = self.cleanup_manager.cleanup_empty_directories(video_dir, dry_run)
-            
+
             # Combine results
             final_results = {
                 **cleanup_results,
@@ -71,12 +71,13 @@ class VideoCleanupService:
                 'total_dirs_removed': len(removed_dirs),
                 'enabled': True
             }
-            
+
             logger.info(
-                f"[CLEANUP-COMPLETE] Cleanup completed: {len(cleanup_results['files_removed'])} files removed, {len(removed_dirs)} directories removed"
+                f"[CLEANUP-COMPLETE] Cleanup completed: {len(cleanup_results['files_removed'])} files removed, "
+                f"{len(removed_dirs)} directories removed"
             )
             return final_results
-            
+
         except Exception as e:
             logger.error(f"[CLEANUP-ERROR] Failed to perform cleanup: {str(e)}")
             # Handle errors gracefully and return a safe response
@@ -91,21 +92,21 @@ class VideoCleanupService:
                 'total_dirs_removed': 0,
                 'error': str(e),
             }
-    
+
     async def get_cleanup_info(self, video_dir: str) -> Dict[str, Any]:
         """
         Get information about what would be cleaned up.
-        
+
         Args:
             video_dir: Directory to check
-            
+
         Returns:
             Dictionary with cleanup information
         """
         try:
             old_files = self.cleanup_manager.find_old_files(video_dir)
             total_size = sum(f['file_size'] for f in old_files)
-            
+
             return {
                 'total_old_files': len(old_files),
                 'total_size_bytes': total_size,
@@ -116,25 +117,25 @@ class VideoCleanupService:
                 'oldest_file': max(old_files, key=lambda x: x['file_age_days']) if old_files else None,
                 'newest_file': min(old_files, key=lambda x: x['file_age_days']) if old_files else None
             }
-            
+
         except Exception as e:
             logger.error(f"[CLEANUP-INFO-ERROR] Failed to get cleanup info: {str(e)}")
             raise
-    
+
     async def enable_cleanup(self, enabled: bool = True) -> None:
         """
         Enable or disable automatic cleanup.
-        
+
         Args:
             enabled: Whether cleanup should be enabled
         """
         self.enabled = enabled
         logger.info(f"[CLEANUP-CONFIG] Auto cleanup {'enabled' if enabled else 'disabled'}")
-    
+
     def get_status(self) -> Dict[str, Any]:
         """
         Get current cleanup service status.
-        
+
         Returns:
             Dictionary with service status
         """

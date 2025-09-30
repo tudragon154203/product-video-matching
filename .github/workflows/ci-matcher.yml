@@ -1,0 +1,70 @@
+name: "🧪 CI - matcher (Unit)"
+
+on:
+  push:
+    paths:
+      - "services/matcher/**"
+      - "libs/**"
+      - "infra/pvm/**"
+      - "requirements-test.txt"
+      - ".github/workflows/ci-matcher.yml"
+  pull_request:
+    paths:
+      - "services/matcher/**"
+      - "libs/**"
+      - "infra/pvm/**"
+      - "requirements-test.txt"
+      - ".github/workflows/ci-matcher.yml"
+  workflow_call:
+
+concurrency:
+  group: matcher-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  unit_matcher:
+    name: Unit/Contract | ${{ matrix.os }} | Py ${{ matrix.python }}
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        working-directory: services/matcher
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-22.04, ubuntu-24.04, windows-2022]
+        python: ["3.10.8", "3.11", "3.12"]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python ${{ matrix.python }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+
+      - name: Cache pip downloads
+        id: cache-pip
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/pip
+            ~\AppData\Local\pip\Cache
+          key: ${{ runner.os }}-pip-${{ matrix.python }}-${{ hashFiles('requirements-test.txt', 'services/matcher/requirements.txt', '**/requirements*.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-${{ matrix.python }}-
+            ${{ runner.os }}-pip-
+
+      - name: Log pip cache result
+        run: |
+          echo "Cache hit for pip downloads: ${{ steps.cache-pip.outputs.cache-hit }}"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt -r ../../requirements-test.txt
+
+      - name: Lint
+        run: flake8 .
+
+      - name: Run unit tests
+        run: python -m pytest -q -m unit --disable-warnings --maxfail=1

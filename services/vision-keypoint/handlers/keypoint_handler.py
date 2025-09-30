@@ -5,34 +5,35 @@ from services.service import VisionKeypointService
 
 from .decorators import validate_event
 
+
 class VisionKeypointHandler:
     def __init__(self):
         self.db = DatabaseManager(config.POSTGRES_DSN)
         self.broker = MessageBroker(config.BUS_BROKER)
         self.service = VisionKeypointService(self.db, self.broker, config.DATA_ROOT)
         self.initialized = False
-        
+
     async def initialize(self):
         if not self.initialized:
             # No initialization needed for keypoint service
             self.initialized = True
-        
+
     # New masked event handlers
     @validate_event("products_image_masked")
     async def handle_products_image_masked(self, event_data):
         """Handle product image masked event"""
         await self.service.handle_products_image_masked(event_data)
-        
+
     @validate_event("video_keyframes_masked")
     async def handle_video_keyframes_masked(self, event_data):
         """Handle video keyframes masked event"""
         await self.service.handle_video_keyframes_masked(event_data)
-    
+
     @validate_event("products_images_masked_batch")
     async def handle_products_images_masked_batch(self, event_data):
         """Handle products images masked batch event"""
         await self.service.handle_products_images_masked_batch(event_data)
-    
+
     @validate_event("video_keyframes_masked_batch")
     async def handle_videos_keyframes_masked_batch(self, event_data):
         """Handle videos keyframes masked batch event"""

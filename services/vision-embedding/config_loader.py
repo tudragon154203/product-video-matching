@@ -26,6 +26,7 @@ except ImportError:
     sys.path.append(str(project_root))
     from libs.config import config as global_config
 
+
 @dataclass
 class VisionEmbeddingConfig:
     """Configuration for the vision embedding service."""
@@ -47,5 +48,6 @@ class VisionEmbeddingConfig:
 
     # Logging (from global config)
     LOG_LEVEL: str = global_config.LOG_LEVEL
+
 
 config = VisionEmbeddingConfig()

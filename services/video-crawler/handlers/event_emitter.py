@@ -9,10 +9,10 @@ logger = configure_logging("video-crawler:event_emitter")
 
 class EventEmitter:
     """Event emitter for video crawler service to delegate all event publishing"""
-    
+
     def __init__(self, broker: MessageBroker):
         self.broker = broker
-    
+
     async def publish_videos_collections_completed(self, job_id: str, correlation_id: Optional[str] = None):
         """Publish videos collections completed event"""
         event_id = str(uuid.uuid4())
@@ -25,10 +25,10 @@ class EventEmitter:
             correlation_id=correlation_id or job_id
         )
         logger.info("Published videos collections completed event",
-                   job_id=job_id,
-                   event_id=event_id)
+                    job_id=job_id,
+                    event_id=event_id)
         return event_id
-    
+
     async def publish_videos_keyframes_ready_batch(self, job_id: str, videos: list, correlation_id: Optional[str] = None):
         """Publish batch keyframes ready event"""
         await self.broker.publish_event(
@@ -40,8 +40,8 @@ class EventEmitter:
             correlation_id=correlation_id or job_id
         )
         logger.info("Published videos keyframes ready batch event",
-                   job_id=job_id,
-                   video_count=len(videos))
+                    job_id=job_id,
+                    video_count=len(videos))
 
     async def publish_videos_keyframes_ready(self, video_id: str, frames: list, job_id: str, correlation_id: Optional[str] = None):
         """Publish individual video keyframes ready event"""
@@ -55,8 +55,6 @@ class EventEmitter:
             correlation_id=correlation_id or job_id
         )
         logger.info("Published video keyframes ready event",
-                   video_id=video_id,
-                   frame_count=len(frames),
-                   job_id=job_id)
-    
-    
+                    video_id=video_id,
+                    frame_count=len(frames),
+                    job_id=job_id)

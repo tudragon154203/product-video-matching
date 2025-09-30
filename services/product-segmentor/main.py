@@ -1,5 +1,7 @@
 """Main entry point for Product Segmentor Service."""
 
+from handlers.segmentor_handler import ProductSegmentorHandler
+from common_py.logging_config import configure_logging
 import asyncio
 import sys
 from contextlib import asynccontextmanager
@@ -7,8 +9,6 @@ from contextlib import asynccontextmanager
 # Add the app directory to the Python path for bind mount setup
 sys.path.append("/app/app")
 
-from common_py.logging_config import configure_logging
-from handlers.segmentor_handler import ProductSegmentorHandler
 
 logger = configure_logging("product-segmentor:main")
 
@@ -38,29 +38,29 @@ async def main():
                 "products.images.ready.batch",
                 handler.handle_products_images_ready_batch,
             )
-            
+
             await handler.broker.subscribe_to_topic(
                 "products.image.ready",
                 handler.handle_products_image_ready,
             )
-            
+
             # Subscribe to video keyframe events
             await handler.broker.subscribe_to_topic(
                 "videos.keyframes.ready.batch",
                 handler.handle_videos_keyframes_ready_batch,
             )
-            
+
             await handler.broker.subscribe_to_topic(
                 "videos.keyframes.ready",
                 handler.handle_videos_keyframes_ready,
             )
-            
+
             logger.info("Product Segmentor Service started")
-            
+
             # Keep service running
             while True:
                 await asyncio.sleep(1)
-                
+
     except KeyboardInterrupt:
         logger.info("Shutting down Product Segmentor Service")
     except Exception as e:

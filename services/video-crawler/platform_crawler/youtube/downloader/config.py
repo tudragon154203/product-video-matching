@@ -2,9 +2,10 @@ import random
 
 from config_loader import config
 
+
 class DownloaderConfig:
     """Configuration for the YouTube downloader"""
-    
+
     # User agents to rotate and avoid detection
     USER_AGENTS = [
         'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
@@ -17,25 +18,25 @@ class DownloaderConfig:
         'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/100.0.4896.127 Safari/537.36',
         'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:99.0) Gecko/20100101 Firefox/99.0',
     ]
-    
+
     # Proxy configuration controlled by config_loader
-    
+
     def __init__(self):
         # Import here to avoid circular imports
-        
+
         self.USE_PRIVATE_PROXY = config.USE_PRIVATE_PROXY
         self.PRIVATE_SOCKS5_PROXY = config.PRIVATE_SOCKS5_PROXY
-    
+
     @property
     def SOCKS_PROXY(self):
         """Get SOCKS proxy based on configuration"""
         if self.USE_PRIVATE_PROXY:
             return self.PRIVATE_SOCKS5_PROXY
         return None
-    
+
     # Maximum number of download retries
     MAX_RETRIES = 5  # Increased from 3 to 5 for better reliability
-    
+
     # Format options for video download
     FORMAT_OPTIONS = [
         'bv*[height<=?1080][ext=mp4]+ba[ext=m4a]/b[height<=?1080][ext=mp4]/bv*[height<=?1080]+ba/b[height<=?1080]/best',
@@ -45,19 +46,19 @@ class DownloaderConfig:
         'bv*+ba/b',
         'mp4[height<=?720]/mp4/best',
     ]
-    
+
     # Sleep intervals for rate limiting avoidance
     MIN_SLEEP_INTERVAL = 1
     MAX_SLEEP_INTERVAL = 5
-    
+
     # Timeout settings
     SOCKET_TIMEOUT = 60  # seconds
-    
+
     @classmethod
     def get_random_user_agent(cls):
         """Get a random user agent from the list"""
         return random.choice(cls.USER_AGENTS)
-    
+
     @classmethod
     def get_format_option(cls, attempt):
         """Get format option based on attempt number"""

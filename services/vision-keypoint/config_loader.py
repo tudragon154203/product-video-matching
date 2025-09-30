@@ -24,10 +24,11 @@ except ImportError:
     sys.path.append(str(repo_root))
     from libs.config import config as global_config
 
+
 @dataclass
 class VisionKeypointConfig:
     """Configuration for the vision keypoint service"""
-    
+
     # Database configuration (from global config)
     POSTGRES_DSN: str = global_config.POSTGRES_DSN
     POSTGRES_USER: str = global_config.POSTGRES_USER
@@ -35,19 +36,20 @@ class VisionKeypointConfig:
     POSTGRES_HOST: str = global_config.POSTGRES_HOST
     POSTGRES_PORT: str = os.getenv("POSTGRES_PORT", "5432")
     POSTGRES_DB: str = global_config.POSTGRES_DB
-    
+
     # Message broker configuration (from global config)
     BUS_BROKER: str = global_config.BUS_BROKER
-    
+
     # Data storage (from global config)
     DATA_ROOT: str = global_config.DATA_ROOT_CONTAINER
     IMG_SIZE: tuple[int, int] = global_config.IMG_SIZE
-    
+
     # Keypoint directory
     KEYPOINT_DIR: str = os.getenv("KEYPOINT_DIR", "./keypoints")
-    
+
     # Logging (from global config)
     LOG_LEVEL: str = global_config.LOG_LEVEL
+
 
 # Create config instance
 config = VisionKeypointConfig()

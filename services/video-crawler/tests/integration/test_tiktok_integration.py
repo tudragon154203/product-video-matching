@@ -40,7 +40,7 @@ async def broker():
 def tiktok_crawler():
     """TikTok crawler instance with mocked search results for predictable testing"""
     crawler = TikTokCrawler()
-    
+
     # Mock the search_and_download_videos method to return predictable test data
     async def mock_search_and_download_videos(queries, recency_days, download_dir, num_videos):
         """Mock method that returns realistic TikTok video data for testing"""
@@ -69,7 +69,7 @@ def tiktok_crawler():
             }
         ]
         return mock_videos
-    
+
     # Replace the real method with our mock
     crawler.search_and_download_videos = mock_search_and_download_videos
     return crawler
@@ -87,9 +87,10 @@ class TestTikTokIntegration:
 
         # Track published events
         published_topics = []
+
         async def track_publish_event(topic: str, event_data: Dict[str, Any], correlation_id: str = None):
             published_topics.append(topic)
-        
+
         # Mock the publish_event method to track calls
         broker.publish_event = track_publish_event
 
@@ -106,7 +107,7 @@ class TestTikTokIntegration:
         # Mock the video fetcher to capture the videos returned by TikTok crawler
         actual_videos = []
         original_fetcher_method = service.video_fetcher.search_all_platforms_videos_parallel
-        
+
         async def mock_fetch_all_videos(*args, **kwargs):
             """Mock the video fetcher to capture and return our mock TikTok videos"""
             # Call the original TikTok crawler to get our mock data
@@ -118,12 +119,12 @@ class TestTikTokIntegration:
             )
             actual_videos.extend(videos)
             return videos
-        
+
         service.video_fetcher.search_all_platforms_videos_parallel = mock_fetch_all_videos
-        
+
         # Mock the job progress manager and event emitter for proper handling
         service.job_progress_manager = AsyncMock()
-        
+
         async def mock_emit_keyframes_ready_batch(job_id, batch_payload):
             """Mock event emitter to track processed videos"""
             assert job_id == "test-job-123"
@@ -132,11 +133,11 @@ class TestTikTokIntegration:
                 assert "video_id" in video_data
                 assert "platform" in video_data
                 assert video_data["platform"] == "tiktok"
-        
+
         async def mock_emit_collections_completed(job_id):
             """Mock event completion"""
             assert job_id == "test-job-123"
-        
+
         service.event_emitter.publish_videos_keyframes_ready_batch = mock_emit_keyframes_ready_batch
         service.event_emitter.publish_videos_collections_completed = mock_emit_collections_completed
 
@@ -145,13 +146,13 @@ class TestTikTokIntegration:
 
         # Verify that TikTok crawler was set up correctly
         assert "tiktok" in service.platform_crawlers
-        
+
         # Check that expected events were published
         assert "videos.collections.completed" in published_topics
-        
+
         # Validate that the TikTok crawler returned the expected video data
         assert len(actual_videos) == 2, f"Expected 2 videos, got {len(actual_videos)}"
-        
+
         # Validate first video
         video1 = actual_videos[0]
         assert video1['platform'] == 'tiktok'
@@ -163,7 +164,7 @@ class TestTikTokIntegration:
         assert video1['upload_time'] == '2024-01-15T10:30:00Z'
         assert video1['local_path'] is None  # TikTok videos are not downloaded
         assert video1['duration_s'] is None  # Duration not available in search results
-        
+
         # Validate second video
         video2 = actual_videos[1]
         assert video2['platform'] == 'tiktok'
@@ -175,10 +176,10 @@ class TestTikTokIntegration:
         assert video2['upload_time'] == '2024-01-10T15:45:00Z'
         assert video2['local_path'] is None
         assert video2['duration_s'] is None
-        
+
         # Verify that videos were processed with job progress tracking
         service.job_progress_manager.update_job_progress.assert_called()
-        
+
         # Restore original method after test
         service.video_fetcher.search_all_platforms_videos_parallel = original_fetcher_method
 
@@ -191,9 +192,10 @@ class TestTikTokIntegration:
 
         # Track published events
         published_topics = []
+
         async def track_publish_event(topic: str, event_data: Dict[str, Any], correlation_id: str = None):
             published_topics.append(topic)
-        
+
         # Mock the publish_event method to track calls
         broker.publish_event = track_publish_event
 
@@ -223,9 +225,9 @@ class TestTikTokIntegration:
             pass
 
         service.event_emitter.publish_videos_collections_completed.assert_called_once_with(job_id="test-job-456")
-        
+
         # Verify that job progress was still updated even for zero videos
         if service.job_progress_manager.update_job_progress:
             service.job_progress_manager.update_job_progress.assert_called()
-        
+
         # Note: Can't easily restore original method, so this change is temporary for the test
