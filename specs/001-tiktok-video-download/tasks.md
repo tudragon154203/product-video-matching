@@ -43,47 +43,47 @@
 - Paths shown below assume single project - adjust based on plan.md structure
 
 ## Phase 3.1: Setup
-- [ ] T001 Create TikTokDownloader wrapper service in services/video-crawler/platform_crawler/tiktok/tiktok_downloader.py
-- [ ] T002 Add yt-dlp dependency to services/video-crawler/requirements.txt
-- [ ] T003 [P] Update config to support TikTok video and keyframe storage paths
-- [ ] T004 Pin Python version to 3.10.8 in Dockerfile
+- [x] T001 Create TikTokDownloader wrapper service in services/video-crawler/platform_crawler/tiktok/tiktok_downloader.py
+- [x] T002 Add yt-dlp dependency to services/video-crawler/requirements.txt
+- [x] T003 [P] Update config to support TikTok video and keyframe storage paths
+- [x] T004 Pin Python version to 3.10.8 in Dockerfile
 
 ## Phase 3.2: Quality and Tests Setup ⚠️ MUST COMPLETE BEFORE 3.3
 **CRITICAL: Quality gates MUST be configured and tests MUST FAIL before ANY implementation**
-- [ ] T005 [P] Install flake8 with E, W, F rulesets in services/video-crawler/requirements-test.txt
-- [ ] T006 [P] Configure pytest for strict markers and unit/integration separation in services/video-crawler/pytest.ini
-- [ ] T007 [P] Configure pre-commit hooks for flake8 and unit test validation in services/video-crawler/.pre-commit-config.yaml
-- [ ] T008 [P] Integration test for TikTok video download in services/video-crawler/tests/integration/tiktok/test_tiktok_download.py
-- [ ] T009 [P] Integration test for keyframe extraction in services/video-crawler/tests/integration/tiktok/test_keyframe_extraction.py
-- [ ] T010 [P] Unit test for TikTokDownloader in services/video-crawler/tests/unit/tiktok/test_tiktok_downloader.py
-- [ ] T011 [P] Unit test for TikTok keyframe functionality in services/video-crawler/tests/unit/tiktok/test_tiktok_keyframes.py
-- [ ] T012 Validate flake8 passes with video-crawler service codebase
-- [ ] T013 Validate `python -m pytest -m unit` passes (all green state)
+- [x] T005 [P] Install flake8 with E, W, F rulesets in services/video-crawler/requirements-test.txt
+- [x] T006 [P] Configure pytest for strict markers and unit/integration separation in services/video-crawler/pytest.ini
+- [x] T007 [P] Configure pre-commit hooks for flake8 and unit test validation in services/video-crawler/.pre-commit-config.yaml
+- [x] T008 [P] Integration test for TikTok video download in services/video-crawler/tests/integration/tiktok/test_tiktok_download.py
+- [x] T009 [P] Integration test for keyframe extraction in services/video-crawler/tests/integration/tiktok/test_keyframe_extraction.py
+- [x] T010 [P] Unit test for TikTokDownloader in services/video-crawler/tests/unit/tiktok/test_tiktok_downloader.py
+- [x] T011 [P] Unit test for TikTok keyframe functionality in services/video-crawler/tests/unit/tiktok/test_tiktok_keyframes.py
+- [x] T012 Validate flake8 passes with video-crawler service codebase
+- [x] T013 Validate `python -m pytest -m unit` passes (all green state)
 
 ## Phase 3.3: Core Implementation (ONLY after tests are failing)
-- [ ] T014 [P] TikTok Video model extension in services/video-crawler/models/video.py
-- [ ] T015 [P] TikTokDownloader class implementation in services/video-crawler/platform_crawler/tiktok/tiktok_downloader.py
-- [ ] T016 [P] Update Video model to include download_url, local_path, has_download, and keyframes fields
-- [ ] T017 Implement download functionality with 500MB file size limit
-- [ ] T018 Implement retry logic with exponential backoff for network failures
-- [ ] T019 Implement basic file validation (exists, non-zero size)
-- [ ] T020 Integrate with existing length_adaptive_extractor for keyframe extraction
-- [ ] T021 Store extracted keyframes in DATA_ROOT_CONTAINER/keyframes/tiktok/{video_id}/
-- [ ] T022 Store downloaded videos in DATA_ROOT_CONTAINER/videos/tiktok/
-- [ ] T023 Persist keyframe metadata to database using video_frame_crud
+- [x] T014 [P] TikTok Video model extension in services/video-crawler/models/video.py
+- [x] T015 [P] TikTokDownloader class implementation in services/video-crawler/platform_crawler/tiktok/tiktok_downloader.py
+- [x] T016 [P] Update Video model to include download_url, local_path, has_download, and keyframes fields
+- [x] T017 Implement download functionality with 500MB file size limit
+- [x] T018 Implement retry logic with exponential backoff for network failures
+- [x] T019 Implement basic file validation (exists, non-zero size)
+- [x] T020 Integrate with existing length_adaptive_extractor for keyframe extraction
+- [x] T021 Store extracted keyframes in DATA_ROOT_CONTAINER/keyframes/tiktok/{video_id}/
+- [x] T022 Store downloaded videos in DATA_ROOT_CONTAINER/videos/tiktok/
+- [x] T023 Persist keyframe metadata to database using video_frame_crud
 
 ## Phase 3.4: Integration
-- [ ] T024 Connect TikTokDownloader to video storage configuration
-- [ ] T025 Integrate with video_frame_crud for metadata persistence
-- [ ] T026 Implement error handling for TikTok anti-bot measures
-- [ ] T027 Add logging using ContextLogger as per constitution
+- [x] T024 Connect TikTokDownloader to video storage configuration
+- [x] T025 Integrate with video_frame_crud for metadata persistence
+- [x] T026 Implement error handling for TikTok anti-bot measures
+- [x] T027 Add logging using ContextLogger as per constitution
 
 ## Phase 3.5: Polish
-- [ ] T028 [P] Unit tests for download logic in services/video-crawler/tests/unit/tiktok/test_download_logic.py
-- [ ] T029 [P] Unit tests for error handling in services/video-crawler/tests/unit/tiktok/test_error_handling.py
-- [ ] T030 [P] Update documentation for TikTok integration
-- [ ] T031 [P] Implement cleanup logic for video files after 7 days (keyframe files kept permanently)
-- [ ] T032 Run manual validation with test video: https://www.tiktok.com/@lanxinx/video/7548644205690670337
+- [x] T028 [P] Unit tests for download logic in services/video-crawler/tests/unit/tiktok/test_download_logic.py
+- [x] T029 [P] Unit tests for error handling in services/video-crawler/tests/unit/tiktok/test_error_handling.py
+- [x] T030 [P] Update documentation for TikTok integration
+- [x] T031 [P] Implement cleanup logic for video files after 7 days (keyframe files kept permanently)
+- [x] T032 Run manual validation with test video: https://www.tiktok.com/@lanxinx/video/7548644205690670337
 
 ## Dependencies
 - Quality setup (T005-T007) before any tests (T008-T011)
