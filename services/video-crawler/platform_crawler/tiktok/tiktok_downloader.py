@@ -110,7 +110,8 @@ class TikTokDownloader:
             except DownloadError as e:
                 # Check for anti-bot measures
                 error_str = str(e).lower()
-                if any(indicator in error_str for indicator in ['unable to extract', 'http error', '403', '429', 'forbidden', 'rate limit']):
+                if any(indicator in error_str for indicator in
+                       ['unable to extract', 'http error', '403', '429', 'forbidden', 'rate limit']):
                     self.logger.warning(f"Anti-bot measure detected for {url}: {str(e)}")
                     if attempt < self.retries - 1:
                         sleep_time = 2 ** attempt  # Exponential backoff: 1s, 2s, 4s, etc.
@@ -189,7 +190,8 @@ class TikTokDownloader:
             self.logger.error(f"Error extracting keyframes from {video_path} for video {video_id}: {str(e)}")
             return None
 
-    async def orchestrate_download_and_extract(self, url: str, video_id: str, video: Optional[Any] = None, db: Optional[Any] = None) -> bool:
+    async def orchestrate_download_and_extract(
+            self, url: str, video_id: str, video: Optional[Any] = None, db: Optional[Any] = None) -> bool:
         """
         Orchestrate the complete download and keyframe extraction process.
 

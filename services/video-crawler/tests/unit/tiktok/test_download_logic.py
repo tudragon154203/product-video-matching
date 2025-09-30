@@ -1,8 +1,7 @@
-import pytest
 import os
 import tempfile
-from unittest.mock import Mock, patch, MagicMock
-from platform_crawler.tiktok.tiktok_downloader import TikTokDownloader, TikTokAntiBotError
+from unittest.mock import Mock, patch
+from platform_crawler.tiktok.tiktok_downloader import TikTokDownloader
 
 
 class TestDownloadLogic:

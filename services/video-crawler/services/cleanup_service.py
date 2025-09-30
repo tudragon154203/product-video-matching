@@ -2,10 +2,9 @@
 Video cleanup service for automatically removing old video files.
 """
 
-import os
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any, Dict
 
 from common_py.logging_config import configure_logging
 from config_loader import config
@@ -202,7 +201,8 @@ class VideoCleanupService:
 
                         total_size_freed += file_size
                         logger.info(
-                            f"[TIKTOK-CLEANUP] Removed old video: {file_path.name} ({file_size} bytes, {(datetime.now() - file_mod_time).days} days old)")
+                            f"[TIKTOK-CLEANUP] Removed old video: {file_path.name} "
+                            f"({file_size} bytes, {(datetime.now() - file_mod_time).days} days old)")
                     else:
                         videos_skipped.append({
                             'filename': file_path.name,

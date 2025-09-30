@@ -1,4 +1,3 @@
-import pytest
 from platform_crawler.tiktok.tiktok_downloader import TikTokDownloader
 
 

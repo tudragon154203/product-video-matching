@@ -1,7 +1,5 @@
 import pytest
-import os
-import tempfile
-from unittest.mock import Mock, patch, MagicMock
+from unittest.mock import Mock, patch
 from platform_crawler.tiktok.tiktok_downloader import TikTokDownloader, TikTokAntiBotError
 
 
@@ -44,7 +42,7 @@ class TestErrorHandling:
                 with pytest.raises(TikTokAntiBotError) as exc_info:
                     self.downloader.download_video("https://example.com/video", "test_id")
 
-                assert f"Anti-bot measures blocked download" in str(exc_info.value)
+                assert f"Anti-bot measures blocked download for {error_msg}" in str(exc_info.value)
                 assert error_msg.lower() in str(exc_info.value).lower()
 
     def test_anti_bot_detection_with_retries(self):
@@ -114,8 +112,7 @@ class TestErrorHandling:
     def test_extract_keyframes_exception(self):
         """Test exception handling during keyframe extraction"""
         with patch('os.path.join') as mock_join, \
-                patch('os.makedirs') as mock_makedirs, \
-                patch('keyframe_extractor.length_adaptive_extractor.LengthAdaptiveKeyframeExtractor') as mock_extractor:
+                patch('keyframe_extractor.length_adaptive_extractor.LengthAdaptiveKeyframeExtractor'):
 
             # Mock keyframes directory creation to raise exception
             mock_join.side_effect = Exception("File system error")

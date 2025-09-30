@@ -1,4 +1,3 @@
-import pytest
 import asyncio
 import os
 from platform_crawler.tiktok.tiktok_downloader import TikTokDownloader
