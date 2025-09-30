@@ -330,98 +330,136 @@ class TestEdgeCases:
     @pytest.mark.unit
     async def test_concurrent_processing_limits(self, mock_db, mock_broker, temp_dir):
         """Test that concurrent processing respects limits."""
-        service = ProductSegmentorService(
-            db=mock_db,
-            broker=mock_broker,
-            max_concurrent=1  # Limit to 1 for testing
-        )
+        from config_loader import config
+
+        # Override the config to use temp directory for tests
+        original_foreground_path = config.FOREGROUND_MASK_DIR_PATH
+        original_people_path = config.PEOPLE_MASK_DIR_PATH
+        original_product_path = config.PRODUCT_MASK_DIR_PATH
+
+        # Use temp directory instead of /app/data
+        config.FOREGROUND_MASK_DIR_PATH = os.path.join(temp_dir, "masks_foreground")
+        config.PEOPLE_MASK_DIR_PATH = os.path.join(temp_dir, "masks_people")
+        config.PRODUCT_MASK_DIR_PATH = os.path.join(temp_dir, "masks_product")
+
+        try:
+            service = ProductSegmentorService(
+                db=mock_db,
+                broker=mock_broker,
+                max_concurrent=1  # Limit to 1 for testing
+            )
 
         # Mock segmentor with delay
-        async def slow_segment(image_path):
-            await asyncio.sleep(0.1)
-            return np.ones((100, 100), dtype=np.uint8) * 255
+            async def slow_segment(image_path):
+                await asyncio.sleep(0.1)
+                return np.ones((100, 100), dtype=np.uint8) * 255
 
-        mock_segmentor = AsyncMock()
-        mock_segmentor.segment_image.side_effect = slow_segment
-        service.foreground_segmentor = mock_segmentor
-        service.image_processor.segmentor = mock_segmentor
+            mock_segmentor = AsyncMock()
+            mock_segmentor.segment_image.side_effect = slow_segment
+            service.foreground_segmentor = mock_segmentor
+            service.image_processor.segmentor = mock_segmentor
 
-        await service.initialize()
+            await service.initialize()
 
-        # Create test images
-        test_image_path = f"{temp_dir}/test_image.jpg"
-        img = Image.new('RGB', (100, 100), color='red')
-        img.save(test_image_path)
+            # Create test images
+            test_image_path = f"{temp_dir}/test_image.jpg"
+            img = Image.new('RGB', (100, 100), color='red')
+            img.save(test_image_path)
 
-        # Start a single task
-        task = asyncio.create_task(
-            service.handle_products_image_ready({
-                "product_id": "prod_1",
-                "image_id": "img_1",
-                "local_path": test_image_path,
-                "job_id": "test_job"
-            })
-        )
-
-        # Wait for the task to complete
-        await task
-
-        # Verify that the segmentor was called once
-        mock_segmentor.segment_image.assert_called_once()
-
-    @pytest.mark.asyncio
-    @pytest.mark.unit
-    async def test_service_cleanup_with_ongoing_processing(self, mock_db, mock_broker, temp_dir):
-        """Test service cleanup while processing is ongoing."""
-        service = ProductSegmentorService(
-            db=mock_db,
-            broker=mock_broker,
-            max_concurrent=2
-        )
-
-        # Mock segmentor with long delay
-        async def very_slow_segment(image_path):
-            await asyncio.sleep(1.0)  # Long delay
-            return np.ones((100, 100), dtype=np.uint8) * 255
-
-        mock_segmentor = AsyncMock()
-        mock_segmentor.segment_image.side_effect = very_slow_segment
-        mock_segmentor.cleanup = Mock()
-        service.foreground_segmentor = mock_segmentor
-        service.image_processor.segmentor = mock_segmentor
-
-        await service.initialize()
-
-        # Start a long-running task
-        test_image_path = f"{temp_dir}/test_image.jpg"
-        img = Image.new('RGB', (100, 100), color='red')
-        img.save(test_image_path)
-
-        with patch.object(service.file_manager, 'save_product_mask', return_value="/mask/path.png"):
+            # Start a single task
             task = asyncio.create_task(
                 service.handle_products_image_ready({
                     "product_id": "prod_1",
                     "image_id": "img_1",
                     "local_path": test_image_path,
-                    "job_id": "job_123"
+                    "job_id": "test_job"
                 })
             )
 
-        # Give it a moment to start
-        await asyncio.sleep(0.1)
+            # Wait for the task to complete
+            await task
 
-        # Cleanup should wait for ongoing processing
-        cleanup_task = asyncio.create_task(service.cleanup())
+            # Verify that the segmentor was called once
+            mock_segmentor.segment_image.assert_called_once()
 
-        # Cleanup should complete (with timeout)
+        finally:
+            # Restore original config
+            config.FOREGROUND_MASK_DIR_PATH = original_foreground_path
+            config.PEOPLE_MASK_DIR_PATH = original_people_path
+            config.PRODUCT_MASK_DIR_PATH = original_product_path
+
+    @pytest.mark.asyncio
+    @pytest.mark.unit
+    async def test_service_cleanup_with_ongoing_processing(self, mock_db, mock_broker, temp_dir):
+        """Test service cleanup while processing is ongoing."""
+        from config_loader import config
+
+        # Override the config to use temp directory for tests
+        original_foreground_path = config.FOREGROUND_MASK_DIR_PATH
+        original_people_path = config.PEOPLE_MASK_DIR_PATH
+        original_product_path = config.PRODUCT_MASK_DIR_PATH
+
+        # Use temp directory instead of /app/data
+        config.FOREGROUND_MASK_DIR_PATH = os.path.join(temp_dir, "masks_foreground")
+        config.PEOPLE_MASK_DIR_PATH = os.path.join(temp_dir, "masks_people")
+        config.PRODUCT_MASK_DIR_PATH = os.path.join(temp_dir, "masks_product")
+
         try:
-            await asyncio.wait_for(cleanup_task, timeout=2.0)
-        except asyncio.TimeoutError:
-            # This is expected behavior - cleanup waits for ongoing processing
-            pass
+            service = ProductSegmentorService(
+                db=mock_db,
+                broker=mock_broker,
+                max_concurrent=2
+            )
 
-        # Cancel the processing task
-        task.cancel()
+        # Mock segmentor with long delay
+            async def very_slow_segment(image_path):
+                await asyncio.sleep(1.0)  # Long delay
+                return np.ones((100, 100), dtype=np.uint8) * 255
 
-        # Verify cleanup was called
-        mock_segmentor.cleanup.assert_called_once()
+            mock_segmentor = AsyncMock()
+            mock_segmentor.segment_image.side_effect = very_slow_segment
+            mock_segmentor.cleanup = Mock()
+            service.foreground_segmentor = mock_segmentor
+            service.image_processor.segmentor = mock_segmentor
+
+            await service.initialize()
+
+            # Start a long-running task
+            test_image_path = f"{temp_dir}/test_image.jpg"
+            img = Image.new('RGB', (100, 100), color='red')
+            img.save(test_image_path)
+
+            with patch.object(service.file_manager, 'save_product_mask', return_value="/mask/path.png"):
+                task = asyncio.create_task(
+                    service.handle_products_image_ready({
+                        "product_id": "prod_1",
+                        "image_id": "img_1",
+                        "local_path": test_image_path,
+                        "job_id": "job_123"
+                    })
+                )
+
+            # Give it a moment to start
+            await asyncio.sleep(0.1)
+
+            # Cleanup should wait for ongoing processing
+            cleanup_task = asyncio.create_task(service.cleanup())
+
+            # Cleanup should complete (with timeout)
+            try:
+                await asyncio.wait_for(cleanup_task, timeout=2.0)
+            except asyncio.TimeoutError:
+                # This is expected behavior - cleanup waits for ongoing processing
+                pass
+
+            # Cancel the processing task
+            task.cancel()
+
+            # Verify cleanup was called
+            mock_segmentor.cleanup.assert_called_once()
+
+        finally:
+            # Restore original config
+            config.FOREGROUND_MASK_DIR_PATH = original_foreground_path
+            config.PEOPLE_MASK_DIR_PATH = original_people_path
+            config.PRODUCT_MASK_DIR_PATH = original_product_path

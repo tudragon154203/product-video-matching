@@ -75,28 +75,45 @@ class TestProductSegmentorServiceIntegration:
     @pytest.fixture
     def service(self, mock_db, mock_broker, temp_dir):
         """Create service with mocked dependencies."""
-        # Create mock segmentor first
-        mock_segmentor = MockSegmentor()
-        mock_segmentor._initialized = True  # Pre-initialize the mock
+        # Override the config to use temp directory for tests
+        from config_loader import config
+        original_foreground_path = config.FOREGROUND_MASK_DIR_PATH
+        original_people_path = config.PEOPLE_MASK_DIR_PATH
+        original_product_path = config.PRODUCT_MASK_DIR_PATH
 
-        # Create mock for YOLOSegmentor
-        mock_yolo_segmentor = MockSegmentor()
-        mock_yolo_segmentor._initialized = True
+        # Use temp directory instead of /app/data
+        config.FOREGROUND_MASK_DIR_PATH = os.path.join(temp_dir, "masks_foreground")
+        config.PEOPLE_MASK_DIR_PATH = os.path.join(temp_dir, "masks_people")
+        config.PRODUCT_MASK_DIR_PATH = os.path.join(temp_dir, "masks_product")
 
-        with patch('services.service.create_segmentor', return_value=mock_segmentor):
-            with patch('services.service.YOLOSegmentor', return_value=mock_yolo_segmentor):
-                service = ProductSegmentorService(
-                    db=mock_db,
-                    broker=mock_broker,
-                    foreground_model_name="test/model",  # Mock model name
-                    max_concurrent=2
-                )
+        try:
+            # Create mock segmentor first
+            mock_segmentor = MockSegmentor()
+            mock_segmentor._initialized = True  # Pre-initialize the mock
 
-                # Mock the event emitter to track calls without affecting the actual broker
-                service.event_emitter.emit_product_image_masked = AsyncMock()
-                service.event_emitter.emit_video_keyframes_masked = AsyncMock()
+            # Create mock for YOLOSegmentor
+            mock_yolo_segmentor = MockSegmentor()
+            mock_yolo_segmentor._initialized = True
 
-                return service
+            with patch('services.service.create_segmentor', return_value=mock_segmentor):
+                with patch('services.service.YOLOSegmentor', return_value=mock_yolo_segmentor):
+                    service = ProductSegmentorService(
+                        db=mock_db,
+                        broker=mock_broker,
+                        foreground_model_name="test/model",  # Mock model name
+                        max_concurrent=2
+                    )
+
+                    # Mock the event emitter to track calls without affecting the actual broker
+                    service.event_emitter.emit_product_image_masked = AsyncMock()
+                    service.event_emitter.emit_video_keyframes_masked = AsyncMock()
+
+                    return service
+        finally:
+            # Restore original config
+            config.FOREGROUND_MASK_DIR_PATH = original_foreground_path
+            config.PEOPLE_MASK_DIR_PATH = original_people_path
+            config.PRODUCT_MASK_DIR_PATH = original_product_path
 
     @pytest.mark.asyncio
     async def test_service_initialization(self, service):
