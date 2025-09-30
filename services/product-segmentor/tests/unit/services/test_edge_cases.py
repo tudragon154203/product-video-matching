@@ -1,6 +1,7 @@
 """Tests for edge cases and error scenarios."""
 
 import asyncio
+import os
 import shutil
 import tempfile
 from unittest.mock import AsyncMock, Mock, patch
@@ -41,43 +42,62 @@ class TestEdgeCases:
     @pytest.mark.asyncio
     async def test_empty_batch_handling(self, mock_db, mock_broker, temp_dir):
         """Test handling of empty batches."""
-        service = ProductSegmentorService(
-            db=mock_db,
-            broker=mock_broker
-        )
+        from config_loader import config
 
-        await service.initialize()
+        # Override the config to use temp directory for tests
+        original_foreground_path = config.FOREGROUND_MASK_DIR_PATH
+        original_people_path = config.PEOPLE_MASK_DIR_PATH
+        original_product_path = config.PRODUCT_MASK_DIR_PATH
 
-        # Test empty product images batch
-        await service.handle_products_images_ready_batch({
-            "job_id": "empty_job",
-            "total_images": 0
-        })
+        # Use temp directory instead of /app/data
+        config.FOREGROUND_MASK_DIR_PATH = os.path.join(temp_dir, "masks_foreground")
+        config.PEOPLE_MASK_DIR_PATH = os.path.join(temp_dir, "masks_people")
+        config.PRODUCT_MASK_DIR_PATH = os.path.join(temp_dir, "masks_product")
 
-        # Verify immediate completion event
-        mock_broker.publish_event.assert_called_once()
-        call_args = mock_broker.publish_event.call_args
-        assert call_args[0][0] == "products.images.masked.batch"
-        assert call_args[0][1]["job_id"] == "empty_job"
-        assert call_args[0][1]["total_images"] == 0
-        assert "event_id" in call_args[0][1]
-        assert isinstance(call_args[0][1]["event_id"], str)
+        try:
+            service = ProductSegmentorService(
+                db=mock_db,
+                broker=mock_broker
+            )
 
-        mock_broker.reset_mock()
+            await service.initialize()
 
-        # Test empty video keyframes batch
-        await service.handle_videos_keyframes_ready_batch({
-            "job_id": "empty_video_job",
-            "total_keyframes": 0
-        })
+            # Test empty product images batch
+            await service.handle_products_images_ready_batch({
+                "job_id": "empty_job",
+                "total_images": 0
+            })
 
-        # Verify immediate completion event
-        call_args = mock_broker.publish_event.call_args
-        assert call_args[0][0] == "video.keyframes.masked.batch"
-        assert call_args[0][1]["job_id"] == "empty_video_job"
-        assert call_args[0][1]["total_keyframes"] == 0
-        assert "event_id" in call_args[0][1]
-        assert isinstance(call_args[0][1]["event_id"], str)
+            # Verify immediate completion event
+            mock_broker.publish_event.assert_called_once()
+            call_args = mock_broker.publish_event.call_args
+            assert call_args[0][0] == "products.images.masked.batch"
+            assert call_args[0][1]["job_id"] == "empty_job"
+            assert call_args[0][1]["total_images"] == 0
+            assert "event_id" in call_args[0][1]
+            assert isinstance(call_args[0][1]["event_id"], str)
+
+            mock_broker.reset_mock()
+
+            # Test empty video keyframes batch
+            await service.handle_videos_keyframes_ready_batch({
+                "job_id": "empty_video_job",
+                "total_keyframes": 0
+            })
+
+            # Verify immediate completion event
+            call_args = mock_broker.publish_event.call_args
+            assert call_args[0][0] == "video.keyframes.masked.batch"
+            assert call_args[0][1]["job_id"] == "empty_video_job"
+            assert call_args[0][1]["total_keyframes"] == 0
+            assert "event_id" in call_args[0][1]
+            assert isinstance(call_args[0][1]["event_id"], str)
+
+        finally:
+            # Restore original config
+            config.FOREGROUND_MASK_DIR_PATH = original_foreground_path
+            config.PEOPLE_MASK_DIR_PATH = original_people_path
+            config.PRODUCT_MASK_DIR_PATH = original_product_path
 
     @pytest.mark.asyncio
     async def test_missing_files_handling(self, mock_db, mock_broker, temp_dir):
@@ -110,35 +130,54 @@ class TestEdgeCases:
     @pytest.mark.asyncio
     async def test_corrupted_image_handling(self, mock_db, mock_broker, temp_dir):
         """Test handling of corrupted image files."""
-        service = ProductSegmentorService(
-            db=mock_db,
-            broker=mock_broker
-        )
+        from config_loader import config
 
-        # Mock segmentor that returns None for corrupted images
-        mock_segmentor = AsyncMock()
-        mock_segmentor.segment_image.return_value = None
-        service.foreground_segmentor = mock_segmentor
-        service.image_processor.segmentor = mock_segmentor
+        # Override the config to use temp directory for tests
+        original_foreground_path = config.FOREGROUND_MASK_DIR_PATH
+        original_people_path = config.PEOPLE_MASK_DIR_PATH
+        original_product_path = config.PRODUCT_MASK_DIR_PATH
 
-        await service.initialize()
+        # Use temp directory instead of /app/data
+        config.FOREGROUND_MASK_DIR_PATH = os.path.join(temp_dir, "masks_foreground")
+        config.PEOPLE_MASK_DIR_PATH = os.path.join(temp_dir, "masks_people")
+        config.PRODUCT_MASK_DIR_PATH = os.path.join(temp_dir, "masks_product")
 
-        # Create a corrupted image file (just text)
-        corrupted_path = f"{temp_dir}/corrupted.jpg"
-        with open(corrupted_path, 'w') as f:
-            f.write("This is not an image")
+        try:
+            service = ProductSegmentorService(
+                db=mock_db,
+                broker=mock_broker
+            )
 
-        await service.handle_products_image_ready({
-            "product_id": "prod_123",
-            "image_id": "img_123",
-            "local_path": corrupted_path,
-            "job_id": "job_123"
-        })
+            # Mock segmentor that returns None for corrupted images
+            mock_segmentor = AsyncMock()
+            mock_segmentor.segment_image.return_value = None
+            service.foreground_segmentor = mock_segmentor
+            service.image_processor.segmentor = mock_segmentor
 
-        # Verify segmentation was attempted but no further processing
-        mock_segmentor.segment_image.assert_called_once()
-        mock_db.execute.assert_not_called()
-        mock_broker.publish_event.assert_not_called()
+            await service.initialize()
+
+            # Create a corrupted image file (just text)
+            corrupted_path = f"{temp_dir}/corrupted.jpg"
+            with open(corrupted_path, 'w') as f:
+                f.write("This is not an image")
+
+            await service.handle_products_image_ready({
+                "product_id": "prod_123",
+                "image_id": "img_123",
+                "local_path": corrupted_path,
+                "job_id": "job_123"
+            })
+
+            # Verify segmentation was attempted but no further processing
+            mock_segmentor.segment_image.assert_called_once()
+            mock_db.execute.assert_not_called()
+            mock_broker.publish_event.assert_not_called()
+
+        finally:
+            # Restore original config
+            config.FOREGROUND_MASK_DIR_PATH = original_foreground_path
+            config.PEOPLE_MASK_DIR_PATH = original_people_path
+            config.PRODUCT_MASK_DIR_PATH = original_product_path
 
     @pytest.mark.asyncio
     @pytest.mark.unit
