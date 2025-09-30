@@ -102,30 +102,49 @@ class TestEdgeCases:
     @pytest.mark.asyncio
     async def test_missing_files_handling(self, mock_db, mock_broker, temp_dir):
         """Test handling of missing image files."""
-        service = ProductSegmentorService(
-            db=mock_db,
-            broker=mock_broker
-        )
+        from config_loader import config
 
-        # Mock segmentor that will fail on missing files
-        mock_segmentor = AsyncMock()
-        mock_segmentor.segment_image.side_effect = FileNotFoundError("File not found")
-        service.foreground_segmentor = mock_segmentor
-        service.image_processor.segmentor = mock_segmentor
+        # Override the config to use temp directory for tests
+        original_foreground_path = config.FOREGROUND_MASK_DIR_PATH
+        original_people_path = config.PEOPLE_MASK_DIR_PATH
+        original_product_path = config.PRODUCT_MASK_DIR_PATH
 
-        await service.initialize()
+        # Use temp directory instead of /app/data
+        config.FOREGROUND_MASK_DIR_PATH = os.path.join(temp_dir, "masks_foreground")
+        config.PEOPLE_MASK_DIR_PATH = os.path.join(temp_dir, "masks_people")
+        config.PRODUCT_MASK_DIR_PATH = os.path.join(temp_dir, "masks_product")
 
-        # Test with missing product image
-        await service.handle_products_image_ready({
-            "product_id": "prod_123",
-            "image_id": "img_123",
-            "local_path": "/nonexistent/image.jpg",
-            "job_id": "job_123"
-        })
+        try:
+            service = ProductSegmentorService(
+                db=mock_db,
+                broker=mock_broker
+            )
 
-        # Verify no database update or event emission
-        mock_db.execute.assert_not_called()
-        mock_broker.publish_event.assert_not_called()
+            # Mock segmentor that will fail on missing files
+            mock_segmentor = AsyncMock()
+            mock_segmentor.segment_image.side_effect = FileNotFoundError("File not found")
+            service.foreground_segmentor = mock_segmentor
+            service.image_processor.segmentor = mock_segmentor
+
+            await service.initialize()
+
+            # Test with missing product image
+            await service.handle_products_image_ready({
+                "product_id": "prod_123",
+                "image_id": "img_123",
+                "local_path": "/nonexistent/image.jpg",
+                "job_id": "job_123"
+            })
+
+            # Verify no database update or event emission
+            mock_db.execute.assert_not_called()
+            mock_broker.publish_event.assert_not_called()
+
+        finally:
+            # Restore original config
+            config.FOREGROUND_MASK_DIR_PATH = original_foreground_path
+            config.PEOPLE_MASK_DIR_PATH = original_people_path
+            config.PRODUCT_MASK_DIR_PATH = original_product_path
 
     @pytest.mark.asyncio
     async def test_corrupted_image_handling(self, mock_db, mock_broker, temp_dir):
@@ -183,52 +202,71 @@ class TestEdgeCases:
     @pytest.mark.unit
     async def test_database_error_handling(self, mock_db, mock_broker, temp_dir):
         """Test handling of database errors."""
-        service = ProductSegmentorService(
-            db=mock_db,
-            broker=mock_broker
-        )
+        from config_loader import config
 
-        # Mock successful segmentation
-        mock_segmentor = AsyncMock()
-        mock_segmentor.segment_image.return_value = np.ones((100, 100), dtype=np.uint8) * 255
-        service.foreground_segmentor = mock_segmentor
-        service.image_processor.segmentor = mock_segmentor
+        # Override the config to use temp directory for tests
+        original_foreground_path = config.FOREGROUND_MASK_DIR_PATH
+        original_people_path = config.PEOPLE_MASK_DIR_PATH
+        original_product_path = config.PRODUCT_MASK_DIR_PATH
 
-        # Mock database error
-        mock_db.execute.side_effect = Exception("Database connection failed")
+        # Use temp directory instead of /app/data
+        config.FOREGROUND_MASK_DIR_PATH = os.path.join(temp_dir, "masks_foreground")
+        config.PEOPLE_MASK_DIR_PATH = os.path.join(temp_dir, "masks_people")
+        config.PRODUCT_MASK_DIR_PATH = os.path.join(temp_dir, "masks_product")
 
-        await service.initialize()
+        try:
+            service = ProductSegmentorService(
+                db=mock_db,
+                broker=mock_broker
+            )
 
-        # Create test image
-        test_image_path = f"{temp_dir}/test_image.jpg"
-        img = Image.new('RGB', (100, 100), color='red')
-        img.save(test_image_path)
+            # Mock successful segmentation
+            mock_segmentor = AsyncMock()
+            mock_segmentor.segment_image.return_value = np.ones((100, 100), dtype=np.uint8) * 255
+            service.foreground_segmentor = mock_segmentor
+            service.image_processor.segmentor = mock_segmentor
 
-        with patch.object(service.file_manager, 'save_product_final_mask', return_value="/mask/path.png"), \
-                patch('cv2.imread', return_value=np.ones((100, 100), dtype=np.uint8) * 255):
-            await service.handle_products_image_ready({
-                "product_id": "prod_123",
-                "image_id": "img_123",
-                "local_path": test_image_path,
-                "job_id": "job_123"
-            })
+            # Mock database error
+            mock_db.execute.side_effect = Exception("Database connection failed")
 
-        # Verify segmentation and file save occurred
-        mock_segmentor.segment_image.assert_called_once()
+            await service.initialize()
 
-        # Verify database update was attempted
-        mock_db.execute.assert_called_once()
+            # Create test image
+            test_image_path = f"{temp_dir}/test_image.jpg"
+            img = Image.new('RGB', (100, 100), color='red')
+            img.save(test_image_path)
 
-        # Event should still be published despite database error
-        # Single asset event should be called, but batch completion won't be triggered
-        # due to high expected count (1,000,000) vs actual processed (1)
-        assert mock_broker.publish_event.call_count == 1
+            with patch.object(service.file_manager, 'save_product_final_mask', return_value="/mask/path.png"), \
+                    patch('cv2.imread', return_value=np.ones((100, 100), dtype=np.uint8) * 255):
+                await service.handle_products_image_ready({
+                    "product_id": "prod_123",
+                    "image_id": "img_123",
+                    "local_path": test_image_path,
+                    "job_id": "job_123"
+                })
 
-        # Check that single asset event was called
-        single_call_args = mock_broker.publish_event.call_args_list[0]
-        assert single_call_args[0][0] == "products.image.masked"
-        assert single_call_args[0][1]["job_id"] == "job_123"
-        assert single_call_args[0][1]["image_id"] == "img_123"
+            # Verify segmentation and file save occurred
+            mock_segmentor.segment_image.assert_called_once()
+
+            # Verify database update was attempted
+            mock_db.execute.assert_called_once()
+
+            # Event should still be published despite database error
+            # Single asset event should be called, but batch completion won't be triggered
+            # due to high expected count (1,000,000) vs actual processed (1)
+            assert mock_broker.publish_event.call_count == 1
+
+            # Check that single asset event was called
+            single_call_args = mock_broker.publish_event.call_args_list[0]
+            assert single_call_args[0][0] == "products.image.masked"
+            assert single_call_args[0][1]["job_id"] == "job_123"
+            assert single_call_args[0][1]["image_id"] == "img_123"
+
+        finally:
+            # Restore original config
+            config.FOREGROUND_MASK_DIR_PATH = original_foreground_path
+            config.PEOPLE_MASK_DIR_PATH = original_people_path
+            config.PRODUCT_MASK_DIR_PATH = original_product_path
 
     @pytest.mark.asyncio
     @pytest.mark.unit
