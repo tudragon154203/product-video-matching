@@ -62,12 +62,18 @@ The `video-crawler` service needs to download TikTok videos from a `webViewUrl` 
 
 ### Acceptance Scenarios
 
-
 3. **Given** a downloaded TikTok video and extracted keyframes, **When** 7 days pass, **Then** the video files are cleaned up from storage (keyframe files are kept permanently).
+4. **Given** TikTok anti-bot measures block download, **When** download attempts fail, **Then** system logs specific error and continues processing with retry logic.
+5. **Given** video cleanup fails, **When** cleanup process runs, **Then** system logs error but maintains normal operation.
 
 ### Edge Cases
-- What happens when TikTok anti-bot measures prevent `yt-dlp` from downloading a video?
-- How does the system handle large video storage growth if cleanup fails?
+
+## Anti-Bot Measures Handling
+- **FR-008**: When TikTok anti-bot measures prevent downloading, the system MUST log the failure with specific error details and continue processing the next video in the queue.
+- **FR-009**: The system MUST retry failed downloads up to 3 times with exponential backoff before marking them as permanently failed.
+
+## Cleanup Failure Resilience
+- **FR-010**: If video cleanup after 7 days fails, the system MUST log the error and continue normal operation, not impact video processing or matching functionality.
 
 ## Requirements *(mandatory)*
 
@@ -78,6 +84,9 @@ The `video-crawler` service needs to download TikTok videos from a `webViewUrl` 
 - **FR-005**: The system MUST persist keyframe metadata (paths, timestamps) into the database.
 - **FR-006**: The system MUST extend the `Video` model to include `download_url`, `local_path`, `has_download`, and `keyframes`.
 - **FR-007**: The system MUST implement cleanup logic to remove video files after 7 days (keyframe files are kept permanently).
+- **FR-008**: The system MUST handle anti-bot measures by logging specific failure details and continuing processing.
+- **FR-009**: The system MUST retry failed downloads up to 3 times with exponential backoff.
+- **FR-010**: The system MUST maintain normal operation if cleanup fails, with error logging.
 
 
 ### Key Entities *(include if feature involves data)*

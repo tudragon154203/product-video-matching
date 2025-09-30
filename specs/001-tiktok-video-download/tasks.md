@@ -83,7 +83,7 @@
 - [ ] T029 [P] Unit tests for error handling in services/video-crawler/tests/unit/tiktok/test_error_handling.py
 - [ ] T030 Performance tests for video download and keyframe extraction
 - [ ] T031 [P] Update documentation for TikTok integration
-- [ ] T032 Implement cleanup logic for video files after 7 days (keyframe files kept permanently)
+- [ ] T032 [P] Implement cleanup logic for video files after 7 days (keyframe files kept permanently)
 - [ ] T033 Run manual validation with test video: https://www.tiktok.com/@lanxinx/video/7548644205690670337
 
 ## Dependencies
