@@ -4,6 +4,10 @@ from typing import Optional, Dict, Any
 import yt_dlp
 from yt_dlp.utils import DownloadError
 
+from common_py.logging_config import configure_logging
+
+logger = configure_logging("video-crawler:tiktok_downloader")
+
 # Optional imports for database functionality
 try:
     from libs.common_py.common_py.crud.video_frame_crud import VideoFrameCRUD
@@ -34,8 +38,6 @@ class TikTokDownloader:
                    - retries: Number of download retry attempts
                    - timeout: Download timeout in seconds
         """
-        from common_py.logging_config import configure_logging
-
         self.config = config
         self.retries = config.get('retries', 3)
         self.timeout = config.get('timeout', 30)
@@ -49,8 +51,6 @@ class TikTokDownloader:
         # Ensure directories exist
         os.makedirs(self.video_storage_path, exist_ok=True)
         os.makedirs(self.keyframe_storage_path, exist_ok=True)
-
-        self.logger = configure_logging("video-crawler:tiktok_downloader")
 
     def download_video(self, url: str, video_id: str) -> Optional[str]:
         """
@@ -80,7 +80,7 @@ class TikTokDownloader:
             'verbose': True,
         }
 
-        self.logger.info(f"Starting download of TikTok video: {url}")
+        logger.info(f"Starting download of TikTok video: {url}")
 
         # Retry loop with exponential backoff
         for attempt in range(self.retries):
@@ -93,10 +93,10 @@ class TikTokDownloader:
                     # Check file size is under 500MB
                     file_size = os.path.getsize(output_filename)
                     if file_size < 500 * 1024 * 1024:  # 500MB in bytes
-                        self.logger.info(f"Successfully downloaded video: {output_filename} ({file_size} bytes)")
+                        logger.info(f"Successfully downloaded video: {output_filename} ({file_size} bytes)")
                         return output_filename
                     else:
-                        self.logger.error(f"Download failed: File exceeds 500MB limit ({file_size} bytes)")
+                        logger.error(f"Download failed: File exceeds 500MB limit ({file_size} bytes)")
                         # Remove oversized file
                         try:
                             os.remove(output_filename)
@@ -104,7 +104,7 @@ class TikTokDownloader:
                             pass
                         return None
                 else:
-                    self.logger.error(f"Download failed: Output file not found or empty at {output_filename}")
+                    logger.error(f"Download failed: Output file not found or empty at {output_filename}")
                     return None
 
             except DownloadError as e:
@@ -112,32 +112,32 @@ class TikTokDownloader:
                 error_str = str(e).lower()
                 if any(indicator in error_str for indicator in
                        ['unable to extract', 'http error', '403', '429', 'forbidden', 'rate limit']):
-                    self.logger.warning(f"Anti-bot measure detected for {url}: {str(e)}")
+                    logger.warning(f"Anti-bot measure detected for {url}: {str(e)}")
                     if attempt < self.retries - 1:
                         sleep_time = 2 ** attempt  # Exponential backoff: 1s, 2s, 4s, etc.
-                        self.logger.info(f"Retrying in {sleep_time} seconds due to anti-bot detection...")
+                        logger.info(f"Retrying in {sleep_time} seconds due to anti-bot detection...")
                         time.sleep(sleep_time)
                     else:
-                        self.logger.error(f"All download attempts failed due to anti-bot measures for {url}")
+                        logger.error(f"All download attempts failed due to anti-bot measures for {url}")
                         raise TikTokAntiBotError(f"Anti-bot measures blocked download for {url}: {str(e)}")
                 else:
                     # Other download errors
-                    self.logger.warning(f"Download attempt {attempt + 1} failed for {url}: {str(e)}")
+                    logger.warning(f"Download attempt {attempt + 1} failed for {url}: {str(e)}")
                     if attempt < self.retries - 1:
                         sleep_time = 2 ** attempt  # Exponential backoff: 1s, 2s, 4s, etc.
-                        self.logger.info(f"Retrying in {sleep_time} seconds...")
+                        logger.info(f"Retrying in {sleep_time} seconds...")
                         time.sleep(sleep_time)
                     else:
-                        self.logger.error(f"All download attempts failed for {url}")
+                        logger.error(f"All download attempts failed for {url}")
                         return None
             except Exception as e:
-                self.logger.warning(f"Download attempt {attempt + 1} failed for {url}: {str(e)}")
+                logger.warning(f"Download attempt {attempt + 1} failed for {url}: {str(e)}")
                 if attempt < self.retries - 1:  # If not the last attempt
                     sleep_time = 2 ** attempt  # Exponential backoff: 1s, 2s, 4s, etc.
-                    self.logger.info(f"Retrying in {sleep_time} seconds...")
+                    logger.info(f"Retrying in {sleep_time} seconds...")
                     time.sleep(sleep_time)
                 else:
-                    self.logger.error(f"All download attempts failed for {url}")
+                    logger.error(f"All download attempts failed for {url}")
                     return None
 
         return None
@@ -153,14 +153,14 @@ class TikTokDownloader:
         Returns:
             Path to the directory containing extracted keyframes, or None if extraction failed
         """
-        self.logger.info(f"Starting keyframe extraction for video {video_id} from: {video_path}")
+        logger.info(f"Starting keyframe extraction for video {video_id} from: {video_path}")
 
         try:
             # Create keyframes directory for this video
             keyframes_dir = os.path.join(self.keyframe_storage_path, video_id)
             os.makedirs(keyframes_dir, exist_ok=True)
 
-            self.logger.debug(f"Created keyframes directory: {keyframes_dir}")
+            logger.debug(f"Created keyframes directory: {keyframes_dir}")
 
             # Import and use the length adaptive extractor
             from keyframe_extractor.length_adaptive_extractor import LengthAdaptiveKeyframeExtractor
@@ -176,18 +176,18 @@ class TikTokDownloader:
             )
 
             if keyframes:
-                self.logger.info(f"Successfully extracted {len(keyframes)} keyframes for video {video_id}")
+                logger.info(f"Successfully extracted {len(keyframes)} keyframes for video {video_id}")
                 for timestamp, frame_path in keyframes:
-                    self.logger.debug(f"Extracted keyframe at timestamp {timestamp}: {frame_path}")
+                    logger.debug(f"Extracted keyframe at timestamp {timestamp}: {frame_path}")
             else:
-                self.logger.warning(f"No keyframes extracted for video {video_id}")
+                logger.warning(f"No keyframes extracted for video {video_id}")
 
             # Always return the directory path even if no keyframes were extracted
-            self.logger.debug(f"Returning keyframes directory: {keyframes_dir}")
+            logger.debug(f"Returning keyframes directory: {keyframes_dir}")
             return keyframes_dir
 
         except Exception as e:
-            self.logger.error(f"Error extracting keyframes from {video_path} for video {video_id}: {str(e)}")
+            logger.error(f"Error extracting keyframes from {video_path} for video {video_id}: {str(e)}")
             return None
 
     async def orchestrate_download_and_extract(
@@ -204,32 +204,32 @@ class TikTokDownloader:
         Returns:
             True if both download and extraction succeeded, False otherwise
         """
-        self.logger.info(f"Starting orchestration of download and extraction for video {video_id} from URL: {url}")
+        logger.info(f"Starting orchestration of download and extraction for video {video_id} from URL: {url}")
 
         try:
             # Step 1: Download the video
             local_path = self.download_video(url, video_id)
 
             if not local_path:
-                self.logger.error(f"Download failed for video {video_id}")
+                logger.error(f"Download failed for video {video_id}")
                 return False
 
-            self.logger.info(f"Video download successful for video {video_id}: {local_path}")
+            logger.info(f"Video download successful for video {video_id}: {local_path}")
 
             # Step 2: Extract keyframes
             keyframes_dir = await self.extract_keyframes(local_path, video_id)
 
             if not keyframes_dir:
-                self.logger.error(f"Keyframe extraction failed for video {video_id}")
+                logger.error(f"Keyframe extraction failed for video {video_id}")
                 return False
 
-            self.logger.info(f"Keyframe extraction successful for video {video_id}: {keyframes_dir}")
+            logger.info(f"Keyframe extraction successful for video {video_id}: {keyframes_dir}")
 
             # Step 3: Update video object if provided
             if video:
                 video.local_path = local_path
                 video.has_download = True
-                self.logger.debug(f"Updated video object for video {video_id} with local_path: {local_path}")
+                logger.debug(f"Updated video object for video {video_id} with local_path: {local_path}")
                 # Note: keyframes are stored separately in the database via video_frame_crud
 
             # Step 4: Persist keyframe metadata to database if database connection provided
@@ -256,20 +256,20 @@ class TikTokDownloader:
                                 timestamp=timestamp
                             )
                             persisted_count += 1
-                            self.logger.debug(f"Persisted keyframe metadata for video {video_id}, timestamp {timestamp}")
+                            logger.debug(f"Persisted keyframe metadata for video {video_id}, timestamp {timestamp}")
                         except Exception as frame_error:
-                            self.logger.warning(
+                            logger.warning(
                                 f"Failed to persist keyframe metadata for video {video_id}, timestamp {timestamp}: {str(frame_error)}")
 
                     # Commit the session after all keyframes are created
                     if hasattr(db, 'commit'):
                         db.commit()
-                        self.logger.info(f"Successfully committed {persisted_count} keyframes to database for video {video_id}")
+                        logger.info(f"Successfully committed {persisted_count} keyframes to database for video {video_id}")
                     else:
-                        self.logger.info(f"Successfully created {persisted_count} keyframes in database for video {video_id}")
+                        logger.info(f"Successfully created {persisted_count} keyframes in database for video {video_id}")
 
                 except Exception as db_error:
-                    self.logger.warning(f"Failed to persist keyframes to database for video {video_id}: {str(db_error)}")
+                    logger.warning(f"Failed to persist keyframes to database for video {video_id}: {str(db_error)}")
                     # Try to commit if there were successful insertions
                     if hasattr(db, 'commit'):
                         try:
@@ -278,15 +278,15 @@ class TikTokDownloader:
                             pass
                     # Don't fail the entire process if database persistence fails
             elif not HAS_DB:
-                self.logger.info("Database persistence skipped - libs.common_py not available")
+                logger.info("Database persistence skipped - libs.common_py not available")
 
-            self.logger.info(f"Successfully completed orchestration for video {video_id}")
+            logger.info(f"Successfully completed orchestration for video {video_id}")
             return True
 
         except TikTokAntiBotError as e:
-            self.logger.error(f"Anti-bot error in orchestration for video {video_id}: {str(e)}")
+            logger.error(f"Anti-bot error in orchestration for video {video_id}: {str(e)}")
             return False
         except Exception as e:
-            self.logger.error(f"Unexpected error in orchestration for video "
+            logger.error(f"Unexpected error in orchestration for video "
                               f"{video_id}: {str(e)}")
             return False
