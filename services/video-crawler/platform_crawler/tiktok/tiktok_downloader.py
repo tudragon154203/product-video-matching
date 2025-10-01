@@ -137,57 +137,82 @@ class TikTokDownloader:
         """Download a TikTok video using yt-dlp."""
         output_filename = os.path.join(self.video_storage_path, f"{video_id}.mp4")
 
+        format_candidates = [
+            "bestvideo[filesize<500M]+bestaudio/best[filesize<500M]/best",
+            "best",
+        ]
+
         ydl_opts = {
             "outtmpl": output_filename,
-            "format": "best[filesize<500M]",
             "retries": self.retries,
             "socket_timeout": self.timeout,
             "nocheckcertificate": True,
             "no_warnings": False,
             "quiet": False,
             "verbose": True,
+            "merge_output_format": "mp4",
         }
 
         for attempt in range(self.retries):
-            try:
-                with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-                    ydl.download([url])
-
-                if os.path.exists(output_filename) and os.path.getsize(output_filename) > 0:
-                    file_size = os.path.getsize(output_filename)
-                    if file_size < 500 * 1024 * 1024:
-                        logger.info(
-                            "Successfully downloaded video: %s (%s bytes)",
-                            output_filename,
-                            file_size,
-                        )
-                        return output_filename
-
-                    logger.error(
-                        "Download failed: File exceeds 500MB limit (%s bytes)",
-                        file_size,
-                    )
-                    try:
-                        os.remove(output_filename)
-                    except Exception:
-                        pass
-                    if hasattr(os.path.exists, "return_value"):
+            for format_code in format_candidates:
+                ydl_opts["format"] = format_code
+                try:
+                    if os.path.exists(output_filename):
                         try:
-                            os.path.exists.return_value = False  # type: ignore[attr-defined]
+                            os.remove(output_filename)
                         except Exception:
                             pass
-                    return None
 
-                logger.error(
-                    "Download failed: Output file not found or empty at %s",
-                    output_filename,
-                )
-                return None
+                    with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+                        ydl.download([url])
 
-            except DownloadError as exc:
-                self._handle_download_error(exc, attempt, url)
-            except Exception as exc:
-                self._handle_generic_error(exc, attempt, url)
+                    if os.path.exists(output_filename) and os.path.getsize(output_filename) > 0:
+                        file_size = os.path.getsize(output_filename)
+                        if file_size < 500 * 1024 * 1024:
+                            logger.info(
+                                "Successfully downloaded video: %s (%s bytes) using format %s",
+                                output_filename,
+                                file_size,
+                                format_code,
+                            )
+                            return output_filename
+
+                        logger.error(
+                            "Download failed: File exceeds 500MB limit (%s bytes)",
+                            file_size,
+                        )
+                        try:
+                            os.remove(output_filename)
+                        except Exception:
+                            pass
+                        if hasattr(os.path.exists, "return_value"):
+                            try:
+                                os.path.exists.return_value = False  # type: ignore[attr-defined]
+                            except Exception:
+                                pass
+                        return None
+
+                    logger.error(
+                        "Download failed: Output file not found or empty at %s",
+                        output_filename,
+                    )
+                    break
+
+                except DownloadError as exc:
+                    error_text = str(exc).lower()
+                    if "requested format is not available" in error_text and format_code != format_candidates[-1]:
+                        logger.warning(
+                            "Format %s unavailable for %s; trying fallback format",
+                            format_code,
+                            url,
+                        )
+                        continue
+
+                    self._handle_download_error(exc, attempt, url)
+                    break
+                except Exception as exc:
+                    self._handle_generic_error(exc, attempt, url)
+                    break
 
         return None
 
