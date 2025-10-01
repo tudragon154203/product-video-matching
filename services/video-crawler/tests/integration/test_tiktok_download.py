@@ -70,7 +70,7 @@ async def test_tiktok_download():
 
         # Test 2: Extract keyframes
         print("2. Testing keyframe extraction...")
-        keyframes_dir = await downloader.extract_keyframes(video_path, video_id)
+        keyframes_dir, keyframes = await downloader.extract_keyframes(video_path, video_id)
 
         # Assertions for keyframe extraction
         assert keyframes_dir is not None, "Keyframe extraction should return a valid directory path"
@@ -79,7 +79,8 @@ async def test_tiktok_download():
 
         # Check for keyframe files
         keyframe_files = list(Path(keyframes_dir).glob("*.jpg"))
-        assert len(keyframe_files) > 0, f"At least one keyframe file should be extracted, found {len(keyframe_files)}"
+        assert keyframe_files, f"At least one keyframe file should be extracted, found {len(keyframe_files)}"
+        assert keyframes, "Keyframe metadata list should not be empty"
 
         # Verify each keyframe file is valid
         for kf_file in keyframe_files:
@@ -88,6 +89,7 @@ async def test_tiktok_download():
 
         print(f"✅ Keyframes extracted to: {keyframes_dir}")
         print(f"   Keyframe files found: {len(keyframe_files)}")
+        print(f"   Keyframe metadata entries: {len(keyframes)}")
 
         if keyframe_files:
             print("✅ Keyframe files validation passed")

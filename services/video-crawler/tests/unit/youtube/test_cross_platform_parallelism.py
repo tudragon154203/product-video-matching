@@ -5,6 +5,10 @@ from unittest.mock import AsyncMock, patch
 
 import pytest
 
+import sys
+import os
+sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+
 # Import the classes we need to test
 from services.service import VideoCrawlerService
 from fetcher.video_fetcher import VideoFetcher

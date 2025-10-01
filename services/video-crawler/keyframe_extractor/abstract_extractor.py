@@ -12,8 +12,16 @@ from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import TYPE_CHECKING, List, Optional, Tuple
 
-import cv2
-import numpy as np
+try:
+    import cv2
+except ImportError:  # pragma: no cover
+    cv2 = None
+
+try:
+    import numpy as np
+except ImportError:  # pragma: no cover
+    np = None
+
 from common_py.logging_config import configure_logging
 from config_loader import config
 from .interface import KeyframeExtractorInterface

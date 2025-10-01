@@ -1,3 +1,4 @@
+import asyncio
 import pytest
 from platform_crawler.tiktok.tiktok_downloader import TikTokDownloader
 
@@ -13,9 +14,11 @@ def test_tiktok_keyframes_extract():
     downloader = TikTokDownloader({})
     # The method is implemented but logs a warning instead of raising NotImplementedError
     # It should return a directory path even though extraction is not fully implemented
-    result = downloader.extract_keyframes("video_path", "video_id")
-    # Should return a directory path even if extraction is not fully implemented
-    assert result is not None
+    directory, frames = asyncio.run(
+        downloader.extract_keyframes("video_path", "video_id")
+    )
+    assert directory is None
+    assert frames == []
 
 
 def test_tiktok_keyframes_process():

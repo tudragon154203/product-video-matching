@@ -1,5 +1,6 @@
 import uuid
 import os
+import sys
 from typing import Dict, Any, List, Optional
 from pathlib import Path
 from common_py.database import DatabaseManager
@@ -17,6 +18,7 @@ from handlers.event_emitter import EventEmitter
 from services.cleanup_service import cleanup_service
 from common_py.logging_config import configure_logging
 from config_loader import config
+sys.path.append(os.path.join(os.path.dirname(__file__), "../../libs/vision-common"))
 from vision_common import JobProgressManager
 
 logger = configure_logging("video-crawler:service")
@@ -189,34 +191,39 @@ class VideoCrawlerService:
 
             # Use TikTokDownloader for TikTok videos
             if video.platform == "tiktok":
-                tiktok_config = {
-                    "TIKTOK_VIDEO_STORAGE_PATH": config.TIKTOK_VIDEO_STORAGE_PATH,
-                    "TIKTOK_KEYFRAME_STORAGE_PATH": config.TIKTOK_KEYFRAME_STORAGE_PATH,
-                    "retries": 3,
-                    "timeout": 30
-                }
-                downloader = TikTokDownloader(tiktok_config)
+                local_path = video_data.get("local_path")
 
-                # Use TikTokDownloader to orchestrate download and extraction
-                success = await downloader.orchestrate_download_and_extract(
-                    url=video_data["url"],
-                    video_id=video.video_id,
-                    video=video,
-                    db=self.db
-                )
-
-                if not success:
-                    logger.error(f"TikTok download and extraction failed for video {video.video_id}")
-                    return {
-                        "video_id": None,
-                        "platform": video.platform,
-                        "frames": []
+                if local_path:
+                    video.local_path = local_path
+                    video.has_download = True
+                    keyframes_data = await self._extract_and_save_keyframes(video, video_data)
+                else:
+                    tiktok_config = {
+                        "TIKTOK_VIDEO_STORAGE_PATH": config.TIKTOK_VIDEO_STORAGE_PATH,
+                        "TIKTOK_KEYFRAME_STORAGE_PATH": config.TIKTOK_KEYFRAME_STORAGE_PATH,
+                        "retries": 3,
+                        "timeout": 30
                     }
+                    downloader = TikTokDownloader(tiktok_config)
 
-                # Get keyframes data for the response
-                keyframes_data = await self._extract_keyframes_from_downloader(downloader, video.video_id)
+                    success = await downloader.orchestrate_download_and_extract(
+                        url=video_data["url"],
+                        video_id=video.video_id,
+                        video=video,
+                        db=self.db
+                    )
+
+                    if not success:
+                        logger.error(f"TikTok download and extraction failed for video {video.video_id}")
+                        return {
+                            "video_id": None,
+                            "platform": video.platform,
+                            "frames": []
+                        }
+
+                    video_data["local_path"] = video.local_path
+                    keyframes_data = await self._extract_and_save_keyframes(video, video_data)
             else:
-                # Use existing keyframe extraction for other platforms
                 keyframes_data = await self._extract_and_save_keyframes(video, video_data)
 
             await self._emit_keyframes_ready_event(video, keyframes_data, job_id)

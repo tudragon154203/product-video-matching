@@ -1,3 +1,4 @@
+import asyncio
 import pytest
 from unittest.mock import Mock, patch
 from platform_crawler.tiktok.tiktok_downloader import TikTokDownloader, TikTokAntiBotError
@@ -89,8 +90,10 @@ class TestErrorHandling:
             # Mock download to raise TikTokAntiBotError
             mock_download.side_effect = TikTokAntiBotError("Anti-bot detected")
 
-            result = self.downloader.orchestrate_download_and_extract(
-                "https://example.com/video", "test_id"
+            result = asyncio.run(
+                self.downloader.orchestrate_download_and_extract(
+                    "https://example.com/video", "test_id"
+                )
             )
 
             # Should return False
@@ -102,8 +105,10 @@ class TestErrorHandling:
             # Mock download to raise a general exception
             mock_download.side_effect = Exception("Unexpected error")
 
-            result = self.downloader.orchestrate_download_and_extract(
-                "https://example.com/video", "test_id"
+            result = asyncio.run(
+                self.downloader.orchestrate_download_and_extract(
+                    "https://example.com/video", "test_id"
+                )
             )
 
             # Should return False
@@ -117,10 +122,13 @@ class TestErrorHandling:
             # Mock keyframes directory creation to raise exception
             mock_join.side_effect = Exception("File system error")
 
-            result = self.downloader.extract_keyframes("/fake/path.mp4", "test_id")
+            directory, frames = asyncio.run(
+                self.downloader.extract_keyframes("/fake/path.mp4", "test_id")
+            )
 
-            # Should return None
-            assert result is None
+            # Should return empty result tuple
+            assert directory is None
+            assert frames == []
 
     def test_orchestrate_database_exception(self):
         """Test that orchestration handles database exceptions gracefully"""
@@ -130,7 +138,7 @@ class TestErrorHandling:
 
             # Mock successful download and extraction
             mock_download.return_value = "/fake/video.mp4"
-            mock_extract.return_value = "/fake/keyframes"
+            mock_extract.return_value = ("/fake/keyframes", [(0.0, '/fake/keyframes/frame_0.jpg')])
 
             # Mock database to raise exception
             mock_crud_instance = Mock()
@@ -141,8 +149,10 @@ class TestErrorHandling:
             mock_db = Mock()
 
             # Should still return True despite database error
-            result = self.downloader.orchestrate_download_and_extract(
-                "https://example.com/video", "test_id", db=mock_db
+            result = asyncio.run(
+                self.downloader.orchestrate_download_and_extract(
+                    "https://example.com/video", "test_id", db=mock_db
+                )
             )
 
             # Should succeed despite database error
