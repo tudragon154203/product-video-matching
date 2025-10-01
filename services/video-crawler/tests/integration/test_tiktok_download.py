@@ -55,7 +55,7 @@ async def test_tiktok_download():
         assert os.path.exists(video_path), f"Video file should exist at {video_path}"
         assert os.path.getsize(video_path) > 0, "Video file should not be empty"
         assert video_path.endswith('.mp4'), "Video file should have .mp4 extension"
-        
+
         print(f"✅ Video downloaded successfully: {video_path}")
         print(f"   File size: {os.path.getsize(video_path)} bytes")
 
@@ -76,11 +76,11 @@ async def test_tiktok_download():
         assert keyframes_dir is not None, "Keyframe extraction should return a valid directory path"
         assert os.path.exists(keyframes_dir), f"Keyframes directory should exist at {keyframes_dir}"
         assert os.path.isdir(keyframes_dir), f"Keyframes path should be a directory: {keyframes_dir}"
-        
+
         # Check for keyframe files
         keyframe_files = list(Path(keyframes_dir).glob("*.jpg"))
         assert len(keyframe_files) > 0, f"At least one keyframe file should be extracted, found {len(keyframe_files)}"
-        
+
         # Verify each keyframe file is valid
         for kf_file in keyframe_files:
             assert os.path.getsize(kf_file) > 0, f"Keyframe file should not be empty: {kf_file}"
@@ -119,14 +119,14 @@ async def test_tiktok_download():
 
         # Assertions for full orchestration
         assert success is True, "Full orchestration should succeed"
-        
+
         # Verify expected files exist after orchestration
         expected_video_path = Path(config.TIKTOK_VIDEO_STORAGE_PATH) / f"{video_id}.mp4"
         assert expected_video_path.exists(), f"Video file should exist at expected location after orchestration: {expected_video_path}"
-        
+
         expected_keyframes_dir = Path(config.TIKTOK_KEYFRAME_STORAGE_PATH) / video_id
         assert expected_keyframes_dir.exists(), f"Keyframes directory should exist after orchestration: {expected_keyframes_dir}"
-        
+
         # Verify keyframe files exist in expected location
         kf_files = list(expected_keyframes_dir.glob("*.jpg"))
         assert len(kf_files) > 0, f"At least one keyframe file should exist after orchestration, found {len(kf_files)}"
