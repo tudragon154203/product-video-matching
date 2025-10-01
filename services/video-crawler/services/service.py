@@ -1,24 +1,23 @@
-import uuid
 import os
-import sys
-from typing import Dict, Any, List, Optional
+import uuid
 from pathlib import Path
-from common_py.database import DatabaseManager
-from common_py.messaging import MessageBroker
+from typing import Any, Dict, List, Optional
+
 from common_py.crud import VideoCRUD, VideoFrameCRUD
+from common_py.database import DatabaseManager
+from common_py.logging_config import configure_logging
+from common_py.messaging import MessageBroker
 from common_py.models import Video, VideoFrame
+from config_loader import config
 from fetcher.video_fetcher import VideoFetcher
+from handlers.event_emitter import EventEmitter
 from keyframe_extractor.length_adaptive_extractor import LengthAdaptiveKeyframeExtractor
 from platform_crawler.interface import PlatformCrawlerInterface
 from platform_crawler.mock_crawler import MockPlatformCrawler
-from platform_crawler.youtube.youtube_crawler import YoutubeCrawler
 from platform_crawler.tiktok.tiktok_crawler import TikTokCrawler
 from platform_crawler.tiktok.tiktok_downloader import TikTokDownloader
-from handlers.event_emitter import EventEmitter
+from platform_crawler.youtube.youtube_crawler import YoutubeCrawler
 from services.cleanup_service import cleanup_service
-from common_py.logging_config import configure_logging
-from config_loader import config
-sys.path.append(os.path.join(os.path.dirname(__file__), "../../libs/vision-common"))
 from vision_common import JobProgressManager
 
 logger = configure_logging("video-crawler:service")

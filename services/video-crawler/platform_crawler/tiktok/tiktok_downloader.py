@@ -135,8 +135,6 @@ class TikTokDownloader:
 
     def download_video(self, url: str, video_id: str) -> Optional[str]:
         """Download a TikTok video using yt-dlp."""
-        import time
-
         output_filename = os.path.join(self.video_storage_path, f"{video_id}.mp4")
 
         ydl_opts = {
