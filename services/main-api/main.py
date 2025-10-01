@@ -15,6 +15,8 @@ from api.dependency import init_dependencies, get_db, get_broker
 from fastapi import FastAPI
 
 from common_py.logging_config import configure_logging
+from common_py.messaging import MessageBroker
+from config_loader import config
 
 # Configure logging
 logger = configure_logging("main-api:main")
@@ -40,7 +42,7 @@ broker = get_broker()
 job_service = JobService(db, broker)
 
 # Initialize lifecycle handler
-lifecycle_handler = LifecycleHandler(db, job_service)
+lifecycle_handler = LifecycleHandler(db, job_service, broker=broker)
 
 
 @asynccontextmanager
