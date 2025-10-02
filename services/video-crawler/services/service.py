@@ -140,10 +140,11 @@ class VideoCrawlerService:
         if isinstance(queries, dict):
             platforms_lower = {platform.lower() for platform in platforms}
 
-            if platforms_lower == {"tiktok"}:
+            if {"tiktok", "youtube"} & platforms_lower:
                 prioritized = _normalize(queries.get("vi"))
                 if prioritized:
                     return prioritized
+                return []
 
             aggregated: List[str] = []
             for value in queries.values():

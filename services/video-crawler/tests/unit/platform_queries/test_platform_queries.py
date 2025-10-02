@@ -38,7 +38,7 @@ class TestPlatformQueryExtraction:
         extracted = query_service._extract_platform_queries(queries, platforms)
 
         assert isinstance(extracted, list)
-        assert len(extracted) > 0
+        assert extracted == ["gối ergonomic", "pillow thoải mái"]
 
     def test_extract_platform_queries_multiple_platforms(self, query_service):
         """Test query extraction with multiple platforms including TikTok."""
@@ -51,7 +51,7 @@ class TestPlatformQueryExtraction:
         extracted = query_service._extract_platform_queries(queries, platforms)
 
         assert isinstance(extracted, list)
-        assert len(extracted) == 4
+        assert extracted == ["query vi 1", "query vi 2"]
 
     def test_extract_platform_queries_tiktok_only(self, query_service):
         """Test query extraction for TikTok platform only."""
@@ -68,6 +68,18 @@ class TestPlatformQueryExtraction:
         assert "đánh giá tai nghe không dây" in extracted
         assert "unbox iphone 15" in extracted
         assert "wireless earbuds review 2024" not in extracted
+
+    def test_extract_platform_queries_youtube_without_vietnamese(self, query_service):
+        """When Vietnamese queries are absent, YouTube should not fall back to other languages."""
+        queries = {
+            "zh": ["产品评测"],
+            "en": ["product review"]
+        }
+        platforms = ["youtube"]
+
+        extracted = query_service._extract_platform_queries(queries, platforms)
+
+        assert extracted == []
 
     def test_extract_platform_queries_invalid_input(self, query_service):
         """Test query extraction with invalid input formats."""
