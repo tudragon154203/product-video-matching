@@ -288,66 +288,98 @@ class TikTokDownloader:
     async def extract_keyframes(
         self, video_path: str, video_id: str
     ) -> Tuple[Optional[str], List[Tuple[float, str]]]:
-        """Extract keyframes from a downloaded TikTok video."""
+        """Extract keyframes from a downloaded TikTok video with retry logic."""
         logger.info("Starting keyframe extraction for video %s from: %s", video_id, video_path)
 
         keyframes_dir: Optional[str] = None
         keyframes: List[Tuple[float, str]] = []
 
-        try:
-            keyframes_dir = os.path.join(self.keyframe_storage_path, video_id)
-            os.makedirs(keyframes_dir, exist_ok=True)
+        # Retry configuration
+        max_retries = 2
+        retry_delay = 1  # seconds
 
-            logger.debug("Created keyframes directory: %s", keyframes_dir)
-
+        for attempt in range(max_retries + 1):
             try:
-                from keyframe_extractor.length_adaptive_extractor import (
-                    LengthAdaptiveKeyframeExtractor,
-                )
-            except ImportError as exc:
-                logger.warning("Keyframe extractor unavailable: %s", exc)
-                shutil.rmtree(keyframes_dir, ignore_errors=True)
-                return None, []
+                keyframes_dir = os.path.join(self.keyframe_storage_path, video_id)
+                os.makedirs(keyframes_dir, exist_ok=True)
 
-            extractor = LengthAdaptiveKeyframeExtractor(
-                keyframe_root_dir=self.keyframe_storage_path
-            )
-            keyframes = await extractor.extract_keyframes(
-                video_url="",
-                video_id=video_id,
-                local_path=video_path,
-            )
+                logger.debug("Created keyframes directory: %s", keyframes_dir)
 
-            if keyframes:
-                logger.info(
-                    "Successfully extracted %s keyframes for video %s",
-                    len(keyframes),
-                    video_id,
-                )
-                for timestamp, frame_path in keyframes:
-                    logger.debug(
-                        "Extracted keyframe at timestamp %s: %s",
-                        timestamp,
-                        frame_path,
+                try:
+                    from keyframe_extractor.length_adaptive_extractor import (
+                        LengthAdaptiveKeyframeExtractor,
                     )
-                return keyframes_dir, keyframes
+                except ImportError as exc:
+                    logger.warning("Keyframe extractor unavailable: %s", exc)
+                    if attempt == max_retries:  # Only cleanup on final attempt
+                        shutil.rmtree(keyframes_dir, ignore_errors=True)
+                    return None, []
 
-            logger.warning("No keyframes extracted for video %s", video_id)
-            try:
-                shutil.rmtree(keyframes_dir, ignore_errors=True)
-            finally:
-                return None, []
+                extractor = LengthAdaptiveKeyframeExtractor(
+                    keyframe_root_dir=self.keyframe_storage_path
+                )
+                keyframes = await extractor.extract_keyframes(
+                    video_url="",
+                    video_id=video_id,
+                    local_path=video_path,
+                )
 
-        except Exception as exc:
-            logger.error(
-                "Error extracting keyframes from %s for video %s: %s",
-                video_path,
-                video_id,
-                exc,
-            )
-            if keyframes_dir:
-                shutil.rmtree(keyframes_dir, ignore_errors=True)
-            return None, []
+                if keyframes:
+                    logger.info(
+                        "Successfully extracted %s keyframes for video %s (attempt %d/%d)",
+                        len(keyframes),
+                        video_id,
+                        attempt + 1,
+                        max_retries + 1,
+                    )
+                    for timestamp, frame_path in keyframes:
+                        logger.debug(
+                            "Extracted keyframe at timestamp %s: %s",
+                            timestamp,
+                            frame_path,
+                        )
+                    return keyframes_dir, keyframes
+
+                logger.warning("No keyframes extracted for video %s (attempt %d/%d)", video_id, attempt + 1, max_retries + 1)
+
+                # If this is not the last attempt, wait before retrying
+                if attempt < max_retries:
+                    logger.info("Retrying keyframe extraction in %d seconds...", retry_delay)
+                    import time
+                    time.sleep(retry_delay)
+                    # Clean up directory before retry
+                    shutil.rmtree(keyframes_dir, ignore_errors=True)
+                    continue
+                else:
+                    # Don't remove the directory if no keyframes were extracted - it might be useful for debugging
+                    # Instead, return the directory path but empty frames list
+                    return keyframes_dir, []
+
+            except Exception as exc:
+                logger.error(
+                    "Error extracting keyframes from %s for video %s (attempt %d/%d): %s",
+                    video_path,
+                    video_id,
+                    attempt + 1,
+                    max_retries + 1,
+                    str(exc),
+                )
+
+                # If this is not the last attempt, wait before retrying
+                if attempt < max_retries:
+                    logger.info("Retrying keyframe extraction in %d seconds...", retry_delay)
+                    import time
+                    time.sleep(retry_delay)
+                    # Clean up directory before retry
+                    if keyframes_dir:
+                        shutil.rmtree(keyframes_dir, ignore_errors=True)
+                    continue
+                else:
+                    # Cleanup on final failed attempt
+                    try:
+                        shutil.rmtree(keyframes_dir, ignore_errors=True)
+                    finally:
+                        return None, []
 
     async def orchestrate_download_and_extract(
         self,
@@ -375,6 +407,14 @@ class TikTokDownloader:
             if not keyframes_dir:
                 logger.error("Keyframe extraction failed for video %s", video_id)
                 return False
+
+            # Log the keyframes extraction result
+            logger.info(
+                "Keyframe extraction completed for video %s: %s keyframes extracted to %s",
+                video_id,
+                len(keyframes),
+                keyframes_dir,
+            )
 
             logger.info(
                 "Keyframe extraction successful for video %s: %s",

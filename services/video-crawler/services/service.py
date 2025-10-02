@@ -268,7 +268,7 @@ class VideoCrawlerService:
 
         # Extract keyframes from downloaded video or create dummy frames
         keyframes = await self.keyframe_extractor.extract_keyframes(
-            video_data["url"], video.video_id, local_path
+            video_data.get("url", ""), video.video_id, local_path
         )
 
         frame_data = []
