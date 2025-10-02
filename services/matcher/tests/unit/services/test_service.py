@@ -150,10 +150,7 @@ class TestMatcherService:
 
                 event_data = {
                     "job_id": "job_001",
-                    "industry": "test",
-                    "product_set_id": "set_001",
-                    "video_set_id": "set_002",
-                    "top_k": 10,
+                    "event_id": "a1b2c3d4-e5f6-7890-1234-567890abcdef",
                 }
 
                 await matcher_service.handle_match_request(event_data)
@@ -186,10 +183,7 @@ class TestMatcherService:
         ) as mock_match:
             event_data = {
                 "job_id": "job_001",
-                "industry": "test",
-                "product_set_id": "set_001",
-                "video_set_id": "set_002",
-                "top_k": 10,
+                "event_id": "a1b2c3d4-e5f6-7890-1234-567890abcdef",
             }
 
             await matcher_service.handle_match_request(event_data)
@@ -218,10 +212,7 @@ class TestMatcherService:
         ) as mock_match:
             event_data = {
                 "job_id": "job_001",
-                "industry": "test",
-                "product_set_id": "set_001",
-                "video_set_id": "set_002",
-                "top_k": 10,
+                "event_id": "a1b2c3d4-e5f6-7890-1234-567890abcdef",
             }
 
             with pytest.raises(Exception, match="Matching failed"):

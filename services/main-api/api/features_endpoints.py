@@ -13,31 +13,13 @@ from models.features_schemas import (
 from services.job.job_service import JobService
 from common_py.crud.product_image_crud import ProductImageCRUD
 from common_py.crud.video_frame_crud import VideoFrameCRUD
-from common_py.crud.product_crud import ProductCRUD
-from common_py.crud.video_crud import VideoCRUD
 from common_py.database import DatabaseManager  # Import DatabaseManager
-from api.dependency import get_db, get_job_service
+from api.dependency import get_db, get_job_service, get_product_image_crud, get_video_frame_crud
 
 
 router = APIRouter()
 
 # Dependency functions use the centralized dependency module
-
-
-def get_product_image_crud(db: DatabaseManager = Depends(get_db)) -> ProductImageCRUD:
-    return ProductImageCRUD(db)
-
-
-def get_video_frame_crud(db: DatabaseManager = Depends(get_db)) -> VideoFrameCRUD:
-    return VideoFrameCRUD(db)
-
-
-def get_product_crud(db: DatabaseManager = Depends(get_db)) -> ProductCRUD:
-    return ProductCRUD(db)
-
-
-def get_video_crud(db: DatabaseManager = Depends(get_db)) -> VideoCRUD:
-    return VideoCRUD(db)
 
 
 def get_gmt7_time(dt: Optional[datetime]) -> Optional[datetime]:

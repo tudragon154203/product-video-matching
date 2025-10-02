@@ -1,3 +1,5 @@
+from api import dependency
+from common_py.database import DatabaseManager
 from main import app     # Import app directly
 from httpx import AsyncClient  # Use AsyncClient for async tests
 import pytz
@@ -10,7 +12,6 @@ from services.job.job_service import JobService
 from services.job.job_management_service import JobManagementService
 from common_py.crud.product_image_crud import ProductImageCRUD
 from common_py.crud.product_crud import ProductCRUD
-from handlers.database_handler import DatabaseHandler
 from common_py.messaging import MessageBroker
 
 pytestmark = pytest.mark.integration
@@ -49,7 +50,14 @@ job_service_mock: JobService  # noqa: F821
 job_management_service_mock: JobManagementService  # noqa: F821
 product_image_crud_mock: ProductImageCRUD  # noqa: F821
 product_crud_mock: ProductCRUD  # noqa: F821
-db_mock: DatabaseHandler  # noqa: F821
+
+# Global mock instances (will be set by setup_mocks fixture)
+job_service_mock: JobService  # noqa: F821
+# New mock for JobManagementService
+job_management_service_mock: JobManagementService  # noqa: F821
+product_image_crud_mock: ProductImageCRUD  # noqa: F821
+product_crud_mock: ProductCRUD  # noqa: F821
+db_mock: DatabaseManager  # noqa: F821
 broker_mock: MessageBroker  # noqa: F821
 
 
@@ -90,15 +98,12 @@ def setup_mocks(monkeypatch):  # Add monkeypatch as an argument
     # Set job_service_mock's job_management_service attribute to the mock
     job_service_mock.job_management_service = job_management_service_mock
 
-    # Import dependency functions from the endpoint modules
-    from api.image_endpoints import get_db, get_broker, get_job_service, get_product_image_crud, get_product_crud
-
     # Override dependencies in the FastAPI app by replacing the dependency functions
-    app.dependency_overrides[get_db] = lambda: db_mock
-    app.dependency_overrides[get_broker] = lambda: broker_mock
-    app.dependency_overrides[get_job_service] = lambda: job_service_mock
-    app.dependency_overrides[get_product_image_crud] = lambda: product_image_crud_mock
-    app.dependency_overrides[get_product_crud] = lambda: product_crud_mock
+    app.dependency_overrides[dependency.get_db] = lambda: db_mock
+    app.dependency_overrides[dependency.get_broker] = lambda: broker_mock
+    app.dependency_overrides[dependency.get_job_service] = lambda: job_service_mock
+    app.dependency_overrides[dependency.get_product_image_crud] = lambda: product_image_crud_mock
+    app.dependency_overrides[dependency.get_product_crud] = lambda: product_crud_mock
 
     # Configure mock job service and job management service
     # Create mock job status return value

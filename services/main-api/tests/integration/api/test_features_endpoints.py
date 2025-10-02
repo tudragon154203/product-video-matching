@@ -102,17 +102,16 @@ def setup_mocks(monkeypatch):  # Add monkeypatch as an argument
     job_service_mock.job_management_service = job_management_service_mock
 
     # Import dependency functions from the endpoint modules
-    from api.features_endpoints import get_db, get_broker, get_job_service, \
-        get_product_image_crud, get_video_frame_crud, get_product_crud, get_video_crud
+    from api import dependency
 
     # Override dependencies in the FastAPI app by replacing the dependency functions
-    app.dependency_overrides[get_db] = lambda: db_mock
-    app.dependency_overrides[get_broker] = lambda: broker_mock
-    app.dependency_overrides[get_job_service] = lambda: job_service_mock
-    app.dependency_overrides[get_product_image_crud] = lambda: product_image_crud_mock
-    app.dependency_overrides[get_video_frame_crud] = lambda: video_frame_crud_mock
-    app.dependency_overrides[get_product_crud] = lambda: product_crud_mock
-    app.dependency_overrides[get_video_crud] = lambda: video_crud_mock
+    app.dependency_overrides[dependency.get_db] = lambda: db_mock
+    app.dependency_overrides[dependency.get_broker] = lambda: broker_mock
+    app.dependency_overrides[dependency.get_job_service] = lambda: job_service_mock
+    app.dependency_overrides[dependency.get_product_image_crud] = lambda: product_image_crud_mock
+    app.dependency_overrides[dependency.get_video_frame_crud] = lambda: video_frame_crud_mock
+    app.dependency_overrides[dependency.get_product_crud] = lambda: product_crud_mock
+    app.dependency_overrides[dependency.get_video_crud] = lambda: video_crud_mock
 
     # Configure mock job service and job management service
     # Create mock job status return value
