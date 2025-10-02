@@ -5,7 +5,6 @@ import asyncio
 import tempfile
 import time
 from unittest.mock import AsyncMock, patch, MagicMock
-import tempfile
 import pytest
 
 import sys
@@ -142,7 +141,7 @@ async def test_max_concurrent_platforms_limit():
                     "youtube": youtube_crawler,
                     "bilibili": bilibili_crawler,
                     "platform3": mock_crawler3,
-                    "tiktok": mock_tiktok_crawler_instance # Add mocked TikTok crawler
+                    "tiktok": mock_tiktok_crawler_instance  # Add mocked TikTok crawler
                 }
                 service.video_fetcher = VideoFetcher(platform_crawlers=service.platform_crawlers)
 
@@ -151,7 +150,7 @@ async def test_max_concurrent_platforms_limit():
                     "job_id": "test_job_456",
                     "industry": "tech",
                     "queries": ["smartphone", "laptop"],
-                    "platforms": ["youtube", "bilibili", "platform3", "tiktok"], # Add tiktok to platforms
+                    "platforms": ["youtube", "bilibili", "platform3", "tiktok"],  # Add tiktok to platforms
                     "recency_days": 30
                 }
 

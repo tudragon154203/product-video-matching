@@ -7,7 +7,6 @@ from unittest.mock import patch, MagicMock
 import os
 
 import sys
-import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
 
@@ -40,7 +39,7 @@ class TestPlatformQueryExtraction:
                     MockTikTokCrawler.return_value = mock_tiktok_crawler_instance
 
                     service = VideoCrawlerService(None, None, temp_dir)  # Pass temp_dir to VideoCrawlerService
-                    service.initialize_keyframe_extractor(keyframe_dir=temp_dir) # DB and broker not needed for this test
+                    service.initialize_keyframe_extractor(keyframe_dir=temp_dir)  # DB and broker not needed for this test
 
         queries = {
             "vi": ["gối ergonomic", "pillow thoải mái"],
