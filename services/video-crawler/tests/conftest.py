@@ -2,9 +2,10 @@
 Pytest configuration and shared fixtures for video-crawler tests
 """
 import asyncio
+import os
 import tempfile
 from pathlib import Path
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -106,3 +107,10 @@ def mock_config():
     config = MagicMock()
     config.NUM_PARALLEL_DOWNLOADS = 3
     return config
+
+
+@pytest.fixture
+def tiktok_env_mock(temp_dir):
+    """Mock TIKTOK_VIDEO_STORAGE_PATH environment variable for TikTok-related tests"""
+    with patch.dict(os.environ, {'TIKTOK_VIDEO_STORAGE_PATH': temp_dir}):
+        yield temp_dir
