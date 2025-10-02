@@ -1,0 +1,54 @@
+name: "🧪 CI - front-end"
+
+on:
+  push:
+    paths:
+      - "services/front-end/**"
+      - ".github/workflows/ci-front-end.yml"
+  pull_request:
+    paths:
+      - "services/front-end/**"
+      - ".github/workflows/ci-front-end.yml"
+  workflow_call:
+
+concurrency:
+  group: front-end-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  quality_checks:
+    name: Lint/Test/Build | Node ${{ matrix.node }}
+    runs-on: ${{ vars.OS || 'ubuntu-latest' }}
+    defaults:
+      run:
+        working-directory: services/front-end
+    strategy:
+      fail-fast: false
+      matrix:
+        node: ["18", "20"]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js ${{ matrix.node }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+          cache: npm
+          cache-dependency-path: services/front-end/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Run unit tests
+        run: npm run test -- --ci --runInBand
+
+      - name: Type check
+        run: npm run type-check
+
+      - name: Build
+        run: npm run build
