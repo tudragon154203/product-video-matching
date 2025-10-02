@@ -138,8 +138,12 @@ class TikTokDownloader:
         output_filename = os.path.join(self.video_storage_path, f"{video_id}.mp4")
 
         format_candidates = [
-            "bestvideo[filesize<500M]+bestaudio/best[filesize<500M]/best",
-            "best",
+            # First try: Best quality MP4 with audio
+            "best[ext=mp4][filesize<500M]/best[filesize<500M]",
+            # Fallback: Best quality with audio (any format)
+            "bestvideo[filesize<500M]+bestaudio[filesize<50M]/best[filesize<500M]",
+            # Final fallback: Best available
+            "best[filesize<500M]",
         ]
 
         ydl_opts = {
@@ -154,14 +158,22 @@ class TikTokDownloader:
         }
 
         for attempt in range(self.retries):
-            for format_code in format_candidates:
+            for format_idx, format_code in enumerate(format_candidates):
                 ydl_opts["format"] = format_code
                 try:
+                    # Clean up existing file if it exists
                     if os.path.exists(output_filename):
                         try:
                             os.remove(output_filename)
                         except Exception:
                             pass
+
+                    logger.info(
+                        "Attempt %d/%d: Downloading with format %s",
+                        attempt + 1,
+                        self.retries,
+                        format_code,
+                    )
 
                     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
                         ydl.download([url])
@@ -185,11 +197,6 @@ class TikTokDownloader:
                             os.remove(output_filename)
                         except Exception:
                             pass
-                        if hasattr(os.path.exists, "return_value"):
-                            try:
-                                os.path.exists.return_value = False  # type: ignore[attr-defined]
-                            except Exception:
-                                pass
                         return None
 
                     logger.error(
@@ -200,15 +207,44 @@ class TikTokDownloader:
 
                 except DownloadError as exc:
                     error_text = str(exc).lower()
-                    if "requested format is not available" in error_text and format_code != format_candidates[-1]:
-                        logger.warning(
-                            "Format %s unavailable for %s; trying fallback format",
-                            format_code,
-                            url,
-                        )
-                        continue
 
+                    # If this is not the last format and we have a format-specific error, try next format
+                    if format_idx < len(format_candidates) - 1:
+                        if "requested format is not available" in error_text:
+                            logger.warning(
+                                "Format %s unavailable for %s; trying fallback format",
+                                format_code,
+                                url,
+                            )
+                            continue
+                        elif "no video formats found" in error_text or "no formats found" in error_text:
+                            logger.error(
+                                "No video formats found for %s with format %s",
+                                url,
+                                format_code,
+                            )
+                            # Continue to next format instead of breaking
+                            continue
+                        elif "unable to download" in error_text:
+                            logger.warning(
+                                "Download failed for %s with format %s; trying fallback format",
+                                url,
+                                format_code,
+                            )
+                            continue
+
+                    # If we've tried all formats or have a critical error, handle with retry logic
                     self._handle_download_error(exc, attempt, url)
+
+                    # If this is the last attempt, break out of the loop
+                    if attempt == self.retries - 1:
+                        break
+
+                    # Sleep before next attempt (exponential backoff)
+                    import time
+                    sleep_time = min(2 ** attempt, 8)  # Cap at 8 seconds to avoid too long waits
+                    logger.info("Waiting %d seconds before next attempt", sleep_time)
+                    time.sleep(sleep_time)
                     break
                 except Exception as exc:
                     self._handle_generic_error(exc, attempt, url)

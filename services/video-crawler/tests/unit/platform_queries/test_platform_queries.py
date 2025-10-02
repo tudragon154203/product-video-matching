@@ -1,12 +1,12 @@
 """Unit tests for platform-specific query extraction logic."""
 
+from services.service import VideoCrawlerService
 import pytest
 import tempfile
 
 import sys
 import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
-from services.service import VideoCrawlerService
 
 
 pytestmark = pytest.mark.unit

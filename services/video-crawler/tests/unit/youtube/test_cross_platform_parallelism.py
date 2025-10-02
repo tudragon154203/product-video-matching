@@ -1,3 +1,6 @@
+from platform_crawler.interface import PlatformCrawlerInterface
+from fetcher.video_fetcher import VideoFetcher
+from services.service import VideoCrawlerService
 import asyncio
 import tempfile
 import time
@@ -10,9 +13,6 @@ import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
 # Import the classes we need to test
-from services.service import VideoCrawlerService
-from fetcher.video_fetcher import VideoFetcher
-from platform_crawler.interface import PlatformCrawlerInterface
 
 pytestmark = pytest.mark.unit
 

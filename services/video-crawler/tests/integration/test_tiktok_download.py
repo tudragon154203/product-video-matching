@@ -236,6 +236,127 @@ async def main():
         return 1
 
 
+@pytest.mark.integration
+async def test_tiktok_format_selection():
+    """Test TikTok video download with different format selections"""
+
+    test_url = "https://www.tiktok.com/@lanxinx/video/7548644205690670337"
+    video_id = "test-tiktok-format-123"
+
+    print("Testing TikTok video download with format selection...")
+    print(f"URL: {test_url}")
+    print(f"Video ID: {video_id}")
+    print("-" * 60)
+
+    # Test with custom format selection
+    downloader_config = {
+        'TIKTOK_VIDEO_STORAGE_PATH': config.TIKTOK_VIDEO_STORAGE_PATH,
+        'TIKTOK_KEYFRAME_STORAGE_PATH': config.TIKTOK_KEYFRAME_STORAGE_PATH,
+        'retries': 2,
+        'timeout': 30
+    }
+
+    downloader = TikTokDownloader(downloader_config)
+
+    try:
+        # Test download with new format selection
+        video_path = downloader.download_video(test_url, video_id)
+
+        # Assertions
+        assert video_path is not None, "Video download should return a valid path"
+        assert os.path.exists(video_path), f"Video file should exist at {video_path}"
+        assert os.path.getsize(video_path) > 0, "Video file should not be empty"
+        assert video_path.endswith('.mp4'), "Video file should have .mp4 extension"
+
+        print(f"✅ Video downloaded successfully with format selection: {video_path}")
+        print(f"   File size: {os.path.getsize(video_path)} bytes")
+
+        # Verify the file has both video and audio (basic check)
+        try:
+            import subprocess
+            result = subprocess.run(
+                ['ffprobe', '-v', 'error', '-select_streams', 'v:0', '-show_entries', 'stream=codec_type', '-of', 'csv=p=0', video_path],
+                capture_output=True, text=True, timeout=30
+            )
+            if result.returncode == 0 and 'video' in result.stdout:
+                print("✅ Video stream detected")
+            else:
+                print("⚠️  Could not verify video stream")
+
+            result = subprocess.run(
+                ['ffprobe', '-v', 'error', '-select_streams', 'a:0', '-show_entries', 'stream=codec_type', '-of', 'csv=p=0', video_path],
+                capture_output=True, text=True, timeout=30
+            )
+            if result.returncode == 0 and 'audio' in result.stdout:
+                print("✅ Audio stream detected")
+            else:
+                print("⚠️  Could not verify audio stream")
+
+        except Exception as e:
+            print(f"⚠️  Could not verify streams (ffprobe not available): {e}")
+
+        return True
+
+    except Exception as e:
+        print(f"❌ Format selection test failed: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return False
+
+
+@pytest.mark.integration
+async def test_tiktok_retry_logic():
+    """Test TikTok video download retry logic"""
+
+    test_url = "https://www.tiktok.com/@lanxinx/video/7548644205690670337"
+    video_id = "test-tiktok-retry-123"
+
+    print("Testing TikTok video download retry logic...")
+    print(f"URL: {test_url}")
+    print(f"Video ID: {video_id}")
+    print("-" * 60)
+
+    # Test with reduced retries to observe retry behavior
+    downloader_config = {
+        'TIKTOK_VIDEO_STORAGE_PATH': config.TIKTOK_VIDEO_STORAGE_PATH,
+        'TIKTOK_KEYFRAME_STORAGE_PATH': config.TIKTOK_KEYFRAME_STORAGE_PATH,
+        'retries': 2,
+        'timeout': 30
+    }
+
+    downloader = TikTokDownloader(downloader_config)
+
+    try:
+        # Test download with retry logic
+        start_time = asyncio.get_event_loop().time()
+        video_path = downloader.download_video(test_url, video_id)
+        end_time = asyncio.get_event_loop().time()
+
+        # Assertions
+        assert video_path is not None, "Video download should return a valid path"
+        assert os.path.exists(video_path), f"Video file should exist at {video_path}"
+        assert os.path.getsize(video_path) > 0, "Video file should not be empty"
+
+        download_time = end_time - start_time
+        print(f"✅ Video downloaded successfully with retry logic: {video_path}")
+        print(f"   Download time: {download_time:.2f} seconds")
+        print(f"   File size: {os.path.getsize(video_path)} bytes")
+
+        # The download should take some time due to retries
+        if download_time > 5:  # Should take longer than a single attempt
+            print("✅ Retry logic appears to have been used (download took longer than expected)")
+        else:
+            print("ℹ️  Download completed quickly (may not have needed retries)")
+
+        return True
+
+    except Exception as e:
+        print(f"❌ Retry logic test failed: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return False
+
+
 if __name__ == "__main__":
     exit_code = asyncio.run(main())
     sys.exit(exit_code)

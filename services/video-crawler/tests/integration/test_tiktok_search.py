@@ -1,5 +1,6 @@
 """Integration tests for TikTok crawler functionality."""
 
+from services.service import VideoCrawlerService
 import pytest
 
 from typing import Any, Dict
@@ -14,7 +15,6 @@ from platform_crawler.tiktok.tiktok_crawler import TikTokCrawler
 import sys
 import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from services.service import VideoCrawlerService
 
 pytestmark = pytest.mark.integration
 
