@@ -15,8 +15,6 @@ from api.dependency import init_dependencies, get_db, get_broker
 from fastapi import FastAPI
 
 from common_py.logging_config import configure_logging
-from common_py.messaging import MessageBroker
-from config_loader import config
 
 # Configure logging
 logger = configure_logging("main-api:main")
