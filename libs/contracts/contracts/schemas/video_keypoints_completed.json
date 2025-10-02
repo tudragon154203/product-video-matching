@@ -10,6 +10,7 @@
     },
     "event_id": {
       "type": "string",
+      "format": "uuid",
       "description": "Unique identifier for the event (UUIDv4)"
     }
   }

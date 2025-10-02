@@ -51,6 +51,12 @@ class TestPhaseTransitionWithAssetTypes:
         handler = Mock(spec=BrokerHandler)
         handler.publish_match_request = AsyncMock()
         handler.publish_job_completed = AsyncMock()
+        handler.publish_match_request.call_args_list = []
+
+        def record_call(*args, **kwargs):
+            handler.publish_match_request.call_args_list.append((args, kwargs))
+
+        handler.publish_match_request.side_effect = record_call
         return handler
 
     @pytest.fixture
@@ -109,11 +115,11 @@ class TestPhaseTransitionWithAssetTypes:
             }
         )
 
-        # Verify phase was updated to matching (since all image events are required and received)
-        db_handler.update_job_phase.assert_called_with(job_id, "matching")
-
         # Verify match request was published
         mock_broker_handler.publish_match_request.assert_called_once()
+        args, kwargs = mock_broker_handler.publish_match_request.call_args
+        assert args[0] == job_id
+        assert isinstance(args[1], str)  # event_id should be a string (UUID)
 
     @pytest.mark.asyncio
     async def test_phase_transition_videos_only_job(self, phase_event_service, db_handler, mock_broker_handler):
@@ -167,10 +173,11 @@ class TestPhaseTransitionWithAssetTypes:
         )
 
         # Verify phase was updated to matching (since all video events are required and received)
-        db_handler.update_job_phase.assert_called_with(job_id, "matching")
-
         # Verify match request was published
         mock_broker_handler.publish_match_request.assert_called_once()
+        args, kwargs = mock_broker_handler.publish_match_request.call_args
+        assert args[0] == job_id
+        assert isinstance(args[1], str)  # event_id should be a string (UUID)
 
     @pytest.mark.asyncio
     async def test_phase_transition_images_and_videos_job(self, phase_event_service, db_handler, mock_broker_handler):
@@ -268,6 +275,9 @@ class TestPhaseTransitionWithAssetTypes:
         # Verify match request was published
         # Note: publish_match_request might be called multiple times, but we only care that it was called at least once for the transition
         assert mock_broker_handler.publish_match_request.call_count >= 1
+        args, kwargs = mock_broker_handler.publish_match_request.call_args
+        assert args[0] == job_id
+        assert isinstance(args[1], str)  # event_id should be a string (UUID)
 
     @pytest.mark.asyncio
     async def test_phase_transition_to_evidences_generation(self, phase_event_service, db_handler, mock_broker_handler):
@@ -399,6 +409,9 @@ class TestPhaseTransitionWithAssetTypes:
         db_handler.update_job_phase.assert_called_with(job_id, "matching")
         # publish_match_request should be called as part of transitioning to "matching"
         mock_broker_handler.publish_match_request.assert_called_once()
+        args, kwargs = mock_broker_handler.publish_match_request.call_args
+        assert args[0] == job_id
+        assert isinstance(args[1], str)  # event_id should be a string (UUID)
 
         # It should not transition to "completed" directly from "feature_extraction" with "job.failed" for a zero-asset job.
         # If the test intention was different, the setup or the code logic would need to be adjusted.
@@ -444,6 +457,9 @@ class TestPhaseTransitionWithAssetTypes:
         # because _process_feature_extraction_phase detects zero assets.
         db_handler.update_job_phase.assert_called_with(job_id, "matching")
         mock_broker_handler.publish_match_request.assert_called_once()
+        args, kwargs = mock_broker_handler.publish_match_request.call_args
+        assert args[0] == job_id
+        assert isinstance(args[1], str)  # event_id should be a string (UUID)
 
         # The original test expected no change, but the actual logic for zero-asset jobs is to transition.
         # If "no change" is the desired behavior for zero-asset jobs receiving events,

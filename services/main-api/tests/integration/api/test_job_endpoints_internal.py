@@ -27,18 +27,18 @@ def setup_jobs_test_mocks(monkeypatch, mock_job_service):
     monkeypatch.setenv("BUS_BROKER", "amqp://guest:guest@localhost:5672/")
 
     # Import and override dependencies
-    from api.job_endpoints import get_db, get_message_broker, get_job_service
     from common_py.database import DatabaseManager
     from common_py.messaging import MessageBroker
+    from api import dependency
 
     # Create mock dependencies
     db_mock = AsyncMock(spec=DatabaseManager)
     broker_mock = AsyncMock(spec=MessageBroker)
 
     # Override dependencies
-    app.dependency_overrides[get_db] = lambda: db_mock
-    app.dependency_overrides[get_message_broker] = lambda: broker_mock
-    app.dependency_overrides[get_job_service] = lambda: mock_job_service
+    app.dependency_overrides[dependency.get_db] = lambda: db_mock
+    app.dependency_overrides[dependency.get_broker] = lambda: broker_mock
+    app.dependency_overrides[dependency.get_job_service] = lambda: mock_job_service
 
     yield
 
@@ -47,7 +47,7 @@ def setup_jobs_test_mocks(monkeypatch, mock_job_service):
 
 
 @pytest.mark.asyncio
-async def test_list_jobs_basic_success():
+async def test_list_jobs_basic_success(mock_job_service):
     """Test basic functionality - successful retrieval of jobs"""
     print("Testing GET /jobs endpoint - basic success...")
 
@@ -111,7 +111,7 @@ async def test_list_jobs_basic_success():
 
 
 @pytest.mark.asyncio
-async def test_list_jobs_with_pagination():
+async def test_list_jobs_with_pagination(mock_job_service):
     """Test pagination parameters (limit and offset)"""
     print("Testing GET /jobs endpoint with pagination...")
 
@@ -158,7 +158,7 @@ async def test_list_jobs_with_pagination():
 
 
 @pytest.mark.asyncio
-async def test_list_jobs_status_filtering():
+async def test_list_jobs_status_filtering(mock_job_service):
     """Test status filtering (completed, failed, in_progress)"""
     print("Testing GET /jobs endpoint with status filtering...")
 
@@ -228,7 +228,7 @@ async def test_list_jobs_status_filtering():
 
 
 @pytest.mark.asyncio
-async def test_list_jobs_ordering():
+async def test_list_jobs_ordering(mock_job_service):
     """Test ordering (newest first by created_at)"""
     print("Testing GET /jobs endpoint ordering...")
 
@@ -283,7 +283,7 @@ async def test_list_jobs_ordering():
 
 
 @pytest.mark.asyncio
-async def test_list_jobs_empty_results():
+async def test_list_jobs_empty_results(mock_job_service):
     """Test edge case - empty results"""
     print("Testing GET /jobs endpoint with empty results...")
 
@@ -303,7 +303,7 @@ async def test_list_jobs_empty_results():
 
 
 @pytest.mark.asyncio
-async def test_list_jobs_invalid_parameters():
+async def test_list_jobs_invalid_parameters(mock_job_service):
     """Test edge cases - invalid parameters"""
     print("Testing GET /jobs endpoint with invalid parameters...")
 
@@ -339,7 +339,7 @@ async def test_list_jobs_invalid_parameters():
 
 
 @pytest.mark.asyncio
-async def test_list_jobs_database_error():
+async def test_list_jobs_database_error(mock_job_service):
     """Test error handling for database connection issues"""
     print("Testing GET /jobs endpoint with database error...")
 
@@ -358,7 +358,7 @@ async def test_list_jobs_database_error():
 
 
 @pytest.mark.asyncio
-async def test_list_jobs_combined_filters():
+async def test_list_jobs_combined_filters(mock_job_service):
     """Test combining pagination with status filtering"""
     print("Testing GET /jobs endpoint with combined filters...")
 

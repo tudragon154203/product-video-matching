@@ -4,6 +4,8 @@ Provides shared database and message broker instances.
 """
 from common_py.crud.product_image_crud import ProductImageCRUD
 from common_py.crud.product_crud import ProductCRUD
+from common_py.crud.video_frame_crud import VideoFrameCRUD
+from common_py.crud.video_crud import VideoCRUD
 from common_py.database import DatabaseManager
 from common_py.messaging import MessageBroker
 from config_loader import config
@@ -56,3 +58,13 @@ def get_product_image_crud(
 
 def get_product_crud(db: DatabaseManager = Depends(get_db)) -> ProductCRUD:
     return ProductCRUD(db)
+
+
+def get_video_frame_crud(
+    db: DatabaseManager = Depends(get_db)
+) -> VideoFrameCRUD:
+    return VideoFrameCRUD(db)
+
+
+def get_video_crud(db: DatabaseManager = Depends(get_db)) -> VideoCRUD:
+    return VideoCRUD(db)

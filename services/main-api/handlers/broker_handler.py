@@ -52,19 +52,16 @@ class BrokerHandler:
             )
             raise
 
-    async def publish_match_request(self, job_id: str, industry: str, product_set_id: str, video_set_id: str):
+    async def publish_match_request(self, job_id: str, event_id: str):
         """Publish a match request."""
         try:
             await self.broker.publish_event(
                 "match.request",
                 {
                     "job_id": job_id,
-                    "industry": industry,
-                    "product_set_id": product_set_id,
-                    "video_set_id": video_set_id,
-                    "top_k": 20
+                    "event_id": event_id,
                 },
-                correlation_id=job_id
+                correlation_id=event_id
             )
             logger.info(f"Published match request for job {job_id}")
         except Exception as e:

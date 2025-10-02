@@ -1,3 +1,4 @@
+import uuid
 from typing import Dict, List
 from common_py.logging_config import configure_logging
 from handlers.database_handler import DatabaseHandler
@@ -168,14 +169,12 @@ class PhaseTransitionManager:
     async def _publish_match_request_for_job(self, job_id: str):
         """Helper method to publish match request for a job"""
         try:
-            industry = await self.db_handler.get_job_industry(job_id)
+            event_id = str(uuid.uuid4())
             await self.broker_handler.publish_match_request(
                 job_id,
-                industry,
-                job_id,  # product_set_id
-                job_id   # video_set_id
+                event_id
             )
-            logger.debug(f"Published match request for job {job_id}")
+            logger.debug(f"Published match request for job {job_id} with event_id {event_id}")
         except Exception as e:
             logger.error(
                 f"Failed to publish match request for job {job_id}: {str(e)}")

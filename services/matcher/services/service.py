@@ -44,18 +44,16 @@ class MatcherService:
 
         try:
             job_id = event_data["job_id"]
-            industry = event_data["industry"]
-            product_set_id = event_data["product_set_id"]
-            video_set_id = event_data["video_set_id"]
-            top_k = event_data["top_k"]
+            event_id = event_data["event_id"]
+
+            # TODO: Implement idempotency guard using event_id
+            # For example, check if this event_id has already been processed and recorded.
+            # If so, log and return early.
 
             logger.info(
                 "Processing match request",
                 job_id=job_id,
-                industry=industry,
-                product_set_id=product_set_id,
-                video_set_id=video_set_id,
-                top_k=top_k,
+                event_id=event_id,
             )
 
             products = await self.get_job_products(job_id)
@@ -123,7 +121,6 @@ class MatcherService:
                         score=match_result["score"],
                     )
 
-            event_id = str(uuid.uuid4())
             await self.broker.publish_event(
                 "matchings.process.completed",
                 {

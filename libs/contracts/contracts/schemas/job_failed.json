@@ -15,6 +15,7 @@
     },
     "event_id": {
       "type": "string",
+      "format": "uuid",
       "description": "Unique identifier for this event"
     },
     "reason": {
