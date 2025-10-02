@@ -4,8 +4,8 @@ from services.service import VideoCrawlerService
 import asyncio
 import tempfile
 import time
-from unittest.mock import AsyncMock, patch
-
+from unittest.mock import AsyncMock, patch, MagicMock
+import tempfile
 import pytest
 
 import sys
@@ -115,39 +115,56 @@ async def test_max_concurrent_platforms_limit():
 
     # Create service with mock crawlers
     with tempfile.TemporaryDirectory() as temp_dir:
-        service = VideoCrawlerService(mock_db, mock_broker, temp_dir)
+        # Mock TikTokDownloader to use temporary directories
+        with patch('services.video_crawler.platform_crawler.tiktok.tiktok_downloader.TikTokDownloader') as MockTikTokDownloader:
+            mock_downloader_instance = MagicMock()
+            mock_downloader_instance.video_storage_path = os.path.join(temp_dir, "tiktok_videos")
+            mock_downloader_instance.keyframe_storage_path = os.path.join(temp_dir, "tiktok_keyframes")
+            os.makedirs(mock_downloader_instance.video_storage_path, exist_ok=True)
+            os.makedirs(mock_downloader_instance.keyframe_storage_path, exist_ok=True)
+            MockTikTokDownloader.return_value = mock_downloader_instance
 
-        # Replace platform crawlers with mock crawlers that have longer delays
-        youtube_crawler = MockPlatformCrawler("youtube", delay_seconds=3)
-        bilibili_crawler = MockPlatformCrawler("bilibili", delay_seconds=3)
-        mock_crawler3 = MockPlatformCrawler("platform3", delay_seconds=3)
+            # Mock TikTokCrawler to use the mocked downloader
+            with patch('services.video_crawler.platform_crawler.tiktok.tiktok_crawler.TikTokCrawler') as MockTikTokCrawler:
+                mock_tiktok_crawler_instance = MagicMock()
+                mock_tiktok_crawler_instance.get_platform_name.return_value = "tiktok"
+                mock_tiktok_crawler_instance.downloader = mock_downloader_instance
+                MockTikTokCrawler.return_value = mock_tiktok_crawler_instance
 
-        service.platform_crawlers = {
-            "youtube": youtube_crawler,
-            "bilibili": bilibili_crawler,
-            "platform3": mock_crawler3
-        }
-        service.video_fetcher = VideoFetcher(platform_crawlers=service.platform_crawlers)
+                service = VideoCrawlerService(mock_db, mock_broker, temp_dir)
 
-        # Test event data with multiple platforms
-        event_data = {
-            "job_id": "test_job_456",
-            "industry": "tech",
-            "queries": ["smartphone", "laptop"],
-            "platforms": ["youtube", "bilibili", "platform3"],
-            "recency_days": 30
-        }
+                # Replace platform crawlers with mock crawlers that have longer delays
+                youtube_crawler = MockPlatformCrawler("youtube", delay_seconds=3)
+                bilibili_crawler = MockPlatformCrawler("bilibili", delay_seconds=3)
+                mock_crawler3 = MockPlatformCrawler("platform3", delay_seconds=3)
 
-        # Mock the config to limit concurrent platforms to 2
-        with patch('services.service.config') as mock_config:
-            mock_config.NUM_VIDEOS = 5
-            mock_config.VIDEO_DIR = temp_dir
-            mock_config.MAX_CONCURRENT_PLATFORMS = 2  # Limit to 2 concurrent platforms
+                service.platform_crawlers = {
+                    "youtube": youtube_crawler,
+                    "bilibili": bilibili_crawler,
+                    "platform3": mock_crawler3,
+                    "tiktok": mock_tiktok_crawler_instance # Add mocked TikTok crawler
+                }
+                service.video_fetcher = VideoFetcher(platform_crawlers=service.platform_crawlers)
 
-            # Measure time to process platforms with concurrency limit
-            start_time = time.time()
-            await service.handle_videos_search_request(event_data)
-            end_time = time.time()
+                # Test event data with multiple platforms
+                event_data = {
+                    "job_id": "test_job_456",
+                    "industry": "tech",
+                    "queries": ["smartphone", "laptop"],
+                    "platforms": ["youtube", "bilibili", "platform3", "tiktok"], # Add tiktok to platforms
+                    "recency_days": 30
+                }
+
+                # Mock the config to limit concurrent platforms to 2
+                with patch('services.service.config') as mock_config:
+                    mock_config.NUM_VIDEOS = 5
+                    mock_config.VIDEO_DIR = temp_dir
+                    mock_config.MAX_CONCURRENT_PLATFORMS = 2  # Limit to 2 concurrent platforms
+
+                    # Measure time to process platforms with concurrency limit
+                    start_time = time.time()
+                    await service.handle_videos_search_request(event_data)
+                    end_time = time.time()
 
             total_time = end_time - start_time
 

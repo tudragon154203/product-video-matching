@@ -3,6 +3,8 @@
 from services.service import VideoCrawlerService
 import pytest
 import tempfile
+from unittest.mock import patch, MagicMock
+import os
 
 import sys
 import os
@@ -21,8 +23,24 @@ class TestPlatformQueryExtraction:
 
         # Create a temporary directory for keyframes to avoid permission issues
         with tempfile.TemporaryDirectory() as temp_dir:
-            service = VideoCrawlerService(None, None)  # DB and broker not needed for this test
-            service.initialize_keyframe_extractor(keyframe_dir=temp_dir)
+            # Mock TikTokDownloader to use temporary directories
+            with patch('services.video_crawler.platform_crawler.tiktok.tiktok_downloader.TikTokDownloader') as MockTikTokDownloader:
+                mock_downloader_instance = MagicMock()
+                mock_downloader_instance.video_storage_path = os.path.join(temp_dir, "tiktok_videos")
+                mock_downloader_instance.keyframe_storage_path = os.path.join(temp_dir, "tiktok_keyframes")
+                os.makedirs(mock_downloader_instance.video_storage_path, exist_ok=True)
+                os.makedirs(mock_downloader_instance.keyframe_storage_path, exist_ok=True)
+                MockTikTokDownloader.return_value = mock_downloader_instance
+
+                # Mock TikTokCrawler to use the mocked downloader
+                with patch('services.video_crawler.platform_crawler.tiktok.tiktok_crawler.TikTokCrawler') as MockTikTokCrawler:
+                    mock_tiktok_crawler_instance = MagicMock()
+                    mock_tiktok_crawler_instance.get_platform_name.return_value = "tiktok"
+                    mock_tiktok_crawler_instance.downloader = mock_downloader_instance
+                    MockTikTokCrawler.return_value = mock_tiktok_crawler_instance
+
+                    service = VideoCrawlerService(None, None, temp_dir)  # Pass temp_dir to VideoCrawlerService
+                    service.initialize_keyframe_extractor(keyframe_dir=temp_dir) # DB and broker not needed for this test
 
         queries = {
             "vi": ["gối ergonomic", "pillow thoải mái"],
