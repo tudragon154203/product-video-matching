@@ -1,4 +1,4 @@
-import { Phase } from '@/lib/zod/job';
+import { type Phase } from '@/lib/zod/job';
 
 /**
  * Phase information with UI display properties
@@ -15,54 +15,60 @@ export interface PhaseInfo {
  */
 export const phaseInfo: Record<Phase, PhaseInfo> = {
   unknown: {
-    label: 'unknown',
-    color: 'gray',
-    description: 'Job status is unknown or not initialized',
+    label: 'Status unknown.',
+    color: 'bg-gray-500',
+    description: 'Job status is unknown or not initialized.',
     effect: 'none'
   },
   collection: {
-    label: 'collection',
-    color: 'blue',
-    description: 'Collecting products and videos',
+    label: 'Collecting products and videos…',
+    color: 'bg-blue-500',
+    description: 'Collecting candidate products and videos.',
     effect: 'animated-dots'
   },
   feature_extraction: {
-    label: 'extraction',
-    color: 'yellow',
-    description: 'Extracting features from images and video frames',
+    label: 'Extracting features (images / video frames)…',
+    color: 'bg-yellow-500',
+    description: 'Extracting visual features from product images and video frames.',
     effect: 'progress-bar'
   },
   matching: {
-    label: 'matching',
-    color: 'purple',
-    description: 'Finding matches between products and videos',
+    label: 'Matching products with videos…',
+    color: 'bg-purple-500',
+    description: 'Matching collected products with candidate videos.',
     effect: 'spinner'
   },
   evidence: {
-    label: 'evidence',
-    color: 'orange',
-    description: 'Generating visual evidence for matches',
+    label: 'Generating visual evidence…',
+    color: 'bg-orange-500',
+    description: 'Building visual evidence packets for matched products and videos.',
     effect: 'progress-bar'
   },
   completed: {
-    label: 'completed',
-    color: 'green',
-    description: 'Job completed successfully',
+    label: '✅ Completed!',
+    color: 'bg-green-500',
+    description: 'Job completed successfully.',
     effect: 'none'
   },
   failed: {
-    label: 'failed',
-    color: 'red',
-    description: 'Job failed during processing',
+    label: '❌ Job failed.',
+    color: 'bg-red-500',
+    description: 'Job failed during processing.',
     effect: 'none'
   },
 } as const;
 
+const FALLBACK_PHASE: Phase = 'unknown';
+
 /**
  * Get phase information for UI display
  */
-export function getPhaseInfo(phase: Phase): PhaseInfo {
-  return phaseInfo[phase];
+export function getPhaseInfo(phase: Phase | string): PhaseInfo {
+  if (typeof phase === 'string' && phase in phaseInfo) {
+    return phaseInfo[phase as Phase];
+  }
+
+  return phaseInfo[FALLBACK_PHASE];
 }
 
 /**
@@ -122,10 +128,10 @@ export function getPhaseOrder(): Phase[] {
 export function getNextPhase(currentPhase: Phase): Phase | null {
   const order = getPhaseOrder();
   const currentIndex = order.indexOf(currentPhase);
-  
+
   if (currentIndex === -1 || currentIndex === order.length - 1) {
     return null;
   }
-  
+
   return order[currentIndex + 1];
 }

@@ -25,17 +25,16 @@ jest.mock('next/navigation', () => ({
 
 // Mock next-intl
 jest.mock('next-intl', () => ({
+    NextIntlClientProvider: ({ children }) => children,
     useTranslations: (namespace) => (key) => {
-        // If no namespace is provided, use the key directly
         if (!namespace) {
             const translations = {
                 'errors.loadFailed': 'Failed to load data.',
-                'errors.retry': 'Retry'
+                'errors.retry': 'Retry',
             };
             return translations[key] || key;
         }
-        
-        // If a namespace is provided, prepend it to the key
+
         const fullKey = `${namespace}.${key}`;
         const translations = {
             'jobResults.videos.panelTitle': 'Videos',
@@ -44,7 +43,7 @@ jest.mock('next-intl', () => ({
             'jobResults.videos.loading': 'Loading',
             'jobResults.products.loading': 'Loading',
             'jobResults.meta.video': 'video',
-            'jobResults.meta.videos': 'videos'
+            'jobResults.meta.videos': 'videos',
         };
         return translations[fullKey] || fullKey;
     },
