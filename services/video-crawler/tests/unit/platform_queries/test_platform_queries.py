@@ -22,39 +22,41 @@ class TestPlatformQueryExtraction:
 
         # Create a temporary directory for keyframes to avoid permission issues
         with tempfile.TemporaryDirectory() as temp_dir:
-            # Mock TikTokDownloader to use temporary directories
-            with patch('services.service.TikTokDownloader') as MockTikTokDownloader:
-                mock_downloader_instance = MagicMock()
-                mock_downloader_instance.video_storage_path = os.path.join(temp_dir, "tiktok_videos")
-                mock_downloader_instance.keyframe_storage_path = os.path.join(temp_dir, "tiktok_keyframes")
-                os.makedirs(mock_downloader_instance.video_storage_path, exist_ok=True)
-                os.makedirs(mock_downloader_instance.keyframe_storage_path, exist_ok=True)
-                MockTikTokDownloader.return_value = mock_downloader_instance
+            # Set environment variable to use temporary directory for TikTok video storage
+            with patch.dict(os.environ, {'TIKTOK_VIDEO_STORAGE_PATH': temp_dir}):
+                # Mock TikTokDownloader to use temporary directories
+                with patch('services.service.TikTokDownloader') as MockTikTokDownloader:
+                    mock_downloader_instance = MagicMock()
+                    mock_downloader_instance.video_storage_path = os.path.join(temp_dir, "tiktok_videos")
+                    mock_downloader_instance.keyframe_storage_path = os.path.join(temp_dir, "tiktok_keyframes")
+                    os.makedirs(mock_downloader_instance.video_storage_path, exist_ok=True)
+                    os.makedirs(mock_downloader_instance.keyframe_storage_path, exist_ok=True)
+                    MockTikTokDownloader.return_value = mock_downloader_instance
 
-                # Mock TikTokCrawler to use the mocked downloader
-                with patch('services.service.TikTokCrawler') as MockTikTokCrawler:
-                    mock_tiktok_crawler_instance = MagicMock()
-                    mock_tiktok_crawler_instance.get_platform_name.return_value = "tiktok"
-                    mock_tiktok_crawler_instance.downloader = mock_downloader_instance
-                    MockTikTokCrawler.return_value = mock_tiktok_crawler_instance
+                    # Mock TikTokCrawler to use the mocked downloader
+                    with patch('services.service.TikTokCrawler') as MockTikTokCrawler:
+                        mock_tiktok_crawler_instance = MagicMock()
+                        mock_tiktok_crawler_instance.get_platform_name.return_value = "tiktok"
+                        mock_tiktok_crawler_instance.downloader = mock_downloader_instance
+                        MockTikTokCrawler.return_value = mock_tiktok_crawler_instance
 
-                    # Initialize service inside the patch context to avoid real instantiation
-                    service = VideoCrawlerService(None, None, temp_dir)  # Pass temp_dir to VideoCrawlerService
-                    service.initialize_keyframe_extractor(keyframe_dir=temp_dir)  # DB and broker not needed for this test
+                        # Initialize service inside the patch context to avoid real instantiation
+                        service = VideoCrawlerService(None, None, temp_dir)  # Pass temp_dir to VideoCrawlerService
+                        service.initialize_keyframe_extractor(keyframe_dir=temp_dir)  # DB and broker not needed for this test
 
-                    queries = {
-                        "vi": ["gối ergonomic", "pillow thoải mái"],
-                        "zh": ["人体工学枕头", "舒适枕头"]
-                    }
-                    platforms = ["tiktok"]
+                        queries = {
+                            "vi": ["gối ergonomic", "pillow thoải mái"],
+                            "zh": ["人体工学枕头", "舒适枕头"]
+                        }
+                        platforms = ["tiktok"]
 
-                    # For TikTok platform, Vietnamese queries should be extracted
-                    extracted = service._extract_platform_queries(queries, platforms)
+                        # For TikTok platform, Vietnamese queries should be extracted
+                        extracted = service._extract_platform_queries(queries, platforms)
 
-                    # Currently this will return all queries until TikTok-specific logic is implemented
-                    # For now, just verify it returns a list
-                    assert isinstance(extracted, list)
-                    assert len(extracted) > 0
+                        # Currently this will return all queries until TikTok-specific logic is implemented
+                        # For now, just verify it returns a list
+                        assert isinstance(extracted, list)
+                        assert len(extracted) > 0
 
     def test_extract_platform_queries_multiple_platforms(self):
         """Test query extraction with multiple platforms including TikTok."""
