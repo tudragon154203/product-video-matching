@@ -9,30 +9,27 @@ This directory contains the test suite for the `video-crawler` microservice. It 
 - `fixtures/`: Contains shared test fixtures.
 - `data/`: Contains static test data.
 
-## Cross-Platform Compatibility
+## Cross-Platform Techniques
 
-The tests in this directory are designed to work on both Ubuntu and Windows platforms. Key compatibility features include:
+The suite is run on both Ubuntu and Windows hosts, so the tests rely on operating-system-neutral primitives to stay stable.
 
-### File Path Handling
-- Uses Python's `pathlib.Path` for cross-platform path handling that automatically handles differences between Unix-style paths (Ubuntu) and Windows-style paths
-- Configuration uses `os.path.join()` which adapts to the underlying OS path separators
-- For temporary directories, the service uses `tempfile.TemporaryDirectory()` which handles OS-specific temp locations
+### Temporary Storage and Cleanup
+- Uses `tempfile.mkdtemp()` / `tempfile.TemporaryDirectory()` to isolate filesystem state and let Python choose the correct temp root for each OS (see `integration/test_cleanup_integration.py`, `unit/keyframe_extraction/test_keyframe_extractor.py`).
+- Cleans up with `shutil.rmtree(..., ignore_errors=True)` to tolerate Windows file-handle quirks while still guaranteeing teardown (`integration/test_cleanup_integration.py`, `unit/tiktok/test_download_logic.py`).
+- When a temporary file must survive past its creation context, tests set `delete=False` on `NamedTemporaryFile` so Windows can reopen it safely (`unit/tiktok/test_download_logic.py`).
 
-### Environment Variables
-- Relies on `.env` files loaded via `python-dotenv` which works consistently across both platforms
-- Configuration values are loaded from environment variables using `os.getenv()`, which functions identically on both systems
-- Platform-agnostic path logic that adapts to each platform's filesystem conventions
+### Path Handling
+- Builds paths with `pathlib.Path` and `.resolve()` so separators, drive letters, and casing follow the host rules (`conftest.py`, `unit/tiktok/test_download_logic.py`, `unit/video_cleanup/test_video_cleanup_manager.py`).
+- Converts to strings or uses `os.path.join()` only when a dependency expects native-style paths, letting Python pick the right separator automatically (`integration/test_integration.py`, `unit/platform_queries/test_platform_queries.py`).
 
-### Python Path Configuration
-- Adds appropriate paths to `sys.path` conditionally based on the system location
-- Handles imports from `libs` directory using both container paths and relative paths for local development
-- Pytest configuration sets `pythonpath` to ensure consistent module discovery
+### Environment Isolation
+- The `tiktok_env_mock` fixture wraps calls with `patch.dict(os.environ, {...})`, ensuring tests never depend on developer-specific environment variables and that path overrides remain portable (`conftest.py`).
 
-### Asyncio Configuration
-- Uses `asyncio_mode = auto` in pytest configuration which handles event loop setup automatically
-- Includes custom `event_loop` fixture that creates and closes event loops properly on both platforms
+### Async Event Loop Management
+- `conftest.py` provides a shared `event_loop` fixture that explicitly creates and closes loops via `asyncio.get_event_loop_policy().new_event_loop()`, which avoids Windows/Unix differences in the default policy under pytest.
+
+### Import Path Normalisation
+- `conftest.py` amends `sys.path` with the service root and `libs/` directory discovered via `Path.resolve()`, so Python resolves imports the same way inside Docker (Linux) and on local Windows checkouts.
 
 ### Running Tests
-- Both systems can run tests using the same command: `python -m pytest -m unit`
-- Pytest markers work consistently across platforms
-- Test discovery patterns are configured to work identically on both systems
+- From `services/video-crawler/`, run `python -m pytest tests -v` and optionally filter with `-m <marker>` (for example `-m unit`). The command works unchanged on Windows (PowerShell or cmd) and Linux shells.

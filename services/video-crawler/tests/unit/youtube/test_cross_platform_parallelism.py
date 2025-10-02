@@ -1,20 +1,29 @@
-from platform_crawler.interface import PlatformCrawlerInterface
-from fetcher.video_fetcher import VideoFetcher
-from services.service import VideoCrawlerService
+from pathlib import Path
 import asyncio
+import os
+import sys
 import tempfile
 import time
-from unittest.mock import AsyncMock, patch, MagicMock
+from unittest.mock import AsyncMock, MagicMock, patch
+
 import pytest
 
-import sys
-import os
-sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+REPO_ROOT = Path(__file__).resolve().parents[3]
+if str(REPO_ROOT) not in sys.path:
+    sys.path.append(str(REPO_ROOT))
 
-# Import the classes we need to test
+from fetcher.video_fetcher import VideoFetcher
+from platform_crawler.interface import PlatformCrawlerInterface
+from services.service import VideoCrawlerService
 
 pytestmark = pytest.mark.unit
 
+def build_service(mock_db, mock_broker, working_dir):
+    """Create a service with mocked crawlers and temp keyframe paths."""
+    with patch.object(VideoCrawlerService, "_initialize_platform_crawlers", return_value={}):
+        service = VideoCrawlerService(mock_db, mock_broker, working_dir)
+    service.initialize_keyframe_extractor(keyframe_dir=working_dir)
+    return service
 
 class MockPlatformCrawler(PlatformCrawlerInterface):
     """Mock platform crawler for testing parallelism"""
@@ -58,7 +67,7 @@ async def test_cross_platform_parallelism():
 
     # Create service with mock crawlers
     with tempfile.TemporaryDirectory() as temp_dir:
-        service = VideoCrawlerService(mock_db, mock_broker, temp_dir)
+        service = build_service(mock_db, mock_broker, temp_dir)
 
         # Replace platform crawlers with mock crawlers that have delays
         youtube_crawler = MockPlatformCrawler("youtube", delay_seconds=2)
@@ -130,7 +139,7 @@ async def test_max_concurrent_platforms_limit():
                 mock_tiktok_crawler_instance.downloader = mock_downloader_instance
                 MockTikTokCrawler.return_value = mock_tiktok_crawler_instance
 
-                service = VideoCrawlerService(mock_db, mock_broker, temp_dir)
+                service = build_service(mock_db, mock_broker, temp_dir)
 
                 # Replace platform crawlers with mock crawlers that have longer delays
                 youtube_crawler = MockPlatformCrawler("youtube", delay_seconds=3)
@@ -186,7 +195,7 @@ async def test_resilience_with_platform_failures():
 
     # Create service with mock crawlers
     with tempfile.TemporaryDirectory() as temp_dir:
-        service = VideoCrawlerService(mock_db, mock_broker, temp_dir)
+        service = build_service(mock_db, mock_broker, temp_dir)
 
         # Create a working crawler and a failing crawler
         working_crawler = MockPlatformCrawler("working", delay_seconds=1)
@@ -232,7 +241,7 @@ async def test_zero_result_path():
 
     # Create service with mock crawlers that return empty results
     with tempfile.TemporaryDirectory() as temp_dir:
-        service = VideoCrawlerService(mock_db, mock_broker, temp_dir)
+        service = build_service(mock_db, mock_broker, temp_dir)
 
         class EmptyPlatformCrawler(PlatformCrawlerInterface):
             async def search_and_download_videos(self, queries, recency_days, download_dir, num_videos):
