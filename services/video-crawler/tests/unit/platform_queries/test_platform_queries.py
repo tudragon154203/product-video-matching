@@ -1,5 +1,6 @@
 """Unit tests for platform-specific query extraction logic."""
 
+from services.service import VideoCrawlerService
 from pathlib import Path
 import sys
 from unittest.mock import patch
@@ -9,8 +10,6 @@ import pytest
 REPO_ROOT = Path(__file__).resolve().parents[3]
 if str(REPO_ROOT) not in sys.path:
     sys.path.append(str(REPO_ROOT))
-
-from services.service import VideoCrawlerService
 
 
 pytestmark = pytest.mark.unit

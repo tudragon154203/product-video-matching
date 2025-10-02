@@ -1,3 +1,6 @@
+from services.service import VideoCrawlerService
+from platform_crawler.interface import PlatformCrawlerInterface
+from fetcher.video_fetcher import VideoFetcher
 from pathlib import Path
 import asyncio
 import os
@@ -12,11 +15,9 @@ REPO_ROOT = Path(__file__).resolve().parents[3]
 if str(REPO_ROOT) not in sys.path:
     sys.path.append(str(REPO_ROOT))
 
-from fetcher.video_fetcher import VideoFetcher
-from platform_crawler.interface import PlatformCrawlerInterface
-from services.service import VideoCrawlerService
 
 pytestmark = pytest.mark.unit
+
 
 def build_service(mock_db, mock_broker, working_dir):
     """Create a service with mocked crawlers and temp keyframe paths."""
@@ -24,6 +25,7 @@ def build_service(mock_db, mock_broker, working_dir):
         service = VideoCrawlerService(mock_db, mock_broker, working_dir)
     service.initialize_keyframe_extractor(keyframe_dir=working_dir)
     return service
+
 
 class MockPlatformCrawler(PlatformCrawlerInterface):
     """Mock platform crawler for testing parallelism"""
