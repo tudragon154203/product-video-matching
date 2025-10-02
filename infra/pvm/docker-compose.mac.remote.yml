@@ -41,7 +41,11 @@ services:
     volumes:
       - rabbitmq_data:/var/lib/rabbitmq
     healthcheck:
-      test: ["CMD-SHELL", "rabbitmq-diagnostics -q check_running && rabbitmq-diagnostics -q check_local_alarms && rabbitmq-diagnostics -q check_port_connectivity"]
+      test:
+        [
+          "CMD-SHELL",
+          "rabbitmq-diagnostics -q check_running && rabbitmq-diagnostics -q check_local_alarms && rabbitmq-diagnostics -q check_port_connectivity",
+        ]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -61,7 +65,6 @@ services:
       timeout: 5s
       retries: 5
 
-  
   redis-insight:
     image: redis/redisinsight:latest
     env_file: .env
@@ -73,14 +76,13 @@ services:
       - redis_insight_data:/data
     restart: unless-stopped
 
-
   # Application Services
   main-api:
     build:
       context: ../../
       dockerfile: services/main-api/Dockerfile
     env_file:
-      - .env  # Shared environment variables      
+      - .env # Shared environment variables
     environment:
       PYTHONPATH: /app/libs:/app/libs/common-py:/app/libs/contracts
       PUBLIC_IMAGE_BASE_URL: ${PUBLIC_IMAGE_BASE_URL}
@@ -90,14 +92,24 @@ services:
       - O:/product-video-matching/libs:/app/libs:ro
       - O:/product-video-matching/infra:/app/infra:ro
       - O:/product-video-matching/${DATA_ROOT_HOST}:${DATA_ROOT_CONTAINER}
-      - O:/product-video-matching/services/main-api:/app/app
+      - O:/product-video-matching/services/main-api:/app
     depends_on:
       postgres:
         condition: service_healthy
       rabbitmq:
         condition: service_healthy
     restart: unless-stopped
-    command: ["python", "-m", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+    command:
+      [
+        "python",
+        "-m",
+        "uvicorn",
+        "main:app",
+        "--host",
+        "0.0.0.0",
+        "--port",
+        "8000",
+      ]
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
       interval: 10s
@@ -139,14 +151,13 @@ services:
         fi
         npm run dev
 
-
   dropship-product-finder:
     build:
       context: ../../
       dockerfile: services/dropship-product-finder/Dockerfile
     env_file:
       - .env
-    environment:      
+    environment:
       PYTHONPATH: /app/libs:/app/libs/common-py:/app/libs/contracts
     volumes:
       - O:/product-video-matching/libs:/app/libs:ro
@@ -168,7 +179,7 @@ services:
       dockerfile: services/video-crawler/Dockerfile
     env_file:
       - .env
-    environment:      
+    environment:
       PYTHONPATH: /app/libs:/app/libs/common-py:/app/libs/contracts::/app/libs/vision-common
     volumes:
       - O:/product-video-matching/libs:/app/libs:ro
@@ -191,7 +202,7 @@ services:
     environment:
       PYTHONPATH: /app/libs:/app/libs/common-py:/app/libs/contracts:/app/libs/vision-common
       TRANSFORMERS_TRUST_REMOTE_CODE: 1
-      HF_HUB_ENABLE_HF_TRANSFER: 1 
+      HF_HUB_ENABLE_HF_TRANSFER: 1
     volumes:
       - O:/product-video-matching/libs:/app/libs:ro
       - O:/product-video-matching/${DATA_ROOT_HOST}:${DATA_ROOT_CONTAINER}
@@ -269,7 +280,7 @@ services:
       dockerfile: services/matcher/Dockerfile
     env_file:
       - .env
-    environment:      
+    environment:
       PYTHONPATH: /app/libs:/app/libs/common-py:/app/libs/contracts
     volumes:
       - O:/product-video-matching/libs:/app/libs:ro

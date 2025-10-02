@@ -11,7 +11,7 @@ This microservice is responsible for processing video content, including searchi
 
 ## Supported Platforms
 - YouTube: Search and download videos using yt-dlp
-- TikTok: Search videos using TikTok Search API at http://localhost:5680/tiktok/search
+- TikTok: Search videos using TikTok Search API and download videos using yt-dlp with anti-bot protection
 
 ## TikTok Platform Integration
 The TikTok crawler connects to an external TikTok Search API to search for videos and retrieve metadata. The crawler features:
@@ -24,6 +24,55 @@ The TikTok crawler connects to an external TikTok Search API to search for video
 - Environment variable: `TIKTOK_CRAWL_HOST_PORT=5680` (default)
 - API endpoint: `http://localhost:{TIKTOK_CRAWL_HOST_PORT}/tiktok/search`
 - Request format: `{"query": "...", "numVideos": 10, "force_headful": false}`
+
+## TikTok Video Download
+The TikTok downloader provides robust video download capabilities with advanced error handling:
+
+### Features
+- **Anti-bot Protection**: Automatic detection and handling of TikTok anti-bot measures
+- **Exponential Backoff**: Intelligent retry mechanism with increasing delays (1s, 2s, 4s, etc.)
+- **File Size Validation**: Enforces 500MB limit and removes oversized files
+- **Comprehensive Error Handling**: Handles network timeouts, connection errors, and permission issues
+- **Keyframe Extraction**: Automatic extraction of keyframes after successful download
+
+### Download Configuration
+- **Storage Path**: `TIKTOK_VIDEO_STORAGE_PATH` (default: `/tmp/videos/tiktok`)
+- **Keyframe Path**: `TIKTOK_KEYFRAME_STORAGE_PATH` (default: `/tmp/keyframes/tiktok`)
+- **Retry Attempts**: Configurable number of download retries (default: 3)
+- **Timeout**: Download timeout in seconds (default: 30)
+
+### Error Handling
+- **TikTokAntiBotError**: Custom exception for anti-bot detection
+- **Automatic Retries**: Failed downloads automatically retry with exponential backoff
+- **Graceful Degradation**: Database errors don't fail the entire download process
+- **Comprehensive Logging**: Detailed logging for debugging and monitoring
+
+### Usage Example
+```python
+from platform_crawler.tiktok.tiktok_downloader import TikTokDownloader
+
+# Initialize downloader
+config = {
+    'TIKTOK_VIDEO_STORAGE_PATH': '/path/to/videos',
+    'TIKTOK_KEYFRAME_STORAGE_PATH': '/path/to/keyframes',
+    'retries': 3,
+    'timeout': 30
+}
+downloader = TikTokDownloader(config)
+
+# Orchestrate complete download and extraction
+success = await downloader.orchestrate_download_and_extract(
+    url="https://www.tiktok.com/@username/video/123456789",
+    video_id="unique-video-id",
+    video=video_object,  # Optional
+    db=database_manager   # Optional
+)
+```
+
+### File Paths and Naming
+- **Videos**: Stored as `{video_id}.mp4` in the video storage directory
+- **Keyframes**: Stored in `{video_id}/` subdirectory within the keyframe storage directory
+- **Database**: Video metadata and keyframe information persisted to `videos` and `video_frames` tables
 
 ## In/Out Events
 ### Input Events

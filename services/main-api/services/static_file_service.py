@@ -122,4 +122,4 @@ class StaticFileService:
                 f"Static file request: {client_ip} - {request.method} {filename} - {status} - {file_size} bytes - {user_agent}")
         else:
             logger.debug(
-                f"Static file request: {client_ip} - {request.method} {filename} - {status} - {user_agent}")
+                f"Static file request: {client_ip} - {request.method} {filename} - {status} - {user_agent}")

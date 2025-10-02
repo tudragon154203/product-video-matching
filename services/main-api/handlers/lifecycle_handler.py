@@ -6,9 +6,9 @@ logger = configure_logging("main-api:lifecycle_handler")
 
 
 class LifecycleHandler:
-    def __init__(self, db: DatabaseManager, job_service: JobService):
+    def __init__(self, db: DatabaseManager, job_service: JobService, broker=None):
         self.db = db
-        # Removed broker since it's no longer used
+        self.broker = broker
         self.job_service = job_service
 
     async def startup(self):
@@ -20,6 +20,15 @@ class LifecycleHandler:
                 f"Failed to connect to database: {e}. "
                 "Continuing without database connection."
             )
+
+        if self.broker:
+            try:
+                await self.broker.connect()
+            except Exception as e:
+                logger.warning(
+                    f"Failed to connect to message broker: {e}. "
+                    "Continuing without message broker connection."
+                )
 
         logger.info("Main API service started")
 

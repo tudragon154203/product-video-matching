@@ -1,21 +1,23 @@
-import uuid
 import os
-from typing import Dict, Any, List, Optional
+import uuid
 from pathlib import Path
-from common_py.database import DatabaseManager
-from common_py.messaging import MessageBroker
+from typing import Any, Dict, List, Optional
+
 from common_py.crud import VideoCRUD, VideoFrameCRUD
+from common_py.database import DatabaseManager
+from common_py.logging_config import configure_logging
+from common_py.messaging import MessageBroker
 from common_py.models import Video, VideoFrame
+from config_loader import config
 from fetcher.video_fetcher import VideoFetcher
+from handlers.event_emitter import EventEmitter
 from keyframe_extractor.length_adaptive_extractor import LengthAdaptiveKeyframeExtractor
 from platform_crawler.interface import PlatformCrawlerInterface
 from platform_crawler.mock_crawler import MockPlatformCrawler
-from platform_crawler.youtube.youtube_crawler import YoutubeCrawler
 from platform_crawler.tiktok.tiktok_crawler import TikTokCrawler
-from handlers.event_emitter import EventEmitter
+from platform_crawler.tiktok.tiktok_downloader import TikTokDownloader
+from platform_crawler.youtube.youtube_crawler import YoutubeCrawler
 from services.cleanup_service import cleanup_service
-from common_py.logging_config import configure_logging
-from config_loader import config
 from vision_common import JobProgressManager
 
 logger = configure_logging("video-crawler:service")
@@ -185,7 +187,46 @@ class VideoCrawlerService:
         """Process a single video and extract keyframes"""
         try:
             video = await self._create_and_save_video_record(video_data, job_id)
-            keyframes_data = await self._extract_and_save_keyframes(video, video_data)
+
+            # Use TikTokDownloader for TikTok videos
+            if video.platform == "tiktok":
+                local_path = video_data.get("local_path")
+
+                if local_path:
+                    video.local_path = local_path
+                    video.has_download = True
+                    # Skip keyframe extraction here - it's already done by orchestrate_download_and_extract()
+                    keyframes_data = []  # Return empty to prevent duplicate extraction
+                else:
+                    tiktok_config = {
+                        "TIKTOK_VIDEO_STORAGE_PATH": config.TIKTOK_VIDEO_STORAGE_PATH,
+                        "TIKTOK_KEYFRAME_STORAGE_PATH": config.TIKTOK_KEYFRAME_STORAGE_PATH,
+                        "retries": 3,
+                        "timeout": 30
+                    }
+                    downloader = TikTokDownloader(tiktok_config)
+
+                    success = await downloader.orchestrate_download_and_extract(
+                        url=video_data["url"],
+                        video_id=video.video_id,
+                        video=video,
+                        db=self.db
+                    )
+
+                    if not success:
+                        logger.error(f"TikTok download and extraction failed for video {video.video_id}")
+                        return {
+                            "video_id": None,
+                            "platform": video.platform,
+                            "frames": []
+                        }
+
+                    # Skip keyframe extraction here - it's already done by orchestrate_download_and_extract()
+                    video_data["local_path"] = video.local_path
+                    keyframes_data = []  # Return empty to prevent duplicate extraction
+            else:
+                keyframes_data = await self._extract_and_save_keyframes(video, video_data)
+
             await self._emit_keyframes_ready_event(video, keyframes_data, job_id)
 
             # Increment processed count for the video
@@ -229,7 +270,7 @@ class VideoCrawlerService:
 
         # Extract keyframes from downloaded video or create dummy frames
         keyframes = await self.keyframe_extractor.extract_keyframes(
-            video_data["url"], video.video_id, local_path
+            video_data.get("url", ""), video.video_id, local_path
         )
 
         frame_data = []
@@ -248,6 +289,31 @@ class VideoCrawlerService:
                 "local_path": frame_path
             })
         return frame_data
+
+    async def _extract_keyframes_from_downloader(self, downloader: TikTokDownloader, video_id: str) -> List[Dict[str, Any]]:
+        """Extract keyframes data from TikTokDownloader for response formatting"""
+        try:
+            # Get the list of extracted keyframes from the downloader
+            from keyframe_extractor.length_adaptive_extractor import LengthAdaptiveKeyframeExtractor
+            extractor = LengthAdaptiveKeyframeExtractor(keyframe_root_dir=downloader.keyframe_storage_path)
+            keyframes = await extractor.extract_keyframes(
+                video_url="",  # Not needed for local file processing
+                video_id=video_id,
+                local_path=None  # Will be determined by the extractor
+            )
+
+            frame_data = []
+            for i, (timestamp, frame_path) in enumerate(keyframes):
+                frame_id = f"{video_id}_frame_{i}"
+                frame_data.append({
+                    "frame_id": frame_id,
+                    "ts": timestamp,
+                    "local_path": frame_path
+                })
+            return frame_data
+        except Exception as e:
+            logger.error(f"Failed to extract keyframes data from downloader for video {video_id}: {str(e)}")
+            return []
 
     def _get_video_dir(self) -> str:
         return self._video_dir_override or config.VIDEO_DIR

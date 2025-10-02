@@ -17,7 +17,6 @@ infra/qdrant/data
 
 # Docs
 .roo*
-.kilocode*
 .clinerules*
 .playwright-mcp
 

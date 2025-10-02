@@ -135,4 +135,4 @@ async def static_files_health(
 
     except Exception as e:
         logger.error(f"Static files health check failed: {e}")
-        return {"status": "error", "message": f"Health check failed: {e}"}
+        return {"status": "error", "message": f"Health check failed: {e}"}

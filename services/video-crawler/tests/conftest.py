@@ -2,16 +2,22 @@
 Pytest configuration and shared fixtures for video-crawler tests
 """
 import asyncio
+import os
 import tempfile
 from pathlib import Path
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 
 import pytest
 
 # Ensure common_py is in the path for tests
 import sys
-import os
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
+TESTS_DIR = Path(__file__).resolve().parent
+SERVICE_ROOT = TESTS_DIR.parent
+REPO_ROOT = SERVICE_ROOT.parent.parent
+for candidate in (SERVICE_ROOT, REPO_ROOT, REPO_ROOT / "libs"):
+    candidate_str = str(candidate)
+    if candidate_str not in sys.path:
+        sys.path.insert(0, candidate_str)
 
 
 @pytest.fixture(scope="session")
@@ -101,3 +107,10 @@ def mock_config():
     config = MagicMock()
     config.NUM_PARALLEL_DOWNLOADS = 3
     return config
+
+
+@pytest.fixture
+def tiktok_env_mock(temp_dir):
+    """Mock TIKTOK_VIDEO_STORAGE_PATH environment variable for TikTok-related tests"""
+    with patch.dict(os.environ, {'TIKTOK_VIDEO_STORAGE_PATH': temp_dir}):
+        yield temp_dir

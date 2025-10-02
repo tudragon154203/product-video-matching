@@ -2,6 +2,8 @@
 Video cleanup service for automatically removing old video files.
 """
 
+from datetime import datetime, timedelta
+from pathlib import Path
 from typing import Any, Dict
 
 from common_py.logging_config import configure_logging
@@ -144,6 +146,102 @@ class VideoCleanupService:
             'retention_days': config.VIDEO_RETENTION_DAYS,
             'video_dir': config.VIDEO_DIR
         }
+
+    async def cleanup_tiktok_videos(self, days: int = 7) -> Dict[str, Any]:
+        """
+        Clean up TikTok videos older than specified number of days.
+
+        Args:
+            days: Number of days to keep videos (default: 7)
+
+        Returns:
+            Dictionary with cleanup results
+        """
+        try:
+            tiktok_video_path = config.TIKTOK_VIDEO_STORAGE_PATH
+
+            logger.info(f"[TIKTOK-CLEANUP] Starting cleanup of TikTok videos older than {days} days from {tiktok_video_path}")
+
+            # Validate directory exists
+            if not Path(tiktok_video_path).exists():
+                logger.warning(f"[TIKTOK-CLEANUP] TikTok video directory does not exist: {tiktok_video_path}")
+                return {
+                    'videos_removed': [],
+                    'videos_skipped': [],
+                    'total_size_freed': 0,
+                    'total_videos': 0,
+                    'days_threshold': days,
+                    'path': tiktok_video_path,
+                    'error': 'Directory does not exist'
+                }
+
+            cutoff_date = datetime.now() - timedelta(days=days)
+            videos_removed = []
+            videos_skipped = []
+            total_size_freed = 0
+
+            # Scan for TikTok video files
+            for file_path in Path(tiktok_video_path).glob("*.mp4"):
+                try:
+                    # Check file modification time
+                    file_mod_time = datetime.fromtimestamp(file_path.stat().st_mtime)
+
+                    if file_mod_time < cutoff_date:
+                        # Remove old video file
+                        file_size = file_path.stat().st_size
+                        file_path.unlink()
+
+                        videos_removed.append({
+                            'filename': file_path.name,
+                            'path': str(file_path),
+                            'size_bytes': file_size,
+                            'modified_time': file_mod_time.isoformat(),
+                            'days_old': (datetime.now() - file_mod_time).days
+                        })
+
+                        total_size_freed += file_size
+                        logger.info(
+                            f"[TIKTOK-CLEANUP] Removed old video: {file_path.name} "
+                            f"({file_size} bytes, {(datetime.now() - file_mod_time).days} days old)")
+                    else:
+                        videos_skipped.append({
+                            'filename': file_path.name,
+                            'path': str(file_path),
+                            'modified_time': file_mod_time.isoformat(),
+                            'days_old': (datetime.now() - file_mod_time).days
+                        })
+
+                except Exception as e:
+                    logger.error(f"[TIKTOK-CLEANUP] Error processing file {file_path}: {str(e)}")
+                    videos_skipped.append({
+                        'filename': file_path.name,
+                        'path': str(file_path),
+                        'error': str(e)
+                    })
+
+            logger.info(f"[TIKTOK-CLEANUP] Cleanup completed: {len(videos_removed)} videos removed, {len(videos_skipped)} videos kept")
+
+            return {
+                'videos_removed': videos_removed,
+                'videos_skipped': videos_skipped,
+                'total_size_freed': total_size_freed,
+                'total_videos': len(videos_removed) + len(videos_skipped),
+                'days_threshold': days,
+                'path': tiktok_video_path,
+                'size_freed_mb': total_size_freed / (1024 * 1024)
+            }
+
+        except Exception as e:
+            logger.error(f"[TIKTOK-CLEANUP-ERROR] Failed to cleanup TikTok videos: {str(e)}")
+            return {
+                'videos_removed': [],
+                'videos_skipped': [],
+                'total_size_freed': 0,
+                'total_videos': 0,
+                'days_threshold': days,
+                'path': config.TIKTOK_VIDEO_STORAGE_PATH,
+                'error': str(e)
+            }
 
 
 # Global cleanup service instance

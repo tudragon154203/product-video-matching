@@ -1,4 +1,4 @@
-FROM python:3.10-slim
+FROM python:3.10.8-slim
 
 WORKDIR /app
 
@@ -20,10 +20,12 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY libs/common-py /app/libs/common-py
 COPY libs/contracts /app/libs/contracts
 COPY libs/config.py /app/libs/config.py
+COPY libs/vision-common /app/libs/vision-common
 
 # Install shared libraries in development mode
 RUN pip install --no-cache-dir -e /app/libs/common-py && \
-    pip install --no-cache-dir -e /app/libs/contracts
+    pip install --no-cache-dir -e /app/libs/contracts && \
+    pip install --no-cache-dir -e /app/libs/vision-common
 
 # (Optional) Environment hygiene
 ENV PYTHONDONTWRITEBYTECODE=1 \

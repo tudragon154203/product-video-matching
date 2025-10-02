@@ -40,7 +40,7 @@ broker = get_broker()
 job_service = JobService(db, broker)
 
 # Initialize lifecycle handler
-lifecycle_handler = LifecycleHandler(db, job_service)
+lifecycle_handler = LifecycleHandler(db, job_service, broker=broker)
 
 
 @asynccontextmanager

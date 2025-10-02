@@ -1,8 +1,8 @@
 
-# Implementation Plan: [FEATURE]
+# Implementation Plan: TikTok Video Download & Keyframe Extraction
 
-**Branch**: `[###-feature-name]` | **Date**: [DATE] | **Spec**: [link]
-**Input**: Feature specification from `/specs/[###-feature-name]/spec.md`
+**Branch**: `001-tiktok-video-download` | **Date**: 2025-09-30 | **Spec**: [TikTok Video Download & Keyframe Extraction Integration in video-crawler](spec.md)
+**Input**: Feature specification from `O:\\product-video-matching\\tiktok-video-download\\specs\\001-tiktok-video-download\\spec.md`
 
 ## Execution Flow (/plan command scope)
 ```
@@ -31,30 +31,30 @@
 - Phase 3-4: Implementation execution (manual or via tools)
 
 ## Summary
-[Extract from feature spec: primary requirement + technical approach from research]
+Extend the video-crawler service to download TikTok videos using yt-dlp from webViewUrl, extract keyframes using the existing length_adaptive_extractor, and persist keyframe metadata to the database, following the same job/phase/event-driven model used for YouTube integration.
 
 ## Technical Context
-**Language/Version**: [e.g., Python 3.11, Swift 5.9, Rust 1.75 or NEEDS CLARIFICATION]  
-**Primary Dependencies**: [e.g., FastAPI, UIKit, LLVM or NEEDS CLARIFICATION]  
-**Storage**: [if applicable, e.g., PostgreSQL, CoreData, files or N/A]  
-**Testing**: [e.g., pytest, XCTest, cargo test or NEEDS CLARIFICATION]  
-**Target Platform**: [e.g., Linux server, iOS 15+, WASM or NEEDS CLARIFICATION]
-**Project Type**: [single/web/mobile - determines source structure]  
-**Performance Goals**: [domain-specific, e.g., 1000 req/s, 10k lines/sec, 60 fps or NEEDS CLARIFICATION]  
-**Constraints**: [domain-specific, e.g., <200ms p95, <100MB memory, offline-capable or NEEDS CLARIFICATION]  
-**Scale/Scope**: [domain-specific, e.g., 10k users, 1M LOC, 50 screens or NEEDS CLARIFICATION]
+**Language/Version**: Python 3.10.8 (as per constitution)
+**Primary Dependencies**: yt-dlp, existing keyframe_extractors module (specifically length_adaptive_extractor.py in services/video-crawler/utils/), video_frame_crud from libs/common-py  
+**Storage**: PostgreSQL with pgvector for metadata, local filesystem using DATA_ROOT_CONTAINER for video/keyframe storage following the YouTube implementation pattern  
+**Testing**: pytest for unit and integration tests  
+**Target Platform**: Linux server (Docker container)  
+**Project Type**: single - extending existing video-crawler service  
+**Performance Goals**: Extract max 20 keyframes per video (configurable), with resilience to handle extraction failures  
+**Constraints**: Maximum 500MB file size limit, retry up to 3 times with exponential backoff on network failures, basic file validation (exists, non-zero size)  
+**Scale/Scope**: Integration with existing TikTok crawler, reuse job/phase/event-driven model from YouTube integration
 
 ## Constitution Check
 *GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
 
-- [ ] **I. Microservice Structure**: Adherence to standardized microservice layout.
-- [ ] **II. Event Contracts**: All inter-service communication conforms to defined event contracts.
-- [ ] **III. Testing Discipline**: Prioritization of integration tests, standardized test structure, pytest markers, and test execution.
-- [ ] **IV. Development Environment & Configuration**: Correct environment setup, configuration management, and efficient development practices.
-- [ ] **V. Data Flow Enforcement**: Strict adherence to the defined data processing pipeline and technology usage.
-- [ ] **VI. Unified Logging Standard**: Implementation of structured logging with ContextLogger, correlation ID tracking, and environment-based configuration.
-- [ ] **VII. Quality Assurance**: flake8 linting passes and all unit tests pass before code commits and merges.
-- [ ] **VIII. Python Version Pinning**: Python environments are pinned to version 3.10.8.
+- [x] **I. Microservice Structure**: Adherence to standardized microservice layout. (Extending existing video-crawler service with proper structure: app/main.py, handlers/, services/, config_loader.py)
+- [x] **II. Event Contracts**: All inter-service communication conforms to defined event contracts. (No new event contracts required for this feature)
+- [x] **III. Testing Discipline**: Prioritization of integration tests, standardized test structure, pytest markers, and test execution. (Will follow standard testing approach with integration and unit tests)
+- [x] **IV. Development Environment & Configuration**: Correct environment setup, configuration management, and efficient development practices. (Will use existing dev environment with Docker and docker-compose)
+- [x] **V. Data Flow Enforcement**: Strict adherence to the defined data processing pipeline and technology usage. (Following pipeline: job creation → collection → segmentation → embedding/keypoints → matching, using pgvector and RabbitMQ)
+- [x] **VI. Unified Logging Standard**: Implementation of structured logging with ContextLogger, correlation ID tracking, and environment-based configuration. (Will implement unified logging as per constitution)
+- [x] **VII. Quality Assurance**: flake8 linting passes and all unit tests pass before code commits and merges. (Will ensure code passes flake8 and all tests before merge)
+- [x] **VIII. Python Version Pinning**: Python environments pinned to version 3.10.8. (Using Python 3.10.8 as required)
 
 ## Project Structure
 
@@ -110,11 +110,11 @@ ios/ or android/
 └── [platform-specific structure]
 ```
 
-**Structure Decision**: [DEFAULT to Option 1 unless Technical Context indicates web/mobile app]
+**Structure Decision**: Option 1 - Single project (DEFAULT) since this extends the existing video-crawler service rather than creating a new web or mobile app
 
 ## Phase 0: Outline & Research
 1. **Extract unknowns from Technical Context** above:
-   - For each NEEDS CLARIFICATION → research task
+   - For each NEEDS CLARIFICATION → research task (none remain after clarifications)
    - For each dependency → best practices task
    - For each integration → patterns task
 
@@ -122,8 +122,8 @@ ios/ or android/
    ```
    For each unknown in Technical Context:
      Task: "Research {unknown} for {feature context}"
-   For each technology choice:
-     Task: "Find best practices for {tech} in {domain}"
+   For each technology choice (yt-dlp, keyframe extraction, video_frame_crud):
+     Task: "Find best practices for {tech} in TikTok video download and keyframe extraction context"
    ```
 
 3. **Consolidate findings** in `research.md` using format:
@@ -206,17 +206,17 @@ ios/ or android/
 *This checklist is updated during execution flow*
 
 **Phase Status**:
-- [ ] Phase 0: Research complete (/plan command)
-- [ ] Phase 1: Design complete (/plan command)
-- [ ] Phase 2: Task planning complete (/plan command - describe approach only)
+- [x] Phase 0: Research complete (/plan command)
+- [x] Phase 1: Design complete (/plan command)
+- [x] Phase 2: Task planning complete (/plan command - describe approach only)
 - [ ] Phase 3: Tasks generated (/tasks command)
 - [ ] Phase 4: Implementation complete
 - [ ] Phase 5: Validation passed
 
 **Gate Status**:
-- [ ] Initial Constitution Check: PASS
-- [ ] Post-Design Constitution Check: PASS
-- [ ] All NEEDS CLARIFICATION resolved
+- [x] Initial Constitution Check: PASS
+- [x] Post-Design Constitution Check: PASS
+- [x] All NEEDS CLARIFICATION resolved
 - [ ] Complexity deviations documented
 
 ---

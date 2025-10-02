@@ -12,8 +12,16 @@ from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import TYPE_CHECKING, List, Optional, Tuple
 
-import cv2
-import numpy as np
+try:
+    import cv2
+except ImportError:  # pragma: no cover
+    cv2 = None
+
+try:
+    import numpy as np
+except ImportError:  # pragma: no cover
+    np = None
+
 from common_py.logging_config import configure_logging
 from config_loader import config
 from .interface import KeyframeExtractorInterface
@@ -432,6 +440,18 @@ class AbstractKeyframeExtractor(KeyframeExtractorInterface, ABC):
                         count=len(keyframes),
                         local_path=local_path)
 
+            # If no keyframes were extracted but the directory was created, clean it up
+            # This prevents empty directories from accumulating
+            if not keyframes and keyframe_dir.exists():
+                logger.debug("No keyframes extracted, cleaning up empty directory", video_id=video_id)
+                try:
+                    shutil.rmtree(keyframe_dir)
+                except Exception as cleanup_exc:
+                    logger.warning("Failed to cleanup empty keyframes directory",
+                                   video_id=video_id,
+                                   directory=str(keyframe_dir),
+                                   error=str(cleanup_exc))
+
             return keyframes
 
         except Exception as e:
@@ -439,6 +459,17 @@ class AbstractKeyframeExtractor(KeyframeExtractorInterface, ABC):
                          video_id=video_id,
                          local_path=local_path,
                          error=str(e))
+
+            # Clean up directory on failure
+            if keyframe_dir and keyframe_dir.exists():
+                try:
+                    shutil.rmtree(keyframe_dir)
+                except Exception as cleanup_exc:
+                    logger.warning("Failed to cleanup keyframes directory after error",
+                                   video_id=video_id,
+                                   directory=str(keyframe_dir),
+                                   error=str(cleanup_exc))
+
             return []
 
     @abstractmethod
