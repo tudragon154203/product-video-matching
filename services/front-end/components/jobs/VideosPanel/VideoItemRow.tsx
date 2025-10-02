@@ -1,11 +1,11 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { VideoItem } from '@/lib/zod/video';
 import { formatGMT7 } from '@/lib/utils/formatGMT7';
 import { formatDuration } from '@/lib/utils/formatDuration';
 import { LinkExternalIcon } from '@/components/jobs/LinkExternalIcon';
 import { ThumbnailImage } from '@/components/common/ThumbnailImage';
-import { useTranslations } from 'next-intl';
+import { videoApiService } from '@/lib/api/services/video.api';
 
 interface VideoItemRowProps {
   video: VideoItem;
@@ -14,12 +14,56 @@ interface VideoItemRowProps {
 }
 
 export function VideoItemRow({ video, jobId, isCollecting = false }: VideoItemRowProps) {
-  const t = useTranslations();
+  const [thumbnailSrc, setThumbnailSrc] = useState<string | null>(
+    video.first_keyframe_url || video.preview_frame?.url || null,
+  );
 
-  // Use the first_keyframe_url and preview_frame from the video data instead of making a separate API call
-  // This eliminates the nested API call and improves performance
-  // Prefer first_keyframe_url, fallback to preview_frame.url if thumbnail is not available
-  const thumbnailSrc = video.first_keyframe_url || video.preview_frame?.url;
+  useEffect(() => {
+    setThumbnailSrc(video.first_keyframe_url || video.preview_frame?.url || null);
+  }, [video.first_keyframe_url, video.preview_frame]);
+
+  useEffect(() => {
+    let isCancelled = false;
+
+    if (!jobId || !video.video_id || video.frames_count <= 0) {
+      return undefined;
+    }
+
+    const fetchFrame = async () => {
+      try {
+        const response = await videoApiService.getVideoFrames(jobId, video.video_id, {
+          limit: 1,
+          offset: 0,
+          sort_by: 'ts',
+          order: 'ASC',
+        });
+
+        if (isCancelled) {
+          return;
+        }
+
+        const firstFrame = response.items[0];
+
+        if (firstFrame?.url) {
+          setThumbnailSrc(firstFrame.url);
+        } else if (firstFrame?.local_path) {
+          setThumbnailSrc(firstFrame.local_path);
+        } else {
+          setThumbnailSrc(video.first_keyframe_url || video.preview_frame?.url || null);
+        }
+      } catch (error) {
+        if (!isCancelled) {
+          setThumbnailSrc(video.first_keyframe_url || video.preview_frame?.url || null);
+        }
+      }
+    };
+
+    fetchFrame();
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [jobId, video.video_id, video.frames_count, video.first_keyframe_url, video.preview_frame]);
 
   return (
     <div className="flex items-center gap-3 p-2 hover:bg-muted rounded-md transition-colors">
@@ -31,7 +75,7 @@ export function VideoItemRow({ video, jobId, isCollecting = false }: VideoItemRo
         className="flex-shrink-0 hover:opacity-80 transition-opacity"
       >
         <ThumbnailImage
-          src={thumbnailSrc}
+          src={thumbnailSrc ?? undefined}
           alt={video.title || 'Video thumbnail'}
           data-testid="video-thumbnail"
         />

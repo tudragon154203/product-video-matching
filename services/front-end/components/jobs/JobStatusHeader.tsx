@@ -14,11 +14,14 @@ interface JobStatusHeaderProps {
 export function JobStatusHeader({ jobId, isCollecting = false }: JobStatusHeaderProps) {
   const { phase: currentPhase, percent } = useJobStatusPolling(jobId);
   const phaseInfo = getPhaseInfo(currentPhase as Phase);
+  const colorClass = phaseInfo.color.startsWith('bg-')
+    ? phaseInfo.color
+    : `bg-${phaseInfo.color}-500`;
   const { parentRef: headerRef } = useAutoAnimateList<HTMLDivElement>()
 
   // Phase-specific effects
   const renderPhaseEffect = () => {
-    if (!phaseInfo || !phaseInfo.effect) {
+    if (!phaseInfo || !phaseInfo.effect || phaseInfo.effect === 'none') {
       return null;
     }
 
@@ -56,7 +59,7 @@ export function JobStatusHeader({ jobId, isCollecting = false }: JobStatusHeader
         {/* Phase-specific effects */}
         {isCollecting && renderPhaseEffect()}
         <div
-          data-testid="status-color-circle" className={`h-4 w-4 rounded-full bg-${phaseInfo.color}-500`}
+          data-testid="status-color-circle" className={`h-4 w-4 rounded-full ${colorClass}`}
         />
         <Badge variant="secondary" className="text-xs">
           {phaseInfo.label}

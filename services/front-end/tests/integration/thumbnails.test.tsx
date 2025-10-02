@@ -14,25 +14,29 @@ jest.mock('@/lib/api/services/video.api');
 jest.mock('@/lib/api/services/product.api');
 
 // Mock Next.js Image component
-jest.mock('next/image', () => ({
-    __esModule: true,
-    default: function MockImage(props: any) {
-        return (
-            <img
-                {...props}
-                data-testid=\"thumbnail-image\"
-                    />
-    );
-  },
-}));
+jest.mock('next/image', () => {
+    const React = require('react');
+
+    return {
+        __esModule: true,
+        default: (props: any) => {
+            const { fill, loader, ...rest } = props ?? {};
+
+            return React.createElement('img', {
+                ...rest,
+                'data-testid': 'thumbnail-image',
+            });
+        },
+    };
+});
 
 // Mock common panel components to focus on thumbnail testing
 jest.mock('@/components/CommonPanel', () => ({
     CommonPanelLayout: ({ children, skeletonComponent, isLoading }: any) => {
         if (isLoading) return skeletonComponent;
-        return <div data-testid=\"panel-layout\">{children}</div>;
+        return <div data-testid="panel-layout">{children}</div>;
     },
-    CommonPagination: () => <div data-testid=\"pagination\" />,
+    CommonPagination: () => <div data-testid="pagination" />,
   usePanelData: jest.fn(),
 }));
 
@@ -70,11 +74,11 @@ const TestWrapper: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 
     return (
         <QueryClientProvider client={queryClient}>
-            <NextIntlClientProvider messages={messages} locale=\"en\">
-            {children}
-        </NextIntlClientProvider>
-    </QueryClientProvider >
-  );
+            <NextIntlClientProvider messages={messages} locale="en">
+                {children}
+            </NextIntlClientProvider>
+        </QueryClientProvider>
+    );
 };
 
 describe('Thumbnail Integration Tests', () => {

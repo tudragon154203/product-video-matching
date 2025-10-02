@@ -1,11 +1,10 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { ProductItem } from '@/lib/zod/product';
 import { formatGMT7 } from '@/lib/utils/formatGMT7';
-import { InlineBadge } from '@/components/jobs/InlineBadge';
 import { LinkExternalIcon } from '@/components/jobs/LinkExternalIcon';
 import { ThumbnailImage } from '@/components/common/ThumbnailImage';
-import { useTranslations } from 'next-intl';
+import { imageApiService } from '@/lib/api/services/image.api';
 
 interface ProductItemRowProps {
   product: ProductItem;
@@ -14,10 +13,53 @@ interface ProductItemRowProps {
 }
 
 export function ProductItemRow({ product, jobId, isCollecting = false }: ProductItemRowProps) {
-  const t = useTranslations();
+  const [thumbnailSrc, setThumbnailSrc] = useState<string | null>(product.primary_image_url ?? null);
 
-  // Use the primary_image_url from the product data instead of making a separate API call
-  // This eliminates the nested API call and improves performance
+  useEffect(() => {
+    setThumbnailSrc(product.primary_image_url ?? null);
+  }, [product.primary_image_url]);
+
+  useEffect(() => {
+    let isCancelled = false;
+
+    if (!jobId || !product.product_id || product.image_count <= 0) {
+      return undefined;
+    }
+
+    const fetchThumbnail = async () => {
+      try {
+        const response = await imageApiService.getJobImages(jobId, {
+          product_id: product.product_id,
+          limit: 1,
+          offset: 0,
+        });
+
+        if (isCancelled) {
+          return;
+        }
+
+        const firstImage = response.items[0];
+
+        if (firstImage?.url) {
+          setThumbnailSrc(firstImage.url);
+        } else if (firstImage?.local_path) {
+          setThumbnailSrc(firstImage.local_path);
+        } else {
+          setThumbnailSrc(product.primary_image_url ?? null);
+        }
+      } catch (error) {
+        if (!isCancelled) {
+          setThumbnailSrc(product.primary_image_url ?? null);
+        }
+      }
+    };
+
+    fetchThumbnail();
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [jobId, product.product_id, product.image_count, product.primary_image_url]);
 
   return (
     <div className="flex items-center gap-3 p-2 hover:bg-muted rounded-md transition-colors">
@@ -29,7 +71,7 @@ export function ProductItemRow({ product, jobId, isCollecting = false }: Product
         className="flex-shrink-0 hover:opacity-80 transition-opacity"
       >
         <ThumbnailImage
-          src={product.primary_image_url}
+          src={thumbnailSrc ?? undefined}
           alt={product.title || 'Product image'}
           data-testid="product-thumbnail"
         />
