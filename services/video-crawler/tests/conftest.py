@@ -10,8 +10,13 @@ import pytest
 
 # Ensure common_py is in the path for tests
 import sys
-import os
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
+TESTS_DIR = Path(__file__).resolve().parent
+SERVICE_ROOT = TESTS_DIR.parent
+REPO_ROOT = SERVICE_ROOT.parent.parent
+for candidate in (SERVICE_ROOT, REPO_ROOT, REPO_ROOT / "libs"):
+    candidate_str = str(candidate)
+    if candidate_str not in sys.path:
+        sys.path.insert(0, candidate_str)
 
 
 @pytest.fixture(scope="session")

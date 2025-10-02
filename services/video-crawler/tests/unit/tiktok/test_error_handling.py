@@ -1,4 +1,5 @@
 import asyncio
+
 import pytest
 from unittest.mock import Mock, patch
 from platform_crawler.tiktok.tiktok_downloader import TikTokDownloader, TikTokAntiBotError

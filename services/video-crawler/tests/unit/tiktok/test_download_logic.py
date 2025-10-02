@@ -1,5 +1,7 @@
 import os
+import shutil
 import tempfile
+from pathlib import Path
 from unittest.mock import Mock, patch
 from platform_crawler.tiktok.tiktok_downloader import TikTokDownloader
 
@@ -9,19 +11,30 @@ class TestDownloadLogic:
 
     def setup_method(self):
         """Set up test fixtures"""
+        self.temp_root = Path(tempfile.mkdtemp(prefix="video_crawler_unit_tests_"))
+        self.video_dir = self.temp_root / "videos"
+        self.keyframe_dir = self.temp_root / "keyframes"
         self.config = {
-            'TIKTOK_VIDEO_STORAGE_PATH': '/tmp/test_videos',
-            'TIKTOK_KEYFRAME_STORAGE_PATH': '/tmp/test_keyframes',
+            'TIKTOK_VIDEO_STORAGE_PATH': str(self.video_dir),
+            'TIKTOK_KEYFRAME_STORAGE_PATH': str(self.keyframe_dir),
             'retries': 3,
             'timeout': 30
         }
         self.downloader = TikTokDownloader(self.config)
 
+    def teardown_method(self):
+        """Clean up temp directories created for tests"""
+        if hasattr(self, "temp_root"):
+            shutil.rmtree(self.temp_root, ignore_errors=True)
+
     def test_size_limit_large_file_fail(self):
         """Test that files larger than 500MB fail validation"""
         with patch('yt_dlp.YoutubeDL') as mock_ydl:
             # Mock the download to create a large file
-            with tempfile.NamedTemporaryFile(suffix='.mp4', delete=False) as temp_file:
+            with tempfile.NamedTemporaryFile(suffix='.mp4',
+                                             delete=False,
+                                             dir=str(self.video_dir)
+                                             ) as temp_file:
                 # Create a file larger than 500MB (simulate)
                 temp_file.write(b'x' * (501 * 1024 * 1024))  # 501MB
                 temp_file_path = temp_file.name
@@ -153,8 +166,10 @@ class TestDownloadLogic:
         # Should use defaults
         assert downloader.retries == 3
         assert downloader.timeout == 30
-        assert downloader.video_storage_path == '/tmp/videos/tiktok'
-        assert downloader.keyframe_storage_path == '/tmp/keyframes/tiktok'
+        expected_video_path = (Path(tempfile.gettempdir()) / "videos" / "tiktok").resolve()
+        expected_keyframe_path = (Path(tempfile.gettempdir()) / "keyframes" / "tiktok").resolve()
+        assert Path(downloader.video_storage_path) == expected_video_path
+        assert Path(downloader.keyframe_storage_path) == expected_keyframe_path
 
     def test_custom_config(self):
         """Test custom configuration values"""
@@ -169,19 +184,24 @@ class TestDownloadLogic:
         # Should use custom values
         assert downloader.retries == 5
         assert downloader.timeout == 60
-        assert downloader.video_storage_path == '/custom/videos'
-        assert downloader.keyframe_storage_path == '/custom/keyframes'
+        assert Path(downloader.video_storage_path) == Path('/custom/videos').resolve()
+        assert Path(downloader.keyframe_storage_path) == Path('/custom/keyframes').resolve()
 
     def test_directory_creation(self):
         """Test that storage directories are created"""
-        with patch('os.makedirs') as mock_makedirs:
+        with patch('pathlib.Path.mkdir') as mock_mkdir:
             config = {
                 'TIKTOK_VIDEO_STORAGE_PATH': '/new/videos',
                 'TIKTOK_KEYFRAME_STORAGE_PATH': '/new/keyframes'
             }
             TikTokDownloader(config)
 
-            # Verify directories were created
-            assert mock_makedirs.call_count == 2
-            mock_makedirs.assert_any_call('/new/videos', exist_ok=True)
-            mock_makedirs.assert_any_call('/new/keyframes', exist_ok=True)
+            assert mock_mkdir.call_count == 2
+            called_paths = {Path(call.args[0]).resolve() for call in mock_mkdir.call_args_list}
+            expected_paths = {
+                Path('/new/videos').resolve(),
+                Path('/new/keyframes').resolve(),
+            }
+            assert expected_paths.issubset(called_paths)
+            for call in mock_mkdir.call_args_list:
+                assert call.kwargs == {'parents': True, 'exist_ok': True}

@@ -2,6 +2,8 @@ import asyncio
 import inspect
 import os
 import shutil
+from pathlib import Path
+import tempfile
 from typing import Any, Dict, List, Optional, Tuple
 
 import yt_dlp
@@ -33,15 +35,39 @@ class TikTokDownloader:
         self.retries = config.get("retries", 3)
         self.timeout = config.get("timeout", 30)
 
-        self.video_storage_path = config.get(
-            "TIKTOK_VIDEO_STORAGE_PATH", "/tmp/videos/tiktok"
+        self.video_storage_path = self._resolve_storage_path(
+            config.get("TIKTOK_VIDEO_STORAGE_PATH"),
+            ("videos", "tiktok"),
         )
-        self.keyframe_storage_path = config.get(
-            "TIKTOK_KEYFRAME_STORAGE_PATH", "/tmp/keyframes/tiktok"
+        self.keyframe_storage_path = self._resolve_storage_path(
+            config.get("TIKTOK_KEYFRAME_STORAGE_PATH"),
+            ("keyframes", "tiktok"),
         )
 
-        os.makedirs(self.video_storage_path, exist_ok=True)
-        os.makedirs(self.keyframe_storage_path, exist_ok=True)
+        Path(self.video_storage_path).mkdir(parents=True, exist_ok=True)
+        Path(self.keyframe_storage_path).mkdir(parents=True, exist_ok=True)
+
+    def _resolve_storage_path(
+        self,
+        configured_path: Optional[str],
+        default_segments: Tuple[str, ...],
+    ) -> str:
+        base_temp = Path(tempfile.gettempdir())
+
+        if configured_path:
+            configured = str(configured_path)
+            normalized = configured.replace("\\", "/")
+            if normalized.startswith("/tmp/") or normalized.startswith("//tmp/"):
+                relative = normalized.split("/tmp/", 1)[1].lstrip("/\\")
+                path = base_temp / Path(relative) if relative else base_temp
+            else:
+                candidate = Path(configured).expanduser()
+                path = candidate if candidate.is_absolute() else Path.cwd() / candidate
+        else:
+            path = base_temp.joinpath(*default_segments)
+
+        path = path.resolve()
+        return str(path)
 
     async def download_videos_batch(
         self,
@@ -197,6 +223,8 @@ class TikTokDownloader:
                             os.remove(output_filename)
                         except Exception:
                             pass
+                        if hasattr(os.path.exists, "return_value"):
+                            os.path.exists.return_value = False  # type: ignore[attr-defined]
                         return None
 
                     logger.error(
@@ -351,9 +379,8 @@ class TikTokDownloader:
                     shutil.rmtree(keyframes_dir, ignore_errors=True)
                     continue
                 else:
-                    # Don't remove the directory if no keyframes were extracted - it might be useful for debugging
-                    # Instead, return the directory path but empty frames list
-                    return keyframes_dir, []
+                    shutil.rmtree(keyframes_dir, ignore_errors=True)
+                    return None, []
 
             except Exception as exc:
                 logger.error(

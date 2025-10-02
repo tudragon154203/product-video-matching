@@ -115,7 +115,7 @@ async def test_max_concurrent_platforms_limit():
     # Create service with mock crawlers
     with tempfile.TemporaryDirectory() as temp_dir:
         # Mock TikTokDownloader to use temporary directories
-        with patch('services.video_crawler.platform_crawler.tiktok.tiktok_downloader.TikTokDownloader') as MockTikTokDownloader:
+        with patch('platform_crawler.tiktok.tiktok_downloader.TikTokDownloader') as MockTikTokDownloader:
             mock_downloader_instance = MagicMock()
             mock_downloader_instance.video_storage_path = os.path.join(temp_dir, "tiktok_videos")
             mock_downloader_instance.keyframe_storage_path = os.path.join(temp_dir, "tiktok_keyframes")
@@ -124,7 +124,7 @@ async def test_max_concurrent_platforms_limit():
             MockTikTokDownloader.return_value = mock_downloader_instance
 
             # Mock TikTokCrawler to use the mocked downloader
-            with patch('services.video_crawler.platform_crawler.tiktok.tiktok_crawler.TikTokCrawler') as MockTikTokCrawler:
+            with patch('platform_crawler.tiktok.tiktok_crawler.TikTokCrawler') as MockTikTokCrawler:
                 mock_tiktok_crawler_instance = MagicMock()
                 mock_tiktok_crawler_instance.get_platform_name.return_value = "tiktok"
                 mock_tiktok_crawler_instance.downloader = mock_downloader_instance

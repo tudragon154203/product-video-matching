@@ -195,7 +195,8 @@ class VideoCrawlerService:
                 if local_path:
                     video.local_path = local_path
                     video.has_download = True
-                    keyframes_data = await self._extract_and_save_keyframes(video, video_data)
+                    # Skip keyframe extraction here - it's already done by orchestrate_download_and_extract()
+                    keyframes_data = []  # Return empty to prevent duplicate extraction
                 else:
                     tiktok_config = {
                         "TIKTOK_VIDEO_STORAGE_PATH": config.TIKTOK_VIDEO_STORAGE_PATH,
@@ -220,8 +221,9 @@ class VideoCrawlerService:
                             "frames": []
                         }
 
+                    # Skip keyframe extraction here - it's already done by orchestrate_download_and_extract()
                     video_data["local_path"] = video.local_path
-                    keyframes_data = await self._extract_and_save_keyframes(video, video_data)
+                    keyframes_data = []  # Return empty to prevent duplicate extraction
             else:
                 keyframes_data = await self._extract_and_save_keyframes(video, video_data)
 
