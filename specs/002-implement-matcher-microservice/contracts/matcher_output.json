@@ -3,17 +3,16 @@
   "items": {
     "type": "object",
     "properties": {
-      "product_id": {"type": "string", "description": "ID of the matched product"},
-      "frame_id": {"type": "string", "description": "ID of the video frame"},
-      "match_score": {"type": "number", "format": "float", "description": "Overall match score"},
+      "product_id": {"type": "string"},
+      "frame_id": {"type": "string"},
+      "match_score": {"type": "number"},
       "bounding_box": {
         "type": "array",
-        "items": {"type": "number", "format": "float"},
+        "items": {"type": "number"},
         "minItems": 4,
-        "maxItems": 4,
-        "description": "[x_min, y_min, x_max, y_max] coordinates of the bounding box"
+        "maxItems": 4
       },
-      "confidence_level": {"type": "number", "format": "float", "description": "Confidence level of the match"}
+      "confidence_level": {"type": "number"}
     },
     "required": ["product_id", "frame_id", "match_score", "bounding_box", "confidence_level"]
   }

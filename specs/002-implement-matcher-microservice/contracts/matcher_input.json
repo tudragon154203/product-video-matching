@@ -1,24 +1,13 @@
 {
-  "type": "object",
-  "properties": {
-    "product_image_data": {
-      "type": "string",
-      "format": "byte",
-      "description": "Base64 encoded product image data"
-    },
-    "video_frame_data": {
-      "type": "string",
-      "format": "byte",
-      "description": "Base64 encoded video frame image data"
-    },
-    "product_id": {
-      "type": "string",
-      "description": "ID of the product being matched"
-    },
-    "frame_id": {
-      "type": "string",
-      "description": "ID of the video frame being matched"
-    }
+  "product": {
+    "product_id": "prod123",
+    "image_url": "http://example.com/product.jpg",
+    "metadata": {}
   },
-  "required": ["product_image_data", "video_frame_data", "product_id", "frame_id"]
+  "video_frame": {
+    "frame_id": "frame456",
+    "video_id": "video789",
+    "timestamp": 123.45,
+    "image_url": "http://example.com/frame.jpg"
+  }
 }

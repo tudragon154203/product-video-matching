@@ -1,53 +1,61 @@
-from handlers.matcher_handler import MatcherHandler
-from common_py.logging_config import configure_logging
 import asyncio
-import sys
-from contextlib import asynccontextmanager
+import logging
+from aio_pika import connect_robust, ExchangeType
+from common_py.logging_config import configure_logging
+from handlers.match_request_handler import handle_match_request
 
-# Add the app directory to the Python path for bind mount setup
-sys.path.append("/app/app")
+# 1. Configure Logging (T023 - Part 1)
+configure_logging()
+logger = logging.getLogger(__name__)
 
-
-logger = configure_logging("matcher:main")
-
-
-@asynccontextmanager
-async def service_context():
-    """Context manager for service resources"""
-    handler = MatcherHandler()
-    try:
-        # Initialize connections
-        await handler.db.connect()
-        await handler.broker.connect()
-        await handler.initialize()
-        yield handler
-    finally:
-        # Cleanup resources
-        await handler.service.cleanup()
-        await handler.db.disconnect()
-        await handler.broker.disconnect()
-
+# Placeholder for configuration (will be loaded from config_loader.py later)
+RABBITMQ_URL = "amqp://guest:guest@localhost/"
+MATCH_REQUEST_QUEUE = "match_requests"
+MATCH_REQUEST_EXCHANGE = "pvm.match.request"
 
 async def main():
-    """Main service loop"""
+    """
+    Main function to connect to RabbitMQ and start consuming messages. (T021)
+    """
+    logger.info("Starting Matcher Microservice...")
+
     try:
-        async with service_context() as handler:
-            # Subscribe to events
-            await handler.broker.subscribe_to_topic(
-                "match.request",
-                handler.handle_match_request
-            )
+        # Connect to RabbitMQ
+        connection = await connect_robust(RABBITMQ_URL)
+        
+        # Creating a channel
+        channel = await connection.channel()
+        
+        # Declare the exchange (assuming a fanout or direct exchange for requests)
+        exchange = await channel.declare_exchange(
+            MATCH_REQUEST_EXCHANGE, 
+            ExchangeType.FANOUT, 
+            durable=True
+        )
+        
+        # Declare the queue and bind it to the exchange
+        queue = await channel.declare_queue(
+            MATCH_REQUEST_QUEUE, 
+            durable=True
+        )
+        await queue.bind(exchange, routing_key="") # Bind to fanout exchange
+        
+        # Start consuming messages
+        logger.info(f"Waiting for messages on queue: {MATCH_REQUEST_QUEUE}")
+        await queue.consume(handle_match_request)
+        
+        # Keep the main task running
+        await asyncio.Future()
 
-            logger.info("Matcher service started")
-
-            # Keep service running
-            while True:
-                await asyncio.sleep(1)
-
-    except KeyboardInterrupt:
-        logger.info("Shutting down matcher service")
     except Exception as e:
-        logger.error("Service error", error=str(e))
+        logger.critical(f"Fatal error in main loop: {e}", exc_info=True)
+    finally:
+        if 'connection' in locals() and connection:
+            await connection.close()
+        logger.info("Matcher Microservice stopped.")
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    try:
+        asyncio.run(main())
+    except KeyboardInterrupt:
+        logger.info("Service interrupted by user.")

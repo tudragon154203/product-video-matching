@@ -1,29 +1,38 @@
 # Matcher Microservice
 
-## Overview
-This microservice contains the core logic for matching products with video content. It leverages deep learning embeddings and traditional computer vision techniques to identify visual similarities.
+The Matcher Microservice is the core component of the Product-Video Matching system. Its primary function is to determine if a given e-commerce product is visually present in a specific video frame.
 
-## Functionality
-- Compares product embeddings with video frame embeddings.
-- Applies computer vision algorithms (e.g., AKAZE/SIFT + RANSAC) for precise matching.
-- Determines the confidence score of potential matches.
+It employs a hybrid computer vision approach:
+1.  **Deep Learning Filter (CLIP):** Product and frame images are converted into high-dimensional embeddings. A cosine similarity check is performed as a fast, initial filter. If the similarity is below a threshold, the detailed matching is skipped.
+2.  **Traditional Computer Vision Verification (AKAZE/SIFT + RANSAC):** If the CLIP similarity is high, a robust geometric verification is performed using feature matching (AKAZE/SIFT) and RANSAC to find a homography, which confirms the product's presence and provides a precise bounding box.
 
-## In/Out Events
-### Input Events
-- `ProductEmbeddingReady`: Event indicating that product embeddings are available for matching.
-  - Data: `{"product_id": "prod-456", "embedding_vector": [0.1, 0.2, ...]}`
-- `VideoFrameEmbeddingReady`: Event indicating that video frame embeddings are available.
-  - Data: `{"video_id": "vid-789", "frame_number": 10, "embedding_vector": [0.3, 0.4, ...]}`
+## Architecture
 
-### Output Events
-- `MatchFound`: Event indicating a successful match between a product and a video segment.
-  - Data: `{"match_id": "abc-123", "product_id": "prod-456", "video_id": "vid-789", "timestamp": 123.45, "confidence": 0.95}`
+- **Input:** Consumes matching requests from the `pvm.match.request` RabbitMQ exchange. The request contains product and video frame metadata (including image URLs).
+- **Output:** Publishes `MatchResult` objects to the `pvm.match.result` RabbitMQ exchange.
+- **Dependencies:** Requires access to a RabbitMQ broker. Uses `opencv-python`, `torch`, and `transformers` for the core vision logic.
 
-## Current Progress
-- Initial implementation of CLIP embedding similarity matching.
-- Integration of AKAZE/SIFT for keypoint matching.
+## Configuration
 
-## What's Next
-- Optimize matching algorithms for speed and accuracy.
-- Explore advanced matching techniques and models.
-- Implement batch processing for improved efficiency.
+The service uses environment variables for configuration, primarily for the RabbitMQ connection details.
+
+| Variable | Default | Description |
+| :--- | :--- | :--- |
+| `RABBITMQ_URL` | `amqp://guest:guest@localhost/` | Connection string for the RabbitMQ broker. |
+| `MATCH_REQUEST_EXCHANGE` | `pvm.match.request` | Exchange to consume matching requests from. |
+| `MATCH_RESULT_EXCHANGE` | `pvm.match.result` | Exchange to publish matching results to. |
+
+## Development
+
+To run the service locally, ensure you have the required Python dependencies installed and a running RabbitMQ instance.
+
+```bash
+# Navigate to the service directory
+cd services/matcher
+
+# Install dependencies
+pip install -r requirements.txt
+
+# Run the service
+python main.py
+```
