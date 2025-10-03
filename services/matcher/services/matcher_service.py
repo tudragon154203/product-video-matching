@@ -8,17 +8,18 @@ from PIL import Image
 import torch
 from transformers import CLIPProcessor, CLIPModel
 
-from common_py.logging_config import ContextLogger
 from .data_models import Product, VideoFrame, MatchResult
 
 # Initialize logger
 logger = logging.getLogger(__name__)
+
 
 class MatcherService:
     """
     Core service for matching products to video frames using a hybrid approach
     of deep learning embeddings (CLIP) and traditional computer vision (AKAZE/SIFT + RANSAC).
     """
+
     def __init__(self):
         # Initialize CLIP model and processor
         # Using a small, common model for demonstration.
@@ -34,7 +35,7 @@ class MatcherService:
         def blocking_load():
             with urlopen(url) as response:
                 return Image.open(response).convert("RGB")
-        
+
         try:
             return await asyncio.to_thread(blocking_load)
         except Exception as e:
@@ -109,17 +110,18 @@ class MatcherService:
         # Simple confidence/score calculation (e.g., based on inliers)
         inliers = np.sum(mask)
         confidence_level = inliers / len(good_matches)
-        match_score = confidence_level * 0.8 + (len(good_matches) / len(matches)) * 0.2 # Placeholder heuristic
+        match_score = confidence_level * 0.8 + (len(good_matches) / len(matches)) * 0.2  # Placeholder heuristic
 
         return MatchResult(
-            product_id="placeholder", # Will be replaced in the main match method
-            frame_id="placeholder", # Will be replaced in the main match method
+            product_id="placeholder",  # Will be replaced in the main match method
+            frame_id="placeholder",  # Will be replaced in the main match method
             match_score=match_score,
             bounding_box=bounding_box,
             confidence_level=confidence_level
         )
 
-    def _perform_match_logic(self, product: Product, frame: VideoFrame, product_image: Image.Image, frame_image: Image.Image) -> List[MatchResult]:
+    def _perform_match_logic(self, product: Product, frame: VideoFrame,
+                             product_image: Image.Image, frame_image: Image.Image) -> List[MatchResult]:
         """
         Contains the heavy, blocking CV/CLIP logic, extracted for asynchronous execution (T025).
         """
@@ -129,7 +131,7 @@ class MatcherService:
         try:
             product_embedding = self._get_clip_embedding(product_image)
             frame_embedding = self._get_clip_embedding(frame_image)
-            
+
             # Simple cosine similarity (placeholder for pgvector query)
             similarity = np.dot(product_embedding, frame_embedding) / (
                 np.linalg.norm(product_embedding) * np.linalg.norm(frame_embedding)
@@ -137,7 +139,7 @@ class MatcherService:
             logger.debug(f"CLIP Similarity: {similarity}")
 
             # Threshold for proceeding to CV match
-            if similarity < 0.5: # Arbitrary threshold
+            if similarity < 0.5:  # Arbitrary threshold
                 logger.info("CLIP similarity too low. Skipping detailed CV match.")
                 return []
         except Exception as e:
@@ -152,11 +154,11 @@ class MatcherService:
             # Finalize the MatchResult with correct IDs
             cv_match_result.product_id = product.product_id
             cv_match_result.frame_id = frame.frame_id
-            
+
             # Combine CLIP similarity into the final score (e.g., weighted average)
             final_score = (cv_match_result.match_score * 0.7) + (similarity * 0.3)
             cv_match_result.match_score = final_score
-            
+
             logger.info(f"Match found with final score: {final_score}")
             return [cv_match_result]
         else:
@@ -182,12 +184,13 @@ class MatcherService:
 
         # Offload the heavy, blocking computation to a thread pool
         return await asyncio.to_thread(
-            self._perform_match_logic, 
-            product, 
-            frame, 
-            product_image, 
+            self._perform_match_logic,
+            product,
+            frame,
+            product_image,
             frame_image
         )
+
 
 # Export the service instance for use in handlers
 matcher_service = MatcherService()

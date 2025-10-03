@@ -21,6 +21,7 @@ MOCK_MATCH_RESULT = MatchResult(
     confidence_level=0.95
 )
 
+
 @pytest.mark.integration
 @pytest.mark.asyncio
 async def test_successful_match_scenario():

@@ -13,6 +13,7 @@ RABBITMQ_URL = "amqp://guest:guest@localhost/"
 MATCH_REQUEST_QUEUE = "match_requests"
 MATCH_REQUEST_EXCHANGE = "pvm.match.request"
 
+
 async def main():
     """
     Main function to connect to RabbitMQ and start consuming messages. (T021)
@@ -22,28 +23,28 @@ async def main():
     try:
         # Connect to RabbitMQ
         connection = await connect_robust(RABBITMQ_URL)
-        
+
         # Creating a channel
         channel = await connection.channel()
-        
+
         # Declare the exchange (assuming a fanout or direct exchange for requests)
         exchange = await channel.declare_exchange(
-            MATCH_REQUEST_EXCHANGE, 
-            ExchangeType.FANOUT, 
+            MATCH_REQUEST_EXCHANGE,
+            ExchangeType.FANOUT,
             durable=True
         )
-        
+
         # Declare the queue and bind it to the exchange
         queue = await channel.declare_queue(
-            MATCH_REQUEST_QUEUE, 
+            MATCH_REQUEST_QUEUE,
             durable=True
         )
-        await queue.bind(exchange, routing_key="") # Bind to fanout exchange
-        
+        await queue.bind(exchange, routing_key="")  # Bind to fanout exchange
+
         # Start consuming messages
         logger.info(f"Waiting for messages on queue: {MATCH_REQUEST_QUEUE}")
         await queue.consume(handle_match_request)
-        
+
         # Keep the main task running
         await asyncio.Future()
 

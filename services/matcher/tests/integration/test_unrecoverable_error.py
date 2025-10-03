@@ -12,6 +12,7 @@ MOCK_INPUT_BODY = {
     "frame": {"frame_id": "F456", "video_id": "V789", "timestamp": 10.0, "image_url": "http://frame.img"}
 }
 
+
 @pytest.mark.integration
 @pytest.mark.asyncio
 async def test_unrecoverable_error_during_matching_edge_case():
@@ -31,16 +32,16 @@ async def test_unrecoverable_error_during_matching_edge_case():
 
         # Mock the publisher
         with patch('handlers.match_request_handler.publisher.publish', new_callable=AsyncMock) as mock_publish:
-            
+
             # Act: Call the handler
             await handle_match_request(mock_incoming_message)
 
             # Assert 1: Core service was called
             mock_match.assert_called_once()
-            
+
             # Assert 2: Result was NOT published
             mock_publish.assert_not_called()
-            
+
             # Assert 3: Message was rejected (not acknowledged)
             mock_incoming_message.ack.assert_not_called()
             mock_incoming_message.reject.assert_called_once_with(requeue=False)

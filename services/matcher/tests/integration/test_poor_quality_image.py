@@ -17,10 +17,11 @@ MOCK_INPUT_BODY = {
 MOCK_LOW_CONFIDENCE_MATCH = MatchResult(
     product_id="P123",
     frame_id="F456",
-    match_score=0.45, # Below the high threshold, but still a match
+    match_score=0.45,  # Below the high threshold, but still a match
     bounding_box=[10.0, 20.0, 100.0, 200.0],
     confidence_level=0.55
 )
+
 
 @pytest.mark.integration
 @pytest.mark.asyncio

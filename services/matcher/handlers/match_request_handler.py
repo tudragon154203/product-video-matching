@@ -2,7 +2,6 @@ import json
 import logging
 from typing import List
 from aio_pika import IncomingMessage, connect_robust, Message, ExchangeType
-from common_py.logging_config import ContextLogger
 from services.data_models import Product, VideoFrame, MatchResult
 from services.matcher_service import matcher_service
 
@@ -14,8 +13,10 @@ logger = logging.getLogger(__name__)
 RABBITMQ_URL = "amqp://guest:guest@localhost/"
 MATCH_RESULT_EXCHANGE = "pvm.match.result"
 
+
 class MatchResultPublisher:
     """Manages the connection and publishing of match results."""
+
     def __init__(self):
         self.connection = None
         self.channel = None
@@ -25,12 +26,12 @@ class MatchResultPublisher:
         """Establishes connection and declares exchange."""
         if self.connection and not self.connection.is_closed:
             return
-        
+
         self.connection = await connect_robust(RABBITMQ_URL)
         self.channel = await self.connection.channel()
         self.exchange = await self.channel.declare_exchange(
-            MATCH_RESULT_EXCHANGE, 
-            ExchangeType.FANOUT, 
+            MATCH_RESULT_EXCHANGE,
+            ExchangeType.FANOUT,
             durable=True
         )
         logger.info(f"MatchResultPublisher connected to {MATCH_RESULT_EXCHANGE} exchange.")
@@ -38,31 +39,33 @@ class MatchResultPublisher:
     async def publish(self, body: bytes):
         """Publishes the result message."""
         if not self.exchange:
-            await self.connect() # Reconnect if necessary
-        
+            await self.connect()  # Reconnect if necessary
+
         message = Message(
             body=body,
             content_type='application/json',
-            delivery_mode=2 # Persistent
+            delivery_mode=2  # Persistent
         )
         await self.exchange.publish(message, routing_key="")
 
+
 # Global publisher instance
 publisher = MatchResultPublisher()
+
 
 async def handle_match_request(message: IncomingMessage):
     """
     Handles incoming RabbitMQ messages for product-video frame matching requests.
     """
     try:
-        output_body = None # Initialize for exception handling
+        output_body = None  # Initialize for exception handling
         # 1. Parse the incoming message
         payload = json.loads(message.body.decode())
-        
+
         # Assuming the payload contains data for both Product and VideoFrame
         product_data = payload.get("product")
         frame_data = payload.get("frame")
-        
+
         if not product_data or not frame_data:
             logger.error("Invalid message format: missing 'product' or 'frame' data.", extra={"payload": payload})
             await message.reject(requeue=False)
@@ -72,24 +75,25 @@ async def handle_match_request(message: IncomingMessage):
         # Note: Pydantic validation handles missing/incorrect fields
         product = Product(**product_data)
         frame = VideoFrame(**frame_data)
-        
+
         # 3. Perform the matching
         match_results: List[MatchResult] = await matcher_service.match(product, frame)
-        
+
         # 4. Prepare the output message (for T022)
         output_payload = {
             "product_id": product.product_id,
             "frame_id": frame.frame_id,
             "matches": [result.model_dump() for result in match_results]
         }
-        
+
         output_body = json.dumps(output_payload).encode('utf-8')
 
         # 5. Publish the result (T022)
         await publisher.publish(output_body)
-        
-        logger.info(f"Match request processed and result published. Found {len(match_results)} matches.", extra={"product_id": product.product_id, "frame_id": frame.frame_id})
-        
+
+        logger.info(f"Match request processed and result published. Found {len(match_results)} matches.", extra={
+                    "product_id": product.product_id, "frame_id": frame.frame_id})
+
         await message.ack()
 
     except json.JSONDecodeError:
@@ -98,4 +102,3 @@ async def handle_match_request(message: IncomingMessage):
     except Exception as e:
         logger.error(f"An unexpected error occurred during message handling: {e}", exc_info=True)
         await message.reject(requeue=False)
-

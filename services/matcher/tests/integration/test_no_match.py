@@ -12,6 +12,7 @@ MOCK_INPUT_BODY = {
     "frame": {"frame_id": "F456", "video_id": "V789", "timestamp": 10.0, "image_url": "http://frame.img"}
 }
 
+
 @pytest.mark.integration
 @pytest.mark.asyncio
 async def test_no_match_found_scenario():
@@ -33,20 +34,20 @@ async def test_no_match_found_scenario():
         with patch('handlers.match_request_handler.publisher') as mock_publisher_instance:
             mock_publisher_instance.publish = AsyncMock()
             mock_publish = mock_publisher_instance.publish
-        
+
             # Act: Call the handler
             await handle_match_request(mock_incoming_message)
 
             # Assert 1: Core service was called correctly
             mock_match.assert_called_once()
-            
+
             # Assert 2: Result was published
             mock_publish.assert_called_once()
-            
+
             # Assert 3: Message was acknowledged
             mock_incoming_message.ack.assert_called_once()
             mock_incoming_message.reject.assert_not_called()
-            
+
             # Assert 4: Published payload is correct (empty matches list)
             expected_payload = {
                 "product_id": "P123",

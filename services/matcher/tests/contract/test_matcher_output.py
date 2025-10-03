@@ -6,7 +6,8 @@ from jsonschema import validate
 @pytest.mark.contract
 def test_matcher_output_contract():
     # Load the schema
-    with open('O:/product-video-matching/implement-matcher/specs/002-implement-matcher-microservice/contracts/matcher_output.json') as f:
+    with open('O:/product-video-matching/implement-matcher/specs/'
+              '002-implement-matcher-microservice/contracts/matcher_output.json') as f:
         schema = json.load(f)  # noqa: F841
 
     # Example of a valid output (this should pass schema validation)
