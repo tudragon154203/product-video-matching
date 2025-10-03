@@ -20,8 +20,8 @@ def mock_db() -> MagicMock:
     """Create a mock database manager."""
 
     db = create_autospec(DatabaseManager, instance=True)
-    db.fetch_all = AsyncMock(spec=db.fetch_all)
-    db.execute = AsyncMock(spec=db.execute)
+    db.fetch_all = AsyncMock(spec=DatabaseManager.fetch_all)
+    db.execute = AsyncMock(spec=DatabaseManager.execute)
     return db
 
 
