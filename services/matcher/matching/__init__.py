@@ -143,7 +143,7 @@ class MatchingEngine:
         query = """
         SELECT img_id, local_path, emb_rgb, emb_gray, kp_blob_path
         FROM product_images
-        WHERE product_id = $1 AND emb_rgb IS NOT NULL
+        WHERE product_id = $1 AND (emb_rgb IS NOT NULL OR emb_gray IS NOT NULL)
         """
         return await self.db.fetch_all(query, product_id)
 
@@ -156,7 +156,7 @@ class MatchingEngine:
         query = """
         SELECT frame_id, ts, local_path, emb_rgb, emb_gray, kp_blob_path
         FROM video_frames
-        WHERE video_id = $1 AND emb_rgb IS NOT NULL
+        WHERE video_id = $1 AND (emb_rgb IS NOT NULL OR emb_gray IS NOT NULL)
         ORDER BY ts
         """
         return await self.db.fetch_all(query, video_id)
