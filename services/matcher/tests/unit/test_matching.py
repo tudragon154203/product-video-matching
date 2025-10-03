@@ -10,7 +10,6 @@ import pytest
 from common_py.database import DatabaseManager
 from matching import MatchingEngine
 from matching_components.match_aggregator import MatchAggregator
-from utils.numpy_compat import np
 
 pytestmark = pytest.mark.unit
 
