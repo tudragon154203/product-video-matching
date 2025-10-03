@@ -2,8 +2,6 @@
 
 from typing import Any, Dict
 
-import numpy as np
-
 from common_py.logging_config import configure_logging
 
 from utils.embedding_similarity import EmbeddingSimilarity
@@ -65,9 +63,12 @@ class PairScoreCalculator:
         """Calculate embedding similarity between an image and a frame."""
 
         try:
-            if not image.get("emb_rgb") or not frame.get("emb_rgb"):
+            has_rgb = image.get("emb_rgb") and frame.get("emb_rgb")
+            has_gray = image.get("emb_gray") and frame.get("emb_gray")
+
+            if not has_rgb and not has_gray:
                 logger.warning(
-                    "Missing embedding for image or frame, using default similarity",
+                    "Missing all embeddings for image or frame, using default similarity",
                     img_id=image.get("img_id"),
                     frame_id=frame.get("frame_id"),
                 )
@@ -102,7 +103,7 @@ class PairScoreCalculator:
                 )
                 return 0.5  # Replaced random uniform with a fixed value
 
-            inliers_ratio = 0.5  # Replaced random uniform with a fixed value
+            inliers_ratio = 1.0  # Mock: Assume perfect match if blobs exist to make score discriminatory
 
             if inliers_ratio < self.inliers_min:
                 return 0.0

@@ -1,5 +1,4 @@
 import json
-import os
 import pytest
 from pathlib import Path
 from jsonschema import validate  # noqa: F401
@@ -11,7 +10,8 @@ def test_matcher_input_contract():
     # Load the schema using relative path to shared contracts
     # Path from services/matcher/tests/contract/ to libs/contracts/contracts/schemas/
     # Need to go up 5 levels from test file to project root, then into libs
-    schema_path = Path(__file__).parent.parent.parent.parent.parent / "libs/contracts/contracts/schemas/match_request.json"
+    schema_path = Path(__file__).parent.parent.parent.parent.parent / \
+        "libs/contracts/contracts/schemas/match_request.json"
 
     with open(schema_path) as f:
         schema = json.load(f)  # noqa: F841

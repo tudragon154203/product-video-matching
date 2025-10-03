@@ -1,3 +1,4 @@
+from .crud.event_crud import EventCRUD
 from .crud.product_crud import ProductCRUD
 from .crud.product_image_crud import ProductImageCRUD
 from .crud.video_crud import VideoCRUD

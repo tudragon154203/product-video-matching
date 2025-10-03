@@ -10,7 +10,8 @@ def test_matcher_output_contract():
     # Load the schema using relative path to shared contracts
     # Path from services/matcher/tests/contract/ to libs/contracts/contracts/schemas/
     # Need to go up 5 levels from test file to project root, then into libs
-    schema_path = Path(__file__).parent.parent.parent.parent.parent / "libs/contracts/contracts/schemas/match_result.json"
+    schema_path = Path(__file__).parent.parent.parent.parent.parent / \
+        "libs/contracts/contracts/schemas/match_result.json"
 
     with open(schema_path) as f:
         schema = json.load(f)  # noqa: F841

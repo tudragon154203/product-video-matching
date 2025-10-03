@@ -69,10 +69,15 @@ class EmbeddingSimilarity:
         image_embedding: Dict[str, Any],
         frame_embedding: Dict[str, Any],
     ) -> tuple[float, float, float]:
-        rgb_similarity = self._calculate_cosine_similarity(
-            image_embedding["emb_rgb"],
-            frame_embedding["emb_rgb"],
-        )
+        rgb_similarity = 0.0
+        if (
+            image_embedding.get("emb_rgb") is not None
+            and frame_embedding.get("emb_rgb") is not None
+        ):
+            rgb_similarity = self._calculate_cosine_similarity(
+                image_embedding["emb_rgb"],
+                frame_embedding["emb_rgb"],
+            )
 
         gray_similarity = 0.0
         if (
@@ -84,13 +89,15 @@ class EmbeddingSimilarity:
                 frame_embedding["emb_gray"],
             )
 
-        if gray_similarity > 0.0:
+        if gray_similarity > 0.0 and rgb_similarity > 0.0:
             combined_score = (
                 self.weights["rgb"] * rgb_similarity
                 + self.weights["gray"] * gray_similarity
             )
+        elif gray_similarity > 0.0:
+            combined_score = gray_similarity  # Only use grayscale if RGB not available
         else:
-            combined_score = rgb_similarity  # Only use RGB if gray is not available or 0
+            combined_score = rgb_similarity  # Only use RGB if grayscale not available or 0
 
         return combined_score, rgb_similarity, gray_similarity
 
@@ -104,11 +111,15 @@ class EmbeddingSimilarity:
         return (
             isinstance(image_embedding, dict)
             and isinstance(frame_embedding, dict)
-            and image_embedding.get("emb_rgb") is not None
-            and frame_embedding.get("emb_rgb") is not None
-        ) or (
-            image_embedding.get("emb_gray") is not None
-            and frame_embedding.get("emb_gray") is not None
+            and (
+                (
+                    image_embedding.get("emb_rgb") is not None
+                    and frame_embedding.get("emb_rgb") is not None
+                ) or (
+                    image_embedding.get("emb_gray") is not None
+                    and frame_embedding.get("emb_gray") is not None
+                )
+            )
         )
 
     def _calculate_cosine_similarity(

@@ -1,6 +1,6 @@
 import asyncpg
 import os
-from typing import Optional, List, Dict, Any
+from typing import Optional, List, Dict, Any, Tuple
 from .logging_config import configure_logging
 
 logger = configure_logging("common-py:database")
@@ -37,6 +37,14 @@ class DatabaseManager:
         async with self.pool.acquire() as conn:
             return await conn.execute(query, *args)
     
+    async def executemany(self, query: str, args: List[Tuple]) -> None:
+        """Execute a query for multiple sets of parameters"""
+        if not self.pool:
+            raise RuntimeError("Database not connected")
+        
+        async with self.pool.acquire() as conn:
+            await conn.executemany(query, args)
+
     async def fetch_one(self, query: str, *args) -> Optional[Dict[str, Any]]:
         """Fetch single row"""
         if not self.pool:
