@@ -39,8 +39,10 @@ class TestDropshipProductFinderConfig(DropshipProductFinderConfig):
     def __init__(self):
         # Initialize with default test values while allowing environment
         # overrides.
-        self.EBAY_CLIENT_ID = os.getenv("EBAY_CLIENT_ID", "")
-        self.EBAY_CLIENT_SECRET = os.getenv("EBAY_CLIENT_SECRET", "")
+        self.EBAY_SANDBOX_CLIENT_ID = os.getenv("EBAY_SANDBOX_CLIENT_ID", "sandbox_id")
+        self.EBAY_PRODUCTION_CLIENT_ID = os.getenv("EBAY_PRODUCTION_CLIENT_ID", "prod_id")
+        self.EBAY_SANDBOX_CLIENT_SECRET = os.getenv("EBAY_SANDBOX_CLIENT_SECRET", "sandbox_secret")
+        self.EBAY_PRODUCTION_CLIENT_SECRET = os.getenv("EBAY_PRODUCTION_CLIENT_SECRET", "prod_secret")
         self.EBAY_MARKETPLACES = os.getenv("EBAY_MARKETPLACES", "EBAY_US")
         self.EBAY_ENVIRONMENT = os.getenv("EBAY_ENVIRONMENT", "sandbox")
         self.EBAY_SCOPES = os.getenv(
@@ -143,33 +145,29 @@ class TestDropshipProductFinderConfigSuite:
             config = TestDropshipProductFinderConfig()
             assert config.BACKOFF_BASE_BROWSE == 2.0
 
-    def test_ebay_client_id_default(self):
-        """Test default eBay client ID value"""
-        with patch.dict(os.environ, {}, clear=True):
-            os.environ.setdefault("EBAY_CLIENT_ID", "")
+    def test_ebay_client_id_production(self):
+        """Test EBAY_CLIENT_ID property returns production ID when in production environment"""
+        with patch.dict(os.environ, {"EBAY_ENVIRONMENT": "production"}):
             config = TestDropshipProductFinderConfig()
-            assert config.EBAY_CLIENT_ID == ""
+            assert config.EBAY_CLIENT_ID == config.EBAY_PRODUCTION_CLIENT_ID
 
-    def test_ebay_client_id_custom(self):
-        """Test custom eBay client ID from environment"""
-        client_id = "test_client_id_123"
-        with patch.dict(os.environ, {"EBAY_CLIENT_ID": client_id}):
+    def test_ebay_client_id_sandbox(self):
+        """Test EBAY_CLIENT_ID property returns sandbox ID when in sandbox environment"""
+        with patch.dict(os.environ, {"EBAY_ENVIRONMENT": "sandbox"}):
             config = TestDropshipProductFinderConfig()
-            assert config.EBAY_CLIENT_ID == client_id
+            assert config.EBAY_CLIENT_ID == config.EBAY_SANDBOX_CLIENT_ID
 
-    def test_ebay_client_secret_default(self):
-        """Test default eBay client secret value"""
-        with patch.dict(os.environ, {}, clear=True):
-            os.environ.setdefault("EBAY_CLIENT_SECRET", "")
+    def test_ebay_client_secret_production(self):
+        """Test EBAY_CLIENT_SECRET property returns production secret when in production environment"""
+        with patch.dict(os.environ, {"EBAY_ENVIRONMENT": "production"}):
             config = TestDropshipProductFinderConfig()
-            assert config.EBAY_CLIENT_SECRET == ""
+            assert config.EBAY_CLIENT_SECRET == config.EBAY_PRODUCTION_CLIENT_SECRET
 
-    def test_ebay_client_secret_custom(self):
-        """Test custom eBay client secret from environment"""
-        client_secret = "test_client_secret_456"
-        with patch.dict(os.environ, {"EBAY_CLIENT_SECRET": client_secret}):
+    def test_ebay_client_secret_sandbox(self):
+        """Test EBAY_CLIENT_SECRET property returns sandbox secret when in sandbox environment"""
+        with patch.dict(os.environ, {"EBAY_ENVIRONMENT": "sandbox"}):
             config = TestDropshipProductFinderConfig()
-            assert config.EBAY_CLIENT_SECRET == client_secret
+            assert config.EBAY_CLIENT_SECRET == config.EBAY_SANDBOX_CLIENT_SECRET
 
     def test_ebay_marketplaces_default(self):
         """Test default eBay marketplaces value"""
