@@ -114,7 +114,7 @@ export function AdvancedOptions({ register, errors, setValue, watch }: AdvancedO
                 id="top_amz"
                 type="number"
                 {...register('top_amz', { valueAsNumber: true })}
-                min="1"
+                min="0"
                 max="100"
               />
               {errors.top_amz && (
@@ -146,7 +146,7 @@ export function AdvancedOptions({ register, errors, setValue, watch }: AdvancedO
                 id="top_ebay"
                 type="number"
                 {...register('top_ebay', { valueAsNumber: true })}
-                min="1"
+                min="0"
                 max="100"
               />
               {errors.top_ebay && (
