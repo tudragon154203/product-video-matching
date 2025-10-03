@@ -50,6 +50,18 @@ class eBayAuthService:
 
         raise RuntimeError("Failed to obtain eBay access token")
 
+    async def get_token(self) -> str:
+        """Backwards compatible alias for get_access_token()."""
+        return await self.get_access_token()
+
+    async def refresh_token(self) -> str:
+        """Public wrapper to refresh and return a new access token."""
+        await self._refresh_token()
+        token_data = await self._retrieve_token()
+        if token_data:
+            return token_data["access_token"]
+        raise RuntimeError("Failed to refresh eBay access token")
+
     async def _refresh_token(self) -> None:
         """Refresh the access token from eBay"""
         # Rate limiting
