@@ -47,10 +47,20 @@ export function JobItemRow({ job }: JobItemRowProps) {
   const colorClass = resolveColorClass(phaseInfo.color)
   const displayDate = job.updated_at || job.created_at
 
-  const shouldShowStatusCircle = resolvedPhase !== 'collection'
+  const shouldShowStatusCircle = true
 
   const renderPhaseEffect = () => {
-    if (resolvedPhase === 'collection' || !phaseInfo.effect || phaseInfo.effect === 'none') {
+    if (resolvedPhase === 'collection') {
+      return (
+        <div
+          data-testid="status-spinner"
+          className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent"
+          aria-hidden="true"
+        />
+      )
+    }
+
+    if (!phaseInfo.effect || phaseInfo.effect === 'none') {
       return null
     }
 
@@ -137,7 +147,7 @@ export function JobItemRow({ job }: JobItemRowProps) {
                 className={`h-2 w-2 rounded-full ${colorClass}`}
               />
             )}
-            <span className="text-xs text-muted-foreground">{phaseInfo.label}</span>
+            {resolvedPhase === 'collection' ? null : <span className="text-xs text-muted-foreground">{phaseInfo.label}</span>}
             {renderPhaseEffect()}
           </div>
         </div>

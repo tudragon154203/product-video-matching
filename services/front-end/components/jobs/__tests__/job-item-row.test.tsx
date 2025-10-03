@@ -1,6 +1,6 @@
 import React from 'react';
 import { render, screen } from '@testing-library/react';
-import { JobItemRow } from '../job-item-row';
+import { JobItemRow } from '../../jobs/JobItemRow';
 import { useJobStatusPolling } from '@/lib/hooks/useJobStatusPolling';
 import { getPhaseInfo } from '@/lib/api/utils/phase';
 import { formatToGMT7 } from '@/lib/time';
