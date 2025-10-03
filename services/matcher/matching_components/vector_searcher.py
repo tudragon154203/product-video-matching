@@ -68,21 +68,25 @@ class VectorSearcher:
                 """
             )
 
+            values_to_insert = []
             for frame in video_frames:
                 if frame.get("emb_rgb"):
-                    await self.db.execute(
-                        """
-                        INSERT INTO temp_video_embeddings (
-                            frame_id,
-                            emb_rgb,
-                            emb_gray
-                        )
-                        VALUES ($1, $2, $3)
-                        """,
-                        frame["frame_id"],
-                        frame["emb_rgb"],
-                        frame.get("emb_gray"),
+                    values_to_insert.append(
+                        (frame["frame_id"], frame["emb_rgb"], frame.get("emb_gray"))
                     )
+
+            if values_to_insert:
+                await self.db.executemany(
+                    """
+                    INSERT INTO temp_video_embeddings (
+                        frame_id,
+                        emb_rgb,
+                        emb_gray
+                    )
+                    VALUES ($1, $2, $3)
+                    """,
+                    values_to_insert,
+                )
         except Exception as exc:  # pragma: no cover - defensive logging
             logger.error(
                 "Failed to create temp embeddings table",
