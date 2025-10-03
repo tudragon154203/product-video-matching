@@ -1,3 +1,0 @@
-tenacity==9.1.2
-alembic==1.16.5
-psycopg2==2.9.10

@@ -11,13 +11,13 @@
     },
     "top_amz": {
       "type": "integer",
-      "minimum": 1,
+      "minimum": 0,
       "maximum": 100,
       "description": "Number of top Amazon products to collect"
     },
     "top_ebay": {
       "type": "integer",
-      "minimum": 1,
+      "minimum": 0,
       "maximum": 100,
       "description": "Number of top eBay products to collect"
     },

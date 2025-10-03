@@ -66,6 +66,10 @@ class eBayAuthService:
 
     async def _store_token(self, token_data: Dict[str, Any]) -> None:
         """Store token data in Redis with expiration"""
+        if not self.redis:
+            logger.warning("Redis client is not available. Skipping token storage.")
+            return
+
         try:
             expires_in = token_data.get("expires_in", 7200)  # Default 2 hours
             # Store with 5-minute buffer to ensure token is still valid
@@ -84,6 +88,10 @@ class eBayAuthService:
 
     async def _retrieve_token(self) -> Optional[Dict[str, Any]]:
         """Retrieve token data from Redis"""
+        if not self.redis:
+            logger.warning("Redis client is not available. Skipping token retrieval.")
+            return None
+
         try:
             token_json = await self.redis.get(self.redis_key)
             if token_json:
