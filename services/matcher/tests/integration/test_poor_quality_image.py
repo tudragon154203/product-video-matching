@@ -1,11 +1,13 @@
+from services.data_models import MatchResult
+from handlers.match_request_handler import handle_match_request
 import pytest
 import json
 from unittest.mock import MagicMock, AsyncMock, patch
 from aio_pika import IncomingMessage
 
+pytestmark = pytest.mark.integration
+
 # Import components from the service
-from handlers.match_request_handler import handle_match_request
-from services.data_models import MatchResult
 
 # Mock Data
 MOCK_INPUT_BODY = {
@@ -23,7 +25,6 @@ MOCK_LOW_CONFIDENCE_MATCH = MatchResult(
 )
 
 
-@pytest.mark.integration
 @pytest.mark.asyncio
 async def test_poor_quality_product_image_edge_case():
     """

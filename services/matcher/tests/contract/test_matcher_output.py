@@ -2,8 +2,9 @@ import json
 import pytest
 from jsonschema import validate
 
+pytestmark = pytest.mark.contract
 
-@pytest.mark.contract
+
 def test_matcher_output_contract():
     # Load the schema
     with open('O:/product-video-matching/implement-matcher/specs/'

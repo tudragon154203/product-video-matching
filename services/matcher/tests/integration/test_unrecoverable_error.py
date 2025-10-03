@@ -1,10 +1,12 @@
+from handlers.match_request_handler import handle_match_request
 import pytest
 import json
 from unittest.mock import MagicMock, AsyncMock, patch
 from aio_pika import IncomingMessage
 
+pytestmark = pytest.mark.integration
+
 # Import components from the service
-from handlers.match_request_handler import handle_match_request
 
 # Mock Data
 MOCK_INPUT_BODY = {
@@ -13,7 +15,6 @@ MOCK_INPUT_BODY = {
 }
 
 
-@pytest.mark.integration
 @pytest.mark.asyncio
 async def test_unrecoverable_error_during_matching_edge_case():
     """
