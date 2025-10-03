@@ -6,7 +6,7 @@ import numpy as np
 
 from common_py.logging_config import configure_logging
 
-from .embedding_similarity import EmbeddingSimilarity
+from embedding_similarity import EmbeddingSimilarity
 
 logger = configure_logging("matcher:pair_score_calculator")
 

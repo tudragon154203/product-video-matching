@@ -1,18 +1,8 @@
-# requirements.txt for the Matcher Microservice
-# Python version pinned to 3.10.8 via Dockerfile
-# requirements.txt for the Matcher Microservice
-# Python version pinned to 3.10.8 via Dockerfile
-# requirements.txt for the Matcher Microservice
-# Python version pinned to 3.10.8 via Dockerfile
-# requirements.txt for the Matcher Microservice
-# Python version pinned to 3.10.8 via Dockerfile
-# requirements.txt for the Matcher Microservice
-# Python version pinned to 3.10.8 via Dockerfile
-flake8
-jsonschema
-opencv-python
-torch
-transformers
-Pillow
-pika
+opencv-python==4.10.0.84
+numpy==1.26.4
+aio-pika==9.4.3
+asyncpg==0.29.0
+pydantic==2.8.2
+scikit-learn==1.5.1
+python-dotenv==1.0.1
 -e ../../libs/common-py
