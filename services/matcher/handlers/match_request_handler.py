@@ -3,8 +3,8 @@ import logging
 from typing import List
 from aio_pika import IncomingMessage, connect_robust, Message, ExchangeType
 from common_py.logging_config import ContextLogger
-from services.matcher.services.data_models import Product, VideoFrame, MatchResult
-from services.matcher.services.matcher_service import matcher_service
+from services.data_models import Product, VideoFrame, MatchResult
+from services.matcher_service import matcher_service
 
 # Initialize logger
 logger = logging.getLogger(__name__)
@@ -55,6 +55,7 @@ async def handle_match_request(message: IncomingMessage):
     Handles incoming RabbitMQ messages for product-video frame matching requests.
     """
     try:
+        output_body = None # Initialize for exception handling
         # 1. Parse the incoming message
         payload = json.loads(message.body.decode())
         
@@ -64,7 +65,7 @@ async def handle_match_request(message: IncomingMessage):
         
         if not product_data or not frame_data:
             logger.error("Invalid message format: missing 'product' or 'frame' data.", extra={"payload": payload})
-            message.reject(requeue=False)
+            await message.reject(requeue=False)
             return
 
         # 2. Validate and create data models
@@ -73,7 +74,7 @@ async def handle_match_request(message: IncomingMessage):
         frame = VideoFrame(**frame_data)
         
         # 3. Perform the matching
-        match_results: List[MatchResult] = matcher_service.match(product, frame)
+        match_results: List[MatchResult] = await matcher_service.match(product, frame)
         
         # 4. Prepare the output message (for T022)
         output_payload = {
@@ -82,16 +83,19 @@ async def handle_match_request(message: IncomingMessage):
             "matches": [result.model_dump() for result in match_results]
         }
         
+        output_body = json.dumps(output_payload).encode('utf-8')
+
         # 5. Publish the result (T022)
         await publisher.publish(output_body)
         
         logger.info(f"Match request processed and result published. Found {len(match_results)} matches.", extra={"product_id": product.product_id, "frame_id": frame.frame_id})
         
-        message.ack()
+        await message.ack()
 
     except json.JSONDecodeError:
         logger.error("Failed to decode JSON message.", exc_info=True)
-        message.reject(requeue=False)
+        await message.reject(requeue=False)
     except Exception as e:
         logger.error(f"An unexpected error occurred during message handling: {e}", exc_info=True)
-        message.reject(requeue=False)
+        await message.reject(requeue=False)
+

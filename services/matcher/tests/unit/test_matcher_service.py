@@ -3,9 +3,12 @@ from unittest.mock import MagicMock, patch, AsyncMock
 import numpy as np
 from PIL import Image
 
+# Ensure unit tests can be selected via `-m unit`
+pytestmark = pytest.mark.unit
+
 # Import the service and models
-from services.matcher.services.matcher_service import MatcherService
-from services.matcher.services.data_models import Product, VideoFrame, MatchResult
+from services.matcher_service import MatcherService
+from services.data_models import Product, VideoFrame, MatchResult
 
 # Mock data for testing
 MOCK_PRODUCT = Product(
@@ -31,10 +34,10 @@ MOCK_MATCH_RESULT = MatchResult(
 def matcher_service_mocked():
     """Fixture for MatcherService with mocked dependencies."""
     # We need to mock the __init__ to prevent loading heavy models
-    with patch('services.matcher.services.matcher_service.CLIPModel'), \
-         patch('services.matcher.services.matcher_service.CLIPProcessor'), \
-         patch('services.matcher.services.matcher_service.cv2.AKAZE_create'), \
-         patch('services.matcher.services.matcher_service.cv2.BFMatcher'):
+    with patch('services.matcher_service.CLIPModel'), \
+         patch('services.matcher_service.CLIPProcessor'), \
+         patch('services.matcher_service.cv2.AKAZE_create'), \
+         patch('services.matcher_service.cv2.BFMatcher'):
         service = MatcherService()
         # Mock the internal methods
         service._load_image_from_url = AsyncMock(return_value=Image.new('RGB', (100, 100)))

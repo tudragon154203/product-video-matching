@@ -1,6 +1,6 @@
 import json
 import pytest
-from jsonschema import validate  # noqa: F401
+from jsonschema import validate
 
 
 @pytest.mark.contract
@@ -20,8 +20,5 @@ def test_matcher_output_contract():
         }
     ]
 
-    # This assertion will make the test fail initially, as per TDD
-    assert False, "Test is designed to fail until actual implementation is ready"
-
-    # Uncomment the following line once the implementation is ready to pass the contract
-    # validate(instance=valid_output, schema=schema)
+    # Validate the example output against the schema
+    validate(instance=valid_output, schema=schema)
