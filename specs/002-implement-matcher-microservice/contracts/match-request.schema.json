@@ -1,0 +1,82 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Match Request Schema",
+  "description": "Schema for matcher microservice input - product and video frame data for matching",
+  "type": "object",
+  "required": [
+    "event_id",
+    "product",
+    "video_frame",
+    "request_timestamp"
+  ],
+  "properties": {
+    "event_id": {
+      "type": "string",
+      "description": "Unique identifier for this event message",
+      "minLength": 1
+    },
+    "product": {
+      "type": "object",
+      "required": [
+        "product_id",
+        "image_data"
+      ],
+      "properties": {
+        "product_id": {
+          "type": "string",
+          "description": "Unique identifier for the product",
+          "minLength": 1
+        },
+        "image_data": {
+          "type": "string",
+          "description": "Product image encoded as base64",
+          "minLength": 1
+        },
+        "metadata": {
+          "type": "object",
+          "description": "Additional product information for matching context"
+        }
+      }
+    },
+    "video_frame": {
+      "type": "object",
+      "required": [
+        "frame_id",
+        "image_data",
+        "video_source"
+      ],
+      "properties": {
+        "frame_id": {
+          "type": "string",
+          "description": "Unique identifier for the video frame",
+          "minLength": 1
+        },
+        "image_data": {
+          "type": "string",
+          "description": "Video frame encoded as base64",
+          "minLength": 1
+        },
+        "video_source": {
+          "type": "string",
+          "description": "Source video identifier",
+          "minLength": 1
+        },
+        "timestamp": {
+          "type": "number",
+          "format": "float",
+          "description": "Time offset in video (seconds)"
+        }
+      }
+    },
+    "request_timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the request was received"
+    },
+    "correlation_id": {
+      "type": "string",
+      "description": "Correlation ID for cross-service tracing",
+      "minLength": 1
+    }
+  }
+}

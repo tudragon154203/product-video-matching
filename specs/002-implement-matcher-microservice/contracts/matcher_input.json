@@ -1,0 +1,24 @@
+{
+  "type": "object",
+  "properties": {
+    "product_image_data": {
+      "type": "string",
+      "format": "byte",
+      "description": "Base64 encoded product image data"
+    },
+    "video_frame_data": {
+      "type": "string",
+      "format": "byte",
+      "description": "Base64 encoded video frame image data"
+    },
+    "product_id": {
+      "type": "string",
+      "description": "ID of the product being matched"
+    },
+    "frame_id": {
+      "type": "string",
+      "description": "ID of the video frame being matched"
+    }
+  },
+  "required": ["product_image_data", "video_frame_data", "product_id", "frame_id"]
+}
