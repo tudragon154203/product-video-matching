@@ -5,4 +5,3 @@ asyncpg==0.29.0
 pydantic==2.8.2
 scikit-learn==1.5.1
 python-dotenv==1.0.1
--e ../../libs/common-py
