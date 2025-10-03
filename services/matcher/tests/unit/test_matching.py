@@ -5,12 +5,12 @@ from __future__ import annotations
 from typing import Any, Dict, List
 from unittest.mock import AsyncMock, MagicMock, patch, create_autospec
 
-import numpy as np
 import pytest
 
 from common_py.database import DatabaseManager
 from matching import MatchingEngine
 from matching_components.match_aggregator import MatchAggregator
+from utils.numpy_compat import np
 
 pytestmark = pytest.mark.unit
 

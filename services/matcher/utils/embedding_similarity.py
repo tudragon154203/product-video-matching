@@ -2,7 +2,7 @@
 
 from typing import Any, Dict, List
 
-import numpy as np
+from utils.numpy_compat import np
 
 from common_py.logging_config import configure_logging
 
