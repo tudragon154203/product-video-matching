@@ -107,7 +107,7 @@ class TestMatchingEngine:
         query = args[0]
         assert "product_images" in query
         assert "WHERE product_id = $1" in query
-        assert "emb_rgb IS NOT NULL" in query
+        assert "(emb_rgb IS NOT NULL OR emb_gray IS NOT NULL)" in query
         assert args[1] == "product_001"
         assert len(images) == 2
 
@@ -139,7 +139,7 @@ class TestMatchingEngine:
         query = args[0]
         assert "video_frames" in query
         assert "WHERE video_id = $1" in query
-        assert "emb_rgb IS NOT NULL" in query
+        assert "(emb_rgb IS NOT NULL OR emb_gray IS NOT NULL)" in query
         assert "ORDER BY ts" in query
         assert args[1] == "video_001"
         assert len(frames) == 2
@@ -273,7 +273,40 @@ class TestMatchingEngine:
             sample_video_frames[0],
         )
 
-        assert 0.7 <= similarity <= 0.9
+        assert similarity == 0.8
+
+    @pytest.mark.asyncio
+    async def test_calculate_embedding_similarity_only_gray_embeddings(
+        self,
+        matching_engine: MatchingEngine,
+        sample_image: Dict[str, Any],
+        sample_video_frames: List[Dict[str, Any]],
+    ) -> None:
+        sample_image["emb_rgb"] = None
+        sample_video_frames[0]["emb_rgb"] = None
+        sample_image["emb_gray"] = [0.1, 0.1, 0.1, 0.1, 0.1]
+        sample_video_frames[0]["emb_gray"] = [0.1, 0.1, 0.1, 0.1, 0.1]
+
+        similarity = await matching_engine.pair_score_calculator.calculate_embedding_similarity(
+            sample_image,
+            sample_video_frames[0],
+        )
+
+        assert 0.0 <= similarity <= 1.0
+
+    @pytest.mark.asyncio
+    async def test_calculate_embedding_similarity_rgb_and_gray_embeddings(
+        self,
+        matching_engine: MatchingEngine,
+        sample_image: Dict[str, Any],
+        sample_video_frames: List[Dict[str, Any]],
+    ) -> None:
+        # Both RGB and Gray are present, should use weighted average
+        similarity = await matching_engine.pair_score_calculator.calculate_embedding_similarity(
+            sample_image,
+            sample_video_frames[0],
+        )
+        assert 0.0 <= similarity <= 1.0
 
     @pytest.mark.asyncio
     async def test_calculate_keypoint_similarity(
@@ -304,7 +337,7 @@ class TestMatchingEngine:
             sample_video_frames[0],
         )
 
-        assert 0.3 <= similarity <= 0.7
+        assert similarity == 0.5
 
     @pytest.mark.asyncio
     async def test_calculate_pair_score(

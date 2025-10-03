@@ -150,7 +150,11 @@ class VectorSearcher:
                         np.linalg.norm(image_emb) * np.linalg.norm(frame_emb)
                     )
                 else:
-                    similarity = float(np.random.uniform(0.5, 0.9))
+                    logger.warning(
+                        "Missing emb_rgb for frame, using default similarity in fallback search",
+                        frame_id=frame.get("frame_id"),
+                    )
+                    similarity = 0.7  # Replaced random uniform with a fixed value
 
                 frame["similarity"] = similarity
                 scored_frames.append((similarity, frame))

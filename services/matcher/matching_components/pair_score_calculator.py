@@ -34,7 +34,7 @@ class PairScoreCalculator:
         try:
             sim_deep = await self.calculate_embedding_similarity(image, frame)
             sim_kp = await self.calculate_keypoint_similarity(image, frame)
-            sim_edge = np.random.uniform(0.6, 0.9)
+            sim_edge = 0.75  # Replaced random uniform with a fixed value
 
             pair_score = (
                 0.35 * sim_deep
@@ -66,7 +66,12 @@ class PairScoreCalculator:
 
         try:
             if not image.get("emb_rgb") or not frame.get("emb_rgb"):
-                return np.random.uniform(0.7, 0.9)
+                logger.warning(
+                    "Missing embedding for image or frame, using default similarity",
+                    img_id=image.get("img_id"),
+                    frame_id=frame.get("frame_id"),
+                )
+                return 0.8  # Replaced random uniform with a fixed value
 
             similarity = await self.embedding_similarity.calculate_similarity(
                 image,
@@ -90,9 +95,14 @@ class PairScoreCalculator:
 
         try:
             if not image.get("kp_blob_path") or not frame.get("kp_blob_path"):
-                return np.random.uniform(0.3, 0.7)
+                logger.warning(
+                    "Missing keypoint blob path for image or frame, using default similarity",
+                    img_id=image.get("img_id"),
+                    frame_id=frame.get("frame_id"),
+                )
+                return 0.5  # Replaced random uniform with a fixed value
 
-            inliers_ratio = np.random.uniform(0.2, 0.8)
+            inliers_ratio = 0.5  # Replaced random uniform with a fixed value
 
             if inliers_ratio < self.inliers_min:
                 return 0.0
