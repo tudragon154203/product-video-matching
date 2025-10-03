@@ -97,7 +97,9 @@ class _Message:
         self.correlation_id = correlation_id
 
 async def _connect_robust(*_: Any, **__: Any) -> Any:
-    raise RuntimeError("aio_pika stub should not establish connections in tests")
+    raise RuntimeError(
+        "aio_pika stub should not establish connections in tests"
+    )
 
 class _Exchange:
     async def publish(self, message: _Message, routing_key: str) -> None:
@@ -179,7 +181,10 @@ class InMemoryDatabaseManager:
         if "from products" in normalized_query:
             job_id = args[0]
             return [
-                {"product_id": product["product_id"], "title": product["title"]}
+                {
+                    "product_id": product["product_id"],
+                    "title": product["title"],
+                }
                 for product in self.products
                 if product["job_id"] == job_id
             ]
@@ -187,7 +192,10 @@ class InMemoryDatabaseManager:
         if "from videos" in normalized_query:
             job_id = args[0]
             return [
-                {"video_id": video["video_id"], "title": video["title"]}
+                {
+                    "video_id": video["video_id"],
+                    "title": video["title"],
+                }
                 for video in self.videos
                 if video["job_id"] == job_id
             ]
@@ -238,7 +246,11 @@ class InMemoryDatabaseManager:
 
         raise NotImplementedError(f"Unsupported fetch_val query: {query}")
 
-    async def fetch_one(self, query: str, *args: Any) -> Optional[Dict[str, Any]]:
+    async def fetch_one(
+        self,
+        query: str,
+        *args: Any,
+    ) -> Optional[Dict[str, Any]]:
         normalized_query = " ".join(query.lower().split())
 
         if "select * from matches" in normalized_query:
@@ -275,7 +287,11 @@ class InMemoryDatabaseManager:
         raise NotImplementedError(f"Unsupported executemany query: {query}")
 
 
-def _create_matcher_service() -> tuple[MatcherService, InMemoryMessageBroker, InMemoryDatabaseManager]:
+def _create_matcher_service() -> tuple[
+    MatcherService,
+    InMemoryMessageBroker,
+    InMemoryDatabaseManager,
+]:
     broker = InMemoryMessageBroker()
     db = InMemoryDatabaseManager()
     service = MatcherService(
@@ -327,7 +343,9 @@ def test_handle_match_request_end_to_end() -> None:
 
     try:
         asyncio.run(
-            service.handle_match_request({"job_id": job_id, "event_id": event_id})
+            service.handle_match_request(
+                {"job_id": job_id, "event_id": event_id}
+            )
         )
 
         assert len(db.matches) == 1
@@ -357,10 +375,15 @@ def test_handle_match_request_end_to_end() -> None:
 
         completion_event = broker.published_events[1]
         assert completion_event.topic == "matchings.process.completed"
-        assert completion_event.event_data == {"job_id": job_id, "event_id": event_id}
+        assert completion_event.event_data == {
+            "job_id": job_id,
+            "event_id": event_id,
+        }
 
         asyncio.run(
-            service.handle_match_request({"job_id": job_id, "event_id": event_id})
+            service.handle_match_request(
+                {"job_id": job_id, "event_id": event_id}
+            )
         )
 
         assert len(db.matches) == 1
