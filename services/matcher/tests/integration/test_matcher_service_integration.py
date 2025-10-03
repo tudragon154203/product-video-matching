@@ -38,7 +38,12 @@ numpy_stub.mean = _mean
 numpy_stub.float32 = float
 numpy_stub.linalg = _LinalgModule()
 numpy_stub.ndarray = list
-numpy_stub.isscalar = lambda obj: isinstance(obj, (int, float))
+
+
+def _isscalar(obj: Any) -> bool:
+    return isinstance(obj, (int, float))
+
+numpy_stub.isscalar = _isscalar
 numpy_stub.bool_ = bool
 sys.modules.setdefault("numpy", numpy_stub)
 
