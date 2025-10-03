@@ -3,6 +3,10 @@ from services.service import DropshipProductFinderService
 from common_py.database import DatabaseManager
 from common_py.messaging import MessageBroker
 from config_loader import config
+from typing import Any
+from common_py.logging_config import configure_logging
+
+logger = configure_logging("dropship-product-finder:handler")
 
 
 class DropshipProductHandler:
