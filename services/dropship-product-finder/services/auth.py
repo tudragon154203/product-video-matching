@@ -158,6 +158,11 @@ class eBayAuthService:
 
         self.last_request_time = asyncio.get_event_loop().time()
 
+    def update_redis_client(self, redis_client: Any) -> None:
+        """Update the Redis client after initialization."""
+        self.redis = redis_client
+        logger.info("eBayAuthService Redis client updated")
+
     async def close(self) -> None:
         """Clean up resources"""
         # Redis connection is managed externally

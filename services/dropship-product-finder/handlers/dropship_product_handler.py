@@ -14,6 +14,12 @@ class DropshipProductHandler:
             self.db, self.broker, config.DATA_ROOT, self.redis
         )
 
+    def update_redis_client(self, redis_client: Any) -> None:
+        """Update the Redis client for the handler and the internal service."""
+        self.redis = redis_client
+        self.service.update_redis_client(redis_client)
+        logger.info("DropshipProductHandler Redis client updated")
+
     @handle_errors
     @validate_event("products_collect_request")
     async def handle_products_collect_request(self, event_data):

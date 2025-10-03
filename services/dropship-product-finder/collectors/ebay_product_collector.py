@@ -57,6 +57,10 @@ class EbayProductCollector(BaseProductCollector):
             # Re-raise the exception to prevent partial initialization
             raise
 
+    def update_redis_client(self, redis_client: Any) -> None:
+        """Update the Redis client for the internal auth service."""
+        self.auth_service.update_redis_client(redis_client)
+
     def get_source_name(self) -> str:
         """Return the source name"""
         return "ebay"

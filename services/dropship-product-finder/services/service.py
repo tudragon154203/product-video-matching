@@ -50,6 +50,13 @@ class DropshipProductFinderService:
             self.collectors, self.image_storage_manager
         )
 
+    def update_redis_client(self, redis_client: Any) -> None:
+        """Update the Redis client for the eBay collector."""
+        self.redis = redis_client
+        if not config.USE_MOCK_FINDERS and "ebay" in self.collectors:
+            self.collectors["ebay"].update_redis_client(redis_client)
+            logger.info("DropshipProductFinderService Redis client updated")
+
     async def handle_products_collect_request(self, event_data: Dict[str, Any]):
         """Handle products collection request"""
         try:
