@@ -60,21 +60,31 @@ class VideoCleanupManager:
             List of dictionaries with file information
         """
         old_files = []
+        video_path = Path(video_dir)
 
-        if not os.path.exists(video_dir):
+        if not video_path.exists():
             logger.warning(f"Video directory does not exist: {video_dir}")
             return old_files
 
-        # Walk through all uploader directories
-        for uploader_dir in Path(video_dir).iterdir():
-            if not uploader_dir.is_dir():
-                continue
+        # Iterate over all items in the video directory
+        for item in video_path.iterdir():
+            if item.is_file():
+                # Case 1: Flat structure (file directly in video_dir)
+                # Use the video_dir name as a placeholder for the uploader
+                uploader_name = video_path.name
+                file_path = item
+                file_info = self._get_file_info(file_path, uploader_name)
+                if file_info and file_info['is_old']:
+                    old_files.append(file_info)
 
-            for file_path in uploader_dir.rglob("*"):
-                if file_path.is_file():
-                    file_info = self._get_file_info(file_path, uploader_dir.name)
-                    if file_info and file_info['is_old']:
-                        old_files.append(file_info)
+            elif item.is_dir():
+                # Case 2: Nested structure (uploader directory)
+                uploader_dir = item
+                for file_path in uploader_dir.rglob("*"):
+                    if file_path.is_file():
+                        file_info = self._get_file_info(file_path, uploader_dir.name)
+                        if file_info and file_info['is_old']:
+                            old_files.append(file_info)
 
         logger.info(f"Found {len(old_files)} video files older than {self.retention_days} days")
         return old_files

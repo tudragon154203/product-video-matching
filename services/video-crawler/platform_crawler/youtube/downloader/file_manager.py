@@ -17,14 +17,14 @@ class FileManager:
 
         Args:
             download_dir: Base download directory
-            uploader: Uploader name
+            uploader: Uploader name (ignored for path construction)
 
         Returns:
-            Path: Path to the uploader directory
+            Path: Path to the download directory
         """
-        uploader_dir = Path(download_dir) / uploader
-        uploader_dir.mkdir(parents=True, exist_ok=True)
-        return uploader_dir
+        download_path = Path(download_dir)
+        download_path.mkdir(parents=True, exist_ok=True)
+        return download_path
 
     @staticmethod
     def check_existing_file(uploader_dir: Path, title: str) -> str:
