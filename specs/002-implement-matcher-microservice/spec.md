@@ -55,22 +55,28 @@ When creating this spec from a user prompt:
 ## User Scenarios & Testing *(mandatory)*
 
 ### Primary User Story
-[NEEDS CLARIFICATION: Describe the main user journey for the matcher microservice based on the PRD at `docs\sprint\matcher sprint_2_matcher_microservice_implementation.md`]
+As a system administrator, I want the matcher microservice to accurately identify product matches in video frames so that I can provide relevant video content to users.
 
 ### Acceptance Scenarios
-1. [NEEDS CLARIFICATION: Provide acceptance scenarios based on the PRD at `docs\sprint\matcher sprint_2_matcher_microservice_implementation.md`]
+1. **Given** a product image and a video frame, **When** the matcher microservice processes them, **Then** it should return a match score and bounding box if a match is found.
+2. **Given** a product image and a video frame with no visual match, **When** the matcher microservice processes them, **Then** it should return a low match score or no match.
 
 ### Edge Cases
-- [NEEDS CLARIFICATION: What happens when boundary conditions are met for the matcher microservice, based on the PRD?]
-- [NEEDS CLARIFICATION: How does the matcher microservice handle error scenarios, based on the PRD?]
+- What happens when the product image is of poor quality? The system should still attempt to match but may return lower confidence scores.
+- How does the system handle multiple products in a single video frame? It should identify all matching products.
 
 ## Requirements *(mandatory)*
 
 ### Functional Requirements
-- **FR-001**: [NEEDS CLARIFICATION: System MUST provide specific capabilities for the matcher microservice, based on the PRD at `docs\sprint\matcher sprint_2_matcher_microservice_implementation.md`]
+- **FR-001**: The matcher microservice MUST accept product image data and video frame data as input.
+- **FR-002**: The matcher microservice MUST utilize deep learning embeddings (CLIP) and traditional computer vision techniques (AKAZE/SIFT + RANSAC) for matching.
+- **FR-003**: The matcher microservice MUST output a match score, bounding box coordinates, and confidence level for each identified match.
+- **FR-004**: The matcher microservice MUST be scalable to handle a high volume of matching requests.
 
 ### Key Entities *(include if feature involves data)*
-- [NEEDS CLARIFICATION: Identify key entities and their attributes for the matcher microservice, based on the PRD at `docs\sprint\matcher sprint_2_matcher_microservice_implementation.md`]
+- **Product**: Represents an e-commerce product with an associated image.
+- **VideoFrame**: Represents a single frame extracted from a video.
+- **MatchResult**: Contains the match score, bounding box, and confidence level for a product-video frame match.
 
 ---
 
