@@ -166,10 +166,12 @@ class TikTokDownloader:
         format_candidates = [
             # First try: Best quality MP4 with audio
             "best[ext=mp4][filesize<500M]/best[filesize<500M]",
-            # Fallback: Best quality with audio (any format)
-            "bestvideo[filesize<500M]+bestaudio[filesize<50M]/best[filesize<500M]",
-            # Final fallback: Best available
-            "best[filesize<500M]",
+            # Fallback: Best available video stream under 500MB merged with any audio
+            "bestvideo[filesize<500M]+bestaudio/best[filesize<500M]",
+            # Fallback when filesize metadata is missing but track size is still under the post-download check
+            "best[filesize<500M]/best",
+            # Final fallback without filesize filtering (guarded by post-download size check)
+            "best",
         ]
 
         ydl_opts = {
