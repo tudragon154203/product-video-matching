@@ -132,6 +132,8 @@ docker compose -f infra/pvm/docker-compose.dev.yml up -d --build
 
 ### 3. Run Database Migrations
 
+Note: `requirements-migrate.txt` is only needed if you want to migrate the database.
+
 ```bash
 make migrate
 
