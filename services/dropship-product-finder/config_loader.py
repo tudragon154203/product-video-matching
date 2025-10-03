@@ -30,8 +30,10 @@ class DropshipProductFinderConfig:
     """Configuration for the product finder service."""
 
     # eBay API configuration
-    EBAY_CLIENT_ID: str = os.getenv("EBAY_CLIENT_ID", "")
-    EBAY_CLIENT_SECRET: str = os.getenv("EBAY_CLIENT_SECRET", "")
+    EBAY_SANDBOX_CLIENT_ID: str = os.getenv("EBAY_SANDBOX_CLIENT_ID", "")
+    EBAY_PRODUCTION_CLIENT_ID: str = os.getenv("EBAY_PRODUCTION_CLIENT_ID", "")
+    EBAY_SANDBOX_CLIENT_SECRET: str = os.getenv("EBAY_SANDBOX_CLIENT_SECRET", "")
+    EBAY_PRODUCTION_CLIENT_SECRET: str = os.getenv("EBAY_PRODUCTION_CLIENT_SECRET", "")
     EBAY_MARKETPLACES: str = os.getenv("EBAY_MARKETPLACES", "EBAY_US")
     EBAY_ENVIRONMENT: str = os.getenv("EBAY_ENVIRONMENT", "sandbox")
     EBAY_SCOPES: str = os.getenv("EBAY_SCOPES", "https://api.ebay.com/oauth/api_scope")
@@ -66,6 +68,20 @@ class DropshipProductFinderConfig:
     TIMEOUT_SECS_BROWSE: float = float(os.getenv("BROWSE_TIMEOUT_SECS", 30.0))
     MAX_RETRIES_BROWSE: int = int(os.getenv("BROWSE_MAX_RETRIES", 2))
     BACKOFF_BASE_BROWSE: float = float(os.getenv("BROWSE_BACKOFF_BASE", 1.5))
+
+    @property
+    def EBAY_CLIENT_ID(self) -> str:
+        """Get the appropriate client ID based on environment"""
+        if self.EBAY_ENVIRONMENT == "production":
+            return self.EBAY_PRODUCTION_CLIENT_ID
+        return self.EBAY_SANDBOX_CLIENT_ID
+
+    @property
+    def EBAY_CLIENT_SECRET(self) -> str:
+        """Get the appropriate client secret based on environment"""
+        if self.EBAY_ENVIRONMENT == "production":
+            return self.EBAY_PRODUCTION_CLIENT_SECRET
+        return self.EBAY_SANDBOX_CLIENT_SECRET
 
     @property
     def EBAY_BROWSE_BASE(self) -> str:
