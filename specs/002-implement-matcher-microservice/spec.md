@@ -27,6 +27,17 @@
 
 ---
 
+## Clarifications
+
+### Session 2025-10-03
+- Q: How many matching requests per second should the microservice be able to handle? → A: not identified
+- Q: What specific data format (e.g., JSON, Protobuf, binary) will be used for input (image/frame data) and output (match results)? → A: JSON
+- Q: What is the target uptime percentage (e.g., 99.9%, 99.99%) for the matcher microservice? → A: 99.99% through docker container
+- Q: How should the microservice behave when an unrecoverable error occurs during matching (e.g., return a generic error, retry, log and fail)? → A: Log error and fail
+- Q: Are there any specific security or privacy requirements for the image/video data being processed (e.g., encryption at rest/in transit, access controls)? → A: No
+
+---
+
 ## ⚡ Quick Guidelines
 - ✅ Focus on WHAT users need and WHY
 - ❌ Avoid HOW to implement (no tech stack, APIs, code structure)
@@ -64,14 +75,19 @@ As a system administrator, I want the matcher microservice to accurately identif
 ### Edge Cases
 - What happens when the product image is of poor quality? The system should still attempt to match but may return lower confidence scores.
 - How does the system handle multiple products in a single video frame? It should identify all matching products.
+- What happens when an unrecoverable error occurs during matching? The microservice should log the error and fail.
 
 ## Requirements *(mandatory)*
 
 ### Functional Requirements
-- **FR-001**: The matcher microservice MUST accept product image data and video frame data as input.
+- **FR-001**: The matcher microservice MUST accept product image data and video frame data as input in JSON format.
 - **FR-002**: The matcher microservice MUST utilize deep learning embeddings (CLIP) and traditional computer vision techniques (AKAZE/SIFT + RANSAC) for matching.
-- **FR-003**: The matcher microservice MUST output a match score, bounding box coordinates, and confidence level for each identified match.
-- **FR-004**: The matcher microservice MUST be scalable to handle a high volume of matching requests.
+- **FR-003**: The matcher microservice MUST output a match score, bounding box coordinates, and confidence level for each identified match in JSON format.
+- **FR-004**: The matcher microservice MUST be scalable to handle a high volume of matching requests. (Performance target not yet identified.)
+
+### Non-Functional Requirements
+- **NFR-001**: The matcher microservice MUST maintain a target uptime of 99.99% when deployed in a Docker container.
+- **NFR-002**: No specific security or privacy requirements for image/video data processing have been identified at this stage.
 
 ### Key Entities *(include if feature involves data)*
 - **Product**: Represents an e-commerce product with an associated image.
