@@ -2,8 +2,12 @@ from abc import abstractmethod
 from typing import List, Dict, Any, Optional
 from pathlib import Path
 import httpx
-from PIL import Image
 from io import BytesIO
+
+try:  # Pillow is optional in unit test environments
+    from PIL import Image
+except ImportError:  # pragma: no cover - exercised only when Pillow missing
+    Image = None
 from common_py.logging_config import configure_logging
 from .interface import IProductCollector
 
@@ -47,18 +51,26 @@ class BaseProductCollector(IProductCollector):
             # Save original image
             image_path = product_dir / f"{image_id}.jpg"
 
-            # Process and normalize image
-            image = Image.open(BytesIO(response.content))
+            if Image is None:
+                image_path.write_bytes(response.content)
+                logger.warning(
+                    "Saved image without Pillow post-processing",
+                    image_id=image_id,
+                    path=str(image_path),
+                )
+            else:
+                # Process and normalize image
+                image = Image.open(BytesIO(response.content))
 
-            # Convert to RGB if needed
-            if image.mode != "RGB":
-                image = image.convert("RGB")
+                # Convert to RGB if needed
+                if image.mode != "RGB":
+                    image = image.convert("RGB")
 
-            # Resize to standard size (keeping aspect ratio)
-            image.thumbnail((400, 400), Image.Resampling.LANCZOS)
+                # Resize to standard size (keeping aspect ratio)
+                image.thumbnail((400, 400), Image.Resampling.LANCZOS)
 
-            # Save processed image
-            image.save(image_path, "JPEG", quality=90)
+                # Save processed image
+                image.save(image_path, "JPEG", quality=90)
 
             logger.info(
                 "Downloaded and processed image",

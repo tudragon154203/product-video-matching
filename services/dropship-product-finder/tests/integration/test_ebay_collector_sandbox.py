@@ -5,7 +5,6 @@ Tests the complete flow from authentication to product collection with real data
 """
 
 from common_py.logging_config import configure_logging
-import redis.asyncio as redis
 from collectors.ebay.ebay_product_collector import EbayProductCollector
 from services.auth import eBayAuthService
 from config_loader import config
