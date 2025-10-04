@@ -22,8 +22,8 @@ sys.path.insert(0, str(Path(__file__).parent))
 
 logger = configure_logging("dropship-product-finder:test_e2e_auth")
 
+pytestmark = pytest.mark.integration
 
-@pytest.mark.integration
 async def test_e2e_flow():
     """Test complete end-to-end flow"""
     print("=== eBay OAuth 2.0 End-to-End Test ===")

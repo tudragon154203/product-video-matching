@@ -20,6 +20,9 @@ import json
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 
+pytestmark = pytest.mark.integration
+
+
 logger = configure_logging("dropship-product-finder:test_ebay_collector_real")
 
 
@@ -74,7 +77,6 @@ async def ebay_collector(redis_client):
     await collector.close()
 
 
-@pytest.mark.integration
 @pytest.mark.asyncio
 async def test_authentication_flow(auth_service):
     """Test eBay OAuth 2.0 authentication flow"""
@@ -95,7 +97,6 @@ async def test_authentication_flow(auth_service):
     logger.info("Authentication successful, token length: %s", len(token))
 
 
-@pytest.mark.integration
 @pytest.mark.asyncio
 async def test_token_refresh(auth_service):
     """Test token refresh functionality"""
@@ -117,7 +118,6 @@ async def test_token_refresh(auth_service):
     logger.info("Token refresh successful")
 
 
-@pytest.mark.integration
 @pytest.mark.asyncio
 async def test_basic_product_collection(ebay_collector):
     """Test basic product collection with real eBay API"""
@@ -170,7 +170,6 @@ async def test_basic_product_collection(ebay_collector):
         )
 
 
-@pytest.mark.integration
 @pytest.mark.asyncio
 async def test_multiple_queries(ebay_collector):
     """Test product collection with multiple different queries"""
@@ -206,7 +205,6 @@ async def test_multiple_queries(ebay_collector):
     )
 
 
-@pytest.mark.integration
 @pytest.mark.asyncio
 async def test_deduplication_logic(ebay_collector):
     """Test product deduplication logic"""
@@ -231,7 +229,6 @@ async def test_deduplication_logic(ebay_collector):
     logger.info("Deduplication test passed: %s unique products", len(products))
 
 
-@pytest.mark.integration
 @pytest.mark.asyncio
 async def test_image_handling(ebay_collector):
     """Test image handling and validation"""
@@ -260,7 +257,6 @@ async def test_image_handling(ebay_collector):
         logger.warning("No products with images found in this test")
 
 
-@pytest.mark.integration
 @pytest.mark.asyncio
 async def test_shipping_cost_calculation(ebay_collector):
     """Test shipping cost calculation logic"""
@@ -285,7 +281,6 @@ async def test_shipping_cost_calculation(ebay_collector):
     logger.info("Shipping cost calculation test passed")
 
 
-@pytest.mark.integration
 @pytest.mark.asyncio
 async def test_error_handling(ebay_collector):
     """Test error handling with edge cases"""
@@ -308,7 +303,6 @@ async def test_error_handling(ebay_collector):
     logger.info("Error handling test passed")
 
 
-@pytest.mark.integration
 @pytest.mark.asyncio
 async def test_performance_metrics(ebay_collector):
     """Test performance metrics for product collection"""
@@ -340,7 +334,6 @@ async def test_performance_metrics(ebay_collector):
     logger.info("Performance metrics test passed")
 
 
-@pytest.mark.integration
 @pytest.mark.asyncio
 async def test_data_validation(ebay_collector):
     """Test data validation and integrity"""
@@ -397,7 +390,6 @@ async def test_data_validation(ebay_collector):
     logger.info("Data validation passed for %s products", len(products))
 
 
-@pytest.mark.integration
 @pytest.mark.asyncio
 async def test_concurrent_collection(ebay_collector):
     """Test concurrent product collection"""
@@ -433,7 +425,6 @@ async def test_concurrent_collection(ebay_collector):
     )
 
 
-@pytest.mark.integration
 @pytest.mark.asyncio
 async def test_source_name(ebay_collector):
     """Test source name functionality"""
@@ -442,7 +433,6 @@ async def test_source_name(ebay_collector):
     logger.info("Source name: %s", source_name)
 
 
-@pytest.mark.integration
 @pytest.mark.asyncio
 async def test_marketplace_configuration(ebay_collector):
     """Test marketplace configuration"""
@@ -463,7 +453,6 @@ async def test_marketplace_configuration(ebay_collector):
     logger.info("Marketplace configuration test passed")
 
 
-@pytest.mark.integration
 @pytest.mark.asyncio
 async def test_phone_search_returns_real_data(ebay_collector):
     """Test that searching for 'phone' returns real, non-empty data from eBay API"""
@@ -539,7 +528,6 @@ async def test_phone_search_returns_real_data(ebay_collector):
     )
 
 
-@pytest.mark.integration
 @pytest.mark.asyncio
 async def test_hat_search_returns_real_data(ebay_collector):
     """Test that searching for 'hat' returns real, non-empty data from eBay API"""
@@ -612,7 +600,6 @@ async def test_hat_search_returns_real_data(ebay_collector):
     )
 
 
-@pytest.mark.integration
 @pytest.mark.asyncio
 async def test_phone_and_hat_search_has_images(ebay_collector):
     """Test that phone and hat searches return products with main and additional images"""

@@ -1,9 +1,9 @@
 import pytest
 import asyncio
 from services.product_collection_manager import ProductCollectionManager
+pytestmark = pytest.mark.integration
 
 
-@pytest.mark.integration
 @pytest.mark.asyncio
 async def test_parallel_execution_with_real_components():
     """Integration test to verify parallel execution with mocked but realistic components."""
@@ -106,7 +106,6 @@ async def test_parallel_execution_with_real_components():
         assert "currency" in stored["product"]
 
 
-@pytest.mark.integration
 @pytest.mark.asyncio
 async def test_error_resilience_integration():
     """Integration test to verify error handling works end-to-end."""
