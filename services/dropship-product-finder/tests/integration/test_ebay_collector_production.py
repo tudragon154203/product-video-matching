@@ -6,7 +6,7 @@ Tests the minimal essential flow from authentication to product collection with 
 
 from common_py.logging_config import configure_logging
 import redis.asyncio as redis
-from collectors.ebay_product_collector import EbayProductCollector
+from collectors.ebay.ebay_product_collector import EbayProductCollector
 from services.auth import eBayAuthService
 from config_loader import config
 import asyncio

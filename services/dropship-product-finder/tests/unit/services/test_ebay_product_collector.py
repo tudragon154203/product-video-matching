@@ -6,7 +6,7 @@ from unittest.mock import AsyncMock, Mock, patch
 
 import pytest
 
-from collectors.ebay_product_collector import EbayProductCollector
+from collectors.ebay.ebay_product_collector import EbayProductCollector
 from services.ebay_browse_api_client import EbayBrowseApiClient
 
 pytestmark = pytest.mark.unit

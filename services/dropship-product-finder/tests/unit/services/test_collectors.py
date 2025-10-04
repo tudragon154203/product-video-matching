@@ -6,7 +6,7 @@ from unittest.mock import AsyncMock, patch
 
 import pytest
 
-from collectors.ebay_product_collector import EbayProductCollector
+from collectors.ebay.ebay_product_collector import EbayProductCollector
 
 pytestmark = pytest.mark.unit
 
@@ -63,7 +63,7 @@ def ebay_collector(mock_auth_service, mock_redis):
     """Create eBay collector with mocked auth service"""
     with patch("config_loader.config.EBAY_MARKETPLACES", "EBAY_US,EBAY_UK,EBAY_DE"):
         with patch(
-            "collectors.ebay_product_collector.EbayBrowseApiClient"
+            "collectors.ebay.ebay_product_collector.EbayBrowseApiClient"
         ) as mock_browse_client_class:
             # Create mock browse client instance
             mock_browse_instance = AsyncMock()
@@ -140,7 +140,7 @@ class TestEbayProductCollector:
         # Create collector without auth service
         with patch("config_loader.config.EBAY_MARKETPLACES", "EBAY_US"):
             with patch(
-                "collectors.ebay_product_collector.EbayBrowseApiClient"
+                "collectors.ebay.ebay_product_collector.EbayBrowseApiClient"
             ) as mock_browse_client_class:
                 mock_browse_instance = AsyncMock()
                 mock_browse_client_class.return_value = mock_browse_instance

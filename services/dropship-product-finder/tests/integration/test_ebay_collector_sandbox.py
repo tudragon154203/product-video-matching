@@ -6,7 +6,7 @@ Tests the complete flow from authentication to product collection with real data
 
 from common_py.logging_config import configure_logging
 import redis.asyncio as redis
-from collectors.ebay_product_collector import EbayProductCollector
+from collectors.ebay.ebay_product_collector import EbayProductCollector
 from services.auth import eBayAuthService
 from config_loader import config
 import asyncio
@@ -529,11 +529,11 @@ async def test_phone_search_returns_real_data(ebay_collector):
 
 
 @pytest.mark.asyncio
-async def test_hat_search_returns_real_data(ebay_collector):
-    """Test that searching for 'hat' returns real, non-empty data from eBay API"""
-    logger.info("Testing hat search returns real data...")
+async def test_shoes_search_returns_real_data(ebay_collector):
+    """Test that searching for 'shoes' returns real, non-empty data from eBay API"""
+    logger.info("Testing shoes search returns real data...")
 
-    query = "hat"
+    query = "shoes"
     top_k = 10
 
     products = await ebay_collector.collect_products(query, top_k)
@@ -567,36 +567,36 @@ async def test_hat_search_returns_real_data(ebay_collector):
             "Shipping cost is invalid"
         )
 
-        # Verify the product is actually related to hats.
+        # Verify the product is actually related to shoes.
         # Check title contains relevant keywords.
         title_lower = product["title"].lower()
-        hat_keywords = [
-            "hat",
-            "hats",
-            "cap",
-            "caps",
-            "beanie",
-            "fedora",
-            "sun hat",
-            "baseball cap",
+        shoes_keywords = [
+            "shoe",
+            "shoes",
+            "sneaker",
+            "sneakers",
+            "boot",
+            "boots",
+            "sandal",
+            "sandals",
         ]
-        has_hat_keyword = any(keyword in title_lower for keyword in hat_keywords)
+        has_shoes_keyword = any(keyword in title_lower for keyword in shoes_keywords)
 
         logger.info(
-            "Product: %s... ($%s) - Has hat keyword: %s",
+            "Product: %s... ($%s) - Has shoe keyword: %s",
             product["title"][:60],
             product["price"],
-            has_hat_keyword,
+            has_shoes_keyword,
         )
 
-        # At least some products should be related to hats
+        # At least some products should be related to shoes
         if len(products) <= 3 or products.index(product) < 3:  # Check first 3 products
-            assert has_hat_keyword, (
-                f"Product '{product['title']}' doesn't appear to be related to hats"
+            assert has_shoes_keyword, (
+                f"Product '{product['title']}' doesn't appear to be related to shoes"
             )
 
     logger.info(
-        "Successfully found %s real products for 'hat' search", len(products)
+        "Successfully found %s real products for 'shoes' search", len(products)
     )
 
 
