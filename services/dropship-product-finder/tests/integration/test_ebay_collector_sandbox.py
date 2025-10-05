@@ -13,6 +13,8 @@ import pytest
 import sys
 from pathlib import Path
 import json
+import redis
+from datetime import datetime
 
 # Add current directory to Python path
 sys.path.insert(0, str(Path(__file__).parent.parent))
@@ -507,11 +509,11 @@ async def test_phone_search_returns_real_data(ebay_collector):
 
 
 @pytest.mark.asyncio
-async def test_shoes_search_returns_real_data(ebay_collector):
-    """Test that searching for 'shoes' returns real, non-empty data from eBay API"""
-    logger.info("Testing shoes search returns real data...")
+async def test_laptop_search_returns_real_data(ebay_collector):
+    """Test that searching for 'laptop' returns real, non-empty data from eBay API"""
+    logger.info("Testing laptop search returns real data...")
 
-    query = "shoes"
+    query = "laptop"
     top_k = 10
 
     products = await ebay_collector.collect_products(query, top_k)
@@ -545,36 +547,35 @@ async def test_shoes_search_returns_real_data(ebay_collector):
             "Shipping cost is invalid"
         )
 
-        # Verify the product is actually related to shoes.
+        # Verify the product is actually related
         # Check title contains relevant keywords.
         title_lower = product["title"].lower()
-        shoes_keywords = [
-            "shoe",
-            "shoes",
-            "sneaker",
-            "sneakers",
-            "boot",
-            "boots",
-            "sandal",
-            "sandals",
+        laptop_keywords = [
+            "laptop",
+            "notebook",
+            "computer",
+            "pc",
+            "macbook",
+            "chromebook",
+            "gaming laptop",
         ]
-        has_shoes_keyword = any(keyword in title_lower for keyword in shoes_keywords)
+        has_laptop_keyword = any(keyword in title_lower for keyword in laptop_keywords)
 
         logger.info(
-            "Product: %s... ($%s) - Has shoe keyword: %s",
+            "Product: %s... ($%s) - Has laptop keyword: %s",
             product["title"][:60],
             product["price"],
-            has_shoes_keyword,
+            has_laptop_keyword,
         )
 
         # At least some products should be related to shoes
         if len(products) <= 3 or products.index(product) < 3:  # Check first 3 products
-            assert has_shoes_keyword, (
-                f"Product '{product['title']}' doesn't appear to be related to shoes"
+            assert has_laptop_keyword, (
+                f"Product '{product['title']}' doesn't appear to be related to laptops"
             )
 
     logger.info(
-        "Successfully found %s real products for 'shoes' search", len(products)
+        "Successfully found %s real products for 'laptop' search", len(products)
     )
 
 

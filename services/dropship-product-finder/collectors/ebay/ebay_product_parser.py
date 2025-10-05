@@ -1,4 +1,4 @@
-from typing import List, Dict, Any, Optional
+from typing import List, Dict, Any
 from common_py.logging_config import configure_logging
 
 logger = configure_logging("dropship-product-finder:ebay_product_parser")
