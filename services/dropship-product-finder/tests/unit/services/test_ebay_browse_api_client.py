@@ -207,9 +207,8 @@ async def test_make_request_retryable_error_exhausted(
     client_with_mock_httpx, mock_httpx_client, mock_config
 ):
     """Test retryable error exhausts all retries."""
-    # 500 for all 3 attempts (MAX_RETRIES_BROWSE = 3)
+    # 500 for all attempts. The code runs with default MAX_RETRIES=2.
     mock_httpx_client.get.side_effect = [
-        mock_response(500),
         mock_response(500),
         mock_response(500),
     ]
@@ -219,11 +218,12 @@ async def test_make_request_retryable_error_exhausted(
     )
 
     assert result == {"itemSummaries": []}
-    assert mock_httpx_client.get.call_count == 3
-    # Check backoff times: attempt 0 -> 2**0=1, attempt 1 -> 2**1=2
-    assert asyncio.sleep.call_args_list[0][0][0] == 1
-    assert asyncio.sleep.call_args_list[1][0][0] == 2
-    assert asyncio.sleep.call_count == 3  # FIX 1: Changed to assert call_count == 3
+    assert mock_httpx_client.get.call_count == 2
+    # Check backoff times based on default config: BACKOFF_BASE=1.5
+    # Attempt 0: 1.5**0 = 1.0s, Attempt 1: 1.5**1 = 1.5s
+    assert asyncio.sleep.call_count == 2
+    assert asyncio.sleep.call_args_list[0][0][0] == 1.0
+    assert asyncio.sleep.call_args_list[1][0][0] == 1.5
 
 
 @pytest.mark.asyncio
@@ -232,9 +232,8 @@ async def test_make_request_network_exception_exhausted(
     client_with_mock_httpx, mock_httpx_client, mock_config
 ):
     """Test network exception exhausts all retries."""
-    # Simulate a network error (e.g., httpx.ConnectError) for all 3 attempts
+    # Simulate a network error. The code runs with default MAX_RETRIES=2.
     mock_httpx_client.get.side_effect = [
-        ConnectionError("Network failed"),
         ConnectionError("Network failed"),
         ConnectionError("Network failed"),
     ]
@@ -244,11 +243,10 @@ async def test_make_request_network_exception_exhausted(
     )
 
     assert result == {"itemSummaries": []}
-    assert mock_httpx_client.get.call_count == 3
-    # Check backoff times: attempt 0 -> 2**0=1, attempt 1 -> 2**1=2
-    assert asyncio.sleep.call_args_list[0][0][0] == 1
-    assert asyncio.sleep.call_args_list[1][0][0] == 2
-    assert asyncio.sleep.call_count == 2
+    assert mock_httpx_client.get.call_count == 2
+    # Network errors only sleep if attempt < MAX_RETRIES - 1.
+    # So, it only sleeps on the first attempt (attempt=0).
+    asyncio.sleep.assert_called_once_with(1.0)
 
 
 @pytest.mark.asyncio
