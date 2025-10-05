@@ -43,13 +43,16 @@ def redis_client() -> InMemoryRedis:
 
 
 @pytest.fixture(scope="session", autouse=True)
-def patch_redis(redis_client: InMemoryRedis) -> None:
+def patch_redis() -> None:
     """Return the shared fake Redis client whenever redis.from_url is called."""
 
     import redis.asyncio as redis_async
 
+    # Create a shared InMemoryRedis instance for the patch
+    shared_redis = InMemoryRedis()
+
     patcher = pytest.MonkeyPatch()
-    patcher.setattr(redis_async, "from_url", lambda *args, **kwargs: redis_client)
+    patcher.setattr(redis_async, "from_url", lambda *args, **kwargs: shared_redis)
     yield
     patcher.undo()
 
