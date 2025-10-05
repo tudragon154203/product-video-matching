@@ -2,11 +2,9 @@
 
 from services.ebay_auth_api_client import EbayAuthAPIClient
 from httpx import Response, Request, HTTPStatusError, RequestError
-import httpx
 from unittest.mock import AsyncMock, MagicMock, patch
 import sys
 import pytest
-import asyncio
 
 pytestmark = pytest.mark.unit
 

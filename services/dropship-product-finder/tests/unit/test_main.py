@@ -60,7 +60,7 @@ async def test_service_context_happy_path(monkeypatch):
     monkeypatch.setattr("main.redis", MockRedis)
 
     # Execute the context manager
-    async with service_context() as handler:
+    async with service_context():
         # Assert connections were made
         mock_db_connect.assert_called_once()
         mock_broker_connect.assert_called_once()
@@ -124,7 +124,7 @@ async def test_service_context_db_connect_failure(monkeypatch):
 
     # Execute the context manager and assert exception
     with pytest.raises(MockServiceException, match="DB Error"):
-        async with service_context() as handler:
+        async with service_context():
             pass
 
     # Assert DB disconnect was called as cleanup
@@ -182,7 +182,7 @@ async def test_service_context_redis_connect_failure(monkeypatch, caplog):
 
     # Execute the context manager and assert exception
     with pytest.raises(ConnectionError, match="Redis down"):
-        async with service_context() as handler:
+        async with service_context():
             pass
 
     # Assert all connections that were made are now closed

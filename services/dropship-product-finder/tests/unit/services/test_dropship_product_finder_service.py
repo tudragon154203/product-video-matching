@@ -5,11 +5,9 @@ Unit tests for DropshipProductFinderService.
 from collectors.mock_ebay_collector import MockEbayCollector
 from collectors.ebay.ebay_product_collector import EbayProductCollector
 from collectors.amazon_product_collector import AmazonProductCollector
-from collectors.base_product_collector import BaseProductCollector
 from services.image_storage_manager import ImageStorageManager
 from services.product_collection_manager import ProductCollectionManager
 from services.service import DropshipProductFinderService
-import uuid
 import sys
 import os
 from unittest.mock import AsyncMock, Mock, patch
@@ -113,8 +111,8 @@ class TestDropshipProductFinderService:
     async def test_init_with_mock_finders(self, mock_config, mock_database_manager, mock_message_broker):
         """Test initialization with USE_MOCK_FINDERS=True"""
         with patch("services.service.config", mock_config):
-            with patch("services.service.ImageStorageManager") as mock_image_manager_class:
-                with patch("services.service.ProductCollectionManager") as mock_product_manager_class:
+            with patch("services.service.ImageStorageManager"):
+                with patch("services.service.ProductCollectionManager"):
                     service = DropshipProductFinderService(
                         db=mock_database_manager,
                         broker=mock_message_broker,
@@ -133,8 +131,8 @@ class TestDropshipProductFinderService:
         mock_config.USE_MOCK_FINDERS = False
 
         with patch("services.service.config", mock_config):
-            with patch("services.service.ImageStorageManager") as mock_image_manager_class:
-                with patch("services.service.ProductCollectionManager") as mock_product_manager_class:
+            with patch("services.service.ImageStorageManager"):
+                with patch("services.service.ProductCollectionManager"):
                     service = DropshipProductFinderService(
                         db=mock_database_manager,
                         broker=mock_message_broker,

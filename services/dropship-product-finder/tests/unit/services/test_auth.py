@@ -3,7 +3,6 @@ Unit tests for eBay authentication service with Redis token management.
 """
 
 import json
-import logging
 from datetime import datetime, timedelta
 from unittest.mock import AsyncMock, MagicMock, patch
 
