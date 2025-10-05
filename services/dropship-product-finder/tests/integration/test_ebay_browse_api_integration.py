@@ -4,18 +4,16 @@ Integration tests for eBay Browse API focusing on sandbox behavior.
 Tests the search and get_item endpoints with real eBay API calls.
 """
 
-import os
+from config_loader import config
+from services.auth import eBayAuthService
+from services.ebay_browse_api_client import EbayBrowseApiClient
 import pytest
 import sys
 from pathlib import Path
-from typing import Dict, Any
 
 # Add current directory to Python path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from services.ebay_browse_api_client import EbayBrowseApiClient
-from services.auth import eBayAuthService
-from config_loader import config
 
 pytestmark = pytest.mark.integration
 
@@ -34,7 +32,7 @@ async def auth_service(redis_client):
     """eBay authentication service fixture for sandbox environment"""
     # Force sandbox environment for this test
     config.EBAY_ENVIRONMENT = "sandbox"
-    
+
     service = eBayAuthService(config, redis_client)
     yield service
     await service.close()
@@ -56,22 +54,22 @@ async def test_search_endpoint(ebay_browse_client):
     """Test the search endpoint with a known keyword"""
     # Perform search with "laptop" keyword
     result = await ebay_browse_client.search(q="laptop", limit=5)
-    
+
     # Assert HTTP status code is 200 (implicit in successful response)
     assert isinstance(result, dict), "Search result should be a dictionary"
-    
+
     # Assert response contains non-empty itemSummaries
     assert "itemSummaries" in result, "Response should contain itemSummaries"
     assert isinstance(result["itemSummaries"], list), "itemSummaries should be a list"
     assert len(result["itemSummaries"]) > 0, "Search should return at least one item"
-    
+
     # Verify marketplace header by checking itemWebUrl contains expected domain
     first_item = result["itemSummaries"][0]
     assert "itemWebUrl" in first_item, "First item should have itemWebUrl"
     item_web_url = first_item["itemWebUrl"]
     assert isinstance(item_web_url, str), "itemWebUrl should be a string"
     assert ".ebay.com" in item_web_url, f"itemWebUrl should contain '.ebay.com': {item_web_url}"
-    
+
     # Log successful search
     print(f"Successfully found {len(result['itemSummaries'])} items for 'laptop'")
 
@@ -94,7 +92,7 @@ async def test_get_item_endpoint(ebay_browse_client):
 
     # Assert HTTP status code is 200 (implicit in successful response)
     assert isinstance(item_result, dict), "Get item result should be a dictionary"
-    
+
     # Handle case where item might not be found or API returns empty response
     if not item_result:
         pytest.skip("Item not found in get_item call (may be sandbox limitation)")
