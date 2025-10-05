@@ -54,22 +54,6 @@ def patch_redis(redis_client: InMemoryRedis) -> None:
     yield
     patcher.undo()
 
-
-@pytest.fixture(scope="session", autouse=True)
-def fast_asyncio_sleep() -> None:
-    """Speed up integration tests by shortening sleeps."""
-
-    original_sleep = asyncio.sleep
-    patcher = pytest.MonkeyPatch()
-
-    async def immediate_sleep(_seconds: float, *_, **__) -> None:  # pragma: no cover - timing helper
-        await original_sleep(0)
-
-    patcher.setattr(asyncio, "sleep", immediate_sleep)
-    yield
-    patcher.undo()
-
-
 @pytest.fixture(autouse=True)
 def reset_redis(redis_client: InMemoryRedis) -> None:
     """Clear in-memory Redis state between tests to avoid cross-test leakage."""
