@@ -1,12 +1,14 @@
 import pytest
-from services.dropship_product_finder.collectors.ebay.ebay_product_mapper import EbayProductMapper
+from collectors.ebay.ebay_product_mapper import EbayProductMapper
 
 pytestmark = pytest.mark.unit
+
 
 @pytest.fixture
 def ebay_product_mapper():
     """Fixture to provide an EbayProductMapper instance."""
     return EbayProductMapper()
+
 
 def test_normalize_ebay_item_full_details(ebay_product_mapper):
     """
@@ -29,7 +31,7 @@ def test_normalize_ebay_item_full_details(ebay_product_mapper):
                 {"imageUrl": "http://example.com/gallery3.jpg"},
             ]
         },
-        "images": [ # This is a less common structure but good to test
+        "images": [  # This is a less common structure but good to test
             {"imageUrl": "http://example.com/img_array_1.jpg"},
             {"imageUrl": "http://example.com/img_array_2.jpg"},
         ],
@@ -61,6 +63,7 @@ def test_normalize_ebay_item_full_details(ebay_product_mapper):
 
     normalized_product = ebay_product_mapper.normalize_ebay_item(item, marketplace)
     assert normalized_product == expected_product
+
 
 def test_normalize_ebay_item_no_epid_fallback_to_item_id(ebay_product_mapper):
     """
@@ -94,6 +97,7 @@ def test_normalize_ebay_item_no_epid_fallback_to_item_id(ebay_product_mapper):
     normalized_product = ebay_product_mapper.normalize_ebay_item(item, marketplace)
     assert normalized_product == expected_product
 
+
 def test_normalize_ebay_item_free_shipping(ebay_product_mapper):
     """
     Tests normalization with free shipping.
@@ -125,6 +129,7 @@ def test_normalize_ebay_item_free_shipping(ebay_product_mapper):
 
     normalized_product = ebay_product_mapper.normalize_ebay_item(item, marketplace)
     assert normalized_product == expected_product
+
 
 def test_normalize_ebay_item_image_precedence(ebay_product_mapper):
     """
@@ -167,6 +172,7 @@ def test_normalize_ebay_item_image_precedence(ebay_product_mapper):
     product3 = ebay_product_mapper.normalize_ebay_item(item3, "EBAY_US")
     assert product3["images"][0] == "image_from_summary.jpg"
 
+
 @pytest.mark.unit
 def test_normalize_ebay_item_additional_images_limit(ebay_product_mapper):
     """
@@ -204,12 +210,13 @@ def test_normalize_ebay_item_additional_images_limit(ebay_product_mapper):
     assert len(normalized_product["images"]) == 6
     assert normalized_product["images"] == [
         "primary.jpg",
-        "gallery2.jpg", # gallery1.jpg is skipped as it's the first in imageVariations (effectively primary)
+        "gallery2.jpg",  # gallery1.jpg is skipped as it's the first in imageVariations (effectively primary)
         "gallery3.jpg",
         "gallery4.jpg",
         "gallery5.jpg",
         "gallery6.jpg",
     ]
+
 
 @pytest.mark.unit
 def test_normalize_ebay_item_missing_required_fields(ebay_product_mapper):
@@ -224,6 +231,7 @@ def test_normalize_ebay_item_missing_required_fields(ebay_product_mapper):
     normalized_product = ebay_product_mapper.normalize_ebay_item(item, marketplace)
     assert normalized_product is None
 
+
 @pytest.mark.unit
 def test_deduplicate_products_by_epid(ebay_product_mapper):
     """
@@ -232,19 +240,20 @@ def test_deduplicate_products_by_epid(ebay_product_mapper):
     products = [
         {"id": "EPID1", "epid": "EPID1", "itemId": "A", "totalPrice": 100.00},
         {"id": "EPID2", "epid": "EPID2", "itemId": "B", "totalPrice": 150.00},
-        {"id": "EPID1", "epid": "EPID1", "itemId": "C", "totalPrice": 90.00}, # Lower price for EPID1
+        {"id": "EPID1", "epid": "EPID1", "itemId": "C", "totalPrice": 90.00},  # Lower price for EPID1
         {"id": "EPID3", "epid": "EPID3", "itemId": "D", "totalPrice": 120.00},
     ]
     max_items = 3
 
     deduplicated = ebay_product_mapper.deduplicate_products(products, max_items)
     assert len(deduplicated) == 3
-    assert deduplicated[0]["id"] == "EPID1" # Lowest total price for EPID1
+    assert deduplicated[0]["id"] == "EPID1"  # Lowest total price for EPID1
     assert deduplicated[0]["totalPrice"] == 90.00
     assert deduplicated[1]["id"] == "EPID3"
     assert deduplicated[1]["totalPrice"] == 120.00
     assert deduplicated[2]["id"] == "EPID2"
     assert deduplicated[2]["totalPrice"] == 150.00
+
 
 @pytest.mark.unit
 def test_deduplicate_products_by_item_id_fallback(ebay_product_mapper):
@@ -254,7 +263,7 @@ def test_deduplicate_products_by_item_id_fallback(ebay_product_mapper):
     products = [
         {"id": "A", "itemId": "A", "totalPrice": 50.00},
         {"id": "B", "itemId": "B", "totalPrice": 70.00},
-        {"id": "A", "itemId": "A", "totalPrice": 45.00}, # Lower price for itemId A
+        {"id": "A", "itemId": "A", "totalPrice": 45.00},  # Lower price for itemId A
     ]
     max_items = 2
 
@@ -265,6 +274,7 @@ def test_deduplicate_products_by_item_id_fallback(ebay_product_mapper):
     assert deduplicated[1]["id"] == "B"
     assert deduplicated[1]["totalPrice"] == 70.00
 
+
 @pytest.mark.unit
 def test_deduplicate_products_empty_list(ebay_product_mapper):
     """
@@ -274,6 +284,7 @@ def test_deduplicate_products_empty_list(ebay_product_mapper):
     max_items = 5
     deduplicated = ebay_product_mapper.deduplicate_products(products, max_items)
     assert deduplicated == []
+
 
 @pytest.mark.unit
 def test_deduplicate_products_max_items_limit(ebay_product_mapper):
@@ -291,5 +302,5 @@ def test_deduplicate_products_max_items_limit(ebay_product_mapper):
 
     deduplicated = ebay_product_mapper.deduplicate_products(products, max_items)
     assert len(deduplicated) == 2
-    assert deduplicated[0]["totalPrice"] == 80.00 # EPID4
-    assert deduplicated[1]["totalPrice"] == 90.00 # EPID1
+    assert deduplicated[0]["totalPrice"] == 80.00  # EPID4
+    assert deduplicated[1]["totalPrice"] == 90.00  # EPID1

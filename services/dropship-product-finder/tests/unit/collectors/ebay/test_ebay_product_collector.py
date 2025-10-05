@@ -1,14 +1,12 @@
+from types import SimpleNamespace
+from services.auth import eBayAuthService
+from collectors.ebay.ebay_api_client import EbayApiClient
+from collectors.ebay.ebay_product_collector import EbayProductCollector
 import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
 
 pytestmark = pytest.mark.unit
-from services.dropship_product_finder.collectors.ebay.ebay_product_collector import EbayProductCollector
-from services.dropship_product_finder.collectors.ebay.ebay_api_client import EbayApiClient
-from services.dropship_product_finder.collectors.ebay.ebay_product_parser import EbayProductParser
-from services.dropship_product_finder.collectors.ebay.ebay_product_mapper import EbayProductMapper
-from services.ebay_browse_api_client import EbayBrowseApiClient
-from services.auth import eBayAuthService
-from types import SimpleNamespace
+
 
 @pytest.fixture
 def mock_config():
@@ -18,20 +16,24 @@ def mock_config():
         EBAY_BROWSE_BASE="http://mock-ebay-browse.com",
     )
 
+
 @pytest.fixture
 def mock_auth_service():
     """Mock eBayAuthService."""
     return MagicMock(spec=eBayAuthService)
+
 
 @pytest.fixture
 def mock_httpx_client():
     """Mock httpx.AsyncClient."""
     return AsyncMock()
 
+
 @pytest.fixture
 def mock_redis_client():
     """Mock redis client."""
     return MagicMock()
+
 
 @pytest.fixture
 def ebay_product_collector(
@@ -44,18 +46,18 @@ def ebay_product_collector(
     original_auth_service = globals().get("eBayAuthService")
 
     with patch(
-        "services.dropship_product_finder.collectors.ebay.ebay_product_collector.EbayBrowseApiClient"
+        "collectors.ebay.ebay_product_collector.EbayBrowseApiClient"
     ) as MockEbayBrowseApiClient, patch(
-        "services.dropship_product_finder.collectors.ebay.ebay_product_collector.EbayProductMapper"
+        "collectors.ebay.ebay_product_collector.EbayProductMapper"
     ) as MockEbayProductMapper, patch(
-        "services.dropship_product_finder.collectors.ebay.ebay_product_collector.EbayProductParser"
+        "collectors.ebay.ebay_product_collector.EbayProductParser"
     ) as MockEbayProductParser, patch(
-        "services.dropship_product_finder.collectors.ebay.ebay_product_collector.EbayApiClient"
+        "collectors.ebay.ebay_product_collector.EbayApiClient"
     ) as MockEbayApiClient, patch(
-        "services.dropship_product_finder.collectors.ebay.ebay_product_collector.config",
+        "collectors.ebay.ebay_product_collector.config",
         mock_config,
     ), patch(
-        "services.dropship_product_finder.collectors.ebay.ebay_product_collector.eBayAuthService"
+        "collectors.ebay.ebay_product_collector.eBayAuthService"
     ) as MockEbayAuthService:
         MockEbayAuthService.return_value = mock_auth_service
         globals()["eBayAuthService"] = MockEbayAuthService
@@ -74,6 +76,7 @@ def ebay_product_collector(
 
     if original_auth_service is not None:
         globals()["eBayAuthService"] = original_auth_service
+
 
 @pytest.mark.asyncio
 async def test_init_initializes_dependencies(ebay_product_collector, mock_config, mock_auth_service, mock_redis_client):
@@ -95,15 +98,18 @@ async def test_init_initializes_dependencies(ebay_product_collector, mock_config
     # Check that eBayAuthService was called with the correct config and redis_client
     eBayAuthService.assert_called_once_with(mock_config, mock_redis_client)
 
+
 def test_get_source_name(ebay_product_collector):
     """Tests that get_source_name returns 'ebay'."""
     assert ebay_product_collector.get_source_name() == "ebay"
+
 
 def test_update_redis_client(ebay_product_collector, mock_auth_service):
     """Tests that update_redis_client updates the redis client in the auth service."""
     new_redis_client = MagicMock()
     ebay_product_collector.update_redis_client(new_redis_client)
     mock_auth_service.update_redis_client.assert_called_once_with(new_redis_client)
+
 
 @pytest.mark.asyncio
 async def test_collect_products_success(ebay_product_collector):
@@ -146,7 +152,7 @@ async def test_collect_products_success(ebay_product_collector):
     ]
 
     expected_deduplicated_products = [
-        mock_product_de1, # Lowest total price
+        mock_product_de1,  # Lowest total price
         mock_product_us1,
     ]
     ebay_product_collector.ebay_mapper.deduplicate_products.return_value = expected_deduplicated_products
@@ -155,11 +161,11 @@ async def test_collect_products_success(ebay_product_collector):
 
     # Assertions
     assert products == expected_deduplicated_products
-    assert ebay_product_collector.ebay_api_client_class.call_count == 2 # Called for each marketplace
+    assert ebay_product_collector.ebay_api_client_class.call_count == 2  # Called for each marketplace
     assert mock_api_client_us.fetch_and_get_details.await_count == 1
     assert mock_api_client_de.fetch_and_get_details.await_count == 1
     assert ebay_product_collector.ebay_parser.parse_search_results_with_details.call_count == 2
-    assert ebay_product_collector.ebay_mapper.normalize_ebay_item.call_count == 4 # 2 for each marketplace
+    assert ebay_product_collector.ebay_mapper.normalize_ebay_item.call_count == 4  # 2 for each marketplace
     ebay_product_collector.ebay_mapper.deduplicate_products.assert_called_once()
 
 
@@ -197,12 +203,13 @@ async def test_collect_products_marketplace_error_resilience(ebay_product_collec
 
     assert len(products) == 1
     assert products[0]["id"] == "3"
-    assert mock_api_client_us.fetch_and_get_details.await_count == 1 # US was called
-    assert mock_api_client_de.fetch_and_get_details.await_count == 1 # DE was called
+    assert mock_api_client_us.fetch_and_get_details.await_count == 1  # US was called
+    assert mock_api_client_de.fetch_and_get_details.await_count == 1  # DE was called
     # Parser and mapper should only be called for the successful marketplace (DE)
     ebay_product_collector.ebay_parser.parse_search_results_with_details.assert_called_once()
     ebay_product_collector.ebay_mapper.normalize_ebay_item.assert_called_once()
     ebay_product_collector.ebay_mapper.deduplicate_products.assert_called_once()
+
 
 @pytest.mark.asyncio
 async def test_collect_products_no_results(ebay_product_collector):
@@ -220,7 +227,7 @@ async def test_collect_products_no_results(ebay_product_collector):
     mock_api_client_de.fetch_and_get_details.return_value = ([], [])
 
     ebay_product_collector.ebay_parser.parse_search_results_with_details.return_value = []
-    ebay_product_collector.ebay_mapper.normalize_ebay_item.return_value = None # No products to normalize
+    ebay_product_collector.ebay_mapper.normalize_ebay_item.return_value = None  # No products to normalize
     ebay_product_collector.ebay_mapper.deduplicate_products.return_value = []
 
     products = await ebay_product_collector.collect_products(query, top_k)
@@ -246,7 +253,7 @@ async def test_collect_products_no_browse_client_for_marketplace(ebay_product_co
     top_k = 1
 
     mock_api_client_us = MagicMock(spec=EbayApiClient)
-    ebay_product_collector.ebay_api_client_class.side_effect = [mock_api_client_us] # Only for US
+    ebay_product_collector.ebay_api_client_class.side_effect = [mock_api_client_us]  # Only for US
 
     mock_api_client_us.fetch_and_get_details.return_value = (
         [{"itemId": "1_us_sum"}],

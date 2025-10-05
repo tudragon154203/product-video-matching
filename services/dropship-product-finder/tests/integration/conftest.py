@@ -54,6 +54,7 @@ def patch_redis(redis_client: InMemoryRedis) -> None:
     yield
     patcher.undo()
 
+
 @pytest.fixture(autouse=True)
 def reset_redis(redis_client: InMemoryRedis) -> None:
     """Clear in-memory Redis state between tests to avoid cross-test leakage."""

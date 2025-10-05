@@ -1,19 +1,22 @@
+from services.ebay_browse_api_client import EbayBrowseApiClient
+from collectors.ebay.ebay_api_client import EbayApiClient
 import pytest
 from unittest.mock import AsyncMock
 
 pytestmark = pytest.mark.unit
-from services.dropship_product_finder.collectors.ebay.ebay_api_client import EbayApiClient
-from services.ebay_browse_api_client import EbayBrowseApiClient
+
 
 @pytest.fixture
 def mock_ebay_browse_api_client():
     """Fixture to provide a mock EbayBrowseApiClient."""
     return AsyncMock(spec=EbayBrowseApiClient)
 
+
 @pytest.fixture
 def ebay_api_client(mock_ebay_browse_api_client):
     """Fixture to provide an EbayApiClient instance with a mocked browse client."""
     return EbayApiClient(browse_client=mock_ebay_browse_api_client)
+
 
 @pytest.mark.asyncio
 async def test_fetch_and_get_details_success(ebay_api_client, mock_ebay_browse_api_client):
@@ -47,6 +50,7 @@ async def test_fetch_and_get_details_success(ebay_api_client, mock_ebay_browse_a
     assert mock_ebay_browse_api_client.get_item.call_count == top_k
     assert summaries == mock_search_results["itemSummaries"]
     assert details == [mock_detailed_item_1, mock_detailed_item_2]
+
 
 @pytest.mark.asyncio
 async def test_fetch_and_get_details_with_get_item_failure(ebay_api_client, mock_ebay_browse_api_client):
@@ -82,6 +86,7 @@ async def test_fetch_and_get_details_with_get_item_failure(ebay_api_client, mock
     assert summaries == mock_search_results["itemSummaries"]
     assert details == [mock_detailed_item_1, {"item": mock_search_results["itemSummaries"][1]}]
 
+
 @pytest.mark.asyncio
 async def test_fetch_and_get_details_empty_search_results(ebay_api_client, mock_ebay_browse_api_client):
     """
@@ -104,6 +109,7 @@ async def test_fetch_and_get_details_empty_search_results(ebay_api_client, mock_
     mock_ebay_browse_api_client.get_item.assert_not_called()
     assert summaries == []
     assert details == []
+
 
 @pytest.mark.asyncio
 async def test_fetch_and_get_details_top_k_limit(ebay_api_client, mock_ebay_browse_api_client):

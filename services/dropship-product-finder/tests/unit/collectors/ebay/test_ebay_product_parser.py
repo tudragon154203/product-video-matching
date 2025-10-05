@@ -1,12 +1,14 @@
 import pytest
-from services.dropship_product_finder.collectors.ebay.ebay_product_parser import EbayProductParser
+from collectors.ebay.ebay_product_parser import EbayProductParser
 
 pytestmark = pytest.mark.unit
+
 
 @pytest.fixture
 def ebay_product_parser():
     """Fixture to provide an EbayProductParser instance."""
     return EbayProductParser()
+
 
 def test_parse_search_results_with_details_success(ebay_product_parser):
     """
@@ -34,6 +36,7 @@ def test_parse_search_results_with_details_success(ebay_product_parser):
     parsed_items = ebay_product_parser.parse_search_results_with_details(summaries, item_details)
     assert parsed_items == expected_parsed_items
 
+
 def test_parse_search_results_with_details_fallback_to_summary(ebay_product_parser):
     """
     Tests parsing when a detailed item is missing or malformed, falling back to summary.
@@ -44,7 +47,7 @@ def test_parse_search_results_with_details_fallback_to_summary(ebay_product_pars
     ]
     item_details = [
         {"item": {"itemId": "1", "title": "Detailed Item 1", "price": "10.00"}},
-        {"some_other_key": "value"} # Malformed detailed item, should fall back to summary
+        {"some_other_key": "value"}  # Malformed detailed item, should fall back to summary
     ]
 
     expected_parsed_items = [
@@ -54,6 +57,7 @@ def test_parse_search_results_with_details_fallback_to_summary(ebay_product_pars
 
     parsed_items = ebay_product_parser.parse_search_results_with_details(summaries, item_details)
     assert parsed_items == expected_parsed_items
+
 
 @pytest.mark.unit
 def test_parse_search_results_with_details_empty_inputs(ebay_product_parser):
@@ -66,6 +70,7 @@ def test_parse_search_results_with_details_empty_inputs(ebay_product_parser):
 
     parsed_items = ebay_product_parser.parse_search_results_with_details(summaries, item_details)
     assert parsed_items == expected_parsed_items
+
 
 @pytest.mark.unit
 def test_parse_search_results_with_details_more_summaries_than_details(ebay_product_parser):
@@ -91,6 +96,7 @@ def test_parse_search_results_with_details_more_summaries_than_details(ebay_prod
     parsed_items = ebay_product_parser.parse_search_results_with_details(summaries, item_details)
     assert parsed_items == expected_parsed_items
 
+
 @pytest.mark.unit
 def test_parse_search_results_simple_pass_through(ebay_product_parser):
     """
@@ -106,6 +112,7 @@ def test_parse_search_results_simple_pass_through(ebay_product_parser):
     ]
     parsed_items = ebay_product_parser.parse_search_results(items)
     assert parsed_items == expected_items
+
 
 @pytest.mark.unit
 def test_parse_search_results_empty_list(ebay_product_parser):

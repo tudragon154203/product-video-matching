@@ -4,6 +4,7 @@ from common_py.logging_config import configure_logging
 
 logger = configure_logging("dropship-product-finder:ebay_api_client")
 
+
 class EbayApiClient:
     """Encapsulates all interactions with the eBay API."""
 

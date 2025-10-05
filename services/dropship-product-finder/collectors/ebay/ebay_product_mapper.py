@@ -4,6 +4,7 @@ from common_py.logging_config import configure_logging
 
 logger = configure_logging("dropship-product-finder:ebay_product_mapper")
 
+
 class EbayProductMapper:
     """Maps structured data from the ebay_product_parser to the final Product data model."""
 

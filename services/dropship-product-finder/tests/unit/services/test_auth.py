@@ -201,4 +201,3 @@ class TesteBayAuthService:
         result = auth_service._is_token_valid(token_data)
 
         assert result is False
-

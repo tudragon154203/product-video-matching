@@ -3,6 +3,7 @@ from common_py.logging_config import configure_logging
 
 logger = configure_logging("dropship-product-finder:ebay_product_parser")
 
+
 class EbayProductParser:
     """Parses raw eBay API responses into a structured format."""
 
