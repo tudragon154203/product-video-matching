@@ -154,9 +154,6 @@ class eBayAuthService:
     
     def _is_token_valid(self, token_data: dict) -> bool:
         # Checks token expiration
-    
-    async def _enforce_rate_limit(self) -> None:
-        # Enforces minimum API call interval
 ```
 
 ### Integration with Service
@@ -180,7 +177,6 @@ The authentication service is integrated through the service hierarchy:
 - Token caching and retrieval
 - Token refresh logic
 - 401 error handling
-- Rate limiting enforcement
 - Error scenarios
 
 ### Running Tests

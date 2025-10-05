@@ -1,9 +1,6 @@
-"""
-eBay OAuth 2.0 authentication service with Redis token storage.
-"""
+"""eBay OAuth 2.0 authentication service with Redis token storage."""
 
 import json
-import asyncio
 from typing import Optional, Dict, Any
 from datetime import datetime, timedelta
 from common_py.logging_config import configure_logging
@@ -25,10 +22,6 @@ class eBayAuthService:
         self.api_client = EbayAuthAPIClient(
             self.client_id, self.client_secret, self.token_url, self.scopes
         )
-
-        # Rate limiting
-        self.last_request_time = 0
-        self.min_request_interval = 1.0  # seconds
 
     async def get_access_token(self) -> str:
         """Get a valid access token, refreshing if necessary"""
@@ -64,9 +57,6 @@ class eBayAuthService:
 
     async def _refresh_token(self) -> None:
         """Refresh the access token from eBay"""
-        # Rate limiting
-        await self._enforce_rate_limit()
-
         try:
             token_data = await self.api_client.request_access_token()
             await self._store_token(token_data)
@@ -157,18 +147,6 @@ class eBayAuthService:
         except Exception as e:
             logger.error("Error validating token", error=str(e))
             return False
-
-    async def _enforce_rate_limit(self) -> None:
-        """Enforce rate limiting to avoid hitting eBay API limits"""
-        current_time = asyncio.get_event_loop().time()
-        time_since_last = current_time - self.last_request_time
-
-        if time_since_last < self.min_request_interval:
-            sleep_time = self.min_request_interval - time_since_last
-            logger.debug("Rate limiting, sleeping", sleep_time=sleep_time)
-            await asyncio.sleep(sleep_time)
-
-        self.last_request_time = asyncio.get_event_loop().time()
 
     def update_redis_client(self, redis_client: Any) -> None:
         """Update the Redis client after initialization."""

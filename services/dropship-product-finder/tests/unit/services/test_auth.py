@@ -202,37 +202,3 @@ class TesteBayAuthService:
 
         assert result is False
 
-    @pytest.mark.asyncio
-    async def test_rate_limiting(self, auth_service, mock_redis):
-        """Test rate limiting functionality"""
-        # Mock asyncio.get_event_loop().time() directly
-        with patch("asyncio.get_event_loop") as mock_loop:
-            mock_time = MagicMock()
-            mock_loop.return_value.time = mock_time
-
-            # First call returns 1000.0, second call returns 1000.5 (0.5 second apart)
-            # Each _enforce_rate_limit call calls time() twice, so we need 4 values
-            mock_time.side_effect = [1000.0, 1000.0, 1000.5, 1001.0, 1001.0]
-
-            # First call should not sleep
-            await auth_service._enforce_rate_limit()
-
-            # Second call should sleep for remaining time
-            with patch("asyncio.sleep") as mock_sleep:
-                await auth_service._enforce_rate_limit()
-                mock_sleep.assert_called_once_with(0.5)
-
-    @pytest.mark.asyncio
-    async def test_enforce_rate_limit_sufficient_interval(
-        self, auth_service, mock_redis
-    ):
-        """Test rate limiting when sufficient time has passed"""
-        with patch("asyncio.get_event_loop") as mock_loop:
-            mock_loop.return_value.time.side_effect = [
-                1000.0,
-                1002.0,
-            ]  # 2 seconds apart
-
-            with patch("asyncio.sleep") as mock_sleep:
-                await auth_service._enforce_rate_limit()
-                mock_sleep.assert_not_called()

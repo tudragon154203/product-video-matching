@@ -650,9 +650,6 @@ async def test_phone_and_hat_search_has_images(ebay_collector):
             f"Query '{query}' returned {len(products_with_images)}/{len(products)} products with images"
         )
 
-        # Small delay to avoid rate limiting
-        await asyncio.sleep(0.5)
-
     # Overall verification
     assert total_products > 0, "No products found across both queries"
     assert total_products_with_images > 0, (
