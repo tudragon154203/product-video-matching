@@ -27,7 +27,6 @@ def mock_auth_service():
         return_value={"access_token": "test_token_123", "expires_at": 9999999999}
     )
     auth._is_token_valid = AsyncMock(return_value=True)
-    auth._enforce_rate_limit = AsyncMock()
 
     # Reset the mock to avoid state sharing between tests
     def reset_mock():
@@ -38,7 +37,6 @@ def mock_auth_service():
         auth._store_token.reset_mock()
         auth._retrieve_token.reset_mock()
         auth._is_token_valid.reset_mock()
-        auth._enforce_rate_limit.reset_mock()
 
     auth.reset_mock = reset_mock
     return auth
@@ -57,7 +55,6 @@ def mock_ebay_auth_service():
         return_value={"access_token": "test_token_123", "expires_at": 9999999999}
     )
     auth._is_token_valid = AsyncMock(return_value=True)
-    auth._enforce_rate_limit = AsyncMock()
     return auth
 
 

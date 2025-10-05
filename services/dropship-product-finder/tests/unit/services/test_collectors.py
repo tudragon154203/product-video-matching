@@ -36,7 +36,6 @@ def mock_auth_service(mock_redis):
             "_store_token",
             "_retrieve_token",
             "_is_token_valid",
-            "_enforce_rate_limit",
             "redis",
             "api_client",
         ]
@@ -50,9 +49,8 @@ def mock_auth_service(mock_redis):
         return_value={"access_token": "test_token_123", "expires_at": 9999999999}
     )
     auth._is_token_valid = AsyncMock(return_value=True)
-    auth._enforce_rate_limit = AsyncMock()
 
-    # Rate limiting and Redis integration
+    # Redis integration
     auth.redis = mock_redis
     auth.api_client = AsyncMock()
     return auth

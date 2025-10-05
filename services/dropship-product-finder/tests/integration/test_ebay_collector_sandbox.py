@@ -12,7 +12,6 @@ import asyncio
 import pytest
 import sys
 from pathlib import Path
-from datetime import datetime
 import json
 
 # Add current directory to Python path
@@ -31,26 +30,6 @@ def event_loop():
     loop = asyncio.get_event_loop_policy().new_event_loop()
     yield loop
     loop.close()
-
-
-@pytest.fixture(scope="module")
-async def redis_client():
-    """Mock Redis client using dictionary storage"""
-
-    class MockRedis:
-        def __init__(self):
-            self.data = {}
-
-        async def setex(self, key, ttl, value):
-            self.data[key] = value
-
-        async def get(self, key):
-            return self.data.get(key)
-
-        async def close(self):
-            pass
-
-    return MockRedis()
 
 
 @pytest.fixture(scope="module")
@@ -670,9 +649,6 @@ async def test_phone_and_hat_search_has_images(ebay_collector):
         logger.info(
             f"Query '{query}' returned {len(products_with_images)}/{len(products)} products with images"
         )
-
-        # Small delay to avoid rate limiting
-        await asyncio.sleep(0.5)
 
     # Overall verification
     assert total_products > 0, "No products found across both queries"
