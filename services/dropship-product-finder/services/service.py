@@ -5,7 +5,7 @@ from common_py.messaging import MessageBroker
 from common_py.logging_config import configure_logging
 from collectors.base_product_collector import BaseProductCollector
 from collectors.amazon_product_collector import AmazonProductCollector
-from collectors.ebay_product_collector import EbayProductCollector
+from collectors.ebay.ebay_product_collector import EbayProductCollector
 from config_loader import config
 from .product_collection_manager import ProductCollectionManager
 from .image_storage_manager import ImageStorageManager

@@ -242,10 +242,15 @@ async def test_collect_products_no_results(ebay_product_collector):
 
 
 @pytest.mark.asyncio
-async def test_collect_products_no_browse_client_for_marketplace(ebay_product_collector):
+async def test_collect_products_no_browse_client_for_marketplace(
+    ebay_product_collector, monkeypatch
+):
     """
     Tests handling of a marketplace for which no browse client was initialized.
     """
+    mock_logger = MagicMock()
+    monkeypatch.setattr("collectors.ebay.ebay_product_collector.logger", mock_logger)
+
     # Temporarily remove one browse client to simulate this scenario
     del ebay_product_collector.browse_clients["EBAY_DE"]
 
@@ -274,3 +279,6 @@ async def test_collect_products_no_browse_client_for_marketplace(ebay_product_co
     ebay_product_collector.ebay_parser.parse_search_results_with_details.assert_called_once()
     ebay_product_collector.ebay_mapper.normalize_ebay_item.assert_called_once()
     ebay_product_collector.ebay_mapper.deduplicate_products.assert_called_once()
+    mock_logger.warning.assert_any_call(
+        "No browse client found for marketplace: EBAY_DE"
+    )

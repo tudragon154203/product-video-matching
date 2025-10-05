@@ -1,7 +1,7 @@
 from services.ebay_browse_api_client import EbayBrowseApiClient
 from collectors.ebay.ebay_api_client import EbayApiClient
 import pytest
-from unittest.mock import AsyncMock
+from unittest.mock import AsyncMock, MagicMock
 
 pytestmark = pytest.mark.unit
 
@@ -53,7 +53,9 @@ async def test_fetch_and_get_details_success(ebay_api_client, mock_ebay_browse_a
 
 
 @pytest.mark.asyncio
-async def test_fetch_and_get_details_with_get_item_failure(ebay_api_client, mock_ebay_browse_api_client):
+async def test_fetch_and_get_details_with_get_item_failure(
+    ebay_api_client, mock_ebay_browse_api_client, monkeypatch
+):
     """
     Tests fetching with a failure in get_item, ensuring fallback to summary.
     """
@@ -77,6 +79,9 @@ async def test_fetch_and_get_details_with_get_item_failure(ebay_api_client, mock
     marketplace = "EBAY_US"
     top_k = 2
 
+    mock_logger = MagicMock()
+    monkeypatch.setattr("collectors.ebay.ebay_api_client.logger", mock_logger)
+
     summaries, details = await ebay_api_client.fetch_and_get_details(
         query, limit, offset, marketplace, top_k
     )
@@ -85,6 +90,9 @@ async def test_fetch_and_get_details_with_get_item_failure(ebay_api_client, mock
     assert mock_ebay_browse_api_client.get_item.call_count == top_k
     assert summaries == mock_search_results["itemSummaries"]
     assert details == [mock_detailed_item_1, {"item": mock_search_results["itemSummaries"][1]}]
+    mock_logger.warning.assert_called_once()
+    warning_args, warning_kwargs = mock_logger.warning.call_args
+    assert warning_args[0].startswith("Failed to get details for item 2")
 
 
 @pytest.mark.asyncio
