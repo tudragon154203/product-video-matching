@@ -8,29 +8,9 @@ from common_py.logging_config import configure_logging
 from .ebay_api_client import EbayApiClient
 from .ebay_product_parser import EbayProductParser
 from .ebay_product_mapper import EbayProductMapper
+from collectors.ebay.utils.httpx_client_proxy import _HttpxClientProxy
 
 logger = configure_logging("dropship-product-finder:ebay_product_collector")
-
-
-class _HttpxClientProxy:
-    """Proxy around an httpx client that preserves equality in tests."""
-
-    def __init__(self, client: Any):
-        self._client = client
-
-    def __getattr__(self, item: str) -> Any:
-        return getattr(self._client, item)
-
-    def __eq__(self, other: Any) -> bool:  # pragma: no cover - trivial comparison helper
-        if other is self._client:
-            return True
-        # Some tests compare against the fixture function name rather than value
-        if callable(other) and getattr(other, "__name__", None) == "mock_httpx_client":
-            return True
-        return False
-
-    def __repr__(self) -> str:  # pragma: no cover - debug convenience
-        return repr(self._client)
 
 
 class EbayProductCollector(BaseProductCollector):
