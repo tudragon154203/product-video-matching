@@ -1,7 +1,7 @@
 import os
 import sys
 import pytest
-from unittest.mock import Mock, patch, AsyncMock
+from unittest.mock import Mock, patch
 
 pytestmark = pytest.mark.unit
 

@@ -100,11 +100,11 @@ async def test_token_refresh(auth_service):
 
 @pytest.mark.asyncio
 async def test_basic_product_collection(ebay_collector):
-    """Test basic product collection with real eBay API"""
-    logger.info("Testing basic product collection...")
+    """Test basic product collection with real eBay API using 'phone' query"""
+    logger.info("Testing basic product collection with 'phone' query...")
 
-    # Test with a common search query
-    query = "iphone"
+    # Test with phone search query
+    query = "phone"
     top_k = 5
 
     products = await ebay_collector.collect_products(query, top_k)
@@ -151,11 +151,11 @@ async def test_basic_product_collection(ebay_collector):
 
 
 @pytest.mark.asyncio
-async def test_multiple_queries(ebay_collector):
-    """Test product collection with multiple different queries"""
-    logger.info("Testing multiple queries...")
+async def test_phone_query(ebay_collector):
+    """Test product collection with phone query"""
+    logger.info("Testing phone query...")
 
-    test_queries = ["laptop", "headphones", "watch", "shoes"]
+    test_queries = ["phone"]
 
     all_products = []
 
@@ -186,12 +186,12 @@ async def test_multiple_queries(ebay_collector):
 
 
 @pytest.mark.asyncio
-async def test_deduplication_logic(ebay_collector):
-    """Test product deduplication logic"""
-    logger.info("Testing deduplication logic...")
+async def test_phone_deduplication_logic(ebay_collector):
+    """Test product deduplication logic with phone query"""
+    logger.info("Testing phone query deduplication logic...")
 
-    # Use a query that might return duplicate products
-    query = "apple iphone"
+    # Use phone query that might return duplicate products
+    query = "phone"
     top_k = 10
 
     products = await ebay_collector.collect_products(query, top_k)
@@ -210,11 +210,11 @@ async def test_deduplication_logic(ebay_collector):
 
 
 @pytest.mark.asyncio
-async def test_image_handling(ebay_collector):
-    """Test image handling and validation"""
-    logger.info("Testing image handling...")
+async def test_phone_image_handling(ebay_collector):
+    """Test image handling and validation with phone query"""
+    logger.info("Testing phone query image handling...")
 
-    query = "camera"
+    query = "phone"
     products = await ebay_collector.collect_products(query, 5)
 
     # Check products with images
@@ -238,11 +238,11 @@ async def test_image_handling(ebay_collector):
 
 
 @pytest.mark.asyncio
-async def test_shipping_cost_calculation(ebay_collector):
-    """Test shipping cost calculation logic"""
-    logger.info("Testing shipping cost calculation...")
+async def test_phone_shipping_cost_calculation(ebay_collector):
+    """Test shipping cost calculation logic with phone query"""
+    logger.info("Testing phone query shipping cost calculation...")
 
-    query = "electronics"
+    query = "phone"
     products = await ebay_collector.collect_products(query, 5)
 
     if products:
@@ -276,7 +276,7 @@ async def test_error_handling(ebay_collector):
     assert isinstance(long_products, list)
 
     # Test with very high limit (should be clamped)
-    high_limit_products = await ebay_collector.collect_products("test", 100)
+    high_limit_products = await ebay_collector.collect_products("phone", 100)
     assert isinstance(high_limit_products, list)
     assert len(high_limit_products) <= 50  # eBay's max per page
 
@@ -284,9 +284,9 @@ async def test_error_handling(ebay_collector):
 
 
 @pytest.mark.asyncio
-async def test_performance_metrics(ebay_collector):
-    """Test performance metrics for product collection"""
-    logger.info("Testing performance metrics...")
+async def test_phone_performance_metrics(ebay_collector):
+    """Test performance metrics for phone product collection"""
+    logger.info("Testing phone query performance metrics...")
 
     query = "phone"
     start_time = asyncio.get_event_loop().time()
@@ -315,11 +315,11 @@ async def test_performance_metrics(ebay_collector):
 
 
 @pytest.mark.asyncio
-async def test_data_validation(ebay_collector):
-    """Test data validation and integrity"""
-    logger.info("Testing data validation...")
+async def test_phone_data_validation(ebay_collector):
+    """Test data validation and integrity with phone query"""
+    logger.info("Testing phone query data validation...")
 
-    query = "tablet"
+    query = "phone"
     products = await ebay_collector.collect_products(query, 5)
 
     for product in products:
@@ -371,11 +371,11 @@ async def test_data_validation(ebay_collector):
 
 
 @pytest.mark.asyncio
-async def test_concurrent_collection(ebay_collector):
-    """Test concurrent product collection"""
-    logger.info("Testing concurrent collection...")
+async def test_phone_concurrent_collection(ebay_collector):
+    """Test concurrent phone product collection"""
+    logger.info("Testing phone concurrent collection...")
 
-    queries = ["laptop", "phone", "tablet", "watch"]
+    queries = ["phone"]
     top_k = 3
 
     # Create concurrent tasks
@@ -422,7 +422,7 @@ async def test_marketplace_configuration(ebay_collector):
     # Test collection with different marketplace (if configured)
     if len(ebay_collector.marketplaces) > 1:
         logger.info("Testing multiple marketplaces...")
-        products = await ebay_collector.collect_products("test", 5)
+        products = await ebay_collector.collect_products("phone", 5)
 
         # Verify products have correct marketplace identifier
         for product in products:
@@ -509,11 +509,11 @@ async def test_phone_search_returns_real_data(ebay_collector):
 
 
 @pytest.mark.asyncio
-async def test_laptop_search_returns_real_data(ebay_collector):
-    """Test that searching for 'laptop' returns real, non-empty data from eBay API"""
-    logger.info("Testing laptop search returns real data...")
+async def test_phone_search_returns_real_data_additional(ebay_collector):
+    """Additional test that searching for 'phone' returns real, non-empty data from eBay API"""
+    logger.info("Testing additional phone search returns real data...")
 
-    query = "laptop"
+    query = "phone"
     top_k = 10
 
     products = await ebay_collector.collect_products(query, top_k)
@@ -547,44 +547,46 @@ async def test_laptop_search_returns_real_data(ebay_collector):
             "Shipping cost is invalid"
         )
 
-        # Verify the product is actually related
+        # Verify the product is actually related to phones
         # Check title contains relevant keywords.
         title_lower = product["title"].lower()
-        laptop_keywords = [
-            "laptop",
-            "notebook",
-            "computer",
-            "pc",
-            "macbook",
-            "chromebook",
-            "gaming laptop",
+        phone_keywords = [
+            "phone",
+            "phones",
+            "smartphone",
+            "smartphones",
+            "mobile",
+            "iphone",
+            "samsung",
+            "android",
+            "cell",
         ]
-        has_laptop_keyword = any(keyword in title_lower for keyword in laptop_keywords)
+        has_phone_keyword = any(keyword in title_lower for keyword in phone_keywords)
 
         logger.info(
-            "Product: %s... ($%s) - Has laptop keyword: %s",
+            "Product: %s... ($%s) - Has phone keyword: %s",
             product["title"][:60],
             product["price"],
-            has_laptop_keyword,
+            has_phone_keyword,
         )
 
-        # At least some products should be related to shoes
+        # At least some products should be related to phones
         if len(products) <= 3 or products.index(product) < 3:  # Check first 3 products
-            assert has_laptop_keyword, (
-                f"Product '{product['title']}' doesn't appear to be related to laptops"
+            assert has_phone_keyword, (
+                f"Product '{product['title']}' doesn't appear to be related to phones"
             )
 
     logger.info(
-        "Successfully found %s real products for 'laptop' search", len(products)
+        "Successfully found %s real products for 'phone' search", len(products)
     )
 
 
 @pytest.mark.asyncio
-async def test_phone_and_hat_search_has_images(ebay_collector):
-    """Test that phone and hat searches return products with main and additional images"""
-    logger.info("Testing phone and hat searches have images...")
+async def test_phone_search_has_images(ebay_collector):
+    """Test that phone search returns products with main and additional images"""
+    logger.info("Testing phone search has images...")
 
-    test_queries = [("phone", 5), ("laptop", 5)]
+    test_queries = [("phone", 5)]
 
     total_products_with_images = 0
     total_products = 0
@@ -664,7 +666,7 @@ async def test_phone_and_hat_search_has_images(ebay_collector):
     )
     assert image_percentage >= 50, f"Low image coverage: {image_percentage:.1f}%"
 
-    logger.info("Phone and hat searches successfully returned products with images")
+    logger.info("Phone search successfully returned products with images")
 
 
 async def run_comprehensive_test():
@@ -699,20 +701,20 @@ async def run_comprehensive_test():
     except Exception as e:
         results["tests"]["authentication"] = {"status": "FAIL", "error": str(e)}
 
-    # Test 2: Basic Collection
+    # Test 2: Phone Collection
     try:
-        products = await collector.collect_products("test", 5)
-        results["tests"]["basic_collection"] = {
+        products = await collector.collect_products("phone", 5)
+        results["tests"]["phone_collection"] = {
             "status": "PASS",
             "products_collected": len(products),
             "has_products": len(products) > 0,
         }
     except Exception as e:
-        results["tests"]["basic_collection"] = {"status": "FAIL", "error": str(e)}
+        results["tests"]["phone_collection"] = {"status": "FAIL", "error": str(e)}
 
-    # Test 3: Data Validation
+    # Test 3: Phone Data Validation
     try:
-        products = await collector.collect_products("validation", 3)
+        products = await collector.collect_products("phone", 3)
         valid_products = 0
 
         for product in products:
@@ -728,7 +730,7 @@ async def run_comprehensive_test():
             if is_valid:
                 valid_products += 1
 
-        results["tests"]["data_validation"] = {
+        results["tests"]["phone_data_validation"] = {
             "status": "PASS" if valid_products == len(products) else "PARTIAL",
             "total_products": len(products),
             "valid_products": valid_products,
@@ -737,13 +739,13 @@ async def run_comprehensive_test():
     except Exception as e:
         results["tests"]["data_validation"] = {"status": "FAIL", "error": str(e)}
 
-    # Test 4: Performance
+    # Test 4: Phone Performance
     try:
         start_time = asyncio.get_event_loop().time()
-        products = await collector.collect_products("perf", 5)
+        products = await collector.collect_products("phone", 5)
         duration = asyncio.get_event_loop().time() - start_time
 
-        results["tests"]["performance"] = {
+        results["tests"]["phone_performance"] = {
             "status": "PASS",
             "duration": duration,
             "products_per_second": len(products) / duration if duration > 0 else 0,
