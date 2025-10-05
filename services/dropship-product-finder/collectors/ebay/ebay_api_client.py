@@ -29,7 +29,7 @@ class EbayApiClient:
             item_id = item_summary["itemId"]
             try:
                 detailed_item = await self.browse_client.get_item(
-                    item_id, fieldgroups="ITEM"
+                    item_id, fieldgroups="PRODUCT"
                 )
                 item_details.append(detailed_item)
             except Exception as e:

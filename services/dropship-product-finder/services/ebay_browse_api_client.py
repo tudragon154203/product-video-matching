@@ -34,7 +34,7 @@ class EbayBrowseApiClient:
         self.httpx_client = httpx_client
 
     async def _make_request_with_retry(
-        self, url: str, headers: dict, params: dict
+        self, url: str, headers: dict, params: dict, is_get_item: bool = False
     ) -> Dict[str, Any]:
         """Make HTTP request with retry logic"""
         last_error = None
@@ -61,7 +61,7 @@ class EbayBrowseApiClient:
                         return response.json()
                     except Exception as e:
                         logger.error(f"Failed to parse response JSON: {e}")
-                        return {"itemSummaries": []}
+                        return {} if is_get_item else {"itemSummaries": []}
                 elif response.status_code == 401:
                     # Token expired, refresh and retry once
                     logger.warning("401 Unauthorized, refreshing token")
@@ -73,7 +73,7 @@ class EbayBrowseApiClient:
                         continue
                     else:
                         logger.error("Still unauthorized after token refresh")
-                        return {"itemSummaries": []}
+                        return {} if is_get_item else {"itemSummaries": []}
                 elif response.status_code in [429, 500, 502, 503, 504]:
                     # Rate limiting or server errors
                     wait_time = config.BACKOFF_BASE_BROWSE**attempt
@@ -87,7 +87,7 @@ class EbayBrowseApiClient:
                     continue
                 else:
                     logger.error(f"HTTP {response.status_code}: {response.text}")
-                    return {"itemSummaries": []}
+                    return {} if is_get_item else {"itemSummaries": []}
 
             except Exception as e:
                 last_error = e
@@ -101,7 +101,7 @@ class EbayBrowseApiClient:
                 continue
 
         logger.error(f"All retries exhausted: {last_error}")
-        return {"itemSummaries": []}
+        return {} if is_get_item else {"itemSummaries": []}
 
     async def search(
         self, q: str, limit: int, offset: int = 0, extra_filter: Optional[str] = None
@@ -144,7 +144,7 @@ class EbayBrowseApiClient:
 
         # Make request
         start_time = time.time()
-        result = await self._make_request_with_retry(search_url, headers, params)
+        result = await self._make_request_with_retry(search_url, headers, params, is_get_item=False)
 
         latency = time.time() - start_time
         logger.info(
@@ -157,7 +157,7 @@ class EbayBrowseApiClient:
 
         return result
 
-    async def get_item(self, item_id: str, fieldgroups: str = "ITEM") -> Dict[str, Any]:
+    async def get_item(self, item_id: str, fieldgroups: str = "PRODUCT") -> Dict[str, Any]:
         """Get detailed item information including additional images"""
 
         # Get fresh token
@@ -185,7 +185,7 @@ class EbayBrowseApiClient:
 
         # Make request
         start_time = time.time()
-        result = await self._make_request_with_retry(item_url, headers, params)
+        result = await self._make_request_with_retry(item_url, headers, params, is_get_item=True)
 
         latency = time.time() - start_time
         logger.info(
