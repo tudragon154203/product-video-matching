@@ -47,7 +47,7 @@ def ebay_product_collector(
 
     with patch(
         "collectors.ebay.ebay_product_collector.EbayBrowseApiClient"
-    ) as MockEbayBrowseApiClient, patch(
+    ), patch(
         "collectors.ebay.ebay_product_collector.EbayProductMapper"
     ) as MockEbayProductMapper, patch(
         "collectors.ebay.ebay_product_collector.EbayProductParser"
@@ -128,13 +128,13 @@ async def test_collect_products_success(ebay_product_collector):
 
     mock_api_client_us.fetch_and_get_details.return_value = (
         [{"itemId": "1_us_sum"}, {"itemId": "2_us_sum"}],
-        [{"item": {"itemId": "1_us_det", "price": {"value": "100"}, "shippingOptions": [{"shippingCost": {"value": "10"}}], "totalPrice": 110.0}},
-         {"item": {"itemId": "2_us_det", "price": {"value": "150"}, "shippingOptions": [{"shippingCost": {"value": "5"}}], "totalPrice": 155.0}}]
+        [{"item": {"itemId": "1_us_det", "price": {"value": "100"}, "shippingOptions": [{"shippingCost": {"value": "10"}}], "totalPrice": 110.0}},  # noqa: E501
+         {"item": {"itemId": "2_us_det", "price": {"value": "150"}, "shippingOptions": [{"shippingCost": {"value": "5"}}], "totalPrice": 155.0}}]  # noqa: E501
     )
     mock_api_client_de.fetch_and_get_details.return_value = (
         [{"itemId": "1_de_sum"}, {"itemId": "2_de_sum"}],
-        [{"item": {"itemId": "1_de_det", "price": {"value": "90"}, "shippingOptions": [{"shippingCost": {"value": "10"}}], "totalPrice": 100.0}},
-         {"item": {"itemId": "2_de_det", "price": {"value": "120"}, "shippingOptions": [{"shippingCost": {"value": "5"}}], "totalPrice": 125.0}}]
+        [{"item": {"itemId": "1_de_det", "price": {"value": "90"}, "shippingOptions": [{"shippingCost": {"value": "10"}}], "totalPrice": 100.0}},  # noqa: E501
+         {"item": {"itemId": "2_de_det", "price": {"value": "120"}, "shippingOptions": [{"shippingCost": {"value": "5"}}], "totalPrice": 125.0}}]  # noqa: E501
     )
 
     ebay_product_collector.ebay_parser.parse_search_results_with_details.side_effect = [
@@ -189,7 +189,7 @@ async def test_collect_products_marketplace_error_resilience(ebay_product_collec
     # EBAY_DE works fine
     mock_api_client_de.fetch_and_get_details.return_value = (
         [{"itemId": "1_de_sum"}],
-        [{"item": {"itemId": "1_de_det", "price": {"value": "90"}, "shippingOptions": [{"shippingCost": {"value": "10"}}], "totalPrice": 100.0}}]
+        [{"item": {"itemId": "1_de_det", "price": {"value": "90"}, "shippingOptions": [{"shippingCost": {"value": "10"}}], "totalPrice": 100.0}}]  # noqa: E501
     )
 
     ebay_product_collector.ebay_parser.parse_search_results_with_details.return_value = [
@@ -257,7 +257,7 @@ async def test_collect_products_no_browse_client_for_marketplace(ebay_product_co
 
     mock_api_client_us.fetch_and_get_details.return_value = (
         [{"itemId": "1_us_sum"}],
-        [{"item": {"itemId": "1_us_det", "price": {"value": "100"}, "shippingOptions": [{"shippingCost": {"value": "10"}}], "totalPrice": 110.0}}]
+        [{"item": {"itemId": "1_us_det", "price": {"value": "100"}, "shippingOptions": [{"shippingCost": {"value": "10"}}], "totalPrice": 110.0}}]  # noqa: E501
     )
     ebay_product_collector.ebay_parser.parse_search_results_with_details.return_value = [
         {"itemId": "1_us_parsed", "price": {"value": "100"}}
