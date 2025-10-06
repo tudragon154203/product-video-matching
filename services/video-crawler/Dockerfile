@@ -34,5 +34,3 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 # Update yt-dlp to latest version on container startup
 COPY services/video-crawler/update_yt_dlp.sh /update_yt_dlp.sh
 RUN chmod +x /update_yt_dlp.sh
-
-ENTRYPOINT ["/update_yt_dlp.sh"]
