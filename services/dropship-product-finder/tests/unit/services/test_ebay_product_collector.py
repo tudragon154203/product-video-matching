@@ -451,11 +451,66 @@ class TestEbayProductCollector:
         # Collect products
         products = await ebay_product_collector.collect_products("test query", 1)
 
-        # Verify image handling. Only primary image is present because
-        # additionalImages does not exist in the search response.
+        # Verify image handling. We should keep the primary image and the first
+        # five additional images (limit of six total).
         assert len(products) == 1
-        assert len(products[0]["images"]) == 1  # Only primary image available
+        assert len(products[0]["images"]) == 6
         assert products[0]["images"][0] == "https://example.com/primary.jpg"
+        assert products[0]["images"][-1] == "https://example.com/additional5.jpg"
+
+    @pytest.mark.asyncio
+    async def test_primary_image_field_handling(
+        self, ebay_product_collector, mock_ebay_auth_service
+    ):
+        """Ensure we capture images when eBay uses primaryImage/additionalImages fields"""
+        mock_browse_client = AsyncMock()
+        mock_browse_client.search.return_value = {
+            "itemSummaries": [
+                {
+                    "itemId": "12345",
+                    "title": "Product with Primary Field",
+                    "price": {"value": 25.99, "currency": "USD"},
+                    "primaryImage": {
+                        "imageUrl": "https://example.com/primary-primaryImage.jpg"
+                    },
+                    "additionalImages": [
+                        {"imageUrl": "https://example.com/extra1.jpg"},
+                        {"imageUrl": "https://example.com/extra2.jpg"},
+                    ],
+                    "shippingOptions": [{"shippingType": "FREE"}],
+                }
+            ]
+        }
+
+        mock_browse_client.get_item.return_value = {
+            "item": {
+                "itemId": "12345",
+                "title": "Product with Primary Field",
+                "price": {"value": 25.99, "currency": "USD"},
+                "primaryImage": {
+                    "imageUrl": "https://example.com/primary-primaryImage.jpg"
+                },
+                "additionalImages": [
+                    {"imageUrl": "https://example.com/extra1.jpg"},
+                    {"imageUrl": "https://example.com/extra2.jpg"},
+                ],
+                "shippingOptions": [{"shippingType": "FREE"}],
+            }
+        }
+
+        ebay_product_collector.browse_clients = {
+            "EBAY_US": mock_browse_client,
+            "EBAY_UK": mock_browse_client,
+        }
+
+        products = await ebay_product_collector.collect_products("primary field", 1)
+
+        assert len(products) == 1
+        assert products[0]["images"] == [
+            "https://example.com/primary-primaryImage.jpg",
+            "https://example.com/extra1.jpg",
+            "https://example.com/extra2.jpg",
+        ]
 
     @pytest.mark.asyncio
     async def test_brand_fallback_to_manufacturer(

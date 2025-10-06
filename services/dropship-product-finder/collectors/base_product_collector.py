@@ -42,7 +42,7 @@ class BaseProductCollector(IProductCollector):
         try:
             # Create product directory
             product_dir = self.products_dir / product_id
-            product_dir.mkdir(exist_ok=True)
+            product_dir.mkdir(parents=True, exist_ok=True)
 
             # Download image
             response = await self.client.get(image_url)

@@ -19,53 +19,62 @@ class EbayProductMapper:
             # Extract EPID (optional eBay Product ID)
             epid = item.get("epid")
 
-            # Extract images - handle both search response and detailed item response
-            images = []
+            # Extract images from all known eBay fields. Real API responses sometimes
+            # use `primaryImage`/`additionalImages` instead of the older
+            # `image`/`galleryInfo` structure, so we gather from every variant and
+            # deduplicate while preserving order.
+            images: List[str] = []
+            seen: set[str] = set()
 
-            # Try to get image from different possible sources
-            primary_image = None
+            def add_image(url: Optional[str]) -> None:
+                if not url or not isinstance(url, str):
+                    return
+                cleaned = url.strip()
+                if not cleaned or cleaned in seen:
+                    return
+                seen.add(cleaned)
+                images.append(cleaned)
 
-            # Option 1: From detailed item response
-            if "image" in item and isinstance(item["image"], dict):
-                primary_image = item["image"].get("imageUrl")
+            def extract_from_value(value: Any) -> None:
+                if isinstance(value, dict):
+                    add_image(
+                        value.get("imageUrl")
+                        or value.get("imageURL")
+                        or value.get("url")
+                    )
+                elif isinstance(value, list):
+                    for entry in value:
+                        extract_from_value(entry)
+                elif isinstance(value, str):
+                    add_image(value)
 
-            # Option 2: From item gallery images (in detailed response)
-            if not primary_image and "galleryInfo" in item:
-                gallery_images = item["galleryInfo"].get("imageVariations", [])
-                if gallery_images:
-                    primary_image = gallery_images[0].get("imageUrl")
+            # Primary image candidates
+            extract_from_value(item.get("image"))
+            extract_from_value(item.get("primaryImage"))
 
-            # Option 3: From search response fallback
-            if not primary_image:
-                primary_image = item.get("image", {}).get("imageUrl")
+            # Search summary sometimes exposes direct URLs
+            extract_from_value(item.get("imageUrl"))
+            extract_from_value(item.get("itemImageUrl"))
 
-            if primary_image:
-                images.append(primary_image)
+            # Collect additional image sources
+            gallery_images = (
+                item.get("galleryInfo", {}) or {}
+            ).get("imageVariations", [])
+            extract_from_value(gallery_images)
+            extract_from_value(item.get("additionalImages"))
+            extract_from_value(item.get("images"))
+            extract_from_value(item.get("thumbnailImages"))
 
-            # Extract additional images from multiple possible sources
-            additional_images = []
+            # Limit to maximum of six images (primary + up to five additional)
+            images = images[:6]
 
-            # Option 1: From detailed item gallery images
-            if "galleryInfo" in item:
-                gallery_images = item["galleryInfo"].get("imageVariations", [])
-                for img in gallery_images[1:]:  # Skip first (already added as primary)
-                    if img.get("imageUrl"):
-                        additional_images.append(img["imageUrl"])
-
-            # Option 2: From item.images array (if available in detailed response)
-            if (
-                not additional_images
-                and "images" in item
-                and isinstance(item["images"], list)
-            ):
-                for img in item["images"][1:]:  # Skip first
-                    if img.get("imageUrl"):
-                        additional_images.append(img["imageUrl"])
-
-            # Limit additional images to 5 total
-            additional_count = min(5, 6 - len(images))
-            additional_images = additional_images[:additional_count]
-            images.extend(additional_images)
+            if not images:
+                logger.warning(
+                    "Skipping eBay item with no resolvable images",
+                    item_id=item.get("itemId"),
+                    marketplace=marketplace,
+                )
+                return None
 
             # Extract shipping cost from EXTENDED fieldgroup
             shipping_cost = 0
