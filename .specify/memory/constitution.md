@@ -1,13 +1,13 @@
 <!--
 Sync Impact Report:
-- Version change: 1.5.0 → 1.6.0
-- List of modified principles: III. Testing Discipline (updated)
+- Version change: 1.6.0 → 1.7.0
+- List of modified principles: III. Testing Discipline (updated with coverage requirement)
 - Added sections: None
 - Removed sections: None
 - Templates requiring updates:
-    - .specify/templates/plan-template.md: ⚠ pending
-    - .specify/templates/spec-template.md: ⚠ pending
-    - .specify/templates/tasks-template.md: ⚠ pending
+    - .specify/templates/plan-template.md: ✅ updated
+    - .specify/templates/spec-template.md: ✅ updated
+    - .specify/templates/tasks-template.md: ✅ updated
     - .specify/templates/commands/*.md: ⚠ pending
     - README.md: ⚠ pending
     - RUN.md: ⚠ pending
@@ -25,6 +25,8 @@ All inter-service communication via RabbitMQ MUST conform to defined event contr
 
 ### III. Testing Discipline
 Testing efforts MUST prioritize integration tests for core functionality, critical paths, and identified edge cases over exhaustive unit tests. All microservices MUST adopt a standardized test directory structure within their `tests/` folder, with integration tests MAY be organized under logical subdirectories (e.g., `auth/`, `api/`, `core/`, `llm/`) for better organization by domain or feature. Integration test modules MUST follow the naming convention `test_<feature>.py` within their subdirectories and MUST define `pytestmark = pytest.mark.integration`, exercising real network or service boundaries in the dev stack while minimizing mocks to prevent destructive side effects. Unit tests MUST avoid applying the `integration` marker (optionally using `pytestmark = pytest.mark.unit`) so `pytest -m "not integration"` reliably executes only the unit suite. All test directories (including nested subdirectories) MUST contain empty `__init__.py` files for pytest discovery, with shared fixtures under `tests/fixtures/` and static assets under `tests/data/`. Each service's `pytest.ini` MUST register repository-wide markers (`unit` and `integration`) and SHOULD declare service-specific markers.
+
+All microservices MUST achieve >90% test coverage across both unit and integration tests combined. Coverage MUST be measured using `coverage.py` and MUST include all Python modules in the service's source tree. Test exclusions MUST be explicitly justified in service configuration (e.g., `__init__.py` files, test utilities). Coverage reports MUST be generated after test execution and failing coverage MUST block merges. Tests SHOULD prioritize critical code paths, error handling, and integration boundaries over exhaustive coverage of every line.
 
 When testing, developers MUST `cd` into the specific microservice directory before executing `python -m pytest tests/ -v` to ensure correct `PYTHONPATH` resolution. Tests for each microservice MUST be kept within that service's `tests/` folder, with the root `tests/` directory reserved for a manual smoke test and project-wide integration tests. External dependencies (e.g., Playwright) SHOULD be mocked. Basic smoke tests for API endpoints are mandatory. All tests MUST pass before a task is considered complete.
 
@@ -47,7 +49,7 @@ All microservices MUST implement unified logging using Python's standard `loggin
 
 
 ### VII. Quality Assurance
-All microservices MUST pass both flake8 linting and all unit tests before any code can be committed or merged. The flake8 configuration MUST include at least E (errors), W (warnings), and F (pyflakes) rulesets to catch syntax errors, style violations, and programming errors. Unit tests MUST be run after every code change using `python -m pytest -m unit` from the microservice directory. NO code can be merged if either flake8 fails or any unit test fails. External dependencies in unit tests SHOULD be mocked to ensure deterministic execution. Development workflows MUST include pre-commit hooks for flake8 and unit test validation to catch violations early.
+All microservices MUST pass both flake8 linting, all unit tests, and >90% test coverage before any code can be committed or merged. The flake8 configuration MUST include at least E (errors), W (warnings), and F (pyflakes) rulesets to catch syntax errors, style violations, and programming errors. Unit tests MUST be run after every code change using `python -m pytest -m unit` from the microservice directory. Coverage MUST be measured using `coverage.py` with the >90% threshold enforced via pre-commit hooks or CI gates. NO code can be merged if either flake8 fails, any unit test fails, or coverage falls below 90%. External dependencies in unit tests SHOULD be mocked to ensure deterministic execution. Development workflows MUST include pre-commit hooks for flake8, unit test validation, and coverage checks to catch violations early.
 
 ### VIII. Python Version Pinning
 Python environments MUST be pinned to version 3.10.8 to ensure consistent development and deployment across all services.
@@ -79,4 +81,4 @@ Python environments MUST be pinned to version 3.10.8 to ensure consistent develo
 *   **Compliance Review:** All code changes and architectural decisions MUST be reviewed for compliance with these principles. Non-compliance MUST be justified and approved by the project lead.
 *   **Guidance:** The `RUN.md` document provides runtime development guidance and MUST be consulted for day-to-day operations.
 
-**Version**: 1.6.0 | **Ratified**: TODO(RATIFICATION_DATE): Original adoption date unknown | **Last Amended**: 2025-10-02
+**Version**: 1.7.0 | **Ratified**: TODO(RATIFICATION_DATE): Original adoption date unknown | **Last Amended**: 2025-10-06

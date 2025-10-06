@@ -59,38 +59,40 @@
 - [ ] T010 [P] Integration test auth flow in tests/integration/auth/test_auth.py
 - [ ] T011 Validate flake8 passes with microservice codebase
 - [ ] T012 Validate `python -m pytest -m unit` passes (all green state)
+- [ ] T013 [P] Configure coverage.py with >90% threshold in service/pyproject.toml
+- [ ] T014 Validate coverage >90% across all modules
 
 ## Phase 3.3: Core Implementation (ONLY after tests are failing)
-- [ ] T008 [P] User model in src/models/user.py
-- [ ] T009 [P] UserService CRUD in src/services/user_service.py
-- [ ] T010 [P] CLI --create-user in src/cli/user_commands.py
-- [ ] T011 POST /api/users endpoint
-- [ ] T012 GET /api/users/{id} endpoint
-- [ ] T013 Input validation
-- [ ] T014 Error handling and logging
+- [ ] T015 [P] User model in src/models/user.py
+- [ ] T016 [P] UserService CRUD in src/services/user_service.py
+- [ ] T017 [P] CLI --create-user in src/cli/user_commands.py
+- [ ] T018 POST /api/users endpoint
+- [ ] T019 GET /api/users/{id} endpoint
+- [ ] T020 Input validation
+- [ ] T021 Error handling and logging
 
 ## Phase 3.4: Integration
-- [ ] T015 Connect UserService to DB
-- [ ] T016 Auth middleware
-- [ ] T017 Request/response logging
-- [ ] T018 CORS and security headers
+- [ ] T022 Connect UserService to DB
+- [ ] T023 Auth middleware
+- [ ] T024 Request/response logging
+- [ ] T025 CORS and security headers
 
 ## Phase 3.5: Polish
-- [ ] T019 [P] Unit tests for validation in tests/unit/test_validation.py
-- [ ] T020 Performance tests (<200ms)
-- [ ] T021 [P] Update docs/api.md
-- [ ] T022 Remove duplication
-- [ ] T023 Run manual-testing.md
+- [ ] T026 [P] Unit tests for validation in tests/unit/test_validation.py
+- [ ] T027 Performance tests (<200ms)
+- [ ] T028 [P] Update docs/api.md
+- [ ] T029 Remove duplication
+- [ ] T030 Run manual-testing.md
 
 ## Dependencies
 - Quality setup (T004-T006) before any tests (T007-T010)
-- Quality validation (T011-T012) after tests but before implementation
-- Tests (T007-T010) before implementation (T013-T019)
-- T013 blocks T014, T020
-- T017 blocks T019
-- T008 blocks T014, T020
-- T019 blocks T022
-- Implementation before polish (T022-T027)
+- Quality validation (T011-T014) after tests but before implementation
+- Tests (T007-T010) before implementation (T015-T021)
+- T020 blocks T021, T027
+- T024 blocks T026
+- T015 blocks T021, T027
+- T026 blocks T029
+- Implementation before polish (T026-T030)
 
 ## Parallel Example
 ```
@@ -137,6 +139,8 @@ Task: "Integration test auth in tests/integration/auth/test_auth.py"
 - [ ] All contracts have corresponding tests
 - [ ] All entities have model tasks
 - [ ] All tests come before implementation
+- [ ] Coverage tasks (T013-T014) included and sequenced properly
 - [ ] Parallel tasks truly independent
 - [ ] Each task specifies exact file path
 - [ ] No task modifies same file as another [P] task
+- [ ] >90% coverage threshold enforced in tasks
