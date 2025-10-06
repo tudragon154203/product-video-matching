@@ -1,7 +1,9 @@
 {
   "permissions": {
     "allow": [
-      "Bash"
+      "Bash*",
+      "Bash:*",
+      "Bash(find tests/unit -name \"test_*.py\" -exec echo \"=== {} ===\" ; -exec wc -l {} ;)"
     ]
   },
   "enableAllProjectMcpServers": true

@@ -20,13 +20,21 @@ class EbayProductParser:
         for i, item_summary in enumerate(summaries):
             if i < len(item_details):
                 detailed_item = item_details[i]
-                # For detailed response, extract from detailed_item
-                if "item" in detailed_item:
-                    item_data = detailed_item["item"]
+
+                if isinstance(detailed_item, dict):
+                    if "item" in detailed_item and isinstance(
+                        detailed_item["item"], dict
+                    ):
+                        item_data = detailed_item["item"]
+                    elif "itemId" in detailed_item:
+                        item_data = detailed_item
+                    else:
+                        item_data = item_summary
                 else:
                     item_data = item_summary
             else:
                 item_data = item_summary
+
             parsed_items.append(item_data)
         return parsed_items
 

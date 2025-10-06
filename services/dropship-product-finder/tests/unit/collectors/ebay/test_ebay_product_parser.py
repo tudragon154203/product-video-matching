@@ -59,6 +59,22 @@ def test_parse_search_results_with_details_fallback_to_summary(ebay_product_pars
     assert parsed_items == expected_parsed_items
 
 
+def test_parse_search_results_with_details_uses_direct_payload(ebay_product_parser):
+    """Detailed payloads without an "item" key should still take precedence."""
+    summaries = [
+        {"itemId": "1", "title": "Summary Item 1"},
+    ]
+    item_details = [
+        {"itemId": "1", "title": "Detailed Item 1", "price": "10.00"},
+    ]
+
+    parsed_items = ebay_product_parser.parse_search_results_with_details(
+        summaries, item_details
+    )
+
+    assert parsed_items == item_details
+
+
 @pytest.mark.unit
 def test_parse_search_results_with_details_empty_inputs(ebay_product_parser):
     """
