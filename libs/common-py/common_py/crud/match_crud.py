@@ -57,3 +57,28 @@ class MatchCRUD:
         
         rows = await self.db.fetch_all(query, *params)
         return [Match(**row) for row in rows]
+
+    async def count_matches(self, job_id: Optional[str] = None, min_score: Optional[float] = None) -> int:
+        """Count matches with optional filtering"""
+        conditions = []
+        params = []
+        param_count = 0
+
+        if job_id:
+            param_count += 1
+            conditions.append(f"job_id = ${param_count}")
+            params.append(job_id)
+
+        if min_score is not None:
+            param_count += 1
+            conditions.append(f"score >= ${param_count}")
+            params.append(min_score)
+
+        where_clause = " WHERE " + " AND ".join(conditions) if conditions else ""
+
+        query = f"""
+        SELECT COUNT(*) FROM matches
+        {where_clause}
+        """
+
+        return await self.db.fetch_val(query, *params) or 0
