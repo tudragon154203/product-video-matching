@@ -164,16 +164,12 @@ class TikTokDownloader:
         output_filename = os.path.join(self.video_storage_path, f"{video_id}.mp4")
 
         format_candidates = [
-            # 1) Best MP4 with video under 500MB; fallback to any container under 500MB
-            'b[ext=mp4][hasvideo=true][filesize<500M]/b[hasvideo=true][filesize<500M]',
-            # 2) H.264 path (MP4-friendly), capped at 1080p, try split A/V then single
-            'bv*[vcodec^=avc1][height<=1080]+ba/b[vcodec^=avc1][height<=1080]',
-            # 3) Avoid HLS if you prefer direct files; still ensure video
-            'b[protocol!=m3u8][hasvideo=true]',
-            # 4) Size-aware with approx if present
-            'b[hasvideo=true][filesize_approx<500M]',
-            # 5) Last-resort: any best that truly has video
-            'b[hasvideo=true]',
+            # 1) Best muxed with video; prefer MP4 if present
+            'b[hasvideo=true][ext=mp4]/b[hasvideo=true]',
+            # 2) If site exposes split A/V (rare on TikTok), merge them; else fallback to best muxed
+            'bv*+ba/b[hasvideo=true]',
+            # 3) Allow HLS too (don’t exclude m3u8); still ensure video
+            'best[hasvideo=true]'
         ]
 
         ydl_opts = {
