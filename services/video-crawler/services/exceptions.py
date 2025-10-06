@@ -1,5 +1,7 @@
 """Custom exceptions for the video crawler service."""
 
+from typing import Optional
+
 
 class VideoCrawlerError(Exception):
     """Base exception for video crawler service."""

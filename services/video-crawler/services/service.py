@@ -245,6 +245,14 @@ class VideoCrawlerService:
         if self.event_emitter:
             await self.event_emitter.publish_videos_collections_completed(job_id)
 
+    def _get_video_dir(self) -> str:
+        """Get the video directory path.
+
+        Returns:
+            Path to video storage directory
+        """
+        return self._video_dir_override or config.VIDEO_DIR
+
     def _initialize_platform_crawlers(self) -> Dict[str, PlatformCrawlerInterface]:
         """Initialize platform crawlers for each supported platform.
 
@@ -284,4 +292,5 @@ class VideoCrawlerService:
                 f"Manual cleanup failed: {str(e)}",
                 directory=self._get_video_dir()
             )
+
 
