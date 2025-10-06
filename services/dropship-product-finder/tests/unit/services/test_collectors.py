@@ -152,9 +152,7 @@ class TestEbayProductCollector:
                             "title": "No Auth Product",
                             "seller": {"username": "no_auth_seller"},
                             "itemWebUrl": "https://ebay.com/noauth",
-                            "imageUrls": [
-                                {"imageUrl": "https://example.com/noauth.jpg"}
-                            ],
+                            "image": {"imageUrl": "https://example.com/noauth.jpg"},
                         }
                     ]
                 }

@@ -120,14 +120,18 @@ class EbayProductMapper:
     def deduplicate_products(
         self, products: List[Dict[str, Any]], max_items: int
     ) -> List[Dict[str, Any]]:
-        """Deduplicate by EPID and select lowest total price"""
+        """Deduplicate by product ID extracted from variant item IDs like 'v1|364926706252|634516979679'"""
         if not products:
             return []
 
-        # Group by EPID, fallback to itemId
+        # Group by product ID, handling variant item IDs like "v1|364926706252|634516979679"
         grouped = defaultdict(list)
         for product in products:
-            key = product.get("epid") or product.get("itemId")
+            item_id = product.get("itemId", "")
+            product_id = self._extract_product_id_from_variant(item_id)
+
+            # If it's a variant, use extracted product ID; otherwise use itemId directly
+            key = product_id if product_id else item_id
             grouped[key].append(product)
 
         # Select lowest total from each group
@@ -140,3 +144,17 @@ class EbayProductMapper:
         # Sort by total price and limit
         deduplicated.sort(key=lambda p: p["totalPrice"])
         return deduplicated[:max_items]
+
+    def _extract_product_id_from_variant(self, item_id: str) -> Optional[str]:
+        """Extract product ID from variant item ID format like 'v1|364926706252|634516979679'"""
+        if not item_id or not isinstance(item_id, str):
+            return None
+
+        # Check if item_id follows the variant format: <version>|<product_id>|<variant_id>
+        parts = item_id.split('|')
+        if len(parts) >= 3 and parts[0].startswith('v'):
+            # Return the middle part (product_id)
+            return parts[1]
+
+        # If not a variant format, return None
+        return None

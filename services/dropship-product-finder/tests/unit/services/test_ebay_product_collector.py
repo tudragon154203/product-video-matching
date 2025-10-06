@@ -235,16 +235,16 @@ class TestEbayProductCollector:
         assert len(products) == 2
 
     @pytest.mark.asyncio
-    async def test_deduplication_by_epid(
+    async def test_deduplication_by_variant_item_id(
         self, ebay_product_collector, mock_ebay_auth_service
     ):
-        """Test deduplication by EPID with lowest price selection"""
-        # Mock eBay browse API client with duplicate EPID
+        """Test deduplication by variant item ID with lowest price selection"""
+        # Mock eBay browse API client with duplicate product variants
         mock_browse_client = AsyncMock()
         mock_browse_client.search.return_value = {
             "itemSummaries": [
                 {
-                    "itemId": "12345",
+                    "itemId": "v1|364926706252|634516979679",
                     "epid": "epid_001",
                     "title": "Higher Price Product",
                     "price": {"value": 35.99, "currency": "USD"},
@@ -252,8 +252,8 @@ class TestEbayProductCollector:
                     "shippingOptions": [{"shippingType": "FREE"}],
                 },
                 {
-                    "itemId": "67890",
-                    "epid": "epid_001",  # Same EPID
+                    "itemId": "v1|364926706252|634516979680",
+                    "epid": "epid_001",  # Same product, different variant
                     "title": "Lower Price Product",
                     "price": {"value": 25.99, "currency": "USD"},
                     "image": {"imageUrl": "https://example.com/image2.jpg"},
@@ -271,12 +271,12 @@ class TestEbayProductCollector:
         # Collect products
         products = await ebay_product_collector.collect_products("test query", 2)
 
-        # Verify only one product (cheaper one) is returned
+        # Verify only one product (cheaper variant) is returned
         assert len(products) == 1
         assert products[0]["epid"] == "epid_001"
         assert products[0]["title"] == "Lower Price Product"
         assert products[0]["totalPrice"] == 25.99
-        assert products[0]["itemId"] == "67890"
+        assert products[0]["itemId"] == "v1|364926706252|634516979680"
 
     @pytest.mark.asyncio
     async def test_deduplication_by_item_id(

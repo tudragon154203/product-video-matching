@@ -63,6 +63,9 @@ class VideoCrawlerConfig:
     TIKTOK_CRAWL_HOST: str = os.getenv("TIKTOK_CRAWL_HOST", "host.docker.internal")
     TIKTOK_CRAWL_HOST_PORT: str = os.getenv("TIKTOK_CRAWL_HOST_PORT", "5680")
 
+    # TikTok download strategy configuration
+    TIKTOK_DOWNLOAD_STRATEGY: str = os.getenv("TIKTOK_DOWNLOAD_STRATEGY", "yt-dlp")
+
     # TikTok storage paths
     TIKTOK_VIDEO_STORAGE_PATH: str = os.path.join(global_config.DATA_ROOT_CONTAINER, 'videos', 'tiktok')
     TIKTOK_KEYFRAME_STORAGE_PATH: str = os.path.join(global_config.DATA_ROOT_CONTAINER, 'keyframes', 'tiktok')
