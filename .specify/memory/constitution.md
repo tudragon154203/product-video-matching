@@ -1,13 +1,13 @@
 <!--
 Sync Impact Report:
-- Version change: 1.6.0 → 1.7.0
-- List of modified principles: III. Testing Discipline (updated with coverage requirement)
+- Version change: 1.7.0 → 1.7.1
+- List of modified principles: VII. Quality Assurance (added autopep8 formatting requirement)
 - Added sections: None
 - Removed sections: None
 - Templates requiring updates:
-    - .specify/templates/plan-template.md: ✅ updated
-    - .specify/templates/spec-template.md: ✅ updated
     - .specify/templates/tasks-template.md: ✅ updated
+    - .specify/templates/plan-template.md: ⚠ pending
+    - .specify/templates/spec-template.md: ⚠ pending
     - .specify/templates/commands/*.md: ⚠ pending
     - README.md: ⚠ pending
     - RUN.md: ⚠ pending
@@ -49,7 +49,7 @@ All microservices MUST implement unified logging using Python's standard `loggin
 
 
 ### VII. Quality Assurance
-All microservices MUST pass both flake8 linting, all unit tests, and >90% test coverage before any code can be committed or merged. The flake8 configuration MUST include at least E (errors), W (warnings), and F (pyflakes) rulesets to catch syntax errors, style violations, and programming errors. Unit tests MUST be run after every code change using `python -m pytest -m unit` from the microservice directory. Coverage MUST be measured using `coverage.py` with the >90% threshold enforced via pre-commit hooks or CI gates. NO code can be merged if either flake8 fails, any unit test fails, or coverage falls below 90%. External dependencies in unit tests SHOULD be mocked to ensure deterministic execution. Development workflows MUST include pre-commit hooks for flake8, unit test validation, and coverage checks to catch violations early.
+All microservices MUST pass autopep8 formatting, flake8 linting, all unit tests, and >90% test coverage before any code can be committed or merged. Code MUST be auto-formatted using `autopep8 --in-place --recursive .` from the microservice directory before running flake8 checks to automatically correct style violations. The flake8 configuration MUST include at least E (errors), W (warnings), and F (pyflakes) rulesets to catch syntax errors, style violations, and programming errors. Unit tests MUST be run after every code change using `python -m pytest -m unit` from the microservice directory. Coverage MUST be measured using `coverage.py` with the >90% threshold enforced via pre-commit hooks or CI gates. NO code can be merged if either autopep8 formatting fails, flake8 fails, any unit test fails, or coverage falls below 90%. External dependencies in unit tests SHOULD be mocked to ensure deterministic execution. Development workflows MUST include pre-commit hooks for autopep8, flake8, unit test validation, and coverage checks to catch violations early.
 
 ### VIII. Python Version Pinning
 Python environments MUST be pinned to version 3.10.8 to ensure consistent development and deployment across all services.
@@ -81,4 +81,4 @@ Python environments MUST be pinned to version 3.10.8 to ensure consistent develo
 *   **Compliance Review:** All code changes and architectural decisions MUST be reviewed for compliance with these principles. Non-compliance MUST be justified and approved by the project lead.
 *   **Guidance:** The `RUN.md` document provides runtime development guidance and MUST be consulted for day-to-day operations.
 
-**Version**: 1.7.0 | **Ratified**: TODO(RATIFICATION_DATE): Original adoption date unknown | **Last Amended**: 2025-10-06
+**Version**: 1.7.1 | **Ratified**: TODO(RATIFICATION_DATE): Original adoption date unknown | **Last Amended**: 2025-10-06
