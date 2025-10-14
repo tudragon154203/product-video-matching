@@ -205,6 +205,18 @@ class ScraplingApiDownloadStrategy(TikTokDownloadStrategy):
                     pass
 
             return None, api_execution_time
+        finally:
+            # Ensure we don't keep an event-loop-bound HTTP client alive between calls.
+            if self._client:
+                try:
+                    await self._client.close()
+                except Exception:
+                    logger.debug(
+                        "Failed to close TikTok download client after request.",
+                        exc_info=True
+                    )
+                finally:
+                    self._client = None
 
     async def _stream_video_file(
         self,

@@ -1,13 +1,13 @@
 """
 Async HTTP client for the TikTok download API.
 """
-import asyncio
 from dataclasses import dataclass
 from typing import Any, Dict, Optional, Tuple
 from urllib.parse import urljoin
 
 import httpx
 from common_py.logging_config import configure_logging
+from .loop_aware_async_client import LoopAwareAsyncClient
 
 logger = configure_logging("video-crawler:tiktok_download_client")
 
@@ -107,20 +107,19 @@ class TikTokDownloadClient:
         """
         self.base_url = f"http://{host}:{port}"
         self.timeout = timeout
-        self._client: Optional[httpx.AsyncClient] = None
+        self._client_manager = LoopAwareAsyncClient(
+            client_factory=lambda: httpx.AsyncClient(timeout=self.timeout),
+            logger=logger,
+        )
 
     @property
     def client(self) -> httpx.AsyncClient:
         """Get or create the async HTTP client."""
-        if self._client is None:
-            self._client = httpx.AsyncClient(timeout=self.timeout)
-        return self._client
+        return self._client_manager.get_client()
 
     async def close(self) -> None:
         """Close the HTTP client."""
-        if self._client:
-            await self._client.aclose()
-            self._client = None
+        await self._client_manager.close()
 
     async def __aenter__(self):
         """Async context manager entry."""

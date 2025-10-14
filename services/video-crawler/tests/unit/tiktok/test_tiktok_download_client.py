@@ -1,5 +1,6 @@
 import pytest
 from unittest.mock import patch, MagicMock, AsyncMock
+import httpx
 
 from platform_crawler.tiktok.tiktok_download_client import (
     TikTokDownloadClient,
@@ -187,8 +188,9 @@ class TestTikTokDownloadClient:
 
         with patch('httpx.AsyncClient') as mock_client_class:
             mock_client = AsyncMock()
+            mock_client.is_closed = False
             mock_client.post.return_value = mock_response
-            mock_client_class.return_value.__aenter__.return_value = mock_client
+            mock_client_class.return_value = mock_client
 
             response, should_retry = await client.resolve_download("https://tiktok.com/test", force_headful=False)
 
@@ -212,8 +214,9 @@ class TestTikTokDownloadClient:
 
         with patch('httpx.AsyncClient') as mock_client_class:
             mock_client = AsyncMock()
+            mock_client.is_closed = False
             mock_client.post.return_value = mock_response
-            mock_client_class.return_value.__aenter__.return_value = mock_client
+            mock_client_class.return_value = mock_client
 
             response, should_retry = await client.resolve_download("https://tiktok.com/test", force_headful=False)
 
@@ -237,8 +240,9 @@ class TestTikTokDownloadClient:
 
         with patch('httpx.AsyncClient') as mock_client_class:
             mock_client = AsyncMock()
+            mock_client.is_closed = False
             mock_client.post.return_value = mock_response
-            mock_client_class.return_value.__aenter__.return_value = mock_client
+            mock_client_class.return_value = mock_client
 
             with pytest.raises(TikTokInvalidUrlError):
                 await client.resolve_download("https://tiktok.com/test", force_headful=False)
@@ -249,13 +253,18 @@ class TestTikTokDownloadClient:
         client = TikTokDownloadClient()
 
         mock_response = MagicMock()
-        mock_response.raise_for_status.side_effect = Exception("HTTP 500 Error")
+        request = httpx.Request("POST", "http://localhost:5680/tiktok/download")
+        response_obj = httpx.Response(500, request=request)
+        mock_response.raise_for_status.side_effect = httpx.HTTPStatusError(
+            "HTTP 500 Error", request=request, response=response_obj
+        )
         mock_response.status_code = 500
 
         with patch('httpx.AsyncClient') as mock_client_class:
             mock_client = AsyncMock()
+            mock_client.is_closed = False
             mock_client.post.return_value = mock_response
-            mock_client_class.return_value.__aenter__.return_value = mock_client
+            mock_client_class.return_value = mock_client
 
             response, should_retry = await client.resolve_download("https://tiktok.com/test", force_headful=False)
 
@@ -339,7 +348,8 @@ class TestTikTokDownloadClient:
         """Test client as context manager."""
         with patch('httpx.AsyncClient') as mock_client_class:
             mock_client = AsyncMock()
-            mock_client_class.return_value.__aenter__.return_value = mock_client
+            mock_client.is_closed = False
+            mock_client_class.return_value = mock_client
 
             async with TikTokDownloadClient() as client:
                 assert client.client == mock_client
@@ -354,11 +364,12 @@ class TestTikTokDownloadClient:
 
         with patch('httpx.AsyncClient') as mock_client_class:
             mock_client = AsyncMock()
-            mock_client_class.return_value.__aenter__.return_value = mock_client
+            mock_client.is_closed = False
+            mock_client_class.return_value = mock_client
 
             # Initialize client by accessing property
             _ = client.client
 
             await client.close()
             mock_client.aclose.assert_called_once()
-            assert client._client is None
+            assert client._client_manager._client is None
