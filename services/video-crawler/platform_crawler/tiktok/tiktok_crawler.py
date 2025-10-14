@@ -21,6 +21,10 @@ class TikTokCrawler(BaseVideoCrawler):
         self.downloader_config = {
             "TIKTOK_VIDEO_STORAGE_PATH": config.TIKTOK_VIDEO_STORAGE_PATH,
             "TIKTOK_KEYFRAME_STORAGE_PATH": config.TIKTOK_KEYFRAME_STORAGE_PATH,
+            "TIKTOK_CRAWL_HOST": config.TIKTOK_CRAWL_HOST,
+            "TIKTOK_CRAWL_HOST_PORT": config.TIKTOK_CRAWL_HOST_PORT,
+            "TIKTOK_DOWNLOAD_STRATEGY": config.TIKTOK_DOWNLOAD_STRATEGY,
+            "TIKTOK_DOWNLOAD_TIMEOUT": config.TIKTOK_DOWNLOAD_TIMEOUT,
             "retries": 3,
             "timeout": 30,
             "platform_name": self.platform_name,

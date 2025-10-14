@@ -64,7 +64,8 @@ class VideoCrawlerConfig:
     TIKTOK_CRAWL_HOST_PORT: str = os.getenv("TIKTOK_CRAWL_HOST_PORT", "5680")
 
     # TikTok download strategy configuration
-    TIKTOK_DOWNLOAD_STRATEGY: str = os.getenv("TIKTOK_DOWNLOAD_STRATEGY", "yt-dlp")
+    TIKTOK_DOWNLOAD_STRATEGY: str = os.getenv("TIKTOK_DOWNLOAD_STRATEGY", "scrapling-api")
+    TIKTOK_DOWNLOAD_TIMEOUT: int = int(os.getenv("TIKTOK_DOWNLOAD_TIMEOUT", "180"))
 
     # TikTok storage paths
     TIKTOK_VIDEO_STORAGE_PATH: str = os.path.join(global_config.DATA_ROOT_CONTAINER, 'videos', 'tiktok')

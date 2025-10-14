@@ -3,6 +3,7 @@ from typing import Any, Dict
 
 from .base import TikTokDownloadStrategy
 from .ytdlp_strategy import YtdlpDownloadStrategy
+from .scrapling_api_strategy import ScraplingApiDownloadStrategy
 
 
 class TikTokDownloadStrategyFactory:
@@ -21,11 +22,13 @@ class TikTokDownloadStrategyFactory:
         """
         strategy_type = (
             os.getenv("TIKTOK_DOWNLOAD_STRATEGY") or
-            config.get("TIKTOK_DOWNLOAD_STRATEGY", "yt-dlp")
+            config.get("TIKTOK_DOWNLOAD_STRATEGY", "scrapling-api")
         ).lower()
 
         if strategy_type == "yt-dlp":
             return YtdlpDownloadStrategy(config)
+        elif strategy_type in ("scrapling-api", "scrapling_api"):
+            return ScraplingApiDownloadStrategy(config)
         else:
             raise ValueError(f"Unknown TikTok download strategy: {strategy_type}")
 
@@ -36,6 +39,8 @@ class TikTokDownloadStrategyRegistry:
 
     _strategies: Dict[str, type] = {
         "yt-dlp": YtdlpDownloadStrategy,
+        "scrapling-api": ScraplingApiDownloadStrategy,
+        "scrapling_api": ScraplingApiDownloadStrategy,  # Alternative underscore naming
     }
 
     @classmethod
