@@ -14,14 +14,19 @@ logger = configure_logging("product-segmentor:yolo_segmentor")
 class YOLOSegmentor(BaseSegmentation):
     """YOLOv8 segmentation model for people segmentation."""
 
-    def __init__(self, model_name: str = 'yolo11l-seg.pt'):
+    def __init__(self, model_name: str = 'yolo11l-seg'):
         super().__init__()
-        # Ensure model name has .pt extension
-        if not model_name.endswith('.pt'):
-            model_name += '.pt'
-        self._model_path = os.path.join(config.PEOPLE_SEG_MODEL_CACHE, model_name)
+        # Store the base model name without extension
+        self._model_name = model_name
+        # Ensure model name has .pt extension for file path
+        model_filename = model_name if model_name.endswith('.pt') else f"{model_name}.pt"
+        self._model_path = os.path.join(config.PEOPLE_SEG_MODEL_CACHE, model_filename)
         self._model: Optional[YOLO] = None
-        # Set the YOLO_MODEL_DIR environment variable for ultralytics library
+
+        # Ensure the model cache directory exists
+        os.makedirs(config.PEOPLE_SEG_MODEL_CACHE, exist_ok=True)
+
+        # Set environment variables for ultralytics library to use our cache directory
         os.environ['YOLO_MODEL_DIR'] = config.PEOPLE_SEG_MODEL_CACHE
 
     async def initialize(self) -> None:
@@ -29,10 +34,25 @@ class YOLOSegmentor(BaseSegmentation):
         try:
             logger.info("Initializing model",
                         model_name=self.model_name,
-                        model_path=self._model_path)
-            self._model = YOLO(self._model_path)
+                        model_path=self._model_path,
+                        cache_dir=config.PEOPLE_SEG_MODEL_CACHE)
+
+            # Check if model file already exists in our cache
+            if os.path.exists(self._model_path):
+                logger.info("Loading model from local cache",
+                           model_path=self._model_path)
+                self._model = YOLO(self._model_path)
+            else:
+                logger.info("Model not found in cache, downloading from Ultralytics hub",
+                           model_name=self.model_name,
+                           cache_dir=config.PEOPLE_SEG_MODEL_CACHE)
+                # Ultralytics will download to its cache directory (now mounted to our model_cache)
+                self._model = YOLO(self._model_name)
+
             logger.info("Model initialized successfully",
                         model_name=self.model_name)
+            # Mark as initialized using the base class method
+            self._initialized = True
         except Exception as e:
             logger.error("Model initialization failed",
                          model_name=self.model_name,
@@ -65,16 +85,27 @@ class YOLOSegmentor(BaseSegmentation):
             people_mask = None
             for r in results:
                 if r.masks is not None:
-                    # Combine all person masks into a single mask
-                    combined_mask = np.zeros(r.masks.orig_shape[:2], dtype=np.uint8)
+                    # Get original image dimensions
+                    orig_height, orig_width = r.masks.orig_shape[:2]
+
+                    # Combine all person masks into a single mask with original dimensions
+                    combined_mask = np.zeros((orig_height, orig_width), dtype=np.uint8)
                     for mask_tensor in r.masks.data:
                         mask_np = mask_tensor.cpu().numpy()
                         if mask_np.ndim == 3:
                             mask_np = mask_np.squeeze()
 
-                        resized_mask = cv2.resize(mask_np, (config.IMG_SIZE[1], config.IMG_SIZE[0]), interpolation=cv2.INTER_LINEAR)
+                        # Resize mask to original image dimensions (not config.IMG_SIZE)
+                        resized_mask = cv2.resize(mask_np, (orig_width, orig_height), interpolation=cv2.INTER_LINEAR)
                         binary_mask = (resized_mask > 0.5).astype(np.uint8) * 255
-                        combined_mask = cv2.bitwise_or(combined_mask, binary_mask)
+
+                        # Ensure both masks have the same shape before bitwise operation
+                        if combined_mask.shape == binary_mask.shape:
+                            combined_mask = cv2.bitwise_or(combined_mask, binary_mask)
+                        else:
+                            logger.warning("Mask shape mismatch, skipping mask",
+                                         combined_shape=combined_mask.shape,
+                                         binary_shape=binary_mask.shape)
 
                     people_mask = combined_mask
                 else:
@@ -104,7 +135,7 @@ class YOLOSegmentor(BaseSegmentation):
     @property
     def model_name(self) -> str:
         """Return the name of the segmentation model."""
-        return "yolo11l-seg"
+        return self._model_name
 
     @property
     def is_initialized(self) -> bool:
