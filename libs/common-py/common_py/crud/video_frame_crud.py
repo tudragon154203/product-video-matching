@@ -36,12 +36,15 @@ class VideoFrameCRUD:
     
     async def update_embeddings(self, frame_id: str, emb_rgb: List[float], emb_gray: List[float]):
         """Update embeddings for a video frame"""
+        # Convert lists to strings for pgvector compatibility
+        emb_rgb_str = str(emb_rgb)
+        emb_gray_str = str(emb_gray)
         query = """
         UPDATE video_frames
         SET emb_rgb = $2::vector, emb_gray = $3::vector
         WHERE frame_id = $1
         """
-        await self.db.execute(query, frame_id, emb_rgb, emb_gray)
+        await self.db.execute(query, frame_id, emb_rgb_str, emb_gray_str)
     
     async def get_video_frame(self, frame_id: str) -> Optional[VideoFrame]:
         """Get a video frame by ID"""
