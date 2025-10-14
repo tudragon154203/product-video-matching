@@ -86,10 +86,20 @@ class VideoProcessor:
         local_path = video_data.get("local_path")
 
         if local_path:
-            # Video already downloaded, just update record
+            # Video already downloaded, just update record and extract keyframes
             video.local_path = local_path
             video.has_download = True
-            return []  # Keyframes already extracted
+            # Extract keyframes from existing local file
+            try:
+                keyframes = await self.keyframe_extractor.extract_keyframes(
+                    video_url="",
+                    video_id=video.video_id,
+                    local_path=local_path
+                )
+                return await self._save_keyframes(keyframes, video.video_id)
+            except Exception as e:
+                logger.error(f"Failed to extract keyframes from existing video {video.video_id}: {e}")
+                return []
 
         # Use TikTokDownloader for download and extraction
         tiktok_config = {
@@ -111,21 +121,58 @@ class VideoProcessor:
             db=self.db
         )
 
+        logger.info(f"TikTok download and extraction result for video {video.video_id}: success={success}")
+
         if not success:
             logger.error(f"TikTok download and extraction failed for video {video.video_id}")
             return []
 
         video_data["local_path"] = video.local_path
-        return []  # Keyframes extracted by downloader
+
+        # Keyframes were extracted by downloader and persisted to DB
+        # We need to fetch them back from the database to return them
+        try:
+            if self.frame_crud:
+                frames = await self.frame_crud.list_video_frames(video.video_id)
+                logger.info(f"Found {len(frames)} frames for video {video.video_id} in database")
+
+                if frames:
+                    return [{
+                        "frame_id": frame.frame_id,
+                        "ts": frame.ts,
+                        "local_path": frame.local_path
+                    } for frame in frames]
+                else:
+                    # Fallback: Try to extract keyframes directly if downloader didn't provide any
+                    logger.warning(f"No frames found in database for video {video.video_id}, attempting fallback extraction")
+                    if video.local_path:
+                        try:
+                            keyframes = await self.keyframe_extractor.extract_keyframes(
+                                video_url="",
+                                video_id=video.video_id,
+                                local_path=video.local_path
+                            )
+                            if keyframes:
+                                logger.info(f"Fallback extraction successful for video {video.video_id}: {len(keyframes)} keyframes")
+                                return await self._save_keyframes(keyframes, video.video_id)
+                            else:
+                                logger.warning(f"Fallback extraction also returned no keyframes for video {video.video_id}")
+                        except Exception as fallback_error:
+                            logger.error(f"Fallback keyframe extraction failed for video {video.video_id}: {fallback_error}")
+
+                    return []
+        except Exception as e:
+            logger.error(f"Failed to fetch keyframes for video {video.video_id} from database: {e}")
+            return []
 
     async def _process_standard_video(self, video: Video, video_data: Dict[str, Any]) -> List[Dict[str, Any]]:
         """Process standard video (YouTube, etc.) with keyframe extraction."""
         local_path = video_data.get("local_path")
 
         keyframes = await self.keyframe_extractor.extract_keyframes(
-            video_data.get("url", ""),
-            video.video_id,
-            local_path
+            video_url=video_data.get("url", ""),
+            video_id=video.video_id,
+            local_path=local_path
         )
 
         return await self._save_keyframes(keyframes, video.video_id)

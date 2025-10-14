@@ -64,17 +64,29 @@ class ScraplingApiDownloadStrategy(TikTokDownloadStrategy):
         api_execution_time = None
 
         try:
-            # Run the async download method in an event loop
-            loop = asyncio.get_event_loop()
-        except RuntimeError:
-            # No event loop running, create one
-            loop = asyncio.new_event_loop()
-            asyncio.set_event_loop(loop)
+            # Check if we're already in an event loop
+            try:
+                loop = asyncio.get_running_loop()
+                # We're in a running loop, we need to run in a thread to avoid blocking
+                import concurrent.futures
+                import threading
 
-        try:
-            result, api_exec_time = loop.run_until_complete(
-                self._download_video_async(url, video_id, output_path)
-            )
+                def run_async_in_thread():
+                    # Create a new event loop in the thread
+                    new_loop = asyncio.new_event_loop()
+                    asyncio.set_event_loop(new_loop)
+                    try:
+                        return new_loop.run_until_complete(self._download_video_async(url, video_id, output_path))
+                    finally:
+                        new_loop.close()
+                        asyncio.set_event_loop(None)
+
+                with concurrent.futures.ThreadPoolExecutor() as executor:
+                    future = executor.submit(run_async_in_thread)
+                    result, api_exec_time = future.result()
+            except RuntimeError:
+                # No running loop, safe to use asyncio.run
+                result, api_exec_time = asyncio.run(self._download_video_async(url, video_id, output_path))
 
             if result:
                 success = True
@@ -104,19 +116,6 @@ class ScraplingApiDownloadStrategy(TikTokDownloadStrategy):
                 file_size=file_size,
                 api_execution_time=api_execution_time
             )
-
-            # Clean up client if we created a new loop
-            try:
-                current_loop = asyncio.get_event_loop()
-                if current_loop is not loop and not loop.is_closed():
-                    # We created this loop, so we should close it
-                    if not loop.is_running():
-                        loop.run_until_complete(self.close())
-                    loop.close()
-            except RuntimeError:
-                # No loop running, safe to close our created loop
-                if not loop.is_closed():
-                    loop.close()
 
     async def _download_video_async(self, url: str, video_id: str, output_path: str) -> Optional[str]:
         """Async implementation of video download."""

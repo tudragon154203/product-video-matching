@@ -190,9 +190,27 @@ class TikTokDownloader:
             logger.info("Video download successful for video %s: %s", video_id, local_path)
 
             keyframes_dir, keyframes = await self.extract_keyframes(local_path, video_id)
-            if not keyframes_dir:
-                logger.error("Keyframe extraction failed for video %s", video_id)
-                return False
+
+            # Enhanced error handling for keyframe extraction
+            if not keyframes_dir or not keyframes:
+                logger.warning(
+                    "Keyframe extraction returned empty results for video %s: keyframes_dir=%s, keyframes_count=%s",
+                    video_id,
+                    keyframes_dir,
+                    len(keyframes) if keyframes else 0,
+                )
+                # Continue processing even if keyframe extraction fails partially
+
+                # Try to at least return success if download worked, to not block the pipeline
+                if video:
+                    video.local_path = local_path
+                    video.has_download = True
+                    logger.debug(
+                        "Updated video object for video %s with local_path (no keyframes): %s",
+                        video_id,
+                        local_path,
+                    )
+                return True  # Return True for download success, even if keyframes failed
 
             # Log the keyframes extraction result
             logger.info(

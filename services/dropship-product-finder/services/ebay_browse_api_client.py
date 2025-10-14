@@ -108,6 +108,16 @@ class EbayBrowseApiClient:
     ) -> Dict[str, Any]:
         """Search using the fixed filters and EXTENDED fieldgroups."""
 
+        # Skip eBay API call if limit is 0
+        if limit <= 0:
+            logger.info("Skipping eBay search - limit is 0")
+            return {"itemSummaries": []}
+
+        # Validate limit is within eBay bounds (1-200, but we use max 50 per page)
+        if limit < 1 or limit > 200:
+            logger.warning("eBay search limit out of bounds (1-200), using default: %s", limit)
+            limit = max(1, min(limit, 50))
+
         # Get fresh token
         token = await self.auth_service.get_access_token()
 
