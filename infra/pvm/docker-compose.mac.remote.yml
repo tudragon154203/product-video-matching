@@ -191,7 +191,7 @@ services:
       rabbitmq:
         condition: service_healthy
     restart: unless-stopped
-    command: ["/bin/bash", "-c", "/update_yt_dlp.sh && python app/main.py"]
+    command: ["/bin/bash", "-c", "/app/update_yt_dlp.sh && python app/main.py"]
 
   product-segmentor:
     build:
