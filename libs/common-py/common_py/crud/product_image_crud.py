@@ -5,6 +5,22 @@ from ..models import ProductImage
 class ProductImageCRUD:
     def __init__(self, db: DatabaseManager):
         self.db = db
+
+    def _convert_row_to_image(self, row: Dict[str, Any]) -> ProductImage:
+        """Convert database row to ProductImage, handling vector types"""
+        # Convert asyncpg.Record to dict to make it mutable
+        row_dict = dict(row)
+
+        # Convert vector strings back to lists if they exist
+        if row_dict.get('emb_rgb') is not None:
+            if isinstance(row_dict['emb_rgb'], str):
+                # Parse string representation like "[0.1,0.2,0.3]"
+                row_dict['emb_rgb'] = [float(x) for x in row_dict['emb_rgb'].strip('[]').split(',') if x]
+        if row_dict.get('emb_gray') is not None:
+            if isinstance(row_dict['emb_gray'], str):
+                # Parse string representation like "[0.1,0.2,0.3]"
+                row_dict['emb_gray'] = [float(x) for x in row_dict['emb_gray'].strip('[]').split(',') if x]
+        return ProductImage(**row_dict)
     
     async def create_product_image(self, image: ProductImage) -> str:
         """Create a new product image"""
@@ -20,28 +36,24 @@ class ProductImageCRUD:
     
     async def update_embeddings(self, img_id: str, emb_rgb: List[float], emb_gray: List[float]):
         """Update embeddings for a product image"""
-        # Convert lists to vector format for PostgreSQL
-        rgb_vector = '[' + ','.join(map(str, emb_rgb)) + ']'
-        gray_vector = '[' + ','.join(map(str, emb_gray)) + ']'
-        
         query = """
-        UPDATE product_images 
+        UPDATE product_images
         SET emb_rgb = $2::vector, emb_gray = $3::vector
         WHERE img_id = $1
         """
-        await self.db.execute(query, img_id, rgb_vector, gray_vector)
+        await self.db.execute(query, img_id, emb_rgb, emb_gray)
     
     async def get_product_image(self, img_id: str) -> Optional[ProductImage]:
         """Get a product image by ID"""
         query = "SELECT * FROM product_images WHERE img_id = $1"
         row = await self.db.fetch_one(query, img_id)
-        return ProductImage(**row) if row else None
+        return self._convert_row_to_image(row) if row else None
     
     async def list_product_images(self, product_id: str) -> List[ProductImage]:
         """List images for a product"""
         query = "SELECT * FROM product_images WHERE product_id = $1"
         rows = await self.db.fetch_all(query, product_id)
-        return [ProductImage(**row) for row in rows]
+        return [self._convert_row_to_image(row) for row in rows]
     
     async def list_product_images_by_job(
         self,
@@ -105,7 +117,7 @@ class ProductImageCRUD:
         params.extend([limit, offset])
         
         rows = await self.db.fetch_all(query, *params)
-        return [ProductImage(**row) for row in rows]
+        return [self._convert_row_to_image(row) for row in rows]
     
     async def count_product_images_by_job(
         self,
@@ -200,4 +212,4 @@ class ProductImageCRUD:
         params.extend([limit, offset])
         
         rows = await self.db.fetch_all(query, *params)
-        return [ProductImage(**row) for row in rows]
+        return [self._convert_row_to_image(row) for row in rows]
