@@ -66,6 +66,18 @@ class FileManager:
         self.product_products_dir.mkdir(parents=True, exist_ok=True)
         self.product_frames_dir.mkdir(parents=True, exist_ok=True)
 
+    async def _ensure_directory_exists(self, directory: Path) -> None:
+        """Ensure a directory exists before using it.
+
+        Args:
+            directory: Directory path to ensure exists
+        """
+        if not directory.exists():
+            logger.info("Creating missing directory", directory=str(directory))
+            loop = asyncio.get_event_loop()
+            await loop.run_in_executor(None, directory.mkdir, True, True)
+            logger.debug("Directory created successfully", directory=str(directory))
+
     async def save_product_mask(self, image_id: str, mask: np.ndarray) -> str:
         """Save product image foreground mask."""
         return await self._save_mask(self.foreground_products_dir, image_id, mask)
@@ -93,6 +105,9 @@ class FileManager:
         mask_path = base_dir / mask_filename
 
         try:
+            # Ensure the directory exists before saving
+            await self._ensure_directory_exists(base_dir)
+
             logger.debug("Saving mask", image_id=image_id, path=str(mask_path))
             await self._save_mask_atomic(mask, mask_path)
             logger.debug("Mask saved successfully", image_id=image_id)
