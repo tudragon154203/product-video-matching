@@ -214,10 +214,16 @@ class ProductSegmentorService:
                     job_id=job_id,
                     total_images=0,
                 )
-            else:
+            elif asset_type == "frame":
                 await self.job_progress_manager.publish_videos_keyframes_masked_batch(
                     job_id=job_id,
                     total_keyframes=0,
+                )
+            else:
+                logger.warning(
+                    "Unknown asset type for zero-asset job",
+                    job_id=job_id,
+                    asset_type=asset_type,
                 )
         else:
             await self.job_progress_manager.update_job_progress(
@@ -326,7 +332,7 @@ class ProductSegmentorService:
 
             await self._handle_batch_event(
                 job_id,
-                "video",
+                "frame",
                 total_keyframes,
                 "videos_keyframes_ready_batch",
                 event_id,
