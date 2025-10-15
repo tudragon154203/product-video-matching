@@ -7,7 +7,8 @@ from typing import Any, Dict, List, Optional, Tuple
 
 from common_py.logging_config import configure_logging
 
-from .download_strategies import TikTokDownloadStrategyFactory, TikTokAntiBotError
+from .download_strategies.factory import TikTokDownloadStrategyFactory
+from .download_strategies.ytdlp_strategy import TikTokAntiBotError
 
 logger = configure_logging("video-crawler:tiktok_downloader")
 

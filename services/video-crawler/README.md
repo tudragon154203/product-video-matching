@@ -42,6 +42,12 @@ The TikTok downloader provides robust video download capabilities with configura
 - **Format Flexibility**: Multiple video format fallbacks for compatibility
 - **Direct Download**: Downloads videos directly from TikTok using yt-dlp
 
+#### 3. TikWM Strategy
+- **Direct Media Access**: Downloads directly from TikWM's public media endpoint
+- **Lightweight**: Minimal dependencies, no external API services required
+- **Fast Redirect Resolution**: Uses HEAD requests to resolve final download URLs
+- **Retry Logic**: Small retry envelope for transient HTTP failures with backoff
+
 ### Common Features
 - **File Size Validation**: Enforces 500MB limit and removes oversized files
 - **Comprehensive Error Handling**: Handles network timeouts, connection errors, and permission issues
@@ -49,7 +55,7 @@ The TikTok downloader provides robust video download capabilities with configura
 - **Structured Logging**: Detailed logging with strategy identification and metrics
 
 ### Download Configuration
-- **Download Strategy**: `TIKTOK_DOWNLOAD_STRATEGY` (default: `scrapling-api`, options: `yt-dlp`, `scrapling-api`)
+- **Download Strategy**: `TIKTOK_DOWNLOAD_STRATEGY` (default: `scrapling-api`, options: `yt-dlp`, `scrapling-api`, `tikwm`)
 - **API Host**: `TIKTOK_CRAWL_HOST` (default: `localhost`)
 - **API Port**: `TIKTOK_CRAWL_HOST_PORT` (default: `5680`)
 - **Download Timeout**: `TIKTOK_DOWNLOAD_TIMEOUT` (default: `180` seconds)
@@ -78,6 +84,9 @@ TIKTOK_DOWNLOAD_STRATEGY=scrapling-api
 
 # Use yt-dlp strategy
 TIKTOK_DOWNLOAD_STRATEGY=yt-dlp
+
+# Use TikWM strategy
+TIKTOK_DOWNLOAD_STRATEGY=tikwm
 ```
 
 ### Usage Example
