@@ -12,13 +12,36 @@ import shutil
 from pathlib import Path
 import argparse
 
+SCRIPT_DIR = Path(__file__).resolve().parent
+TESTS_DIR = SCRIPT_DIR.parent
+PROJECT_ROOT = TESTS_DIR.parent
+LIBS_DIR = PROJECT_ROOT / "libs"
+COMMON_PY_DIR = LIBS_DIR / "common-py"
+
+# Ensure relative paths resolve from project root
+os.chdir(PROJECT_ROOT)
+
+
+
+def build_env():
+    """Return environment with shared library paths set."""
+    env = os.environ.copy()
+    paths = [str(COMMON_PY_DIR), str(LIBS_DIR), env.get("PYTHONPATH", "")]
+    env["PYTHONPATH"] = os.pathsep.join([p for p in paths if p])
+    return env
 def run_command(cmd, description, check=True, capture_output=True):
     """Run a command with error handling."""
     print(f"🔄 {description}")
     print(f"   Running: {' '.join(cmd)}")
     
     try:
-        result = subprocess.run(cmd, check=check, capture_output=capture_output, text=True)
+        result = subprocess.run(
+            cmd,
+            check=check,
+            capture_output=capture_output,
+            text=True,
+            env=build_env(),
+        )
         if result.stdout and capture_output:
             print(f"   Output: {result.stdout.strip()}")
         return True, result.stdout
@@ -112,7 +135,10 @@ def validate_project_structure():
         "tests/integration/test_collection_phase_happy_path.py",
         "tests/integration/test_collection_phase_integration.py",
         "tests/integration/test_observability_validation.py",
-        "tests/run_collection_phase_tests.py",
+        "tests/scripts/run_collection_phase_tests.py",
+        "tests/scripts/run_local_tests.py",
+        "tests/scripts/identify_bottleneck_smoke.py",
+        "tests/scripts/setup_test_environment.py",
         "infra/pvm/docker-compose.dev.cpu.yml"
     ]
     
@@ -135,11 +161,11 @@ def validate_test_utilities():
     print("\n🧪 Validating test utilities...")
     
     utilities = [
-        ("tests.utils.message_spy", "CollectionPhaseSpy"),
-        ("tests.utils.db_cleanup", "CollectionPhaseCleanup"),
-        ("tests.utils.event_publisher", "TestEventFactory"),
-        ("tests.utils.test_environment", "CollectionPhaseTestEnvironment"),
-        ("tests.utils.observability_validator", "ObservabilityValidator")
+        ("tests.support.message_spy", "CollectionPhaseSpy"),
+        ("tests.support.db_cleanup", "CollectionPhaseCleanup"),
+        ("tests.support.event_publisher", "TestEventFactory"),
+        ("tests.support.test_environment", "CollectionPhaseTestEnvironment"),
+        ("tests.support.observability_validator", "ObservabilityValidator")
     ]
     
     for module, class_name in utilities:
@@ -334,7 +360,7 @@ def main():
         print("   2. Run migrations:")
         print("      python scripts/run_migrations.py upgrade")
         print("   3. Run tests:")
-        print("      python tests/run_collection_phase_tests.py")
+        print("      python tests/scripts/run_collection_phase_tests.py")
         print("\n📖 For more information, see: docs/TEST_EXECUTION_GUIDE.md")
 
 if __name__ == "__main__":

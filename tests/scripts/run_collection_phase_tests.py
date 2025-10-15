@@ -10,23 +10,33 @@ import subprocess
 import os
 from pathlib import Path
 
+SCRIPT_DIR = Path(__file__).resolve().parent
+TESTS_DIR = SCRIPT_DIR.parent
+PROJECT_ROOT = TESTS_DIR.parent
+LIBS_DIR = PROJECT_ROOT / "libs"
+COMMON_PY_DIR = LIBS_DIR / "common-py"
+TEST_FILE = TESTS_DIR / "integration" / "test_collection_phase_happy_path.py"
+
+def build_env():
+    """Ensure subprocess inherits shared library paths."""
+    env = os.environ.copy()
+    paths = [str(COMMON_PY_DIR), str(LIBS_DIR), env.get("PYTHONPATH", "")]
+    env["PYTHONPATH"] = os.pathsep.join([p for p in paths if p])
+    return env
+
 def main():
     """Run the collection phase happy path integration test"""
-    # Get the directory of this script
-    script_dir = Path(__file__).parent
-    test_file = script_dir / "integration" / "test_collection_phase_happy_path.py"
-    
-    if not test_file.exists():
-        print(f"Error: Test file not found at {test_file}")
+    if not TEST_FILE.exists():
+        print(f"Error: Test file not found at {TEST_FILE.relative_to(PROJECT_ROOT)}")
         sys.exit(1)
     
     # Change to the project root directory
-    os.chdir(script_dir)
+    os.chdir(PROJECT_ROOT)
     
     # Run the test with pytest
     cmd = [
         sys.executable, "-m", "pytest", 
-        "integration/test_collection_phase_happy_path.py::TestCollectionPhaseHappyPath::test_collection_phase_happy_path_minimal_dataset",
+        "tests/integration/test_collection_phase_happy_path.py::TestCollectionPhaseHappyPath::test_collection_phase_happy_path_minimal_dataset",
         "-v",
         "--tb=short"
     ]
@@ -36,7 +46,7 @@ def main():
     print()
     
     try:
-        result = subprocess.run(cmd, check=True)
+        result = subprocess.run(cmd, check=True, env=build_env())
         print("\n[SUCCESS] Collection phase test completed successfully!")
         return result.returncode
     except subprocess.CalledProcessError as e:

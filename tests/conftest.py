@@ -10,20 +10,39 @@ import os
 import sys
 from pathlib import Path
 
-# Add libs to path
-sys.path.append(str(Path(__file__).parent.parent / "libs"))
-sys.path.append(str(Path(__file__).parent.parent / "infra"))
-sys.path.append(str(Path(__file__).parent.parent))
+# Add project paths to sys.path for tests
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
+LIBS_DIR = PROJECT_ROOT / "libs"
+COMMON_PY_DIR = LIBS_DIR / "common-py"
+INFRA_DIR = PROJECT_ROOT / "infra"
+
+def ensure_sys_path():
+    """Ensure project-specific paths are available for imports."""
+    for path in (COMMON_PY_DIR, LIBS_DIR, INFRA_DIR, PROJECT_ROOT):
+        path_str = str(path)
+        if path_str not in sys.path:
+            sys.path.append(path_str)
+
+    # Propagate to PYTHONPATH so subprocesses inherit the same paths
+    pythonpath = os.environ.get("PYTHONPATH", "")
+    paths = [str(COMMON_PY_DIR), str(LIBS_DIR)]
+    merged = os.pathsep.join(
+        [p for p in paths + pythonpath.split(os.pathsep) if p]
+    )
+    os.environ["PYTHONPATH"] = merged
+
+
+ensure_sys_path()
 
 from common_py.database import DatabaseManager
 from common_py.messaging import MessageBroker
 from config import config
 
 # Import test utilities
-from utils.message_spy import CollectionPhaseSpy, MessageSpy
-from utils.db_cleanup import CollectionPhaseCleanup, DatabaseStateValidator
-from utils.event_publisher import CollectionEventPublisher, TestEventFactory
-from utils.observability_validator import ObservabilityValidator, LogCapture, MetricsCapture
+from support.message_spy import CollectionPhaseSpy, MessageSpy
+from support.db_cleanup import CollectionPhaseCleanup, DatabaseStateValidator
+from support.event_publisher import CollectionEventPublisher, TestEventFactory
+from support.observability_validator import ObservabilityValidator, LogCapture, MetricsCapture
 
 
 @pytest.fixture(scope="session")

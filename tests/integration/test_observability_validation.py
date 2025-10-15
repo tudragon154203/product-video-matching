@@ -9,7 +9,7 @@ import logging
 from datetime import datetime
 from unittest.mock import Mock, patch
 
-from tests.utils.observability_validator import (
+from support.observability_validator import (
     LogCapture, LogValidator, MetricsCapture, MetricsValidator,
     HealthValidator, ObservabilityValidator
 )

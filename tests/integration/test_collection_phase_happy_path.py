@@ -18,9 +18,9 @@ import uuid
 from datetime import datetime
 from typing import Dict, Any, List
 
-from utils.test_environment import CollectionPhaseTestEnvironment
-from utils.event_publisher import TestEventFactory, EventValidator
-from utils.db_cleanup import DatabaseStateValidator
+from support.test_environment import CollectionPhaseTestEnvironment
+from support.event_publisher import TestEventFactory, EventValidator
+from support.db_cleanup import DatabaseStateValidator
 
 # Import CRUD utilities for database validation
 from common_py.crud import ProductCRUD, VideoCRUD, EventCRUD

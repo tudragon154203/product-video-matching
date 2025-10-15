@@ -10,13 +10,32 @@ import subprocess
 import argparse
 from pathlib import Path
 
+SCRIPT_DIR = Path(__file__).resolve().parent
+TESTS_DIR = SCRIPT_DIR.parent
+PROJECT_ROOT = TESTS_DIR.parent
+LIBS_DIR = PROJECT_ROOT / "libs"
+COMMON_PY_DIR = LIBS_DIR / "common-py"
+
+def build_env():
+    """Return environment with PYTHONPATH pointing at shared libs."""
+    env = os.environ.copy()
+    paths = [str(COMMON_PY_DIR), str(LIBS_DIR), env.get("PYTHONPATH", "")]
+    env["PYTHONPATH"] = os.pathsep.join([p for p in paths if p])
+    return env
+
 def run_command(cmd, description, timeout=300):
     """Run a command with error handling."""
     print(f"\n🔄 {description}")
     print(f"Running: {' '.join(cmd)}")
     
     try:
-        result = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout)
+        result = subprocess.run(
+            cmd,
+            capture_output=True,
+            text=True,
+            timeout=timeout,
+            env=build_env(),
+        )
         
         if result.returncode == 0:
             print(f"✅ {description} - SUCCESS")
@@ -49,9 +68,12 @@ def main():
     print("🚀 Starting Local Collection Phase Test Runner")
     print("=" * 50)
     
-    # Check if we're in the right directory
-    if not Path("tests/run_collection_phase_tests.py").exists():
-        print("❌ Please run this script from the project root directory")
+    # Ensure we are running from the project root
+    os.chdir(PROJECT_ROOT)
+    
+    runner_script = TESTS_DIR / "scripts" / "run_collection_phase_tests.py"
+    if not runner_script.exists():
+        print(f"❌ Could not find test runner helper at {runner_script.relative_to(PROJECT_ROOT)}")
         sys.exit(1)
     
     # Environment setup

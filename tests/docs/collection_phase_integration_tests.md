@@ -61,25 +61,25 @@ The Collection Phase Integration Tests validate the end-to-end collection workfl
 #### Option 1: Simple Test Runner (Recommended for daily development)
 ```bash
 # Run collection phase tests only
-python tests/run_collection_phase_tests.py
+python tests/scripts/run_collection_phase_tests.py
 
 # Run with verbose output
-python tests/run_collection_phase_tests.py --verbose
+python tests/scripts/run_collection_phase_tests.py --verbose
 ```
 
 #### Option 2: Comprehensive Test Runner
 ```bash
 # Run minimal scenario
-python tests/run_collection_phase_tests.py --scenario minimal
+python tests/scripts/run_collection_phase_tests.py --scenario minimal
 
 # Run comprehensive scenario
-python tests/run_collection_phase_tests.py --scenario comprehensive
+python tests/scripts/run_collection_phase_tests.py --scenario comprehensive
 
 # Run idempotency tests
-python tests/run_collection_phase_tests.py --scenario idempotency
+python tests/scripts/run_collection_phase_tests.py --scenario idempotency
 
 # Run observability tests
-python tests/run_collection_phase_tests.py --scenario observability
+python tests/scripts/run_collection_phase_tests.py --scenario observability
 ```
 
 #### Option 3: Direct Pytest Execution
@@ -98,26 +98,26 @@ pytest tests/integration/test_collection_phase_happy_path.py::TestCollectionPhas
 - **Duration**: ~5 minutes
 - **Data**: 1-2 products, 1-2 videos
 - **Validation**: Event flow, database state, observability
-- **Command**: `python tests/run_collection_phase_tests.py --scenario minimal`
+- **Command**: `python tests/scripts/run_collection_phase_tests.py --scenario minimal`
 
 ### 2. Comprehensive Scenario
 - **Purpose**: Validate complete workflow with full data set
 - **Duration**: ~10-15 minutes
 - **Data**: Multiple products, videos, platforms
 - **Validation**: All aspects of collection workflow
-- **Command**: `python tests/run_collection_phase_tests.py --scenario comprehensive`
+- **Command**: `python tests/scripts/run_collection_phase_tests.py --scenario comprehensive`
 
 ### 3. Idempotency Validation
 - **Purpose**: Ensure duplicate requests don't create duplicate data
 - **Duration**: ~8 minutes
 - **Validation**: Event ledger tracking, database state
-- **Command**: `python tests/run_collection_phase_tests.py --scenario idempotency`
+- **Command**: `python tests/scripts/run_collection_phase_tests.py --scenario idempotency`
 
 ### 4. Observability Validation
 - **Purpose**: Validate logging, metrics, and health checks
 - **Duration**: ~6 minutes
 - **Validation**: Correlation ID tracking, service logs
-- **Command**: `python tests/run_collection_phase_tests.py --scenario observability`
+- **Command**: `python tests/scripts/run_collection_phase_tests.py --scenario observability`
 
 ## Infrastructure Setup
 
@@ -220,7 +220,7 @@ event_id = MockDataLoader.generate_test_event_id()
 Provides RabbitMQ message spying capabilities:
 
 ```python
-from tests.utils.message_spy import CollectionPhaseSpy
+from tests.support.message_spy import CollectionPhaseSpy
 
 async with CollectionPhaseSpy(broker_url) as spy:
     # Spy queues are automatically set up for:
@@ -237,7 +237,7 @@ async with CollectionPhaseSpy(broker_url) as spy:
 Provides database cleanup and validation:
 
 ```python
-from tests.utils.db_cleanup import CollectionPhaseCleanup, DatabaseStateValidator
+from tests.support.db_cleanup import CollectionPhaseCleanup, DatabaseStateValidator
 
 cleanup = CollectionPhaseCleanup(db_manager)
 validator = DatabaseStateValidator(db_manager)
@@ -255,7 +255,7 @@ await validator.assert_videos_collected(job_id, min_count=1)
 Provides event publishing utilities:
 
 ```python
-from tests.utils.event_publisher import CollectionEventPublisher, TestEventFactory
+from tests.support.event_publisher import CollectionEventPublisher, TestEventFactory
 
 publisher = CollectionEventPublisher(message_broker)
 factory = TestEventFactory()
@@ -274,7 +274,7 @@ correlation_id = await publisher.publish_products_collect_request(
 Provides complete test environment management:
 
 ```python
-from tests.utils.test_environment import CollectionPhaseTestEnvironment
+from tests.support.test_environment import CollectionPhaseTestEnvironment
 
 async with CollectionPhaseTestEnvironment(db_manager, message_broker, broker_url) as env:
     # Environment is automatically set up with:
@@ -445,10 +445,10 @@ Simulate CI environment locally:
 
 ```bash
 # Run CI-optimized tests
-python tests/run_collection_phase_tests.py --test-type ci
+python tests/scripts/run_collection_phase_tests.py --test-type ci
 
 # Run with CI environment variables
-ENVIRONMENT=ci python tests/run_collection_phase_tests.py --test-type ci
+ENVIRONMENT=ci python tests/scripts/run_collection_phase_tests.py --test-type ci
 ```
 
 ---

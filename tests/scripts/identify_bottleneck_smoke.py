@@ -6,12 +6,15 @@ jobs from progressing past the feature extraction phase.
 import asyncio
 import httpx
 import time
-import os
 import sys
 import json
+from pathlib import Path
 
 # Add libs to path
-sys.path.append(os.path.join(os.path.dirname(__file__), 'libs'))
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
+LIBS_PATH = PROJECT_ROOT / "libs"
+if str(LIBS_PATH) not in sys.path:
+    sys.path.append(str(LIBS_PATH))
 
 from common_py.logging_config import configure_logging
 

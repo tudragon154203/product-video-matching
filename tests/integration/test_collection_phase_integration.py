@@ -12,9 +12,9 @@ import pytest
 import asyncio
 from datetime import datetime
 
-from utils.test_environment import CollectionPhaseTestEnvironment
-from utils.event_publisher import TestEventFactory
-from utils.db_cleanup import DatabaseStateValidator
+from support.test_environment import CollectionPhaseTestEnvironment
+from support.event_publisher import TestEventFactory
+from support.db_cleanup import DatabaseStateValidator
 
 
 class TestCollectionPhaseIntegration:
@@ -227,7 +227,7 @@ class TestCollectionPhaseIntegration:
         Test collection phase using the test environment manager.
         Demonstrates proper isolation and cleanup.
         """
-        from utils.test_environment import TestEnvironmentManager
+        from support.test_environment import TestEnvironmentManager
         
         async with TestEnvironmentManager(db_manager, message_broker, "amqp://guest:guest@localhost:5672/") as manager:
             # Create first test environment
@@ -312,7 +312,7 @@ class TestCollectionPhaseIntegration:
         """
         Test the database cleanup utilities.
         """
-        from utils.db_cleanup import CollectionPhaseCleanup
+        from support.db_cleanup import CollectionPhaseCleanup
         
         job_id = collection_job_setup
         cleanup = CollectionPhaseCleanup(db_manager)
@@ -363,7 +363,7 @@ class TestCollectionPhaseIntegration:
         """
         Test the event publisher utilities and validation.
         """
-        from utils.event_publisher import EventValidator
+        from support.event_publisher import EventValidator
         
         # Create test events
         products_event = TestEventFactory.create_products_collect_request()
