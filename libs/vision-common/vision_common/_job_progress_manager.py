@@ -44,8 +44,17 @@ class JobProgressManager:
 
     async def update_job_progress(self, job_id: str, asset_type: str, expected_count: int, increment: int = 1, event_type_prefix: str = "embeddings"):
         await self.base_manager.update_job_progress(job_id, asset_type, expected_count, increment, event_type_prefix)
-        # Check completion condition
+        # Check completion condition - but only if we have a real expected count (not 0 from per-asset-first processing)
         job_data = self.base_manager.job_tracking[job_id]
+        current_expected = job_data["expected"]
+
+        # Don't trigger completion if expected is 0 (indicates per-asset-first initialization)
+        # or if expected is artificially high (1000000+) and we haven't received the real count yet
+        if current_expected == 0 or current_expected >= 1000000:
+            logger.debug("Skipping completion check - expected count not finalized yet",
+                        job_id=job_id, asset_type=asset_type, expected=current_expected, done=job_data["done"])
+            return
+
         if job_data["done"] >= job_data["expected"]:
             logger.info("Automatic completion triggered by progress update",
                        job_id=job_id,

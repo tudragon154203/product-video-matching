@@ -79,11 +79,28 @@ class CompletionEventPublisher:
         expected = job_data["expected"]
         done = job_data["done"]
         
-        # Handle zero assets scenario
+        # Handle zero assets scenario - but only if this is a legitimate zero-asset job
+        # (not per-asset-first initialization where expected hasn't been set yet)
         if expected == 0:
-            done = 0
-            logger.info("Immediate completion for zero-asset job", job_id=job_id)
-            has_partial = False  # For zero assets, there's no partial completion
+            # Check if this is a legitimate zero-asset job by seeing if batch was initialized
+            # If batch was initialized and total is 0, it's a real zero-asset job
+            is_legitimate_zero = False
+            if asset_type == "image" and job_id in self.base_manager.job_image_counts:
+                if self.base_manager.job_image_counts[job_id].get("total", 0) == 0:
+                    is_legitimate_zero = True
+            elif asset_type == "video" and job_id in self.base_manager.job_frame_counts:
+                if self.base_manager.job_frame_counts[job_id].get("total", 0) == 0:
+                    is_legitimate_zero = True
+
+            if is_legitimate_zero:
+                done = 0
+                logger.info("Immediate completion for legitimate zero-asset job", job_id=job_id)
+                has_partial = False  # For zero assets, there's no partial completion
+            else:
+                # This is likely per-asset-first initialization, don't complete yet
+                logger.debug("Skipping completion - zero expected but not a legitimate zero-asset job",
+                           job_id=job_id, asset_type=asset_type)
+                return
         else:
             # Calculate partial completion flag
             has_partial = (done < expected)

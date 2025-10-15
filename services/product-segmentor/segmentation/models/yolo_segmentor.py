@@ -20,14 +20,18 @@ class YOLOSegmentor(BaseSegmentation):
         self._model_name = model_name
         # Ensure model name has .pt extension for file path
         model_filename = model_name if model_name.endswith('.pt') else f"{model_name}.pt"
-        self._model_path = os.path.join(config.PEOPLE_SEG_MODEL_CACHE, model_filename)
+
+        # Determine the correct model cache path
+        # In Docker, use absolute path /app/model_cache, otherwise use relative path
+        if os.path.exists('/app/model_cache') or os.environ.get('PYTHONPATH', '').startswith('/app'):
+            model_cache_dir = '/app/model_cache'
+        else:
+            # Use global MODEL_CACHE for local development
+            model_cache_dir = config.MODEL_CACHE
+
+        self._model_path = os.path.join(model_cache_dir, model_filename)
+        self._model_cache_dir = model_cache_dir
         self._model: Optional[YOLO] = None
-
-        # Ensure the model cache directory exists
-        os.makedirs(config.PEOPLE_SEG_MODEL_CACHE, exist_ok=True)
-
-        # Set environment variables for ultralytics library to use our cache directory
-        os.environ['YOLO_MODEL_DIR'] = config.PEOPLE_SEG_MODEL_CACHE
 
     async def initialize(self) -> None:
         """Initialize the YOLO segmentation model."""
@@ -35,17 +39,27 @@ class YOLOSegmentor(BaseSegmentation):
             logger.info("Initializing model",
                         model_name=self.model_name,
                         model_path=self._model_path,
-                        cache_dir=config.PEOPLE_SEG_MODEL_CACHE)
+                        cache_dir=self._model_cache_dir)
+
+            # Ensure the model cache directory exists
+            os.makedirs(self._model_cache_dir, exist_ok=True)
 
             # Check if model file already exists in our cache
             if os.path.exists(self._model_path):
                 logger.info("Loading model from local cache",
-                            model_path=self._model_path)
+                            model_path=self._model_path,
+                            file_exists=os.path.exists(self._model_path))
                 self._model = YOLO(self._model_path)
             else:
                 logger.info("Model not found in cache, downloading from Ultralytics hub",
                             model_name=self.model_name,
-                            cache_dir=config.PEOPLE_SEG_MODEL_CACHE)
+                            cache_dir=self._model_cache_dir,
+                            expected_path=self._model_path,
+                            cache_contents=os.listdir(self._model_cache_dir) if os.path.exists(self._model_cache_dir) else "directory not found")
+
+                # Set environment variables for ultralytics library to use our cache directory
+                os.environ['YOLO_MODEL_DIR'] = self._model_cache_dir
+
                 # Ultralytics will download to its cache directory (now mounted to our model_cache)
                 self._model = YOLO(self._model_name)
 
@@ -57,6 +71,8 @@ class YOLOSegmentor(BaseSegmentation):
             logger.error("Model initialization failed",
                          model_name=self.model_name,
                          model_path=self._model_path,
+                         cache_dir=self._model_cache_dir,
+                         working_dir=os.getcwd(),
                          error=str(e),
                          error_type=type(e).__name__)
             raise

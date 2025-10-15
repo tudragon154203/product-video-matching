@@ -63,21 +63,31 @@ class BaseJobProgressManager:
                 "done": 0,
                 "asset_type": asset_type
             }
-        
+
         # Update done count
         self.job_tracking[job_id]["done"] += increment
-        
+
         # Check completion condition using expected_total_frames for video jobs
         job_data = self.job_tracking[job_id]
         actual_expected = expected_count
-        
+
         # For video jobs, use expected_total_frames if available
         if asset_type == "video" and job_id in self.expected_total_frames:
             actual_expected = self.expected_total_frames[job_id]
             logger.debug("Using expected_total_frames for video job", job_id=job_id, expected=actual_expected)
-        
-        # Update expected count in tracking to match actual expected
-        job_data["expected"] = actual_expected
+
+        # Only update expected count if:
+        # 1. We're initializing with a real count (>0 and <1000000), or
+        # 2. Current expected is artificially high and we have a real count, or
+        # 3. We're explicitly setting to 0 for zero-asset jobs
+        current_expected = job_data["expected"]
+        if (actual_expected > 0 and actual_expected < 1000000) or \
+           (current_expected >= 1000000 and actual_expected > 0 and actual_expected < 1000000) or \
+           (actual_expected == 0 and current_expected == 0):
+            job_data["expected"] = actual_expected
+            logger.debug("Updated expected count", job_id=job_id, old_expected=current_expected, new_expected=actual_expected)
+        else:
+            logger.debug("Preserving existing expected count", job_id=job_id, current_expected=current_expected, requested_expected=actual_expected)
 
     async def initialize_with_high_expected(self, job_id: str, asset_type: str, high_expected: int = 1000000):
         """Initialize job tracking with high expected count for per-asset first scenarios"""
