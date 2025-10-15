@@ -1,0 +1,8 @@
+{
+  "job_id": "test_job_products_001",
+  "top_amz": 3,
+  "top_ebay": 0,
+  "queries": {
+    "en": ["ergonomic pillow", "memory foam cushion", "neck support pillow"]
+  }
+}

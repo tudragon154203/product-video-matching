@@ -1,0 +1,12 @@
+{
+  "product_id": "PROD Mock Ergonomic Pillow",
+  "src": "amazon",
+  "asin_or_itemid": "MOCK001",
+  "title": "Mock Ergonomic Memory Foam Pillow",
+  "brand": "MockComfort",
+  "url": "https://example.com/product/mock-pillow-001",
+  "price": 29.99,
+  "currency": "USD",
+  "image_url": "https://example.com/images/mock-pillow-001.jpg",
+  "description": "Mock ergonomic pillow designed for optimal neck support and comfort during sleep."
+}

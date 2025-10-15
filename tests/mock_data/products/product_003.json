@@ -1,0 +1,12 @@
+{
+  "product_id": "PROD Mock Neck Support",
+  "src": "amazon",
+  "asin_or_itemid": "MOCK003",
+  "title": "Mock Adjustable Neck Support Pillow",
+  "brand": "MockSupport",
+  "url": "https://example.com/product/mock-neck-support-003",
+  "price": 24.99,
+  "currency": "USD",
+  "image_url": "https://example.com/images/mock-neck-support-003.jpg",
+  "description": "Mock adjustable neck support pillow with customizable firmness."
+}

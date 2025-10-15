@@ -47,8 +47,8 @@ Related docs: [docker-compose.dev.cpu.yml](../../infra/pvm/docker-compose.dev.cp
 - Spy queues: ephemeral queue(s) bound to products and videos collection completed routing keys; auto-delete post-test.
 - DB cleanup: TRUNCATE affected product tables, video tables (e.g., videos, video_frames), and event ledgers between runs.
 
-## 6) Single Happy-Path Test (COL-01)
-- COL-01 Products & Videos Collection — Happy Path (Combined, Minimal)
+## 6) Single Happy-Path Test
+- Products & Videos Collection — Happy Path (Combined, Minimal)
   - Setup:
     - Stack healthy; migrations applied; clean DB.
     - Load synthetic fixtures from [tests/mock_data](../../tests/mock_data).
