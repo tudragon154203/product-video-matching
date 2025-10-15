@@ -275,8 +275,8 @@ class TikwmDownloadStrategy(TikTokDownloadStrategy):
     async def _resolve_url_with_head(self, url: str, video_id: str) -> Optional[str]:
         """Perform HEAD request to resolve redirects and validate."""
         try:
-            async with httpx.AsyncClient(timeout=self.download_timeout) as client:
-                response = await client.head(url, allow_redirects=True)
+            async with httpx.AsyncClient(timeout=self.download_timeout, follow_redirects=True) as client:
+                response = await client.head(url)
 
                 if response.status_code != 200:
                     logger.error(
