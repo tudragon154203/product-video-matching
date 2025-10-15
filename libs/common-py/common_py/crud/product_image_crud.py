@@ -36,15 +36,12 @@ class ProductImageCRUD:
     
     async def update_embeddings(self, img_id: str, emb_rgb: List[float], emb_gray: List[float]):
         """Update embeddings for a product image"""
-        # Convert lists to strings for pgvector compatibility
-        emb_rgb_str = str(emb_rgb)
-        emb_gray_str = str(emb_gray)
         query = """
         UPDATE product_images
         SET emb_rgb = $2::vector, emb_gray = $3::vector
         WHERE img_id = $1
         """
-        await self.db.execute(query, img_id, emb_rgb_str, emb_gray_str)
+        await self.db.execute(query, img_id, emb_rgb, emb_gray)
     
     async def get_product_image(self, img_id: str) -> Optional[ProductImage]:
         """Get a product image by ID"""
