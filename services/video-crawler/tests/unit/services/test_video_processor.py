@@ -6,7 +6,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 
 from services.video_processor import VideoProcessor
-from services.exceptions import VideoProcessingError, VideoDownloadError, DatabaseOperationError
+# Unused imports removed: VideoProcessingError, VideoDownloadError, DatabaseOperationError
 
 pytestmark = pytest.mark.unit
 

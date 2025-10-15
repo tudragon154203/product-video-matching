@@ -27,7 +27,7 @@ class TestEmbeddingSimilarityExpanded:
         bad_weights = {"rgb": 0.9, "gray": 0.2}  # Sum = 1.1
 
         with patch('utils.embedding_similarity.logger') as mock_logger:
-            sim = EmbeddingSimilarity(bad_weights)
+            _ = EmbeddingSimilarity(bad_weights)
             mock_logger.warning.assert_called_once()
             warning_call = mock_logger.warning.call_args
             assert "Weights should sum to 1.0" in warning_call[0][0]
@@ -39,7 +39,7 @@ class TestEmbeddingSimilarityExpanded:
         near_perfect_weights = {"rgb": 0.699, "gray": 0.3}
 
         with patch('utils.embedding_similarity.logger') as mock_logger:
-            sim = EmbeddingSimilarity(near_perfect_weights)
+            _ = EmbeddingSimilarity(near_perfect_weights)
             # The warning triggers when abs(sum - 1.0) > 0.01
             # For 0.999, abs(0.999 - 1.0) = 0.001 <= 0.01, so no warning
             mock_logger.warning.assert_not_called()

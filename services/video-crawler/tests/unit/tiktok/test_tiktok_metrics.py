@@ -1,4 +1,4 @@
-import pytest
+# Unused import removed: pytest
 import time
 from unittest.mock import patch
 

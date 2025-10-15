@@ -13,7 +13,7 @@ class TestYoutubeTitleDeduplication:
     def test_youtube_crawler_enables_title_deduplication(self):
         """Test that YouTube crawler enables title deduplication by default."""
         with patch('platform_crawler.youtube.youtube_searcher.YoutubeSearcher'), \
-             patch('platform_crawler.youtube.downloader.YoutubeDownloader'):
+                patch('platform_crawler.youtube.downloader.YoutubeDownloader'):
             crawler = YoutubeCrawler()
             assert crawler._enable_title_deduplication is True
             assert crawler._dedupe_key == "video_id"
@@ -21,7 +21,7 @@ class TestYoutubeTitleDeduplication:
     def test_youtube_deduplicate_uses_title_field(self):
         """Test that YouTube deduplication uses title field."""
         with patch('platform_crawler.youtube.youtube_searcher.YoutubeSearcher'), \
-             patch('platform_crawler.youtube.downloader.YoutubeDownloader'):
+                patch('platform_crawler.youtube.downloader.YoutubeDownloader'):
             crawler = YoutubeCrawler()
 
             videos = [
@@ -43,7 +43,7 @@ class TestYoutubeTitleDeduplication:
     def test_youtube_deduplicate_with_title_disabled(self):
         """Test YouTube deduplication when title deduplication is disabled."""
         with patch('platform_crawler.youtube.youtube_searcher.YoutubeSearcher'), \
-             patch('platform_crawler.youtube.downloader.YoutubeDownloader'):
+                patch('platform_crawler.youtube.downloader.YoutubeDownloader'):
             # Create crawler with title deduplication disabled
             crawler = YoutubeCrawler()
             crawler._enable_title_deduplication = False
@@ -62,7 +62,7 @@ class TestYoutubeTitleDeduplication:
     def test_youtube_deduplicate_id_takes_precedence(self):
         """Test that ID deduplication takes precedence over title deduplication."""
         with patch('platform_crawler.youtube.youtube_searcher.YoutubeSearcher'), \
-             patch('platform_crawler.youtube.downloader.YoutubeDownloader'):
+                patch('platform_crawler.youtube.downloader.YoutubeDownloader'):
             crawler = YoutubeCrawler()
 
             videos = [
@@ -81,7 +81,7 @@ class TestYoutubeTitleDeduplication:
     def test_youtube_deduplicate_empty_and_none_titles(self):
         """Test YouTube deduplication with empty and None titles."""
         with patch('platform_crawler.youtube.youtube_searcher.YoutubeSearcher'), \
-             patch('platform_crawler.youtube.downloader.YoutubeDownloader'):
+                patch('platform_crawler.youtube.downloader.YoutubeDownloader'):
             crawler = YoutubeCrawler()
 
             videos = [
@@ -101,7 +101,7 @@ class TestYoutubeTitleDeduplication:
     def test_youtube_deduplicate_title_whitespace(self):
         """Test that title whitespace is handled correctly."""
         with patch('platform_crawler.youtube.youtube_searcher.YoutubeSearcher'), \
-             patch('platform_crawler.youtube.downloader.YoutubeDownloader'):
+                patch('platform_crawler.youtube.downloader.YoutubeDownloader'):
             crawler = YoutubeCrawler()
 
             videos = [
@@ -119,7 +119,7 @@ class TestYoutubeTitleDeduplication:
     def test_youtube_deduplicate_case_sensitive(self):
         """Test that YouTube title deduplication is case-sensitive."""
         with patch('platform_crawler.youtube.youtube_searcher.YoutubeSearcher'), \
-             patch('platform_crawler.youtube.downloader.YoutubeDownloader'):
+                patch('platform_crawler.youtube.downloader.YoutubeDownloader'):
             crawler = YoutubeCrawler()
 
             videos = [
@@ -152,10 +152,10 @@ class TestYoutubeTitleDeduplication:
         ])
 
         with patch('platform_crawler.youtube.youtube_searcher.YoutubeSearcher', return_value=mock_searcher), \
-             patch('platform_crawler.youtube.downloader.YoutubeDownloader', return_value=mock_downloader), \
-             patch('platform_crawler.youtube.youtube_crawler.config'), \
-             patch('asyncio.Semaphore'), \
-             patch('asyncio.gather', return_value=[{"video_id": "yt1"}, {"video_id": "yt3"}]):
+                patch('platform_crawler.youtube.downloader.YoutubeDownloader', return_value=mock_downloader), \
+                patch('platform_crawler.youtube.youtube_crawler.config'), \
+                patch('asyncio.Semaphore'), \
+                patch('asyncio.gather', return_value=[{"video_id": "yt1"}, {"video_id": "yt3"}]):
 
             crawler = YoutubeCrawler()
             result = await crawler._search_videos_for_queries(["test"], 30, 10)

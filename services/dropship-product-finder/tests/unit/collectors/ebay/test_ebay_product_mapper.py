@@ -255,8 +255,6 @@ def test_deduplicate_products_by_item_id(ebay_product_mapper):
     assert deduplicated[2]["totalPrice"] == 150.00
 
 
-
-
 @pytest.mark.unit
 def test_deduplicate_products_empty_list(ebay_product_mapper):
     """

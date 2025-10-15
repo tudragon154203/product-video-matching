@@ -1,7 +1,6 @@
 """Unit tests for main module."""
 
 from unittest.mock import AsyncMock, MagicMock, patch
-import asyncio
 import pytest
 
 # Mock the imports that main.py uses
@@ -15,7 +14,7 @@ class TestMain:
     async def test_service_context_successful_lifecycle(self):
         """Test service context successful connection, yield, and cleanup."""
         with patch('main.MatcherHandler') as mock_handler_class, \
-             patch('main.asyncio.sleep') as mock_sleep:
+                patch('main.asyncio.sleep') as _:
 
             mock_handler = MagicMock()
             mock_handler.db = AsyncMock()
@@ -96,7 +95,7 @@ class TestMain:
 
             from main import service_context
 
-            async with service_context() as handler:
+            async with service_context() as _:
                 pass
 
             # Verify cleanup order: service -> db -> broker
@@ -106,7 +105,7 @@ class TestMain:
     async def test_main_function_keyboard_interrupt(self):
         """Test main function handles KeyboardInterrupt gracefully."""
         with patch('main.MatcherHandler') as mock_handler_class, \
-             patch('main.asyncio.sleep') as mock_sleep:
+                patch('main.asyncio.sleep') as mock_sleep:
 
             mock_handler = MagicMock()
             mock_handler.db = AsyncMock()
@@ -137,8 +136,8 @@ class TestMain:
     async def test_main_function_service_error(self):
         """Test main function handles service errors properly."""
         with patch('main.MatcherHandler') as mock_handler_class, \
-             patch('main.asyncio.sleep') as mock_sleep, \
-             patch('main.logger') as mock_logger:
+                patch('main.asyncio.sleep') as mock_sleep, \
+                patch('main.logger') as mock_logger:
 
             mock_handler = MagicMock()
             mock_handler.db = AsyncMock()
@@ -169,8 +168,8 @@ class TestMain:
     async def test_main_function_normal_operation(self):
         """Test main function normal operation loop."""
         with patch('main.MatcherHandler') as mock_handler_class, \
-             patch('main.asyncio.sleep') as mock_sleep, \
-             patch('main.logger') as mock_logger:
+                patch('main.asyncio.sleep') as mock_sleep, \
+                patch('main.logger') as mock_logger:
 
             mock_handler = MagicMock()
             mock_handler.db = AsyncMock()

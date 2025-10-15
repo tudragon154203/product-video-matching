@@ -3,7 +3,7 @@ Unit tests for title-based deduplication integration with BaseVideoCrawler.
 """
 
 import pytest
-from unittest.mock import Mock, AsyncMock
+from unittest.mock import Mock
 from platform_crawler.common.base_crawler import BaseVideoCrawler
 
 

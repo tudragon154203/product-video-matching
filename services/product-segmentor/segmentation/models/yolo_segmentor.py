@@ -40,12 +40,12 @@ class YOLOSegmentor(BaseSegmentation):
             # Check if model file already exists in our cache
             if os.path.exists(self._model_path):
                 logger.info("Loading model from local cache",
-                           model_path=self._model_path)
+                            model_path=self._model_path)
                 self._model = YOLO(self._model_path)
             else:
                 logger.info("Model not found in cache, downloading from Ultralytics hub",
-                           model_name=self.model_name,
-                           cache_dir=config.PEOPLE_SEG_MODEL_CACHE)
+                            model_name=self.model_name,
+                            cache_dir=config.PEOPLE_SEG_MODEL_CACHE)
                 # Ultralytics will download to its cache directory (now mounted to our model_cache)
                 self._model = YOLO(self._model_name)
 
@@ -104,8 +104,8 @@ class YOLOSegmentor(BaseSegmentation):
                             combined_mask = cv2.bitwise_or(combined_mask, binary_mask)
                         else:
                             logger.warning("Mask shape mismatch, skipping mask",
-                                         combined_shape=combined_mask.shape,
-                                         binary_shape=binary_mask.shape)
+                                           combined_shape=combined_mask.shape,
+                                           binary_shape=binary_mask.shape)
 
                     people_mask = combined_mask
                 else:

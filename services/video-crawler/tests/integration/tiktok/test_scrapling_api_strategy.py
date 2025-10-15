@@ -278,7 +278,9 @@ class TestScraplingApiStrategyIntegration:
             f.write(b'fake_video_content')
 
         # Mock keyframe extraction
-        with patch('platform_crawler.tiktok.download_strategies.scrapling_api_strategy.LengthAdaptiveKeyframeExtractor') as mock_extractor_class:
+        with patch(
+            'platform_crawler.tiktok.download_strategies.scrapling_api_strategy.LengthAdaptiveKeyframeExtractor'
+        ) as mock_extractor_class:
             mock_extractor = MagicMock()
             mock_extractor_class.return_value = mock_extractor
             mock_extractor.extract_keyframes.return_value = [

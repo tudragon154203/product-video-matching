@@ -135,7 +135,7 @@ class TestYtdlpDownloadStrategy:
 
         # Mock successful download
         with patch('os.path.exists', return_value=True), \
-             patch('os.path.getsize', return_value=1000000):  # 1MB file
+                patch('os.path.getsize', return_value=1000000):  # 1MB file
             strategy = YtdlpDownloadStrategy({"retries": 1, "timeout": 30})
             result = strategy.download_video("https://tiktok.com/test", "test_id", "/tmp")
 
@@ -150,8 +150,8 @@ class TestYtdlpDownloadStrategy:
 
         # Mock file exists but is too large (>500MB)
         with patch('os.path.exists', return_value=True), \
-             patch('os.path.getsize', return_value=600 * 1024 * 1024), \
-             patch('os.remove'):
+                patch('os.path.getsize', return_value=600 * 1024 * 1024), \
+                patch('os.remove'):
             strategy = YtdlpDownloadStrategy({"retries": 1, "timeout": 30})
             result = strategy.download_video("https://tiktok.com/test", "test_id", "/tmp")
 
@@ -220,8 +220,8 @@ class TestScraplingApiDownloadStrategy:
         mock_client.download_video_with_retry.return_value = mock_api_response
 
         with patch.object(ScraplingApiDownloadStrategy, '_stream_video_file', new_callable=AsyncMock) as mock_stream, \
-             patch('os.path.exists', return_value=True), \
-             patch('os.path.getsize', return_value=1000000):  # 1MB file
+                patch('os.path.exists', return_value=True), \
+                patch('os.path.getsize', return_value=1000000):  # 1MB file
 
             mock_stream.return_value = True
 
@@ -268,9 +268,9 @@ class TestScraplingApiDownloadStrategy:
 
         # Mock file exists but is too large (>500MB)
         with patch.object(ScraplingApiDownloadStrategy, '_stream_video_file', new_callable=AsyncMock) as mock_stream, \
-             patch('os.path.exists', return_value=True), \
-             patch('os.path.getsize', return_value=600 * 1024 * 1024), \
-             patch('os.remove'):
+                patch('os.path.exists', return_value=True), \
+                patch('os.path.getsize', return_value=600 * 1024 * 1024), \
+                patch('os.remove'):
 
             mock_stream.return_value = True
 
@@ -329,11 +329,11 @@ class TestTikwmDownloadStrategy:
         """Test successful video download."""
         # Mock the async helper method
         with patch.object(TikwmDownloadStrategy, '_download_video_async_with_retries',
-                         new_callable=AsyncMock) as mock_async_helper:
+                          new_callable=AsyncMock) as mock_async_helper:
             mock_async_helper.return_value = ("/tmp/test_id.mp4", 0)  # (result, retries)
 
             with patch('os.path.exists', return_value=True), \
-                 patch('os.path.getsize', return_value=1000000):  # 1MB file
+                    patch('os.path.getsize', return_value=1000000):  # 1MB file
                 strategy = TikwmDownloadStrategy({"retries": 1, "timeout": 30})
                 result = strategy.download_video("https://tiktok.com/test", "test_id", "/tmp")
 
@@ -342,14 +342,14 @@ class TestTikwmDownloadStrategy:
         call_args = mock_metrics.call_args[1]
         assert call_args['strategy'] == 'tikwm'
         assert call_args['video_id'] == 'test_id'
-        assert call_args['success'] == True
+        assert call_args['success'] is True
         assert call_args['file_size'] == 1000000
 
     @patch('platform_crawler.tiktok.download_strategies.tikwm_strategy.record_download_metrics')
     def test_download_video_no_video_id(self, mock_metrics):
         """Test download with invalid URL (no video ID)."""
         with patch.object(TikwmDownloadStrategy, '_download_video_async_with_retries',
-                         new_callable=AsyncMock) as mock_async_helper:
+                          new_callable=AsyncMock) as mock_async_helper:
             # Simulate video ID extraction failure
             error = ValueError("Could not extract video ID from TikTok URL")
             error.error_code = "NO_VIDEO_ID"
@@ -365,14 +365,14 @@ class TestTikwmDownloadStrategy:
         mock_metrics.assert_called_once()
         call_args = mock_metrics.call_args[1]
         assert call_args['strategy'] == 'tikwm'
-        assert call_args['success'] == False
+        assert call_args['success'] is False
         assert call_args['error_code'] == 'NO_VIDEO_ID'
 
     @patch('platform_crawler.tiktok.download_strategies.tikwm_strategy.record_download_metrics')
     def test_download_video_file_too_large(self, mock_metrics):
         """Test download when file is too large."""
         with patch.object(TikwmDownloadStrategy, '_download_video_async_with_retries',
-                         new_callable=AsyncMock) as mock_async_helper:
+                          new_callable=AsyncMock) as mock_async_helper:
             # Simulate file too large error
             error = ValueError("Downloaded file exceeds size limit")
             error.error_code = "SIZE_LIMIT_EXCEEDED"
@@ -388,7 +388,7 @@ class TestTikwmDownloadStrategy:
         mock_metrics.assert_called_once()
         call_args = mock_metrics.call_args[1]
         assert call_args['strategy'] == 'tikwm'
-        assert call_args['success'] == False
+        assert call_args['success'] is False
         assert call_args['error_code'] == 'SIZE_LIMIT_EXCEEDED'
 
     async def test_resolve_url_with_head_success(self):
@@ -454,8 +454,8 @@ class TestTikwmDownloadStrategy:
         mock_client_ctx.__aexit__ = AsyncMock(return_value=None)
 
         with patch('platform_crawler.tiktok.download_strategies.tikwm_strategy.httpx.AsyncClient', return_value=mock_client_ctx), \
-             patch('builtins.open', mock_open()) as mocked_open, \
-             patch('os.path.getsize', return_value=1000000):  # 1MB file
+                patch('builtins.open', mock_open()) as mocked_open, \
+                patch('os.path.getsize', return_value=1000000):  # 1MB file
 
             success = await strategy._stream_video_file(
                 "http://example.com/video.mp4",
@@ -492,8 +492,8 @@ class TestTikwmDownloadStrategy:
         mock_client_ctx.__aexit__ = AsyncMock(return_value=None)
 
         with patch('platform_crawler.tiktok.download_strategies.tikwm_strategy.httpx.AsyncClient', return_value=mock_client_ctx), \
-             patch('builtins.open', mock_open()) as mocked_open, \
-             patch('os.remove') as mock_remove:
+                patch('builtins.open', mock_open()) as mocked_open, \
+                patch('os.remove') as mock_remove:
 
             with pytest.raises(ValueError) as exc_info:
                 await strategy._stream_video_file(

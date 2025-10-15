@@ -1,6 +1,6 @@
 """Unit tests for decorators module."""
 
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -175,7 +175,7 @@ class TestHandleErrors:
         mock_logger = MagicMock()
 
         with patch('handlers.decorators.validator', mock_validator), \
-             patch('handlers.decorators.logger', mock_logger):
+                patch('handlers.decorators.logger', mock_logger):
 
             @validate_event("test_schema")
             @handle_errors

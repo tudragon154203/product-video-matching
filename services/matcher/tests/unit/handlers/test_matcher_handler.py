@@ -25,8 +25,8 @@ class TestMatcherHandler:
 
         with patch('handlers.matcher_handler.config', mock_config):
             with patch('handlers.matcher_handler.DatabaseManager') as mock_db_manager, \
-                 patch('handlers.matcher_handler.MessageBroker') as mock_broker, \
-                 patch('handlers.matcher_handler.MatcherService') as mock_service:
+                    patch('handlers.matcher_handler.MessageBroker') as mock_broker, \
+                    patch('handlers.matcher_handler.MatcherService') as mock_service:
 
                 handler = MatcherHandler()
 
@@ -51,9 +51,9 @@ class TestMatcherHandler:
         mock_config.MATCH_ACCEPT = 0.80
 
         with patch('handlers.matcher_handler.config', mock_config):
-            with patch('handlers.matcher_handler.DatabaseManager') as mock_db_manager, \
-                 patch('handlers.matcher_handler.MessageBroker') as mock_broker, \
-                 patch('handlers.matcher_handler.MatcherService') as mock_service_class:
+            with patch('handlers.matcher_handler.DatabaseManager') as _, \
+                    patch('handlers.matcher_handler.MessageBroker') as _, \
+                    patch('handlers.matcher_handler.MatcherService') as mock_service_class:
 
                 mock_service = AsyncMock()
                 mock_service_class.return_value = mock_service
@@ -80,9 +80,9 @@ class TestMatcherHandler:
         mock_config.MATCH_ACCEPT = 0.80
 
         with patch('handlers.matcher_handler.config', mock_config):
-            with patch('handlers.matcher_handler.DatabaseManager') as mock_db_manager, \
-                 patch('handlers.matcher_handler.MessageBroker') as mock_broker, \
-                 patch('handlers.matcher_handler.MatcherService') as mock_service_class:
+            with patch('handlers.matcher_handler.DatabaseManager') as _, \
+                    patch('handlers.matcher_handler.MessageBroker') as _, \
+                    patch('handlers.matcher_handler.MatcherService') as mock_service_class:
 
                 mock_service = AsyncMock()
                 mock_service_class.return_value = mock_service
@@ -113,9 +113,9 @@ class TestMatcherHandler:
         mock_config.MATCH_ACCEPT = 0.80
 
         with patch('handlers.matcher_handler.config', mock_config):
-            with patch('handlers.matcher_handler.DatabaseManager') as mock_db_manager, \
-                 patch('handlers.matcher_handler.MessageBroker') as mock_broker, \
-                 patch('handlers.matcher_handler.MatcherService') as mock_service_class:
+            with patch('handlers.matcher_handler.DatabaseManager') as _, \
+                    patch('handlers.matcher_handler.MessageBroker') as _, \
+                    patch('handlers.matcher_handler.MatcherService') as mock_service_class:
 
                 mock_service = AsyncMock()
                 mock_service_class.return_value = mock_service
@@ -149,9 +149,9 @@ class TestMatcherHandler:
         mock_config.MATCH_ACCEPT = 0.80
 
         with patch('handlers.matcher_handler.config', mock_config):
-            with patch('handlers.matcher_handler.DatabaseManager') as mock_db_manager, \
-                 patch('handlers.matcher_handler.MessageBroker') as mock_broker, \
-                 patch('handlers.matcher_handler.MatcherService') as mock_service_class:
+            with patch('handlers.matcher_handler.DatabaseManager') as _, \
+                    patch('handlers.matcher_handler.MessageBroker') as _, \
+                    patch('handlers.matcher_handler.MatcherService') as mock_service_class:
 
                 mock_service = AsyncMock()
                 mock_service_class.return_value = mock_service
@@ -170,7 +170,7 @@ class TestMatcherHandler:
 
                 # Mock the decorators to bypass validation for this test
                 with patch('handlers.matcher_handler.validate_event'), \
-                     patch('handlers.matcher_handler.handle_errors'):
+                        patch('handlers.matcher_handler.handle_errors'):
                     await handler.handle_match_request(test_event_data)
 
                 # Note: Since decorators are mocked, initialize won't be called automatically
@@ -191,9 +191,9 @@ class TestMatcherHandler:
         mock_config.MATCH_ACCEPT = 0.80
 
         with patch('handlers.matcher_handler.config', mock_config):
-            with patch('handlers.matcher_handler.DatabaseManager') as mock_db_manager, \
-                 patch('handlers.matcher_handler.MessageBroker') as mock_broker, \
-                 patch('handlers.matcher_handler.MatcherService') as mock_service_class:
+            with patch('handlers.matcher_handler.DatabaseManager') as _, \
+                    patch('handlers.matcher_handler.MessageBroker') as _, \
+                    patch('handlers.matcher_handler.MatcherService') as mock_service_class:
 
                 mock_service = AsyncMock()
                 mock_service.handle_match_request.side_effect = ValueError("Service error")
@@ -210,7 +210,7 @@ class TestMatcherHandler:
 
                 # Mock decorators to bypass validation
                 with patch('handlers.matcher_handler.validate_event'), \
-                     patch('handlers.matcher_handler.handle_errors') as mock_error_handler:
+                        patch('handlers.matcher_handler.handle_errors') as mock_error_handler:
                     mock_error_handler.side_effect = lambda func: func
 
                     with pytest.raises(ValueError, match="Service error"):
@@ -233,9 +233,9 @@ class TestMatcherHandler:
         mock_config.MATCH_ACCEPT = 0.80
 
         with patch('handlers.matcher_handler.config', mock_config):
-            with patch('handlers.matcher_handler.DatabaseManager') as mock_db_manager, \
-                 patch('handlers.matcher_handler.MessageBroker') as mock_broker, \
-                 patch('handlers.matcher_handler.MatcherService') as mock_service_class:
+            with patch('handlers.matcher_handler.DatabaseManager') as _, \
+                    patch('handlers.matcher_handler.MessageBroker') as _, \
+                    patch('handlers.matcher_handler.MatcherService') as mock_service_class:
 
                 mock_service = AsyncMock()
                 mock_service_class.return_value = mock_service

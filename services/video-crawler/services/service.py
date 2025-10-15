@@ -17,7 +17,6 @@ from services.video_cleanup_service import VideoCleanupService
 from services.video_processor import VideoProcessor
 from services.exceptions import (
     VideoCrawlerError,
-    VideoProcessingError,
     PlatformCrawlerError,
     CleanupOperationError
 )
@@ -292,5 +291,3 @@ class VideoCrawlerService:
                 f"Manual cleanup failed: {str(e)}",
                 directory=self._get_video_dir()
             )
-
-

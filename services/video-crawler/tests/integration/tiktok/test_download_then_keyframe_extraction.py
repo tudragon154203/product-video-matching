@@ -1,4 +1,3 @@
-import asyncio
 import os
 from pathlib import Path
 
@@ -95,7 +94,10 @@ async def test_download_then_keyframe_extraction():
         print(f"❌ Test failed with exception: {str(e)}")
         # Skip test if it's a network/API issue rather than code issue
         error_msg = str(e).lower()
-        if any(keyword in error_msg for keyword in ['network', 'connection', 'timeout', 'tiktok', 'restricted', '403', '429']):
+        if any(
+            keyword in error_msg
+            for keyword in ['network', 'connection', 'timeout', 'tiktok', 'restricted', '403', '429']
+        ):
             pytest.skip(f"Skipped due to external factors: {e}")
         else:
             raise

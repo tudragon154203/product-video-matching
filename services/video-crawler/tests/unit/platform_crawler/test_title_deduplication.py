@@ -2,7 +2,7 @@
 Unit tests for title-based video deduplication logic.
 """
 
-import pytest
+# Unused import removed: pytest
 from platform_crawler.common.utils import deduplicate_videos_by_id_and_title
 
 

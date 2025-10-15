@@ -47,10 +47,8 @@ class TikwmDownloadStrategy(TikTokDownloadStrategy):
         try:
             # Check if we're already in an event loop
             try:
-                loop = asyncio.get_running_loop()
                 # We're in a running loop, we need to run in a thread to avoid blocking
                 import concurrent.futures
-                import threading
 
                 def run_async_in_thread():
                     # Create a new event loop in the thread

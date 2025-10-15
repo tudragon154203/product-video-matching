@@ -1,6 +1,6 @@
 import os
 import shutil
-from typing import Any, Dict, List, Optional, Tuple
+from typing import List, Optional, Tuple
 
 import yt_dlp
 from yt_dlp.utils import DownloadError

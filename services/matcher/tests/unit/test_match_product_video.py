@@ -1,6 +1,6 @@
 """Unit tests for match_product_video function in matching module."""
 
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock
 
 import pytest
 
@@ -281,6 +281,7 @@ class TestMatchProductVideo:
 
         # Capture the structure passed to aggregation
         captured_matches = None
+
         def capture_aggregation(matches, product_id, video_id):
             nonlocal captured_matches
             captured_matches = matches

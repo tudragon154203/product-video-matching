@@ -11,7 +11,8 @@ from config_loader import config
 from handlers.event_emitter import EventEmitter
 from keyframe_extractor.length_adaptive_extractor import LengthAdaptiveKeyframeExtractor
 from platform_crawler.tiktok.tiktok_downloader import TikTokDownloader
-from services.exceptions import VideoProcessingError, VideoDownloadError, DatabaseOperationError
+# Unused exceptions imported but not used in this file
+# from services.exceptions import VideoProcessingError, VideoDownloadError, DatabaseOperationError
 from vision_common import JobProgressManager
 
 logger = configure_logging("video-crawler:video_processor")

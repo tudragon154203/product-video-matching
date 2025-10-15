@@ -13,7 +13,7 @@ class TestTikTokTitleDeduplication:
     def test_tiktok_crawler_enables_title_deduplication(self):
         """Test that TikTok crawler enables title deduplication by default."""
         with patch('platform_crawler.tiktok.tiktok_searcher.TikTokSearcher'), \
-             patch('platform_crawler.tiktok.tiktok_downloader.TikTokDownloader'):
+                patch('platform_crawler.tiktok.tiktok_downloader.TikTokDownloader'):
             crawler = TikTokCrawler()
             assert crawler._enable_title_deduplication is True
             assert crawler._dedupe_key == "id"
@@ -21,7 +21,7 @@ class TestTikTokTitleDeduplication:
     def test_tiktok_deduplicate_uses_caption_field(self):
         """Test that TikTok deduplication uses caption field for titles."""
         with patch('platform_crawler.tiktok.tiktok_searcher.TikTokSearcher'), \
-             patch('platform_crawler.tiktok.tiktok_downloader.TikTokDownloader'):
+                patch('platform_crawler.tiktok.tiktok_downloader.TikTokDownloader'):
             crawler = TikTokCrawler()
 
             videos = [
@@ -43,7 +43,7 @@ class TestTikTokTitleDeduplication:
     def test_tiktok_deduplicate_with_title_disabled(self):
         """Test TikTok deduplication when title deduplication is disabled."""
         with patch('platform_crawler.tiktok.tiktok_searcher.TikTokSearcher'), \
-             patch('platform_crawler.tiktok.tiktok_downloader.TikTokDownloader'):
+                patch('platform_crawler.tiktok.tiktok_downloader.TikTokDownloader'):
             # Create crawler with title deduplication disabled
             crawler = TikTokCrawler()
             crawler._enable_title_deduplication = False
@@ -62,7 +62,7 @@ class TestTikTokTitleDeduplication:
     def test_tiktok_deduplicate_id_takes_precedence(self):
         """Test that ID deduplication takes precedence over caption deduplication."""
         with patch('platform_crawler.tiktok.tiktok_searcher.TikTokSearcher'), \
-             patch('platform_crawler.tiktok.tiktok_downloader.TikTokDownloader'):
+                patch('platform_crawler.tiktok.tiktok_downloader.TikTokDownloader'):
             crawler = TikTokCrawler()
 
             videos = [
@@ -81,7 +81,7 @@ class TestTikTokTitleDeduplication:
     def test_tiktok_deduplicate_empty_and_none_captions(self):
         """Test TikTok deduplication with empty and None captions."""
         with patch('platform_crawler.tiktok.tiktok_searcher.TikTokSearcher'), \
-             patch('platform_crawler.tiktok.tiktok_downloader.TikTokDownloader'):
+                patch('platform_crawler.tiktok.tiktok_downloader.TikTokDownloader'):
             crawler = TikTokCrawler()
 
             videos = [
@@ -101,7 +101,7 @@ class TestTikTokTitleDeduplication:
     def test_tiktok_deduplicate_caption_whitespace(self):
         """Test that caption whitespace is handled correctly."""
         with patch('platform_crawler.tiktok.tiktok_searcher.TikTokSearcher'), \
-             patch('platform_crawler.tiktok.tiktok_downloader.TikTokDownloader'):
+                patch('platform_crawler.tiktok.tiktok_downloader.TikTokDownloader'):
             crawler = TikTokCrawler()
 
             videos = [
@@ -138,8 +138,8 @@ class TestTikTokTitleDeduplication:
         ])
 
         with patch('platform_crawler.tiktok.tiktok_searcher.TikTokSearcher', return_value=mock_searcher), \
-             patch('platform_crawler.tiktok.tiktok_downloader.TikTokDownloader', return_value=mock_downloader), \
-             patch('platform_crawler.tiktok.tiktok_crawler.config'):
+                patch('platform_crawler.tiktok.tiktok_downloader.TikTokDownloader', return_value=mock_downloader), \
+                patch('platform_crawler.tiktok.tiktok_crawler.config'):
 
             crawler = TikTokCrawler()
             result = await crawler._search_videos_for_queries(["test"], 30, 10)

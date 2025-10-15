@@ -222,7 +222,7 @@ class TestKeypointExtractor:
         # Mock SIFT to also return insufficient keypoints (< 5)
         mock_sift_instance = Mock()
         mock_sift_instance.detectAndCompute.return_value = ([Mock() for _ in range(3)],
-                                                           np.random.randint(0, 255, (3, 128), dtype=np.uint8))
+                                                            np.random.randint(0, 255, (3, 128), dtype=np.uint8))
 
         self.extractor.akaze = mock_akaze_instance
         self.extractor.sift = mock_sift_instance
@@ -371,7 +371,7 @@ class TestKeypointExtractor:
 
         mock_sift_instance = Mock()
         mock_sift_instance.detectAndCompute.return_value = ([Mock() for _ in range(2)],
-                                                           np.random.randint(0, 255, (2, 128), dtype=np.uint8))
+                                                            np.random.randint(0, 255, (2, 128), dtype=np.uint8))
 
         self.extractor.akaze = mock_akaze_instance
         self.extractor.sift = mock_sift_instance

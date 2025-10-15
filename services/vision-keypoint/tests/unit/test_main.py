@@ -1,7 +1,5 @@
-from unittest.mock import Mock, AsyncMock, patch
+from unittest.mock import AsyncMock, patch
 import pytest
-import asyncio
-from contextlib import asynccontextmanager
 
 from main import service_context
 
@@ -61,7 +59,7 @@ class TestMain:
 
         # Test that exception in user code doesn't prevent cleanup
         with pytest.raises(ValueError, match="User error"):
-            async with service_context() as handler:
+            async with service_context() as _:
                 raise ValueError("User error")
 
         # Verify all calls were made properly
@@ -80,7 +78,7 @@ class TestMain:
         mock_handler_class.return_value = mock_handler
 
         result = None
-        async with service_context() as handler:
+        async with service_context() as _:
             result = "early_exit"
             # Simulate early exit - context manager will exit normally
 

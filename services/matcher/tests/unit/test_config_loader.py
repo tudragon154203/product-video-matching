@@ -75,7 +75,7 @@ def test_config_loader_with_env_overrides(mock_env_vars):
     # Import after mocking to use the mocked config
     with patch.dict('sys.modules', {'config': MagicMock(config=mock_global_config)}):
         with patch('config_loader.sys.path', new=[]):
-            from config_loader import MatcherConfig, config
+            from config_loader import MatcherConfig
 
             # Create new config instance to test
             test_config = MatcherConfig()

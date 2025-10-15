@@ -1,11 +1,11 @@
 """Unit tests for VideoCleanupService."""
 
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, patch
 
 import pytest
 
 from services.video_cleanup_service import VideoCleanupService
-from services.exceptions import CleanupOperationError
+# Unused import removed: CleanupOperationError
 
 pytestmark = pytest.mark.unit
 
