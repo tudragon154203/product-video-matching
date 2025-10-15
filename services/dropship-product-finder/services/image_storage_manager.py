@@ -26,7 +26,7 @@ class ImageStorageManager:
     async def store_product(
         self, product_data: Dict[str, Any], job_id: str, source: str
     ):
-        """Store a single product and its images without publishing events."""
+        """Store a single product and its images, publishing individual events immediately."""
         try:
             # Determine marketplace based on source (default to 'us' for mock data)
             marketplace = "us"  # Default marketplace for mock data
@@ -66,7 +66,7 @@ class ImageStorageManager:
             )
 
             await self._download_and_store_product_images(
-                product, product_data["images"], source
+                product, product_data["images"], source, job_id
             )
 
             logger.info(
@@ -83,7 +83,7 @@ class ImageStorageManager:
             )
 
     async def _download_and_store_product_images(
-        self, product: Product, image_urls: List[str], source: str
+        self, product: Product, image_urls: List[str], source: str, job_id: str
     ):
         try:
             for i, image_url in enumerate(image_urls):
@@ -101,6 +101,25 @@ class ImageStorageManager:
 
                     await self.image_crud.create_product_image(image)
 
+                    # Publish individual image ready event immediately after storing
+                    await self.broker.publish_event(
+                        "products.image.ready",
+                        {
+                            "product_id": product.product_id,
+                            "image_id": image_id,
+                            "local_path": local_path,
+                            "job_id": job_id,
+                        },
+                        correlation_id=job_id,
+                    )
+
+                    logger.info(
+                        "Published individual image ready event",
+                        product_id=product.product_id,
+                        image_id=image_id,
+                        job_id=job_id,
+                    )
+
                 logger.info(
                     "Stored product",
                     product_id=product.product_id,
@@ -115,47 +134,3 @@ class ImageStorageManager:
                 error=str(e),
             )
 
-    async def publish_individual_image_events(self, job_id: str):
-        """Publish individual image ready events for all images in a job"""
-        try:
-            # Get all images for this job
-            images = await self.db.fetch_all(
-                """
-                SELECT pi.img_id, pi.product_id, pi.local_path
-                FROM product_images pi
-                JOIN products p ON pi.product_id = p.product_id
-                WHERE p.job_id = $1
-                ORDER BY pi.img_id
-                """,
-                job_id,
-            )
-
-            logger.info(
-                "Publishing individual image events",
-                job_id=job_id,
-                image_count=len(images),
-            )
-
-            # Publish individual image ready events
-            for image in images:
-                await self.broker.publish_event(
-                    "products.image.ready",
-                    {
-                        "product_id": image["product_id"],
-                        "image_id": image["img_id"],
-                        "local_path": image["local_path"],
-                        "job_id": job_id,
-                    },
-                    correlation_id=job_id,
-                )
-
-            logger.info(
-                "Published all individual image events",
-                job_id=job_id,
-                image_count=len(images),
-            )
-
-        except Exception as e:
-            logger.error(
-                "Failed to publish individual image events", job_id=job_id, error=str(e)
-            )

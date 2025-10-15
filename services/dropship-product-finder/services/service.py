@@ -152,6 +152,8 @@ class DropshipProductFinderService:
             correlation_id=job_id,
         )
 
+        # Individual events are already published during processing
+        # Just publish the batch event to signal completion
         vision_event_id = str(uuid.uuid4())
         await self.broker.publish_event(
             "products.images.ready.batch",
@@ -169,8 +171,6 @@ class DropshipProductFinderService:
             event_id=vision_event_id,
             total_images=total_images,
         )
-
-        await self.image_storage_manager.publish_individual_image_events(job_id)
 
     async def close(self):
         """Close all collectors"""

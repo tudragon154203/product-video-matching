@@ -67,7 +67,6 @@ def mock_image_storage_manager(mock_database_manager, mock_message_broker, mock_
     """Mock ImageStorageManager"""
     with patch("services.service.ImageStorageManager") as mock_manager_class:
         mock_manager = Mock(spec=ImageStorageManager)
-        mock_manager.publish_individual_image_events = AsyncMock()
         mock_manager_class.return_value = mock_manager
         yield mock_manager
 
@@ -194,9 +193,6 @@ class TestDropshipProductFinderService:
         # Verify zero products case was handled
         assert mock_message_broker.publish_event.call_count == 2
 
-        # Verify image storage manager was not called
-        dropship_service.image_storage_manager.publish_individual_image_events.assert_not_called()
-
     @pytest.mark.asyncio
     async def test_handle_zero_products_case(
         self, dropship_service, mock_message_broker
@@ -240,7 +236,7 @@ class TestDropshipProductFinderService:
 
         await dropship_service._publish_all_image_events(job_id, total_images)
 
-        # Verify two events were published (2 from this method)
+        # Verify two events were published (collections.completed + images.ready.batch)
         assert mock_message_broker.publish_event.call_count == 2
 
         # Verify products.collections.completed event
@@ -264,8 +260,9 @@ class TestDropshipProductFinderService:
         assert images_event_data["job_id"] == job_id
         assert images_event_data["total_images"] == total_images
 
-        # Verify image storage manager was called
-        dropship_service.image_storage_manager.publish_individual_image_events.assert_called_once_with(job_id)
+        # Image storage manager is not called for individual events since they're published during processing
+        # The batch events are handled directly by the service
+        pass
 
     @pytest.mark.asyncio
     async def test_handle_products_collect_request_error_handling(
@@ -340,3 +337,41 @@ class TestDropshipProductFinderService:
         # Verify all collectors were closed
         dropship_service.collectors["amazon"].close.assert_called_once()
         dropship_service.collectors["ebay"].close.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_handle_products_collect_request_with_immediate_events(
+        self, dropship_service, mock_database_manager, mock_message_broker
+    ):
+        """Test that individual events are published during collection, not after"""
+        event_data = {
+            "job_id": "test-job-123",
+            "queries": {"en": ["laptop"]},
+            "top_amz": 1,
+            "top_ebay": 0,  # Only Amazon to simplify test
+        }
+
+        # Mock database to return 2 images for the one Amazon product
+        mock_database_manager.fetch_val.return_value = 2
+
+        await dropship_service.handle_products_collect_request(event_data)
+
+        # Verify product collection was called
+        dropship_service.product_collection_manager.collect_and_store_products.assert_called_once_with(
+            "test-job-123", ["laptop"], 1, 0
+        )
+
+        # Verify events were published: collections.completed + images.ready.batch
+        # Individual events are published during collection via ImageStorageManager.store_product
+        assert mock_message_broker.publish_event.call_count == 2
+
+        # Verify the two events are in correct order
+        calls = mock_message_broker.publish_event.call_args_list
+
+        # First call should be products.collections.completed
+        assert calls[0][0][0] == "products.collections.completed"
+        assert calls[0][0][1]["job_id"] == "test-job-123"
+
+        # Second call should be products.images.ready.batch
+        assert calls[1][0][0] == "products.images.ready.batch"
+        assert calls[1][0][1]["job_id"] == "test-job-123"
+        assert calls[1][0][1]["total_images"] == 2
