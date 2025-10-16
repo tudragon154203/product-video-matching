@@ -2,6 +2,7 @@
 
 import os
 import uuid
+import asyncio
 from typing import Any, Dict, List, Optional, Tuple
 
 from common_py.crud import VideoCRUD, VideoFrameCRUD
@@ -244,29 +245,91 @@ class VideoProcessor:
         return video, created_new
 
     async def _save_keyframes(self, keyframes: List[tuple], video_id: str) -> List[Dict[str, Any]]:
-        """Save keyframes to database with idempotency and return frame data."""
+        """Save keyframes to database with idempotency and FK‑resilient retry, then return frame data."""
         frame_data = []
-        for i, (timestamp, frame_path) in enumerate(keyframes):
-            # Create frame with idempotency
-            created_new, frame_id = await self.idempotency_manager.create_frame_with_idempotency(
-                video_id=video_id,
-                frame_index=i,
-                timestamp=timestamp,
-                local_path=frame_path
-            )
 
-            if created_new:
-                frame_data.append({
-                    "frame_id": frame_id,
-                    "ts": timestamp,
-                    "local_path": frame_path
-                })
-            else:
-                # Frame already exists, fetch its data
-                existing_frames = await self.idempotency_manager.get_existing_frames(video_id)
-                existing_frame_data = next((f for f in existing_frames if f["frame_id"] == frame_id), None)
-                if existing_frame_data:
-                    frame_data.append(existing_frame_data)
+        # Ensure parent video visibility/commit before inserting frames (short bounded check)
+        try:
+            video_visible = False
+            elapsed = 0.0
+            delay = 0.2
+            max_wait = 2.0
+            while elapsed < max_wait:
+                v = await (self.video_crud.get_video(video_id) if self.video_crud else None)  # type: ignore
+                if v:
+                    video_visible = True
+                    break
+                await asyncio.sleep(delay)
+                elapsed += delay
+                delay = min(delay * 2, 2.0)
+            if not video_visible:
+                logger.warning("Parent video not yet visible before frame inserts", video_id=video_id)
+        except Exception as e:
+            logger.warning(f"Video visibility check failed for {video_id}: {e}")
+
+        for i, (timestamp, frame_path) in enumerate(keyframes):
+            # FK‑resilient insert with bounded backoff on SQLSTATE 23503 (foreign key violation)
+            attempts = 0
+            elapsed = 0.0
+            delay = 0.2
+            max_total = 20.0
+            while True:
+                try:
+                    created_new, frame_id = await self.idempotency_manager.create_frame_with_idempotency(  # type: ignore
+                        video_id=video_id,
+                        frame_index=i,
+                        timestamp=timestamp,
+                        local_path=frame_path
+                    )
+                    if created_new:
+                        frame_data.append({
+                            "frame_id": frame_id,
+                            "ts": timestamp,
+                            "local_path": frame_path
+                        })
+                    else:
+                        # Frame already exists, fetch its data
+                        existing_frames = await self.idempotency_manager.get_existing_frames(video_id)  # type: ignore
+                        existing_frame_data = next((f for f in existing_frames if f["frame_id"] == frame_id), None)
+                        if existing_frame_data:
+                            frame_data.append(existing_frame_data)
+                    break  # success
+                except Exception as e:
+                    sqlstate = getattr(e, "sqlstate", "")
+                    msg = str(e).lower()
+                    is_fk_violation = (sqlstate == "23503") or ("foreign key violation" in msg)
+                    if is_fk_violation:
+                        attempts += 1
+                        if elapsed >= max_total:
+                            logger.error(
+                                "FK violation persists, skipping frame insert after retries",
+                                video_id=video_id,
+                                frame_index=i,
+                                ts=timestamp,
+                                attempts=attempts
+                            )
+                            break
+                        logger.warning(
+                            "FK violation on frame insert, retrying with backoff",
+                            video_id=video_id,
+                            frame_index=i,
+                            ts=timestamp,
+                            attempts=attempts
+                        )
+                        await asyncio.sleep(delay)
+                        elapsed += delay
+                        delay = min(delay * 2, 2.0)
+                        continue
+                    else:
+                        # Non‑FK error: log and skip this frame, do not crash pipeline
+                        logger.error(
+                            "Unexpected error on frame insert; skipping frame",
+                            video_id=video_id,
+                            frame_index=i,
+                            ts=timestamp,
+                            error=str(e)
+                        )
+                        break
 
         return frame_data
 

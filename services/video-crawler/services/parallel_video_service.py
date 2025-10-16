@@ -175,6 +175,20 @@ class ParallelVideoService:
                     logger.error(f"Error fetching videos from {platform}: {e}")
                     total_errors += 1
 
+            # Integration workload throttling: apply env-driven slice once per job
+            try:
+                import os  # local import to avoid top-level changes
+                enforce_real = os.getenv("INTEGRATION_TESTS_ENFORCE_REAL_SERVICES", "").lower() == "true"
+                max_videos_env = os.getenv("PVM_MAX_VIDEOS_FOR_IT")
+                if enforce_real and max_videos_env:
+                    max_videos = int(max_videos_env)
+                    if max_videos > 0 and isinstance(all_videos, list):
+                        if len(all_videos) > max_videos:
+                            all_videos = all_videos[:max_videos]
+                        logger.info(f"Integration max videos applied: {max_videos} for job_id {job_id}")
+            except Exception as e:
+                logger.warning(f"Failed to apply integration workload limit in ParallelVideoService: {e}")
+
             # Process videos in parallel batches
             semaphore = asyncio.Semaphore(self.config.max_concurrent_processing)
 

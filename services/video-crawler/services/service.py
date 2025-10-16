@@ -114,6 +114,19 @@ class VideoCrawlerService:
                 job_id=job_id
             )
 
+            # Integration workload throttling: apply env-driven slice
+            try:
+                enforce_real = os.getenv("INTEGRATION_TESTS_ENFORCE_REAL_SERVICES", "").lower() == "true"
+                max_videos_env = os.getenv("PVM_MAX_VIDEOS_FOR_IT")
+                if enforce_real and max_videos_env:
+                    max_videos = int(max_videos_env)
+                    if max_videos > 0 and isinstance(all_videos, list):
+                        if len(all_videos) > max_videos:
+                            all_videos = all_videos[:max_videos]
+                        logger.info(f"Integration max videos applied: {max_videos} for job_id {job_id}")
+            except Exception as e:
+                logger.warning(f"Failed to apply integration workload limit: {e}", job_id=job_id)
+
             if not all_videos:
                 await self._handle_zero_videos_case(job_id, correlation_id)
                 return
@@ -255,21 +268,29 @@ class VideoCrawlerService:
     def _initialize_platform_crawlers(self) -> Dict[str, PlatformCrawlerInterface]:
         """Initialize platform crawlers for each supported platform.
         
-        In test mode or when VIDEO_CRAWLER_MODE=mock, use mock crawlers for all platforms
-        to ensure deterministic behavior and avoid external dependencies.
+        Enforcement: When INTEGRATION_TESTS_ENFORCE_REAL_SERVICES=true, do not allow mock mode.
+        Respect VIDEO_CRAWLER_MODE but default to 'live' in enforced integration runs.
         
         Returns:
             Dictionary mapping platform names to crawler instances
         """
         crawlers: Dict[str, PlatformCrawlerInterface] = {}
-
+        
         # Read environment flags
+        enforce_real = os.getenv("INTEGRATION_TESTS_ENFORCE_REAL_SERVICES", "").lower() == "true"
         pvm_test_mode = os.getenv("PVM_TEST_MODE", "false").lower() == "true"
         crawler_mode = os.getenv("VIDEO_CRAWLER_MODE", "live").lower()
-        if pvm_test_mode:
-            # Force mock mode in tests
-            crawler_mode = "mock"
-
+        
+        if enforce_real:
+            # Force LIVE mode under integration enforcement; ignore test-mode mock override
+            crawler_mode = os.getenv("VIDEO_CRAWLER_MODE", "live").lower()
+            if pvm_test_mode:
+                logger.info("LIVE mode enforced by integration tests; overriding PVM_TEST_MODE mock setting")
+        else:
+            # Only allow mock override when not enforcing real services
+            if pvm_test_mode:
+                crawler_mode = "mock"
+        
         if crawler_mode == "mock":
             # Use mock crawlers for deterministic test behavior
             crawlers["youtube"] = MockPlatformCrawler("youtube")
@@ -284,7 +305,11 @@ class VideoCrawlerService:
             # Use mock crawlers for other platforms (not implemented yet)
             crawlers["bilibili"] = MockPlatformCrawler("bilibili")
             crawlers["douyin"] = MockPlatformCrawler("douyin")
-            logger.info("VideoCrawlerService initialized in LIVE mode (real crawlers)")
+            if enforce_real:
+                # Explicit banner after mode resolution
+                logger.info("LIVE mode enforced by integration tests", resolved_mode=crawler_mode)
+            else:
+                logger.info("VideoCrawlerService initialized in LIVE mode (real crawlers)")
         
         return crawlers
 

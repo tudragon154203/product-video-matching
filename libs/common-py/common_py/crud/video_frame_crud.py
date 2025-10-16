@@ -23,16 +23,23 @@ class VideoFrameCRUD:
         return VideoFrame(**row_dict)
 
     async def create_video_frame(self, frame: VideoFrame) -> str:
-        """Create a new video frame"""
+        """Create a new video frame with idempotency and safe return semantics.
+
+        Implements INSERT ... ON CONFLICT DO NOTHING RETURNING frame_id.
+        If the frame already exists (no row returned), return the requested frame_id.
+        """
         query = """
         INSERT INTO video_frames (frame_id, video_id, ts, local_path, kp_blob_path)
         VALUES ($1, $2, $3, $4, $5)
+        ON CONFLICT (frame_id) DO NOTHING
         RETURNING frame_id
         """
-        return await self.db.fetch_val(
+        inserted_id = await self.db.fetch_val(
             query, frame.frame_id, frame.video_id, frame.ts,
             frame.local_path, frame.kp_blob_path
         )
+        # When ON CONFLICT DO NOTHING triggers, RETURNING returns no row; safely return the requested id
+        return inserted_id if inserted_id else frame.frame_id
 
     async def update_embeddings(self, frame_id: str, emb_rgb: List[float], emb_gray: List[float]):
         """Update embeddings for a video frame"""

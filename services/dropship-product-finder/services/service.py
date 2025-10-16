@@ -1,5 +1,6 @@
 import uuid
-from typing import Dict, Any, Optional
+import time
+from typing import Dict, Any, Optional, Set
 from common_py.database import DatabaseManager
 from common_py.messaging import MessageBroker
 from common_py.logging_config import configure_logging
@@ -49,6 +50,8 @@ class DropshipProductFinderService:
         self.product_collection_manager = ProductCollectionManager(
             self.collectors, self.image_storage_manager
         )
+        # Per-process idempotency guard for collections.completed emission
+        self._collections_emitted: Set[str] = set()
 
     def update_redis_client(self, redis_client: Any) -> None:
         """Update the Redis client for the eBay collector."""
@@ -64,6 +67,7 @@ class DropshipProductFinderService:
             queries = event_data["queries"]["en"]  # Use English queries
             top_amz = event_data["top_amz"]
             top_ebay = event_data["top_ebay"]
+            start_time = time.perf_counter()
 
             logger.info(
                 "Processing product collection request",
@@ -104,12 +108,14 @@ class DropshipProductFinderService:
             else:
                 await self._publish_all_image_events(job_id, total_images, correlation_id)
 
+                elapsed_ms = int((time.perf_counter() - start_time) * 1000)
                 logger.info(
                     "Completed product collection",
                     job_id=job_id,
                     amazon_count=amazon_count,
                     ebay_count=ebay_count,
                     total_images=total_images,
+                    elapsed_ms=elapsed_ms,
                 )
 
         except Exception as e:
@@ -145,11 +151,27 @@ class DropshipProductFinderService:
         )
 
     async def _publish_all_image_events(self, job_id: str, total_images: int, correlation_id: str):
+        # Idempotency: ensure we only emit completion once per process for a given job_id
+        if job_id in self._collections_emitted:
+            logger.info(
+                "Skipping duplicate products.collections.completed emission (idempotent guard)",
+                job_id=job_id,
+                total_images=total_images,
+            )
+            return
+        self._collections_emitted.add(job_id)
+
         event_id = str(uuid.uuid4())
         await self.broker.publish_event(
             "products.collections.completed",
             {"job_id": job_id, "event_id": event_id},
             correlation_id=correlation_id,
+        )
+        logger.info(
+            "Published products.collections.completed",
+            job_id=job_id,
+            event_id=event_id,
+            total_images=total_images,
         )
 
         # Individual events are already published during processing

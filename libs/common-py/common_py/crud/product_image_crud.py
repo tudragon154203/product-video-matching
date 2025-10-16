@@ -1,6 +1,9 @@
 from typing import Optional, List, Dict, Any
 from ..database import DatabaseManager
 from ..models import ProductImage
+from ..logging_config import configure_logging
+
+logger = configure_logging("common-py:product_image_crud")
 
 class ProductImageCRUD:
     def __init__(self, db: DatabaseManager):
@@ -23,16 +26,34 @@ class ProductImageCRUD:
         return ProductImage(**row_dict)
 
     async def create_product_image(self, image: ProductImage) -> str:
-        """Create a new product image"""
+        """Create a new product image with idempotent insert
+        
+        Returns:
+            The image ID. If the image already exists, returns the provided img_id.
+        """
         query = """
         INSERT INTO product_images (img_id, product_id, local_path, kp_blob_path, phash)
         VALUES ($1, $2, $3, $4, $5)
+        ON CONFLICT (img_id) DO NOTHING
         RETURNING img_id
         """
-        return await self.db.fetch_val(
-            query, image.img_id, image.product_id, image.local_path,
-            image.kp_blob_path, image.phash
+        inserted_id = await self.db.fetch_val(
+            query,
+            image.img_id,
+            image.product_id,
+            image.local_path,
+            image.kp_blob_path,
+            image.phash
         )
+        if not inserted_id:
+            # Conflict occurred; image already exists
+            logger.debug(
+                "Image already existed - idempotent insert skipped",
+                img_id=image.img_id,
+                product_id=image.product_id
+            )
+            return image.img_id
+        return inserted_id
 
     async def update_embeddings(self, img_id: str, emb_rgb: List[float], emb_gray: List[float]):
         """Update embeddings for a product image"""
@@ -216,3 +237,39 @@ class ProductImageCRUD:
 
         rows = await self.db.fetch_all(query, *params)
         return [self._convert_row_to_image(row) for row in rows]
+
+    async def create_product_image_with_conn(self, image: ProductImage, conn) -> str:
+        """
+        Create a new product image using an existing asyncpg connection.
+        Idempotent via ON CONFLICT (img_id) DO NOTHING.
+
+        Args:
+            image: ProductImage model to insert
+            conn: Existing asyncpg connection to execute against
+
+        Returns:
+            The image ID. If the image already exists, returns the provided img_id.
+        """
+        query = """
+        INSERT INTO product_images (img_id, product_id, local_path, kp_blob_path, phash)
+        VALUES ($1, $2, $3, $4, $5)
+        ON CONFLICT (img_id) DO NOTHING
+        RETURNING img_id
+        """
+        inserted_id = await conn.fetchval(
+            query,
+            image.img_id,
+            image.product_id,
+            image.local_path,
+            image.kp_blob_path,
+            image.phash
+        )
+        if not inserted_id:
+            # Conflict occurred; image already exists
+            logger.debug(
+                "Image already existed - idempotent insert skipped",
+                img_id=image.img_id,
+                product_id=image.product_id
+            )
+            return image.img_id
+        return inserted_id

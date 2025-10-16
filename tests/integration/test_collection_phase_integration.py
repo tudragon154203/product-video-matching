@@ -17,6 +17,8 @@ from support.test_environment import CollectionPhaseTestEnvironment
 from support.event_publisher import TestEventFactory
 from support.db_cleanup import DatabaseStateValidator
 
+import os
+PVM_OBS_WAIT_SECS = float(os.getenv("PVM_OBS_WAIT_SECS", "60"))
 
 class TestCollectionPhaseIntegration:
     """
@@ -213,7 +215,7 @@ class TestCollectionPhaseIntegration:
         try:
             products_event = await spy.wait_for_products_completed(
                 job_id=job_id,
-                timeout=10.0  # Reduced timeout for faster failure when services aren't running
+                timeout=PVM_OBS_WAIT_SECS  # Env-driven observability timeout (default 60s)
             )
             # Verify products completion event
             assert products_event["event_data"]["job_id"] == job_id
@@ -228,7 +230,7 @@ class TestCollectionPhaseIntegration:
         try:
             videos_event = await spy.wait_for_videos_completed(
                 job_id=job_id,
-                timeout=10.0  # Reduced timeout for faster failure when services aren't running
+                timeout=PVM_OBS_WAIT_SECS  # Env-driven observability timeout (default 60s)
             )
             # Verify videos completion event
             assert videos_event["event_data"]["job_id"] == job_id

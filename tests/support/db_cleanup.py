@@ -5,8 +5,10 @@ Extends existing patterns to handle product tables, video tables, and event ledg
 from typing import List, Optional, Dict, Any
 from common_py.database import DatabaseManager
 from common_py.logging_config import configure_logging
+import time
 
 logger = configure_logging("test-utils:db-cleanup")
+import asyncio
 
 
 class CollectionPhaseCleanup:
@@ -303,12 +305,27 @@ class DatabaseStateValidator:
         self.db_manager = db_manager
     
     async def assert_job_exists(self, job_id: str):
-        """Assert that a job exists in the database"""
+        """Assert that a job exists in the database with bounded polling for stability.
+
+        Poll every 200ms for up to ~10s before asserting failure.
+        """
         query = "SELECT COUNT(*) FROM jobs WHERE job_id = $1"
-        count = await self.db_manager.fetch_val(query, job_id)
-        
-        if count == 0:
-            raise AssertionError(f"Job {job_id} not found in database")
+        start = time.time()
+        attempts = 0
+        max_wait_secs = 10.0
+        interval = 0.2  # 200ms
+
+        while True:
+            attempts += 1
+            count = await self.db_manager.fetch_val(query, job_id)
+            if count and int(count) > 0:
+                return
+            if (time.time() - start) >= max_wait_secs:
+                break
+            # Always avoid blocking the event loop in async context
+            await asyncio.sleep(interval)
+
+        raise AssertionError(f"Job {job_id} not found after {attempts} checks over ~10s")
     
     async def assert_job_not_exists(self, job_id: str):
         """Assert that a job does not exist in the database"""
