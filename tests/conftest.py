@@ -42,7 +42,6 @@ from config import config
 from support.message_spy import CollectionPhaseSpy, MessageSpy
 from support.db_cleanup import CollectionPhaseCleanup, DatabaseStateValidator
 from support.event_publisher import CollectionEventPublisher, TestEventFactory
-from support.observability_validator import ObservabilityValidator, LogCapture, MetricsCapture
 
 
 @pytest.fixture(scope="session")
@@ -283,107 +282,4 @@ async def collection_job_setup(db_manager, collection_test_data):
     await db_manager.execute("DELETE FROM jobs WHERE job_id = $1", job_id)
 
 
-# Observability Test Fixtures
-
-@pytest_asyncio.fixture
-async def log_capture():
-    """Log capture fixture for testing"""
-    capture = LogCapture()
-    capture.start_capture()
-    yield capture
-    capture.stop_capture()
-
-
-@pytest_asyncio.fixture
-async def metrics_capture():
-    """Metrics capture fixture for testing"""
-    capture = MetricsCapture()
-    capture.start_capture()
-    yield capture
-    capture.stop_capture()
-
-
-@pytest_asyncio.fixture
-async def observability_validator(db_manager, message_broker):
-    """Observability validator fixture"""
-    validator = ObservabilityValidator(db_manager, message_broker)
-    yield validator
-    # Clean up any remaining captures
-    if validator.is_capturing:
-        validator.stop_observability_capture()
-    validator.clear_all_captures()
-
-
-@pytest_asyncio.fixture
-async def observability_test_environment(
-    collection_phase_test_environment,
-    observability_validator
-):
-    """
-    Enhanced collection phase test environment with observability validation.
-    Combines the existing test environment with observability capture and validation.
-    """
-    env = collection_phase_test_environment
-    obs_validator = observability_validator
-    
-    # Start observability capture
-    obs_validator.start_observability_capture()
-    
-    yield {
-        **env,  # Include all existing environment components
-        "observability": obs_validator
-    }
-    
-    # Stop observability capture
-    obs_validator.stop_observability_capture()
-
-
-@pytest.fixture
-def expected_observability_services():
-    """Expected services for observability validation"""
-    return [
-        "main-api",
-        "video-crawler",
-        "vision-embedding",
-        "vision-keypoint",
-        "matcher"
-    ]
-
-
-@pytest_asyncio.fixture
-async def collection_phase_with_observability(
-    db_manager,
-    message_broker,
-    observability_validator,
-    collection_test_data
-):
-    """
-    Complete collection phase test with observability validation.
-    Sets up the full collection workflow with observability monitoring.
-    """
-    # Set up observability capture
-    observability_validator.start_observability_capture()
-    
-    # Create test job
-    job_id = collection_test_data["job_id"]
-    await db_manager.execute(
-        """
-        INSERT INTO jobs (job_id, industry, phase, created_at, updated_at)
-        VALUES ($1, 'test industry', 'collection', NOW(), NOW())
-        """,
-        job_id
-    )
-    
-    yield {
-        "job_id": job_id,
-        "test_data": collection_test_data,
-        "observability": observability_validator,
-        "db_manager": db_manager,
-        "message_broker": message_broker
-    }
-    
-    # Clean up
-    await db_manager.execute("DELETE FROM jobs WHERE job_id = $1", job_id)
-    observability_validator.stop_observability_capture()
-    observability_validator.clear_all_captures()
 

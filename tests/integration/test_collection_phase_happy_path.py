@@ -254,10 +254,19 @@ class TestCollectionPhaseHappyPath:
         
         # Ensure clean database state
         await cleanup.cleanup_test_data()
-        
+
         # Generate unique job_id and correlation_id for this test
         job_id = test_data["job_id"] + "_idempotency"
         correlation_id = str(uuid.uuid4())
+
+        # Create job record for this test
+        await cleanup.db_manager.execute(
+            """
+            INSERT INTO jobs (job_id, industry, phase, created_at, updated_at)
+            VALUES ($1, 'test industry', 'collection', NOW(), NOW())
+            """,
+            job_id
+        )
         
         # Load synthetic fixtures
         products_request = TestEventFactory.create_products_collect_request(
@@ -393,10 +402,19 @@ class TestCollectionPhaseHappyPath:
         
         # Ensure clean database state
         await cleanup.cleanup_test_data()
-        
+
         # Generate unique job_id and correlation_id for this test
         job_id = test_data["job_id"] + "_comprehensive"
         correlation_id = str(uuid.uuid4())
+
+        # Create job record for this test
+        await cleanup.db_manager.execute(
+            """
+            INSERT INTO jobs (job_id, industry, phase, created_at, updated_at)
+            VALUES ($1, 'test industry', 'collection', NOW(), NOW())
+            """,
+            job_id
+        )
         
         # Load synthetic fixtures
         products_request = TestEventFactory.create_products_collect_request(

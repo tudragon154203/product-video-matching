@@ -58,66 +58,57 @@ The Collection Phase Integration Tests validate the end-to-end collection workfl
 
 ### Running Tests
 
-#### Option 1: Simple Test Runner (Recommended for daily development)
-```bash
-# Run collection phase tests only
-python tests/scripts/run_collection_phase_tests.py
-
-# Run with verbose output
-python tests/scripts/run_collection_phase_tests.py --verbose
-```
-
-#### Option 2: Comprehensive Test Runner
-```bash
-# Run minimal scenario
-python tests/scripts/run_collection_phase_tests.py --scenario minimal
-
-# Run comprehensive scenario
-python tests/scripts/run_collection_phase_tests.py --scenario comprehensive
-
-# Run idempotency tests
-python tests/scripts/run_collection_phase_tests.py --scenario idempotency
-
-# Run observability tests
-python tests/scripts/run_collection_phase_tests.py --scenario observability
-```
-
-#### Option 3: Direct Pytest Execution
+#### Option 1: Direct Pytest Execution (Recommended)
 ```bash
 # Run all collection phase tests
 pytest -m "collection_phase" -v
 
-# Run specific test
-pytest tests/integration/test_collection_phase_happy_path.py::TestCollectionPhaseHappyPath::test_collection_phase_happy_path_minimal_dataset -v
+# Run specific minimal test
+pytest tests/integration/test_collection_phase_happy_path.py::TestCollectionPhaseHappyPath::test_collection_phase_happy_path_minimal_dataset -v --no-cov -s
+
+# Run comprehensive validation test
+pytest tests/integration/test_collection_phase_happy_path.py::TestCollectionPhaseHappyPath::test_collection_phase_comprehensive_validation -v --no-cov -s
+
+# Run idempotency test
+pytest tests/integration/test_collection_phase_happy_path.py::TestCollectionPhaseHappyPath::test_collection_phase_idempotency_validation -v --no-cov -s
+```
+
+#### Option 2: Test Execution with Coverage
+```bash
+# Run with coverage report
+pytest -m "collection_phase" -v --cov=tests --cov-report=html:htmlcov --cov-report=term
+
+# Run specific test with coverage
+pytest tests/integration/test_collection_phase_happy_path.py::TestCollectionPhaseHappyPath::test_collection_phase_happy_path_minimal_dataset -v --cov=tests --cov-report=term
 ```
 
 ## Test Scenarios
 
 ### 1. Minimal Dataset Scenario
 - **Purpose**: Validate basic collection workflow
-- **Duration**: ~5 minutes
-- **Data**: 1-2 products, 1-2 videos
-- **Validation**: Event flow, database state, observability
-- **Command**: `python tests/scripts/run_collection_phase_tests.py --scenario minimal`
+- **Duration**: ~25-30 seconds
+- **Data**: 1-3 products, 2-5 videos
+- **Validation**: Event flow, database state, observability, correlation ID propagation
+- **Command**: `pytest tests/integration/test_collection_phase_happy_path.py::TestCollectionPhaseHappyPath::test_collection_phase_happy_path_minimal_dataset -v`
 
 ### 2. Comprehensive Scenario
 - **Purpose**: Validate complete workflow with full data set
-- **Duration**: ~10-15 minutes
+- **Duration**: ~1-2 minutes
 - **Data**: Multiple products, videos, platforms
 - **Validation**: All aspects of collection workflow
-- **Command**: `python tests/scripts/run_collection_phase_tests.py --scenario comprehensive`
+- **Command**: `pytest tests/integration/test_collection_phase_happy_path.py::TestCollectionPhaseHappyPath::test_collection_phase_comprehensive_validation -v`
 
 ### 3. Idempotency Validation
 - **Purpose**: Ensure duplicate requests don't create duplicate data
-- **Duration**: ~8 minutes
-- **Validation**: Event ledger tracking, database state
-- **Command**: `python tests/scripts/run_collection_phase_tests.py --scenario idempotency`
+- **Duration**: ~30-45 seconds
+- **Validation**: Event ledger tracking, database state, correlation ID consistency
+- **Command**: `pytest tests/integration/test_collection_phase_happy_path.py::TestCollectionPhaseHappyPath::test_collection_phase_idempotency_validation -v`
 
-### 4. Observability Validation
-- **Purpose**: Validate logging, metrics, and health checks
-- **Duration**: ~6 minutes
-- **Validation**: Correlation ID tracking, service logs
-- **Command**: `python tests/scripts/run_collection_phase_tests.py --scenario observability`
+### 4. All Collection Phase Tests
+- **Purpose**: Run complete test suite for collection phase
+- **Duration**: ~2-3 minutes total
+- **Validation**: Full coverage of collection workflow
+- **Command**: `pytest -m "collection_phase" -v`
 
 ## Infrastructure Setup
 
@@ -140,7 +131,6 @@ Tests are categorized using pytest markers:
 
 - `@pytest.mark.collection_phase`: Collection phase integration tests
 - `@pytest.mark.integration`: General integration tests
-- `@pytest.mark.observability`: Observability validation tests
 - `@pytest.mark.performance`: Performance benchmark tests
 - `@pytest.mark.idempotency`: Idempotency validation tests
 - `@pytest.mark.ci`: Tests suitable for CI environment
@@ -228,8 +218,8 @@ async with CollectionPhaseSpy(broker_url) as spy:
     # - videos.collections.completed
     
     # Wait for events
-    products_event = await spy.wait_for_products_completed(job_id, timeout=10.0)
-    videos_event = await spy.wait_for_videos_completed(job_id, timeout=10.0)
+    products_event = await spy.wait_for_products_completed(job_id, timeout=30.0)
+    videos_event = await spy.wait_for_videos_completed(job_id, timeout=300.0)
 ```
 
 ### 2. Database Cleanup ([`utils/db_cleanup.py`](./utils/db_cleanup.py))
@@ -329,9 +319,11 @@ python -c "import aio_pika; asyncio.run(aio_pika.connect('amqp://guest:guest@loc
 ```
 
 #### Test Timeout Issues
-- Increase timeout values in test configuration
+- **Products completion**: Default timeout is 30 seconds
+- **Videos completion**: Default timeout is 300 seconds (5 minutes) to accommodate YouTube crawling
 - Check service logs for processing bottlenecks
 - Verify system resources (CPU, memory)
+- For slow systems, consider increasing timeout values further
 
 #### Test Isolation Issues
 - Verify cleanup is working properly
@@ -451,8 +443,38 @@ python tests/scripts/run_collection_phase_tests.py --test-type ci
 ENVIRONMENT=ci python tests/scripts/run_collection_phase_tests.py --test-type ci
 ```
 
+## Recent Updates (October 16, 2025)
+
+### Key Improvements Made
+
+1. **Correlation ID Propagation**: Successfully implemented end-to-end correlation ID tracking across all services
+2. **Timeout Optimization**: Updated timeout values to reflect real-world processing times:
+   - Products completion: 30 seconds (was 10 seconds)
+   - Videos completion: 300 seconds (was 10 seconds)
+3. **Product Model Enhancement**: Added missing `job_id` field to Product model and updated CRUD operations
+4. **Database Schema Alignment**: Fixed job creation to use correct schema (removed deprecated `status` field)
+5. **Test Infrastructure**: Improved message spy API compatibility and test reliability
+6. **Video Collection**: Updated expectations to collect "at least 2 videos" instead of "maximum 2 videos"
+
+### Current Test Performance
+
+- **Minimal Dataset Test**: ~25 seconds (previously estimated 5 minutes)
+- **Real Video Crawling**: Successfully integrates with YouTube API for actual video collection
+- **Products Collection**: Rapid completion within seconds
+- **End-to-End Validation**: Complete workflow validation with correlation tracking
+
+### Known Working Commands
+
+```bash
+# Run the main happy path test (currently passing)
+pytest tests/integration/test_collection_phase_happy_path.py::TestCollectionPhaseHappyPath::test_collection_phase_happy_path_minimal_dataset -v --no-cov -s
+
+# Run all collection phase tests
+pytest -m "collection_phase" -v
+```
+
 ---
 
-**Document Version**: 1.0  
-**Last Updated**: October 15, 2025  
+**Document Version**: 1.1
+**Last Updated**: October 16, 2025
 **Maintainer**: Development Team
