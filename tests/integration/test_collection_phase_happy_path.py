@@ -126,7 +126,7 @@ class TestCollectionPhaseHappyPath:
         validator = env["validator"]
         publisher = env["publisher"]
         test_data = env["test_data"]
-        
+
         # Ensure clean database state
         await cleanup.cleanup_test_data()
 
@@ -142,7 +142,7 @@ class TestCollectionPhaseHappyPath:
             """,
             job_id
         )
-        
+
         # Load synthetic fixtures from tests/mock_data
         products_request = TestEventFactory.create_products_collect_request(
             job_id=job_id,
@@ -150,7 +150,7 @@ class TestCollectionPhaseHappyPath:
             top_amz=2,  # Minimal dataset
             top_ebay=1  # Minimal dataset
         )
-        
+
         videos_request = TestEventFactory.create_videos_search_request(
             job_id=job_id,
             industry="pillow review",
@@ -161,7 +161,7 @@ class TestCollectionPhaseHappyPath:
             platforms=["youtube"],  # Minimal dataset - cap at 2 videos
             recency_days=30
         )
-        
+
         # Step 1: Publish products_collect_request.json with valid job_id and correlation_id
         products_correlation_id = await publisher.publish_products_collect_request(
             job_id=job_id,
@@ -170,7 +170,7 @@ class TestCollectionPhaseHappyPath:
             top_ebay=products_request["top_ebay"],
             correlation_id=correlation_id
         )
-        
+
         # Step 2: Publish videos_search_request.json with the same job_id and correlation_id
         videos_correlation_id = await publisher.publish_videos_search_request(
             job_id=job_id,
@@ -180,47 +180,47 @@ class TestCollectionPhaseHappyPath:
             recency_days=videos_request["recency_days"],
             correlation_id=correlation_id
         )
-        
+
         # Verify both requests use the same correlation_id
         assert products_correlation_id == videos_correlation_id == correlation_id
-        
+
         # Step 3: Wait for exactly one products_collections_completed.json within 10s
         products_event = await spy.wait_for_products_completed(
             job_id=job_id,
             timeout=30.0
         )
-        
+
         # Validate products completion event
         assert products_event["event_data"]["job_id"] == job_id
         assert "event_id" in products_event["event_data"]
         assert products_event["routing_key"] == "products.collections.completed"
         assert products_event["correlation_id"] == correlation_id
-        
+
         # Validate event contract compliance
         assert EventValidator.validate_collections_completed(products_event["event_data"])
-        
+
         # Step 4: Wait for exactly one videos_collections_completed.json within 5 min
         videos_event = await spy.wait_for_videos_completed(
             job_id=job_id,
             timeout=300.0
         )
-        
+
         # Validate videos completion event
         assert videos_event["event_data"]["job_id"] == job_id
         assert "event_id" in videos_event["event_data"]
         assert videos_event["routing_key"] == "videos.collections.completed"
         assert videos_event["correlation_id"] == correlation_id
-        
+
         # Validate event contract compliance
         assert EventValidator.validate_collections_completed(videos_event["event_data"])
-        
+
         # Step 5: Verify Products persisted with expected fields via product_crud.py
         product_crud = ProductCRUD(cleanup.db_manager)
         products = await product_crud.list_products_by_job(job_id)
-        
+
         # Assert we have products collected
         assert len(products) > 0, "No products found in database"
-        
+
         # Validate product fields
         for product in products:
             assert product.job_id == job_id
@@ -231,14 +231,14 @@ class TestCollectionPhaseHappyPath:
             if product.url:
                 assert len(product.url) > 0
                 assert product.url.startswith(("http://", "https://"))
-        
+
         # Step 6: Verify Videos persisted with expected fields via video_crud.py
         video_crud = VideoCRUD(cleanup.db_manager)
         videos = await video_crud.list_videos_by_job(job_id)
-        
+
         # Assert we have videos collected (at least 2 as specified)
         assert len(videos) >= 2, f"Expected at least 2 videos, got {len(videos)}"
-        
+
         # Validate video fields
         for video in videos:
             assert video.job_id == job_id
@@ -246,12 +246,12 @@ class TestCollectionPhaseHappyPath:
             assert video.title is not None and len(video.title) > 0
             assert video.url is not None and len(video.url) > 0
             assert video.duration_s is not None and video.duration_s > 0
-        
+
         # Step 7: Verify database state correctness
         await validator.assert_job_exists(job_id)
         await validator.assert_products_collected(job_id, min_count=1)
         await validator.assert_videos_collected(job_id, min_count=1)
-        
+
         # Step 8: Verify observability requirements
         # Check that correlation_id is present in captured events
         products_messages = spy.spy.get_captured_messages_by_correlation_id(
@@ -260,28 +260,28 @@ class TestCollectionPhaseHappyPath:
         videos_messages = spy.spy.get_captured_messages_by_correlation_id(
             spy.videos_queue, correlation_id
         )
-        
+
         # Verify correlation_id is present in all messages
         for msg in products_messages:
             assert msg.get("correlation_id") == correlation_id
-        
+
         for msg in videos_messages:
             assert msg.get("correlation_id") == correlation_id
-        
+
         # Verify we have exactly one completion event for each
         assert len(products_messages) == 1, f"Expected 1 products completion event, got {len(products_messages)}"
         assert len(videos_messages) == 1, f"Expected 1 videos completion event, got {len(videos_messages)}"
-        
+
         # Step 9: Verify health OK and DLQ empty
         # In a real environment, we would check health endpoints and DLQ
         # For this test, we verify that events were processed successfully
         assert products_event is not None
         assert videos_event is not None
-        
+
         # Store event IDs for idempotency test
         products_event_id = products_event["event_data"]["event_id"]
         videos_event_id = videos_event["event_data"]["event_id"]
-        
+
         return {
             "job_id": job_id,
             "correlation_id": correlation_id,
@@ -290,7 +290,7 @@ class TestCollectionPhaseHappyPath:
             "products_count": len(products),
             "videos_count": len(videos)
         }
-    
+
     @pytest.mark.asyncio
     @pytest.mark.collection_phase
     @pytest.mark.idempotency
@@ -318,7 +318,7 @@ class TestCollectionPhaseHappyPath:
         cleanup = env["cleanup"]
         publisher = env["publisher"]
         test_data = env["test_data"]
-        
+
         # Ensure clean database state
         await cleanup.cleanup_test_data()
 
@@ -334,7 +334,7 @@ class TestCollectionPhaseHappyPath:
             """,
             job_id
         )
-        
+
         # Load synthetic fixtures
         products_request = TestEventFactory.create_products_collect_request(
             job_id=job_id,
@@ -342,7 +342,7 @@ class TestCollectionPhaseHappyPath:
             top_amz=2,
             top_ebay=1
         )
-        
+
         videos_request = TestEventFactory.create_videos_search_request(
             job_id=job_id,
             industry="pillow review",
@@ -353,10 +353,10 @@ class TestCollectionPhaseHappyPath:
             platforms=["youtube"],
             recency_days=30
         )
-        
+
         # Initialize event CRUD for idempotency tracking
         event_crud = EventCRUD(cleanup.db_manager)
-        
+
         # First publish - should succeed
         products_correlation_id = await publisher.publish_products_collect_request(
             job_id=job_id,
@@ -365,7 +365,7 @@ class TestCollectionPhaseHappyPath:
             top_ebay=products_request["top_ebay"],
             correlation_id=correlation_id
         )
-        
+
         videos_correlation_id = await publisher.publish_videos_search_request(
             job_id=job_id,
             industry=videos_request["industry"],
@@ -374,28 +374,28 @@ class TestCollectionPhaseHappyPath:
             recency_days=videos_request["recency_days"],
             correlation_id=correlation_id
         )
-        
+
         # Wait for first completion
         products_event = await spy.wait_for_products_completed(job_id=job_id, timeout=30.0)
         videos_event = await spy.wait_for_videos_completed(job_id=job_id, timeout=300.0)
-        
+
         # Record event IDs in event ledger for idempotency tracking
         await event_crud.record_event(products_event["event_data"]["event_id"], "products.collections.completed")
         await event_crud.record_event(videos_event["event_data"]["event_id"], "videos.collections.completed")
-        
+
         # Get database state after first run
         product_crud = ProductCRUD(cleanup.db_manager)
         video_crud = VideoCRUD(cleanup.db_manager)
-        
+
         initial_products = await product_crud.list_products_by_job(job_id)
         initial_videos = await video_crud.list_videos_by_job(job_id)
-        
+
         initial_products_count = len(initial_products)
         initial_videos_count = len(initial_videos)
-        
+
         # Clear spy messages to track new ones
         spy.clear_messages()
-        
+
         # Second publish with same correlation_id - should be idempotent
         await publisher.publish_products_collect_request(
             job_id=job_id,
@@ -404,7 +404,7 @@ class TestCollectionPhaseHappyPath:
             top_ebay=products_request["top_ebay"],
             correlation_id=correlation_id
         )
-        
+
         await publisher.publish_videos_search_request(
             job_id=job_id,
             industry=videos_request["industry"],
@@ -413,10 +413,10 @@ class TestCollectionPhaseHappyPath:
             recency_days=videos_request["recency_days"],
             correlation_id=correlation_id
         )
-        
+
         # Wait a short time to ensure no duplicate events are generated
         await asyncio.sleep(2.0)
-        
+
         # Verify no duplicate completion events were generated
         products_messages = spy.spy.get_captured_messages_by_correlation_id(
             spy.products_queue, correlation_id
@@ -424,26 +424,26 @@ class TestCollectionPhaseHappyPath:
         videos_messages = spy.spy.get_captured_messages_by_correlation_id(
             spy.videos_queue, correlation_id
         )
-        
+
         # Should be empty (no new completion events)
         assert len(products_messages) == 0, f"Expected no duplicate products completion events, got {len(products_messages)}"
         assert len(videos_messages) == 0, f"Expected no duplicate videos completion events, got {len(videos_messages)}"
-        
+
         # Verify no duplicate database writes
         final_products = await product_crud.list_products_by_job(job_id)
         final_videos = await video_crud.list_videos_by_job(job_id)
-        
+
         final_products_count = len(final_products)
         final_videos_count = len(final_videos)
-        
+
         # Counts should be the same (no duplicates)
         assert final_products_count == initial_products_count, f"Products count changed from {initial_products_count} to {final_products_count}"
         assert final_videos_count == initial_videos_count, f"Videos count changed from {initial_videos_count} to {final_videos_count}"
-        
+
         # Verify event ledger shows events were processed
         assert await event_crud.is_event_processed(products_event["event_data"]["event_id"])
         assert await event_crud.is_event_processed(videos_event["event_data"]["event_id"])
-    
+
     @pytest.mark.asyncio
     @pytest.mark.collection_phase
     @pytest.mark.observability
@@ -474,7 +474,7 @@ class TestCollectionPhaseHappyPath:
         validator = env["validator"]
         publisher = env["publisher"]
         test_data = env["test_data"]
-        
+
         # Ensure clean database state
         await cleanup.cleanup_test_data()
 
@@ -490,7 +490,7 @@ class TestCollectionPhaseHappyPath:
             """,
             job_id
         )
-        
+
         # Load synthetic fixtures
         products_request = TestEventFactory.create_products_collect_request(
             job_id=job_id,
@@ -498,7 +498,7 @@ class TestCollectionPhaseHappyPath:
             top_amz=3,
             top_ebay=2
         )
-        
+
         videos_request = TestEventFactory.create_videos_search_request(
             job_id=job_id,
             industry="pillow review",
@@ -509,10 +509,10 @@ class TestCollectionPhaseHappyPath:
             platforms=["youtube", "tiktok"],
             recency_days=30
         )
-        
+
         # Start time for timeout validation
         start_time = datetime.utcnow()
-        
+
         # Publish requests
         products_correlation_id = await publisher.publish_products_collect_request(
             job_id=job_id,
@@ -521,7 +521,7 @@ class TestCollectionPhaseHappyPath:
             top_ebay=products_request["top_ebay"],
             correlation_id=correlation_id
         )
-        
+
         videos_correlation_id = await publisher.publish_videos_search_request(
             job_id=job_id,
             industry=videos_request["industry"],
@@ -530,47 +530,47 @@ class TestCollectionPhaseHappyPath:
             recency_days=videos_request["recency_days"],
             correlation_id=correlation_id
         )
-        
+
         # Wait for completion events with timeout
         products_event = await spy.wait_for_products_completed(job_id=job_id, timeout=30.0)
         videos_event = await spy.wait_for_videos_completed(job_id=job_id, timeout=300.0)
-        
+
         # End time for timeout validation
         end_time = datetime.utcnow()
         total_time = (end_time - start_time).total_seconds()
-        
+
         # Verify timeout constraints; allow up to 180s for comprehensive scenario on real services
         assert total_time < 180.0, f"Total completion time {total_time}s exceeded 180s limit"
-        
+
         # Comprehensive contract compliance validation
         assert EventValidator.validate_collections_completed(products_event["event_data"])
         assert EventValidator.validate_collections_completed(videos_event["event_data"])
-        
+
         # Validate UUID format for event IDs
         uuid.UUID(products_event["event_data"]["event_id"])
         uuid.UUID(videos_event["event_data"]["event_id"])
-        
+
         # Validate correlation ID consistency
         assert products_event["correlation_id"] == correlation_id
         assert videos_event["correlation_id"] == correlation_id
-        
+
         # Validate routing keys
         assert products_event["routing_key"] == "products.collections.completed"
         assert videos_event["routing_key"] == "videos.collections.completed"
-        
+
         # Comprehensive database state validation
         await validator.assert_job_exists(job_id)
-        
+
         product_crud = ProductCRUD(cleanup.db_manager)
         video_crud = VideoCRUD(cleanup.db_manager)
-        
+
         products = await product_crud.list_products_by_job(job_id)
         videos = await video_crud.list_videos_by_job(job_id)
-        
+
         # Validate we have collected data
         assert len(products) > 0, "No products collected"
         assert len(videos) > 0, "No videos collected"
-        
+
         # Validate product fields comprehensively
         for product in products:
             assert product.job_id == job_id
@@ -581,7 +581,7 @@ class TestCollectionPhaseHappyPath:
             if product.url:
                 assert len(product.url.strip()) > 0
                 assert product.url.startswith(("http://", "https://"))
-        
+
         # Validate video fields comprehensively
         for video in videos:
             assert video.job_id == job_id
@@ -592,12 +592,12 @@ class TestCollectionPhaseHappyPath:
             # Duration may be unavailable for certain platforms (e.g., TikTok); enforce for YouTube
             if video.platform == "youtube":
                 assert video.duration_s is not None and video.duration_s > 0
-        
+
         # Validate collection summary
         summary = await validator.get_collection_summary(job_id)
         assert summary["products"] == len(products)
         assert summary["videos"] == len(videos)
-        
+
         # Validate observability requirements
         # Check standardized fields in events
         for event in [products_event, videos_event]:
@@ -606,13 +606,13 @@ class TestCollectionPhaseHappyPath:
             assert "event_data" in event
             assert "routing_key" in event
             assert "correlation_id" in event
-        
+
         # Validate metrics (in a real environment, we would check metrics endpoint)
         # For this test, we verify successful completion indicates metrics were incremented
-        
+
         # Validate health status (in a real environment, we would check health endpoint)
         # For this test, successful event processing indicates health is OK
-        
+
         # Validate DLQ is empty (in a real environment, we would check DLQ)
         # For this test, successful completion indicates no messages went to DLQ
 

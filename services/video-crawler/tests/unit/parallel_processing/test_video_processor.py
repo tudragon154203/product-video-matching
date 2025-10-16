@@ -137,7 +137,7 @@ class TestKeyframeSaving:
         video_processor.idempotency_manager.create_frame_with_idempotency = AsyncMock(
             side_effect=[
                 (True, f"{video_id}_frame_0"),  # New frame
-                (False, f"{video_id}_frame_1"), # Existing frame
+                (False, f"{video_id}_frame_1"),  # Existing frame
                 (True, f"{video_id}_frame_2")   # New frame
             ]
         )

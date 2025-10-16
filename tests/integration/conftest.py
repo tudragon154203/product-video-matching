@@ -2,6 +2,8 @@
 # This file is used when running with local config (tests/integration/pytest.ini),
 # where pytest rootdir becomes tests/integration and relative imports may fail.
 
+import types
+import importlib
 import os
 import sys
 from pathlib import Path
@@ -44,8 +46,6 @@ os.environ.update({
 })
 
 # Ensure the centralized config picks up the overrides by reloading after env update
-import importlib
-import types
 
 # Import config module (libs/config.py) under top-level name 'config' and reload it
 if "config" in sys.modules:
@@ -55,6 +55,8 @@ else:
     importlib.reload(config)
 
 # ENFORCEMENT: Validate real service configuration before running tests
+
+
 def enforce_real_service_usage():
     """
     Validate that integration tests are configured to use real services, not mocks.
@@ -93,6 +95,7 @@ def enforce_real_service_usage():
         )
 
     print("Real service configuration validated for integration tests")
+
 
 # Run enforcement check immediately
 enforce_real_service_usage()

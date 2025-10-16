@@ -30,7 +30,7 @@ class ImageStorageManager:
         self, product_data: Dict[str, Any], job_id: str, source: str, correlation_id: str
     ):
         """Store a single product and its images within a single transaction on one DB connection.
-        
+
         Ensures product insert and subsequent image inserts are atomic to avoid FK violations.
         Publishes individual image.ready events immediately after each successful image insert.
         """
@@ -241,4 +241,3 @@ class ImageStorageManager:
                         # If product still not visible, wait then continue polling
                         await asyncio.sleep(delay)
                         delay = min(delay * backoff_factor, max_delay)
-

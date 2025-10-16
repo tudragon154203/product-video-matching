@@ -267,20 +267,20 @@ class VideoCrawlerService:
 
     def _initialize_platform_crawlers(self) -> Dict[str, PlatformCrawlerInterface]:
         """Initialize platform crawlers for each supported platform.
-        
+
         Enforcement: When INTEGRATION_TESTS_ENFORCE_REAL_SERVICES=true, do not allow mock mode.
         Respect VIDEO_CRAWLER_MODE but default to 'live' in enforced integration runs.
-        
+
         Returns:
             Dictionary mapping platform names to crawler instances
         """
         crawlers: Dict[str, PlatformCrawlerInterface] = {}
-        
+
         # Read environment flags
         enforce_real = os.getenv("INTEGRATION_TESTS_ENFORCE_REAL_SERVICES", "").lower() == "true"
         pvm_test_mode = os.getenv("PVM_TEST_MODE", "false").lower() == "true"
         crawler_mode = os.getenv("VIDEO_CRAWLER_MODE", "live").lower()
-        
+
         if enforce_real:
             # Force LIVE mode under integration enforcement; ignore test-mode mock override
             crawler_mode = os.getenv("VIDEO_CRAWLER_MODE", "live").lower()
@@ -290,7 +290,7 @@ class VideoCrawlerService:
             # Only allow mock override when not enforcing real services
             if pvm_test_mode:
                 crawler_mode = "mock"
-        
+
         if crawler_mode == "mock":
             # Use mock crawlers for deterministic test behavior
             crawlers["youtube"] = MockPlatformCrawler("youtube")
@@ -310,7 +310,7 @@ class VideoCrawlerService:
                 logger.info("LIVE mode enforced by integration tests", resolved_mode=crawler_mode)
             else:
                 logger.info("VideoCrawlerService initialized in LIVE mode (real crawlers)")
-        
+
         return crawlers
 
     async def run_manual_cleanup(self, dry_run: bool = False) -> Dict[str, Any]:

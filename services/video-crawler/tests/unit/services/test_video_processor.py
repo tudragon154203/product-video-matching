@@ -218,7 +218,7 @@ class TestVideoProcessor:
         video_processor.idempotency_manager.check_frame_exists = AsyncMock(return_value=False)
         video_processor.db.execute = AsyncMock()
         video_processor.db.fetch_one = AsyncMock(return_value=None)
-        
+
         frame_data = await video_processor._save_keyframes(keyframes, video_id)
 
         assert len(frame_data) == 2

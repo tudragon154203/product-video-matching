@@ -1,6 +1,13 @@
 """
 Pytest configuration and fixtures for integration tests
 """
+from support.observability_validator import ObservabilityValidator
+from support.event_publisher import CollectionEventPublisher, TestEventFactory
+from support.db_cleanup import CollectionPhaseCleanup, DatabaseStateValidator
+from support.message_spy import CollectionPhaseSpy, MessageSpy
+from config import config
+from common_py.messaging import MessageBroker
+from common_py.database import DatabaseManager
 import pytest
 import pytest_asyncio
 import asyncio
@@ -16,6 +23,7 @@ LIBS_DIR = PROJECT_ROOT / "libs"
 COMMON_PY_DIR = LIBS_DIR / "common-py"
 INFRA_DIR = PROJECT_ROOT / "infra"
 TESTS_DIR = PROJECT_ROOT / "tests"
+
 
 def ensure_sys_path():
     """Ensure project-specific paths are available for imports."""
@@ -34,16 +42,9 @@ def ensure_sys_path():
 
 ensure_sys_path()
 
-from common_py.database import DatabaseManager
-from common_py.messaging import MessageBroker
-from config import config
 
 # Import test utilities
-from support.message_spy import CollectionPhaseSpy, MessageSpy
-from support.db_cleanup import CollectionPhaseCleanup, DatabaseStateValidator
-from support.event_publisher import CollectionEventPublisher, TestEventFactory
 
-from support.observability_validator import ObservabilityValidator
 
 @pytest_asyncio.fixture
 async def observability_test_environment(
@@ -97,6 +98,7 @@ async def observability_test_environment(
     finally:
         await collection_cleanup.cleanup_test_data()
 
+
 @pytest.fixture
 def expected_observability_services():
     """
@@ -111,6 +113,7 @@ def expected_observability_services():
         "vision-keypoint",
         "matcher",
     ]
+
 
 @pytest.fixture(scope="session")
 def event_loop():
@@ -221,12 +224,12 @@ async def message_spy(message_broker):
 async def collection_cleanup(db_manager):
     """Collection phase database cleanup fixture"""
     cleanup = CollectionPhaseCleanup(db_manager)
-    
+
     # Clean up before test
     await cleanup.cleanup_test_data()
-    
+
     yield cleanup
-    
+
     # Clean up after test
     await cleanup.cleanup_test_data()
 
@@ -241,9 +244,9 @@ async def db_validator(db_manager):
 async def event_publisher(message_broker):
     """Collection event publisher fixture"""
     publisher = CollectionEventPublisher(message_broker)
-    
+
     yield publisher
-    
+
     # Clear published events tracking
     publisher.clear_published_events()
 
@@ -287,10 +290,10 @@ async def collection_phase_test_environment(
     """
     # Clear any existing messages
     collection_phase_spy.clear_messages()
-    
+
     # Ensure clean database state
     await collection_cleanup.cleanup_test_data()
-    
+
     # Create test job record for this environment (idempotent)
     job_id = collection_test_data["job_id"]
     await collection_cleanup.db_manager.execute(
@@ -309,7 +312,7 @@ async def collection_phase_test_environment(
         "factory": test_event_factory,
         "test_data": collection_test_data
     }
-    
+
     # Final cleanup
     await collection_cleanup.cleanup_test_data()
 
@@ -344,7 +347,7 @@ async def collection_job_setup(db_manager, collection_test_data):
     Creates a job record and returns the job ID.
     """
     job_id = collection_test_data["job_id"]
-    
+
     # Insert job record
     await db_manager.execute(
         """
@@ -353,11 +356,8 @@ async def collection_job_setup(db_manager, collection_test_data):
         """,
         job_id
     )
-    
+
     yield job_id
-    
+
     # Clean up the job
     await db_manager.execute("DELETE FROM jobs WHERE job_id = $1", job_id)
-
-
-

@@ -1,1 +1,1 @@
-autopep8 --in-place --recursive services
+autopep8 --in-place --recursive services tests

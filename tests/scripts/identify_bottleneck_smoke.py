@@ -3,6 +3,7 @@
 Focused smoke test for main-api to identify which microservice is blocking
 jobs from progressing past the feature extraction phase.
 """
+from common_py.logging_config import configure_logging
 import asyncio
 import httpx
 import time
@@ -16,7 +17,6 @@ LIBS_PATH = PROJECT_ROOT / "libs"
 if str(LIBS_PATH) not in sys.path:
     sys.path.append(str(LIBS_PATH))
 
-from common_py.logging_config import configure_logging
 
 logger = configure_logging("main-api-smoke-test")
 

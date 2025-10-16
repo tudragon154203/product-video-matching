@@ -436,6 +436,7 @@ class TestPipelineErrorRecovery:
 
         # Mock some methods to fail intermittently
         call_count = 0
+
         async def failing_download(task):
             nonlocal call_count
             call_count += 1

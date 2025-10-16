@@ -235,7 +235,7 @@ async def test_store_product_handles_event_publishing_failure(mock_dependencies)
     broker_mock.publish_event.side_effect = Exception("Broker down")
 
     with patch('uuid.uuid4', return_value=MagicMock(spec=uuid.UUID, hex=PRODUCT_ID, __str__=lambda self: PRODUCT_ID)), \
-         patch('services.image_storage_manager.logger') as mock_logger:
+            patch('services.image_storage_manager.logger') as mock_logger:
 
         # Should not raise exception - it should be caught and logged
         await manager.store_product(PRODUCT_DATA, JOB_ID, SOURCE, "test_correlation_id")
