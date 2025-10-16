@@ -38,8 +38,8 @@ class MessageHandler:
                 event_data_type=type(event_data).__name__
             )
             
-            # Call handler
-            await handler(event_data)
+            # Call handler with correlation_id
+            await handler(event_data, correlation_id)
             
             # Acknowledge message
             await message.ack()

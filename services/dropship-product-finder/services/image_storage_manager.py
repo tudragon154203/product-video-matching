@@ -24,7 +24,7 @@ class ImageStorageManager:
         self.collectors = collectors
 
     async def store_product(
-        self, product_data: Dict[str, Any], job_id: str, source: str
+        self, product_data: Dict[str, Any], job_id: str, source: str, correlation_id: str
     ):
         """Store a single product and its images, publishing individual events immediately."""
         try:
@@ -66,7 +66,7 @@ class ImageStorageManager:
             )
 
             await self._download_and_store_product_images(
-                product, product_data["images"], source, job_id
+                product, product_data["images"], source, job_id, correlation_id
             )
 
             logger.info(
@@ -83,7 +83,7 @@ class ImageStorageManager:
             )
 
     async def _download_and_store_product_images(
-        self, product: Product, image_urls: List[str], source: str, job_id: str
+        self, product: Product, image_urls: List[str], source: str, job_id: str, correlation_id: str
     ):
         try:
             for i, image_url in enumerate(image_urls):
@@ -110,7 +110,7 @@ class ImageStorageManager:
                             "local_path": local_path,
                             "job_id": job_id,
                         },
-                        correlation_id=job_id,
+                        correlation_id=correlation_id,
                     )
 
                     logger.info(

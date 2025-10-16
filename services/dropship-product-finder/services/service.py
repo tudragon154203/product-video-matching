@@ -57,7 +57,7 @@ class DropshipProductFinderService:
             self.collectors["ebay"].update_redis_client(redis_client)
             logger.info("DropshipProductFinderService Redis client updated")
 
-    async def handle_products_collect_request(self, event_data: Dict[str, Any]):
+    async def handle_products_collect_request(self, event_data: Dict[str, Any], correlation_id: str):
         """Handle products collection request"""
         try:
             job_id = event_data["job_id"]
@@ -75,7 +75,7 @@ class DropshipProductFinderService:
                 amazon_count,
                 ebay_count,
             ) = await self.product_collection_manager.collect_and_store_products(
-                job_id, queries, top_amz, top_ebay
+                job_id, queries, top_amz, top_ebay, correlation_id
             )
 
             total_images = (
@@ -123,14 +123,14 @@ class DropshipProductFinderService:
         await self.broker.publish_event(
             "products.collections.completed",
             {"job_id": job_id, "event_id": event_id},
-            correlation_id=job_id,
+            correlation_id=correlation_id,
         )
 
         vision_event_id = str(uuid.uuid4())
         await self.broker.publish_event(
             "products.images.ready.batch",
             {"job_id": job_id, "event_id": vision_event_id, "total_images": 0},
-            correlation_id=job_id,
+            correlation_id=correlation_id,
         )
 
         logger.info(
@@ -149,7 +149,7 @@ class DropshipProductFinderService:
         await self.broker.publish_event(
             "products.collections.completed",
             {"job_id": job_id, "event_id": event_id},
-            correlation_id=job_id,
+            correlation_id=correlation_id,
         )
 
         # Individual events are already published during processing
@@ -162,7 +162,7 @@ class DropshipProductFinderService:
                 "event_id": vision_event_id,
                 "total_images": total_images,
             },
-            correlation_id=job_id,
+            correlation_id=correlation_id,
         )
 
         logger.info(

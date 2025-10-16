@@ -26,5 +26,5 @@ class DropshipProductHandler:
 
     @handle_errors
     @validate_event("products_collect_request")
-    async def handle_products_collect_request(self, event_data):
-        await self.service.handle_products_collect_request(event_data)
+    async def handle_products_collect_request(self, event_data, correlation_id):
+        await self.service.handle_products_collect_request(event_data, correlation_id)

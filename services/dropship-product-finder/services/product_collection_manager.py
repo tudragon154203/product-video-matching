@@ -17,9 +17,11 @@ class ProductCollectionManager:
         self.image_storage_manager = image_storage_manager
 
     async def collect_and_store_products(
-        self, job_id: str, queries: List[str], top_amz: int, top_ebay: int
+        self, job_id: str, queries: List[str], top_amz: int, top_ebay: int, correlation_id: str
     ) -> tuple[int, int]:
         async def _process_platform(platform: str, top_k: int) -> int:
+            # Capture correlation_id from outer scope
+            current_correlation_id = correlation_id
             count = 0
             logger.info("[%s] Worker START job=%s", platform, job_id)
 
@@ -42,7 +44,7 @@ class ProductCollectionManager:
                 for product_data in products:
                     try:
                         await self.image_storage_manager.store_product(
-                            product_data, job_id, platform
+                            product_data, job_id, platform, current_correlation_id
                         )
                         count += 1
                     except Exception as e:

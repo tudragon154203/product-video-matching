@@ -75,7 +75,7 @@ class VideoCrawlerService:
         """
         self.video_processor.initialize_keyframe_extractor(keyframe_dir)
 
-    async def handle_videos_search_request(self, event_data: Dict[str, Any]) -> None:
+    async def handle_videos_search_request(self, event_data: Dict[str, Any], correlation_id: str) -> None:
         """Handle video search request with cross-platform parallelism.
 
         Args:
@@ -213,7 +213,7 @@ class VideoCrawlerService:
         """
         logger.info(f"No videos found for job {job_id}")
         if self.event_emitter:
-            await self.event_emitter.publish_videos_collections_completed(job_id)
+            await self.event_emitter.publish_videos_collections_completed(job_id, correlation_id)
         logger.info(
             "Completed video search with zero videos",
             job_id=job_id,
@@ -239,10 +239,10 @@ class VideoCrawlerService:
 
         # Emit batch completion events
         if self.event_emitter and batch_payload:
-            await self.event_emitter.publish_videos_keyframes_ready_batch(job_id, batch_payload)
+            await self.event_emitter.publish_videos_keyframes_ready_batch(job_id, batch_payload, correlation_id)
 
         if self.event_emitter:
-            await self.event_emitter.publish_videos_collections_completed(job_id)
+            await self.event_emitter.publish_videos_collections_completed(job_id, correlation_id)
 
     def _get_video_dir(self) -> str:
         """Get the video directory path.
