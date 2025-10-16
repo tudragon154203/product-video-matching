@@ -115,14 +115,14 @@ class VideoCrawlerService:
             )
 
             if not all_videos:
-                await self._handle_zero_videos_case(job_id)
+                await self._handle_zero_videos_case(job_id, correlation_id)
                 return
 
             # Update job progress
             await self._update_job_progress(job_id, len(all_videos))
 
             # Process videos and emit events
-            await self._process_and_emit_videos(all_videos, job_id)
+            await self._process_and_emit_videos(all_videos, job_id, correlation_id)
 
             logger.info(
                 "Completed video search",
@@ -205,7 +205,7 @@ class VideoCrawlerService:
                 job_id, "video", total_videos, 0, "crawling"
             )
 
-    async def _handle_zero_videos_case(self, job_id: str) -> None:
+    async def _handle_zero_videos_case(self, job_id: str, correlation_id: str) -> None:
         """Handle case where no videos are found.
 
         Args:
@@ -220,7 +220,7 @@ class VideoCrawlerService:
             total_videos=0
         )
 
-    async def _process_and_emit_videos(self, all_videos: List[Dict[str, Any]], job_id: str) -> None:
+    async def _process_and_emit_videos(self, all_videos: List[Dict[str, Any]], job_id: str, correlation_id: str) -> None:
         """Process all videos and emit completion events.
 
         Args:

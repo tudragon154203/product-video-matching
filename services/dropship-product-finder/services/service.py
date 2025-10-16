@@ -100,9 +100,9 @@ class DropshipProductFinderService:
             )
 
             if total_images == 0:
-                await self._handle_zero_products_case(job_id)
+                await self._handle_zero_products_case(job_id, correlation_id)
             else:
-                await self._publish_all_image_events(job_id, total_images)
+                await self._publish_all_image_events(job_id, total_images, correlation_id)
 
                 logger.info(
                     "Completed product collection",
@@ -116,7 +116,7 @@ class DropshipProductFinderService:
             logger.error("Failed to process product collection request", error=str(e))
             raise
 
-    async def _handle_zero_products_case(self, job_id: str):
+    async def _handle_zero_products_case(self, job_id: str, correlation_id: str):
         logger.info("No products found for job {job_id}", job_id=job_id)
 
         event_id = str(uuid.uuid4())
@@ -144,7 +144,7 @@ class DropshipProductFinderService:
             "Skipping individual image events for job with no products", job_id=job_id
         )
 
-    async def _publish_all_image_events(self, job_id: str, total_images: int):
+    async def _publish_all_image_events(self, job_id: str, total_images: int, correlation_id: str):
         event_id = str(uuid.uuid4())
         await self.broker.publish_event(
             "products.collections.completed",

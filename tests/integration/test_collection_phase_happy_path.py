@@ -86,7 +86,10 @@ class TestCollectionPhaseHappyPath:
         videos_request = TestEventFactory.create_videos_search_request(
             job_id=job_id,
             industry="pillow review",
-            queries={"vi": ["gối ngủ ergonomics"]},  # Minimal dataset
+            queries={
+                "vi": ["gối ngủ ergonomics"],  # Minimal dataset
+                "zh": ["人体工学枕头"]  # Required by schema
+            },
             platforms=["youtube"],  # Minimal dataset - cap at 2 videos
             recency_days=30
         )
@@ -256,7 +259,10 @@ class TestCollectionPhaseHappyPath:
         videos_request = TestEventFactory.create_videos_search_request(
             job_id=job_id,
             industry="pillow review",
-            queries={"vi": ["gối ngủ ergonomics"]},
+            queries={
+                "vi": ["gối ngủ ergonomics"],
+                "zh": ["人体工学枕头"]
+            },
             platforms=["youtube"],
             recency_days=30
         )

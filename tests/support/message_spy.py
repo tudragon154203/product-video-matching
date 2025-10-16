@@ -51,10 +51,13 @@ class MessageSpy:
     
     async def disconnect(self):
         """Close connection and clean up spy queues"""
-        # Cancel all consumers
-        for consumer_tag in self.consumers.values():
-            if self.channel:
-                await self.channel.basic_cancel(consumer_tag)
+        # Cancel all consumers - remove queue bindings instead
+        for queue_name, queue in self.spy_queues.items():
+            try:
+                await queue.unbind(self.exchange, routing_key=queue_name.replace("spy.", "").replace("_", "."))
+                logger.info("Unbound spy queue", queue_name=queue_name)
+            except Exception as e:
+                logger.warning("Failed to unbind spy queue", queue_name=queue_name, error=str(e))
         
         # Delete spy queues
         for queue_name, queue in self.spy_queues.items():
@@ -169,10 +172,15 @@ class MessageSpy:
     
     async def stop_consuming(self, queue_name: str):
         """Stop consuming messages from a spy queue"""
-        if queue_name in self.consumers:
-            consumer_tag = self.consumers[queue_name]
-            await self.channel.basic_cancel(consumer_tag)
-            del self.consumers[queue_name]
+        if queue_name in self.consumers and queue_name in self.spy_queues:
+            queue = self.spy_queues[queue_name]
+            try:
+                await queue.cancel()
+                logger.info("Cancelled consuming from spy queue", queue_name=queue_name)
+            except Exception as e:
+                logger.warning("Failed to cancel consuming from spy queue", queue_name=queue_name, error=str(e))
+            finally:
+                del self.consumers[queue_name]
             
             logger.info(
                 "Stopped consuming from spy queue",
