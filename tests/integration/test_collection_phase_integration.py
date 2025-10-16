@@ -401,8 +401,8 @@ class TestCollectionPhaseIntegration:
         # Test job existence validation
         await validator.assert_job_exists(job_id)
         
-        # Test job status (should be 'started' from our setup)
-        await validator.assert_job_status(job_id, "started")
+        # Test job phase (should be 'collection' from our setup)
+        await validator.assert_job_phase(job_id, "collection")
         
         # Test non-existent job
         with pytest.raises(AssertionError):

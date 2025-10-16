@@ -352,18 +352,18 @@ class DatabaseStateValidator:
                 f"Expected at least {min_count} product images for job {job_id}, found {count}"
             )
     
-    async def get_job_status(self, job_id: str) -> Optional[str]:
-        """Get the status of a job"""
-        query = "SELECT status FROM jobs WHERE job_id = $1"
+    async def get_job_phase(self, job_id: str) -> Optional[str]:
+        """Get the phase of a job"""
+        query = "SELECT phase FROM jobs WHERE job_id = $1"
         return await self.db_manager.fetch_val(query, job_id)
     
-    async def assert_job_status(self, job_id: str, expected_status: str):
-        """Assert that a job has a specific status"""
-        actual_status = await self.get_job_status(job_id)
+    async def assert_job_phase(self, job_id: str, expected_phase: str):
+        """Assert that a job has a specific phase"""
+        actual_phase = await self.get_job_phase(job_id)
         
-        if actual_status != expected_status:
+        if actual_phase != expected_phase:
             raise AssertionError(
-                f"Expected job {job_id} to have status {expected_status}, got {actual_status}"
+                f"Expected job {job_id} to have phase {expected_phase}, got {actual_phase}"
             )
     
     async def get_collection_summary(self, job_id: str) -> Dict[str, int]:

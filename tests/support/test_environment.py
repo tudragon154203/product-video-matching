@@ -132,13 +132,16 @@ class CollectionPhaseTestEnvironment:
             self.test_job_id = None
     
     async def _create_test_job(self):
-        """Create a test job record in the database"""
+        """Create a test job record in the database (idempotent)."""
         await self.db_manager.execute(
             """
             INSERT INTO jobs (job_id, industry, phase, created_at, updated_at)
-            VALUES ($1, 'test industry', 'collection', NOW(), NOW())
+            VALUES ($1, $2, $3, NOW(), NOW())
+            ON CONFLICT (job_id) DO NOTHING;
             """,
-            self.test_job_id
+            self.test_job_id,
+            "test industry",
+            "collection",
         )
 
         logger.debug("Created test job record", job_id=self.test_job_id)

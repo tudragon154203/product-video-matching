@@ -29,6 +29,7 @@ class MessageSpy:
         self.spy_queues = {}
         self.captured_messages = {}
         self.consumers = {}
+        self.queue_bindings = {}
         
     async def connect(self):
         """Establish connection to RabbitMQ"""
@@ -50,26 +51,56 @@ class MessageSpy:
             raise
     
     async def disconnect(self):
-        """Close connection and clean up spy queues"""
-        # Cancel all consumers - remove queue bindings instead
-        for queue_name, queue in self.spy_queues.items():
+        """Close connection and clean up spy queues safely"""
+        # Cancel all consumers first to prevent PRECONDITION_FAILED
+        for queue_name, queue in list(self.spy_queues.items()):
+            consumer_tag = self.consumers.get(queue_name)
             try:
-                await queue.unbind(self.exchange, routing_key=queue_name.replace("spy.", "").replace("_", "."))
-                logger.info("Unbound spy queue", queue_name=queue_name)
+                if consumer_tag:
+                    await queue.cancel(consumer_tag)
+                    logger.info("Cancelled consumer for spy queue", queue_name=queue_name)
+                else:
+                    logger.debug("No consumer_tag found; queue may have been already cancelled", queue_name=queue_name)
+            except Exception as e:
+                logger.warning("Failed to cancel consumer for spy queue", queue_name=queue_name, error=str(e))
+        # Clear consumer registry
+        self.consumers.clear()
+
+        # Unbind and delete spy queues
+        for queue_name, queue in list(self.spy_queues.items()):
+            # Use recorded binding key for safe unbind; fallback to derived key if missing
+            binding_key = self.queue_bindings.get(queue_name)
+            routing_key = binding_key if binding_key else queue_name.replace("spy.", "").replace("_", ".")
+            try:
+                await queue.unbind(self.exchange, routing_key=routing_key)
+                logger.info("Unbound spy queue", queue_name=queue_name, routing_key=routing_key)
             except Exception as e:
                 logger.warning("Failed to unbind spy queue", queue_name=queue_name, error=str(e))
-        
-        # Delete spy queues
-        for queue_name, queue in self.spy_queues.items():
             try:
                 await queue.delete()
-                logger.info("Deleted spy queue", queue=queue_name)
+                logger.info("Deleted spy queue", queue_name=queue_name)
             except Exception as e:
-                logger.warning("Failed to delete spy queue", queue=queue_name, error=str(e))
-        
-        if self.connection:
-            await self.connection.close()
-            logger.info("Message spy disconnected from RabbitMQ")
+                logger.warning("Failed to delete spy queue", queue_name=queue_name, error=str(e))
+            finally:
+                # Remove from registry
+                self.spy_queues.pop(queue_name, None)
+                self.captured_messages.pop(queue_name, None)
+                self.queue_bindings.pop(queue_name, None)
+
+        # Close channel then connection to avoid pending task warnings
+        try:
+            if self.channel:
+                await self.channel.close()
+                logger.info("Message spy channel closed")
+        except Exception as e:
+            logger.warning("Failed to close message spy channel", error=str(e))
+
+        try:
+            if self.connection:
+                await self.connection.close()
+                logger.info("Message spy disconnected from RabbitMQ")
+        except Exception as e:
+            logger.warning("Failed to close message spy connection", error=str(e))
     
     async def create_spy_queue(self, routing_key: str, queue_name: Optional[str] = None) -> str:
         """
@@ -99,6 +130,8 @@ class MessageSpy:
         
         # Bind queue to routing key
         await queue.bind(self.exchange, routing_key=routing_key)
+        # Track binding key for safe unbind later
+        self.queue_bindings[queue_name] = routing_key
         
         # Initialize captured messages list
         self.captured_messages[queue_name] = []
@@ -160,7 +193,7 @@ class MessageSpy:
                     error=str(e)
                 )
         
-        # Start consuming with timeout
+        # Start consuming
         consumer_tag = await queue.consume(message_handler)
         self.consumers[queue_name] = consumer_tag
         
@@ -172,21 +205,22 @@ class MessageSpy:
     
     async def stop_consuming(self, queue_name: str):
         """Stop consuming messages from a spy queue"""
-        if queue_name in self.consumers and queue_name in self.spy_queues:
+        if queue_name in self.spy_queues:
             queue = self.spy_queues[queue_name]
+            consumer_tag = self.consumers.get(queue_name)
             try:
-                await queue.cancel()
-                logger.info("Cancelled consuming from spy queue", queue_name=queue_name)
+                if consumer_tag:
+                    await queue.cancel(consumer_tag)
+                    logger.info("Cancelled consuming from spy queue", queue_name=queue_name)
+                else:
+                    logger.warning("No consumer_tag found for spy queue; skipping cancel", queue_name=queue_name)
             except Exception as e:
                 logger.warning("Failed to cancel consuming from spy queue", queue_name=queue_name, error=str(e))
             finally:
-                del self.consumers[queue_name]
+                if queue_name in self.consumers:
+                    del self.consumers[queue_name]
             
-            logger.info(
-                "Stopped consuming from spy queue",
-                queue_name=queue_name,
-                consumer_tag=consumer_tag
-            )
+            logger.info("Stopped consuming from spy queue", queue_name=queue_name)
     
     def get_captured_messages(self, queue_name: str) -> List[Dict[str, Any]]:
         """Get all captured messages from a spy queue"""
@@ -324,43 +358,41 @@ class CollectionPhaseSpy:
         logger.info("Collection phase spy disconnected")
     
     async def wait_for_products_completed(
-        self, 
-        job_id: str, 
+        self,
+        job_id: str,
         timeout: float = 10.0
     ) -> Dict[str, Any]:
-        """Wait for products collection completed event"""
-        message = await self.spy.assert_message_received(
+        """Wait for products collection completed event (filtered by job_id)."""
+        # Filter by routing key AND job_id to avoid contamination from concurrent tests
+        message = await self.spy.wait_for_message(
             queue_name=self.products_queue,
             timeout=timeout,
-            expected_event_type="products.collections.completed"
+            predicate=lambda msg: (
+                "products.collections.completed" in msg.get("routing_key", "")
+                and msg.get("event_data", {}).get("job_id") == job_id
+            ),
         )
-        
-        # Verify job ID matches
-        if message["event_data"].get("job_id") != job_id:
-            raise AssertionError(
-                f"Expected job_id {job_id}, got {message['event_data'].get('job_id')}"
-            )
-        
+        if not message:
+            raise AssertionError(f"Expected products.collections.completed for job_id {job_id} within {timeout}s")
         return message
     
     async def wait_for_videos_completed(
-        self, 
-        job_id: str, 
+        self,
+        job_id: str,
         timeout: float = 10.0
     ) -> Dict[str, Any]:
-        """Wait for videos collection completed event"""
-        message = await self.spy.assert_message_received(
+        """Wait for videos collection completed event (filtered by job_id)."""
+        # Filter by routing key AND job_id to avoid contamination from concurrent tests
+        message = await self.spy.wait_for_message(
             queue_name=self.videos_queue,
             timeout=timeout,
-            expected_event_type="videos.collections.completed"
+            predicate=lambda msg: (
+                "videos.collections.completed" in msg.get("routing_key", "")
+                and msg.get("event_data", {}).get("job_id") == job_id
+            ),
         )
-        
-        # Verify job ID matches
-        if message["event_data"].get("job_id") != job_id:
-            raise AssertionError(
-                f"Expected job_id {job_id}, got {message['event_data'].get('job_id')}"
-            )
-        
+        if not message:
+            raise AssertionError(f"Expected videos.collections.completed for job_id {job_id} within {timeout}s")
         return message
     
     async def wait_for_both_completed(

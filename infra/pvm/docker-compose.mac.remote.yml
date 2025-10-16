@@ -176,11 +176,14 @@ services:
   video-crawler:
     build:
       context: ../../
-      dockerfile: services/video-crawler/Dockerfile
+    dockerfile: services/video-crawler/Dockerfile
     env_file:
       - .env
     environment:
       PYTHONPATH: /app/libs:/app/libs/common-py:/app/libs/contracts::/app/libs/vision-common
+      PVM_TEST_MODE: "true"
+      VIDEO_CRAWLER_AUTOSTART: "false"
+      VIDEO_CRAWLER_MODE: "mock"
     volumes:
       - O:/product-video-matching/libs:/app/libs:ro
       - O:/product-video-matching/${DATA_ROOT_HOST}:${DATA_ROOT_CONTAINER}
