@@ -15,20 +15,20 @@ PROJECT_ROOT = Path(__file__).resolve().parent.parent
 LIBS_DIR = PROJECT_ROOT / "libs"
 COMMON_PY_DIR = LIBS_DIR / "common-py"
 INFRA_DIR = PROJECT_ROOT / "infra"
+TESTS_DIR = PROJECT_ROOT / "tests"
 
 def ensure_sys_path():
     """Ensure project-specific paths are available for imports."""
-    for path in (COMMON_PY_DIR, LIBS_DIR, INFRA_DIR, PROJECT_ROOT):
+    # Include tests directory so top-level imports like 'support' resolve when running from subdir (e.g., tests/integration)
+    for path in (COMMON_PY_DIR, LIBS_DIR, INFRA_DIR, PROJECT_ROOT, TESTS_DIR):
         path_str = str(path)
         if path_str not in sys.path:
             sys.path.append(path_str)
 
     # Propagate to PYTHONPATH so subprocesses inherit the same paths
     pythonpath = os.environ.get("PYTHONPATH", "")
-    paths = [str(COMMON_PY_DIR), str(LIBS_DIR)]
-    merged = os.pathsep.join(
-        [p for p in paths + pythonpath.split(os.pathsep) if p]
-    )
+    paths = [str(COMMON_PY_DIR), str(LIBS_DIR), str(TESTS_DIR), str(PROJECT_ROOT)]
+    merged = os.pathsep.join([p for p in paths + pythonpath.split(os.pathsep) if p])
     os.environ["PYTHONPATH"] = merged
 
 
