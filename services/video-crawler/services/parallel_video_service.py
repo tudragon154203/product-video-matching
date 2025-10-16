@@ -43,6 +43,9 @@ class ParallelVideoService:
         self.job_progress_manager = job_progress_manager
         self.config = config or PipelineConfig()
 
+        # Job context for progress updates
+        self._current_job_id: Optional[str] = None
+
         # Initialize components
         self.idempotency_manager = IdempotencyManager(db)
         self.video_processor = VideoProcessor(
@@ -92,6 +95,9 @@ class ParallelVideoService:
         total_skipped = 0
         total_errors = 0
 
+        # Set job context for progress updates
+        self._current_job_id = job_id
+
         try:
             async for result in self.pipeline.process_videos_streaming(
                 platform_queries=platform_queries,
@@ -109,6 +115,9 @@ class ParallelVideoService:
         except Exception as e:
             logger.error(f"Error in streaming processing: {e}")
             total_errors += 1
+        finally:
+            # Clear job context
+            self._current_job_id = None
 
         final_stats = self.pipeline.get_stats()
 
@@ -231,7 +240,7 @@ class ParallelVideoService:
                 progress_percentage = (total_completed / total_started) * 100
 
                 await self.job_progress_manager.update_job_progress(
-                    job_id="",  # Would be passed in from context
+                    job_id=self._current_job_id or stats.get("job_id", ""),
                     item_type="video",
                     completed=total_completed,
                     total=total_started,

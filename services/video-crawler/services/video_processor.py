@@ -1,5 +1,6 @@
 """Video processing workflow separated from main service."""
 
+import os
 import uuid
 from typing import Any, Dict, List, Optional, Tuple
 
@@ -65,6 +66,23 @@ class VideoProcessor:
                         "frames": existing_frames,
                         "skipped": True
                     }
+
+            # Test-friendly mode: skip keyframe extraction entirely
+            if self._should_skip_keyframe_extraction():
+                logger.info(
+                    "Skipping keyframe extraction due to test/mock mode",
+                    job_id=job_id,
+                    platform=video.platform,
+                    video_id=video.video_id
+                )
+                # Do not emit per-video keyframes; batch emitter will also be skipped when frames are empty
+                await self._update_progress(job_id)
+                return {
+                    "video_id": video.video_id,
+                    "platform": video.platform,
+                    "frames": [],
+                    "created_new": created_new
+                }
 
             # Handle platform-specific processing
             if video.platform == "tiktok":
@@ -283,3 +301,9 @@ class VideoProcessor:
             keyframe_root_dir=keyframe_dir,
             create_dirs=True
         )
+
+    def _should_skip_keyframe_extraction(self) -> bool:
+        """Return True when running in test/mock mode to skip heavy processing."""
+        pvm_test_mode = os.getenv("PVM_TEST_MODE", "false").lower() == "true"
+        crawler_mode = os.getenv("VIDEO_CRAWLER_MODE", "live").lower()
+        return pvm_test_mode or crawler_mode == "mock"

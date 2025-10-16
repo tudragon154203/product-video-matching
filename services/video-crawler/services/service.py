@@ -254,22 +254,38 @@ class VideoCrawlerService:
 
     def _initialize_platform_crawlers(self) -> Dict[str, PlatformCrawlerInterface]:
         """Initialize platform crawlers for each supported platform.
-
+        
+        In test mode or when VIDEO_CRAWLER_MODE=mock, use mock crawlers for all platforms
+        to ensure deterministic behavior and avoid external dependencies.
+        
         Returns:
             Dictionary mapping platform names to crawler instances
         """
-        crawlers = {}
+        crawlers: Dict[str, PlatformCrawlerInterface] = {}
 
-        # Use real YouTube crawler
-        crawlers["youtube"] = YoutubeCrawler()
+        # Read environment flags
+        pvm_test_mode = os.getenv("PVM_TEST_MODE", "false").lower() == "true"
+        crawler_mode = os.getenv("VIDEO_CRAWLER_MODE", "live").lower()
+        if pvm_test_mode:
+            # Force mock mode in tests
+            crawler_mode = "mock"
 
-        # Use real TikTok crawler
-        crawlers["tiktok"] = TikTokCrawler()
-
-        # Use mock crawlers for other platforms (not implemented yet)
-        crawlers["bilibili"] = MockPlatformCrawler("bilibili")
-        crawlers["douyin"] = MockPlatformCrawler("douyin")
-
+        if crawler_mode == "mock":
+            # Use mock crawlers for deterministic test behavior
+            crawlers["youtube"] = MockPlatformCrawler("youtube")
+            crawlers["tiktok"] = MockPlatformCrawler("tiktok")
+            crawlers["bilibili"] = MockPlatformCrawler("bilibili")
+            crawlers["douyin"] = MockPlatformCrawler("douyin")
+            logger.info("VideoCrawlerService initialized in MOCK mode (test-friendly crawlers)")
+        else:
+            # Use real platform crawlers
+            crawlers["youtube"] = YoutubeCrawler()
+            crawlers["tiktok"] = TikTokCrawler()
+            # Use mock crawlers for other platforms (not implemented yet)
+            crawlers["bilibili"] = MockPlatformCrawler("bilibili")
+            crawlers["douyin"] = MockPlatformCrawler("douyin")
+            logger.info("VideoCrawlerService initialized in LIVE mode (real crawlers)")
+        
         return crawlers
 
     async def run_manual_cleanup(self, dry_run: bool = False) -> Dict[str, Any]:
