@@ -135,12 +135,12 @@ class CollectionPhaseTestEnvironment:
         """Create a test job record in the database"""
         await self.db_manager.execute(
             """
-            INSERT INTO jobs (job_id, status, created_at, updated_at)
-            VALUES ($1, 'started', NOW(), NOW())
+            INSERT INTO jobs (job_id, industry, phase, created_at, updated_at)
+            VALUES ($1, 'test industry', 'collection', NOW(), NOW())
             """,
             self.test_job_id
         )
-        
+
         logger.debug("Created test job record", job_id=self.test_job_id)
     
     async def publish_collection_requests(

@@ -271,8 +271,8 @@ async def collection_job_setup(db_manager, collection_test_data):
     # Insert job record
     await db_manager.execute(
         """
-        INSERT INTO jobs (job_id, status, created_at, updated_at)
-        VALUES ($1, 'started', NOW(), NOW())
+        INSERT INTO jobs (job_id, industry, phase, created_at, updated_at)
+        VALUES ($1, 'test industry', 'collection', NOW(), NOW())
         """,
         job_id
     )
@@ -368,8 +368,8 @@ async def collection_phase_with_observability(
     job_id = collection_test_data["job_id"]
     await db_manager.execute(
         """
-        INSERT INTO jobs (job_id, status, created_at, updated_at)
-        VALUES ($1, 'started', NOW(), NOW())
+        INSERT INTO jobs (job_id, industry, phase, created_at, updated_at)
+        VALUES ($1, 'test industry', 'collection', NOW(), NOW())
         """,
         job_id
     )

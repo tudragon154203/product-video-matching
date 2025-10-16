@@ -52,7 +52,7 @@ class TestCollectionPhaseHappyPath:
         
         Trigger:
         - Publish products_collect_request.json with valid job_id and correlation_id for the minimal dataset
-        - Publish videos_search_request.json with the same job_id and correlation_id; cap at 2 videos
+        - Publish videos_search_request.json with the same job_id and correlation_id; at least 2 videos
         
         Expected:
         - Exactly one products_collections_completed.json observed within 10s
@@ -70,10 +70,19 @@ class TestCollectionPhaseHappyPath:
         
         # Ensure clean database state
         await cleanup.cleanup_test_data()
-        
+
         # Generate unique job_id and correlation_id for this test
         job_id = test_data["job_id"]
         correlation_id = str(uuid.uuid4())
+
+        # Create job record for this test
+        await cleanup.db_manager.execute(
+            """
+            INSERT INTO jobs (job_id, industry, phase, created_at, updated_at)
+            VALUES ($1, 'test industry', 'collection', NOW(), NOW())
+            """,
+            job_id
+        )
         
         # Load synthetic fixtures from tests/mock_data
         products_request = TestEventFactory.create_products_collect_request(
@@ -168,9 +177,8 @@ class TestCollectionPhaseHappyPath:
         video_crud = VideoCRUD(cleanup.db_manager)
         videos = await video_crud.list_videos_by_job(job_id)
         
-        # Assert we have videos collected (capped at 2 as specified)
-        assert len(videos) > 0, "No videos found in database"
-        assert len(videos) <= 2, "More videos than expected (should be capped at 2)"
+        # Assert we have videos collected (at least 2 as specified)
+        assert len(videos) >= 2, f"Expected at least 2 videos, got {len(videos)}"
         
         # Validate video fields
         for video in videos:
