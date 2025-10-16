@@ -176,9 +176,14 @@ class TestCollectionPhaseIntegration:
         await validator.assert_job_exists(job_id)
         
         # Step 5: Validate observability requirements
-        # Use the first correlation ID for validation
-        primary_correlation_id = correlation_ids[0] if correlation_ids else videos_correlation_id
-        
+        # Use products correlation_id if available (handle str vs list), else fallback to videos correlation_id
+        if isinstance(correlation_ids, str):
+            primary_correlation_id = correlation_ids
+        elif correlation_ids:
+            primary_correlation_id = correlation_ids[0]
+        else:
+            primary_correlation_id = videos_correlation_id
+
         observability_results = await obs_validator.assert_observability_requirements(
             correlation_id=primary_correlation_id,
             expected_services=expected_observability_services

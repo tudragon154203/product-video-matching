@@ -355,8 +355,16 @@ class TestEnvironmentManager:
             broker_url=self.broker_url,
             timeout_per_event=timeout_per_event
         )
-        
-        await environment.setup(job_id)
+
+        # Generate a unique job_id if not provided
+        if job_id is None:
+            timestamp = datetime.utcnow().strftime("%Y%m%d_%H%M%S_%f")
+            unique_suffix = os.urandom(2).hex()
+            generated_job_id = f"test_job_{timestamp}_{os.getpid()}_{name}_{unique_suffix}"
+        else:
+            generated_job_id = job_id
+
+        await environment.setup(generated_job_id)
         
         self.environments[name] = environment
         

@@ -43,6 +43,74 @@ from support.message_spy import CollectionPhaseSpy, MessageSpy
 from support.db_cleanup import CollectionPhaseCleanup, DatabaseStateValidator
 from support.event_publisher import CollectionEventPublisher, TestEventFactory
 
+from support.observability_validator import ObservabilityValidator
+
+@pytest_asyncio.fixture
+async def observability_test_environment(
+    collection_phase_spy,
+    collection_cleanup,
+    db_validator,
+    event_publisher,
+    test_event_factory,
+    collection_test_data,
+    db_manager,
+    message_broker
+):
+    """
+    Complete collection phase test environment with observability capture.
+    Provides spy, cleanup, validator, publisher, test data, and an ObservabilityValidator.
+    Ensures the job record exists before publishing requests.
+    """
+    # Initialize observability capture
+    obs_validator = ObservabilityValidator(db_manager, message_broker)
+    obs_validator.start_observability_capture()
+
+    # Clear any existing messages and ensure clean DB state
+    collection_phase_spy.clear_messages()
+    await collection_cleanup.cleanup_test_data()
+
+    # Create test job record (idempotent)
+    job_id = collection_test_data["job_id"]
+    await db_manager.execute(
+        """
+        INSERT INTO jobs (job_id, industry, phase, created_at, updated_at)
+        VALUES ($1, 'test industry', 'collection', NOW(), NOW())
+        ON CONFLICT (job_id) DO NOTHING;
+        """,
+        job_id
+    )
+
+    yield {
+        "spy": collection_phase_spy,
+        "cleanup": collection_cleanup,
+        "validator": db_validator,
+        "publisher": event_publisher,
+        "factory": test_event_factory,
+        "test_data": collection_test_data,
+        "observability": obs_validator
+    }
+
+    # Stop capture and clean up
+    try:
+        obs_validator.stop_observability_capture()
+        obs_validator.clear_all_captures()
+    finally:
+        await collection_cleanup.cleanup_test_data()
+
+@pytest.fixture
+def expected_observability_services():
+    """
+    Expected services that should produce logs conforming to standards during collection phase.
+    Include both products and videos pipeline services.
+    """
+    return [
+        "main-api",
+        "dropship-product-finder",
+        "video-crawler",
+        "vision-embedding",
+        "vision-keypoint",
+        "matcher",
+    ]
 
 @pytest.fixture(scope="session")
 def event_loop():
@@ -223,6 +291,16 @@ async def collection_phase_test_environment(
     # Ensure clean database state
     await collection_cleanup.cleanup_test_data()
     
+    # Create test job record for this environment (idempotent)
+    job_id = collection_test_data["job_id"]
+    await collection_cleanup.db_manager.execute(
+        """
+        INSERT INTO jobs (job_id, industry, phase, created_at, updated_at)
+        VALUES ($1, 'test industry', 'collection', NOW(), NOW())
+        ON CONFLICT (job_id) DO NOTHING;
+        """,
+        job_id
+    )
     yield {
         "spy": collection_phase_spy,
         "cleanup": collection_cleanup,
