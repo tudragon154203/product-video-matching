@@ -43,6 +43,8 @@ dist/
 downloads/
 eggs/
 .eggs/
+.coverage*
+
 # Python lib directories (virtual environments)
 venv/lib/
 env/lib/
