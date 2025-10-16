@@ -32,7 +32,7 @@ class MockImageStorageManager:
         self.fail_on_product_id = fail_on_product_id
 
     async def store_product(
-        self, product: Dict[str, Any], job_id: str, platform: str
+        self, product: Dict[str, Any], job_id: str, platform: str, correlation_id: str
     ) -> None:
         if self.should_fail and (
             self.fail_on_product_id is None
@@ -40,7 +40,7 @@ class MockImageStorageManager:
         ):
             raise Exception(f"Storage failed for product {product.get('id')}")
         self.stored_products.append(
-            {"product": product, "job_id": job_id, "platform": platform}
+            {"product": product, "job_id": job_id, "platform": platform, "correlation_id": correlation_id}
         )
 
 
@@ -84,7 +84,7 @@ async def test_parallel_execution_basic(product_collection_manager):
         amazon_count,
         ebay_count,
     ) = await product_collection_manager.collect_and_store_products(
-        "test_job", queries, top_amz, top_ebay
+        "test_job", queries, top_amz, top_ebay, "test-correlation-id"
     )
 
     # Verify counts
@@ -109,7 +109,7 @@ async def test_collector_failure_handling(product_collection_manager):
         amazon_count,
         ebay_count,
     ) = await product_collection_manager.collect_and_store_products(
-        "test_job", queries, top_amz, top_ebay
+        "test_job", queries, top_amz, top_ebay, "test-correlation-id"
     )
 
     # Amazon should still work, eBay should return 0 due to failures
@@ -140,7 +140,7 @@ async def test_storage_failure_handling(product_collection_manager):
         amazon_count,
         ebay_count,
     ) = await product_collection_manager.collect_and_store_products(
-        "test_job", queries, top_amz, top_ebay
+        "test_job", queries, top_amz, top_ebay, "test-correlation-id"
     )
 
     # Amazon count should be 1 (only amz_2 succeeded), eBay count should be 2
@@ -163,7 +163,7 @@ async def test_empty_queries(product_collection_manager):
         amazon_count,
         ebay_count,
     ) = await product_collection_manager.collect_and_store_products(
-        "test_job", queries, top_amz, top_ebay
+        "test_job", queries, top_amz, top_ebay, "test-correlation-id"
     )
 
     # Both counts should be 0
@@ -185,7 +185,7 @@ async def test_zero_top_k(product_collection_manager):
         amazon_count,
         ebay_count,
     ) = await product_collection_manager.collect_and_store_products(
-        "test_job", queries, top_amz, top_ebay
+        "test_job", queries, top_amz, top_ebay, "test-correlation-id"
     )
 
     # Both counts should be 0
@@ -229,7 +229,7 @@ async def test_concurrency_verification():
 
     start_time = time.time()
 
-    await manager.collect_and_store_products("test_job", queries, top_amz, top_ebay)
+    await manager.collect_and_store_products("test_job", queries, top_amz, top_ebay, "test-correlation-id")
 
     end_time = time.time()
     elapsed = end_time - start_time
@@ -263,7 +263,7 @@ async def test_product_id_logging_in_storage_error():
             mock_storage_manager,
         )
 
-        await manager.collect_and_store_products("test_job", ["query1"], 1, 0)
+        await manager.collect_and_store_products("test_job", ["query1"], 1, 0, "test-correlation-id")
 
         # Verify that the exception was logged with the product ID
         mock_logger.exception.assert_called()
@@ -285,7 +285,7 @@ async def test_collector_logging_on_failure():
             MockImageStorageManager(),
         )
 
-        await manager.collect_and_store_products("test_job", ["query1"], 1, 0)
+        await manager.collect_and_store_products("test_job", ["query1"], 1, 0, "test-correlation-id")
 
         # Verify that the collector failure was logged
         mock_logger.exception.assert_called()

@@ -155,11 +155,11 @@ class TestDropshipProductFinderService:
             "top_ebay": 5,
         }
 
-        await dropship_service.handle_products_collect_request(event_data)
+        await dropship_service.handle_products_collect_request(event_data, "test-correlation-id")
 
         # Verify product collection was called
         dropship_service.product_collection_manager.collect_and_store_products.assert_called_once_with(
-            "test-job-123", ["laptop", "phone"], 5, 5
+            "test-job-123", ["laptop", "phone"], 5, 5, "test-correlation-id"
         )
 
         # Verify image count was fetched
@@ -183,11 +183,11 @@ class TestDropshipProductFinderService:
             "top_ebay": 5,
         }
 
-        await dropship_service.handle_products_collect_request(event_data)
+        await dropship_service.handle_products_collect_request(event_data, "test-correlation-id")
 
         # Verify product collection was called
         dropship_service.product_collection_manager.collect_and_store_products.assert_called_once_with(
-            "test-job-123", ["laptop", "phone"], 5, 5
+            "test-job-123", ["laptop", "phone"], 5, 5, "test-correlation-id"
         )
 
         # Verify zero products case was handled
@@ -200,7 +200,7 @@ class TestDropshipProductFinderService:
         """Test _handle_zero_products_case method"""
         job_id = "test-job-123"
 
-        await dropship_service._handle_zero_products_case(job_id)
+        await dropship_service._handle_zero_products_case(job_id, "test-correlation-id")
 
         # Verify two events were published
         assert mock_message_broker.publish_event.call_count == 2
@@ -208,7 +208,7 @@ class TestDropshipProductFinderService:
         # Verify products.collections.completed event
         collections_call = mock_message_broker.publish_event.call_args_list[0]
         assert collections_call[0][0] == "products.collections.completed"
-        assert collections_call[1]["correlation_id"] == job_id
+        assert collections_call[1]["correlation_id"] == "test-correlation-id"
 
         # Verify the event data structure is correct
         collections_event_data = collections_call[0][1]
@@ -218,7 +218,7 @@ class TestDropshipProductFinderService:
         # Verify products.images.ready.batch event
         images_call = mock_message_broker.publish_event.call_args_list[1]
         assert images_call[0][0] == "products.images.ready.batch"
-        assert images_call[1]["correlation_id"] == job_id
+        assert images_call[1]["correlation_id"] == "test-correlation-id"
 
         # Verify the event data structure is correct
         images_event_data = images_call[0][1]
@@ -234,7 +234,7 @@ class TestDropshipProductFinderService:
         job_id = "test-job-123"
         total_images = 5
 
-        await dropship_service._publish_all_image_events(job_id, total_images)
+        await dropship_service._publish_all_image_events(job_id, total_images, "test-correlation-id")
 
         # Verify two events were published (collections.completed + images.ready.batch)
         assert mock_message_broker.publish_event.call_count == 2
@@ -242,7 +242,7 @@ class TestDropshipProductFinderService:
         # Verify products.collections.completed event
         collections_call = mock_message_broker.publish_event.call_args_list[0]
         assert collections_call[0][0] == "products.collections.completed"
-        assert collections_call[1]["correlation_id"] == job_id
+        assert collections_call[1]["correlation_id"] == "test-correlation-id"
 
         # Verify the event data structure is correct
         collections_event_data = collections_call[0][1]
@@ -252,7 +252,7 @@ class TestDropshipProductFinderService:
         # Verify products.images.ready.batch event
         images_call = mock_message_broker.publish_event.call_args_list[1]
         assert images_call[0][0] == "products.images.ready.batch"
-        assert images_call[1]["correlation_id"] == job_id
+        assert images_call[1]["correlation_id"] == "test-correlation-id"
 
         # Verify the event data structure is correct
         images_event_data = images_call[0][1]
@@ -281,7 +281,7 @@ class TestDropshipProductFinderService:
 
         # Should raise the exception
         with pytest.raises(Exception, match="Collection failed"):
-            await dropship_service.handle_products_collect_request(event_data)
+            await dropship_service.handle_products_collect_request(event_data, "test-correlation-id")
 
         # Verify that the error was logged (we can't directly check logging, but we can verify the exception was raised)
 
@@ -353,11 +353,11 @@ class TestDropshipProductFinderService:
         # Mock database to return 2 images for the one Amazon product
         mock_database_manager.fetch_val.return_value = 2
 
-        await dropship_service.handle_products_collect_request(event_data)
+        await dropship_service.handle_products_collect_request(event_data, "test-correlation-id")
 
         # Verify product collection was called
         dropship_service.product_collection_manager.collect_and_store_products.assert_called_once_with(
-            "test-job-123", ["laptop"], 1, 0
+            "test-job-123", ["laptop"], 1, 0, "test-correlation-id"
         )
 
         # Verify events were published: collections.completed + images.ready.batch
