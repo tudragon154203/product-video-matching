@@ -2,14 +2,16 @@
 Products & Videos Collection — Happy Path Integration Test
 
 Tests the complete collection phase workflow according to Sprint 13.1 PRD specifications:
+- ENFORCE: Real dropship-product-finder and video-crawler services (NO MOCKS)
 - Stack healthy; migrations applied; clean DB
-- Load synthetic fixtures from tests/mock_data
+- Load synthetic fixtures from tests/mock_data (for test data only, not service mocking)
 - Broker spy queues bound to products and videos collection completed topics
 - Publish collection requests with valid job_id and correlation_id
 - Validate completion events within 10s timeout
 - Verify database state using product_crud.py and video_crud.py
 - Check observability requirements (correlation_id in logs, metrics)
 - Validate idempotency by re-publishing same requests
+- ENFORCE: Real service validation before test execution
 """
 import pytest
 import asyncio
@@ -31,10 +33,59 @@ from common_py.messaging import MessageBroker
 class TestCollectionPhaseHappyPath:
     """
     Products & Videos Collection — Happy Path Integration Test
-    
+
     Tests the complete collection phase workflow according to Sprint 13.1 PRD specifications.
+    ENFORCES real service usage - no mocks allowed.
     """
-    
+
+    @staticmethod
+    def validate_real_service_usage():
+        """
+        Runtime validation that real services are being used.
+        Call this at the start of each test to ensure no mock configurations.
+        """
+        import os
+
+        # Check enforcement flags
+        video_mode = os.environ.get("VIDEO_CRAWLER_MODE", "").lower()
+        dropship_mode = os.environ.get("DROPSHIP_PRODUCT_FINDER_MODE", "").lower()
+        enforce_flag = os.environ.get("INTEGRATION_TESTS_ENFORCE_REAL_SERVICES", "").lower()
+
+        if video_mode != "live":
+            raise AssertionError(f"VIDEO_CRAWLER_MODE must be 'live', got '{video_mode}'")
+
+        if dropship_mode != "live":
+            raise AssertionError(f"DROPSHIP_PRODUCT_FINDER_MODE must be 'live', got '{dropship_mode}'")
+
+        if enforce_flag != "true":
+            raise AssertionError(f"INTEGRATION_TESTS_ENFORCE_REAL_SERVICES must be 'true', got '{enforce_flag}'")
+
+        print("✅ Real service usage validated for test execution")
+
+    @staticmethod
+    async def validate_services_responding():
+        """
+        Validate that real services are actually responding to requests.
+        This ensures services are running and accessible, not just configured.
+        """
+        import httpx
+        import os
+
+        # Check if main API is responding (indicates services are running)
+        main_api_url = os.environ.get("MAIN_API_URL", "http://localhost:8888")
+
+        try:
+            async with httpx.AsyncClient(timeout=5.0) as client:
+                response = await client.get(f"{main_api_url}/health")
+                if response.status_code != 200:
+                    raise AssertionError(f"Main API health check failed: {response.status_code}")
+        except httpx.ConnectError:
+            raise AssertionError(f"Cannot connect to Main API at {main_api_url}. Services may not be running.")
+        except Exception as e:
+            raise AssertionError(f"Service validation failed: {e}")
+
+        print("✅ Real services are responding to health checks")
+
     @pytest.mark.asyncio
     @pytest.mark.collection_phase
     @pytest.mark.ci
@@ -44,16 +95,18 @@ class TestCollectionPhaseHappyPath:
     ):
         """
         Products & Videos Collection — Happy Path (Combined, Minimal)
-        
+
+        ENFORCE: Real services only - no mocks allowed
+
         Setup:
         - Stack healthy; migrations applied; clean DB
-        - Load synthetic fixtures from tests/mock_data
+        - Load synthetic fixtures from tests/mock_data (for test data only, not service mocking)
         - Broker spy queues bound to products and videos collection completed topics
-        
+
         Trigger:
         - Publish products_collect_request.json with valid job_id and correlation_id for the minimal dataset
         - Publish videos_search_request.json with the same job_id and correlation_id; at least 2 videos
-        
+
         Expected:
         - Exactly one products_collections_completed.json observed within 10s
         - Exactly one videos_collections_completed.json observed within 10s
@@ -61,6 +114,12 @@ class TestCollectionPhaseHappyPath:
         - Videos persisted with expected fields via video_crud.py
         - Logs include correlation_id and standardized fields; metrics increment events_total
         """
+        # ENFORCEMENT: Validate real service configuration before running test
+        self.validate_real_service_usage()
+
+        # ENFORCEMENT: Validate services are actually running and responding
+        await self.validate_services_responding()
+
         env = collection_phase_test_environment
         spy = env["spy"]
         cleanup = env["cleanup"]
@@ -242,10 +301,18 @@ class TestCollectionPhaseHappyPath:
     ):
         """
         Collection Phase Idempotency Validation
-        
+
+        ENFORCE: Real services only - no mocks allowed
+
         Re-publish the same requests within the test → no duplicate completion events
         or duplicate DB writes for either domain (validated via event ledger in event_crud.py)
         """
+        # ENFORCEMENT: Validate real service configuration before running test
+        self.validate_real_service_usage()
+
+        # ENFORCEMENT: Validate services are actually running and responding
+        await self.validate_services_responding()
+
         env = collection_phase_test_environment
         spy = env["spy"]
         cleanup = env["cleanup"]
@@ -386,13 +453,21 @@ class TestCollectionPhaseHappyPath:
     ):
         """
         Collection Phase Comprehensive Validation
-        
+
+        ENFORCE: Real services only - no mocks allowed
+
         Additional comprehensive validation of all expected outcomes:
         - Contract compliance for all events
         - Database state correctness
         - Observability requirements
         - Timeout constraints
         """
+        # ENFORCEMENT: Validate real service configuration before running test
+        self.validate_real_service_usage()
+
+        # ENFORCEMENT: Validate services are actually running and responding
+        await self.validate_services_responding()
+
         env = collection_phase_test_environment
         spy = env["spy"]
         cleanup = env["cleanup"]

@@ -29,6 +29,7 @@ os.environ["PYTHONPATH"] = merged
 
 # Ensure integration test env overrides for host-run tests.
 # Explicitly set to avoid fallback to Docker service names like 'postgres' or 'rabbitmq'
+# ENFORCE REAL SERVICE USAGE - No mocks allowed in integration tests
 os.environ.update({
     "POSTGRES_HOST": "localhost",
     "POSTGRES_PORT": "5444",
@@ -37,7 +38,9 @@ os.environ.update({
     "POSTGRES_PASSWORD": "dev",
     "POSTGRES_DSN": "postgresql://postgres:dev@localhost:5444/product_video_matching",
     "BUS_BROKER": "amqp://guest:guest@localhost:5672/",
-    "VIDEO_CRAWLER_MODE": "live"
+    "VIDEO_CRAWLER_MODE": "live",  # ENFORCE: Real video crawling, no mock mode
+    "DROPSHIP_PRODUCT_FINDER_MODE": "live",  # ENFORCE: Real product finding, no mock mode
+    "INTEGRATION_TESTS_ENFORCE_REAL_SERVICES": "true"  # ENFORCE: Flag to prevent mock fallbacks
 })
 
 # Ensure the centralized config picks up the overrides by reloading after env update
@@ -50,6 +53,49 @@ if "config" in sys.modules:
 else:
     import config  # type: ignore
     importlib.reload(config)
+
+# ENFORCEMENT: Validate real service configuration before running tests
+def enforce_real_service_usage():
+    """
+    Validate that integration tests are configured to use real services, not mocks.
+    Raises AssertionError if mock configurations are detected.
+    """
+    # Check video crawler mode
+    video_crawler_mode = os.environ.get("VIDEO_CRAWLER_MODE", "").lower()
+    if video_crawler_mode in ["mock", "test", "fake"]:
+        raise AssertionError(
+            f"VIDEO_CRAWLER_MODE is set to '{video_crawler_mode}'. "
+            "Integration tests must use 'live' mode for real video crawling."
+        )
+
+    # Check dropship product finder mode
+    dropship_mode = os.environ.get("DROPSHIP_PRODUCT_FINDER_MODE", "").lower()
+    if dropship_mode in ["mock", "test", "fake"]:
+        raise AssertionError(
+            f"DROPSHIP_PRODUCT_FINDER_MODE is set to '{dropship_mode}'. "
+            "Integration tests must use 'live' mode for real product finding."
+        )
+
+    # Check enforcement flag
+    enforce_flag = os.environ.get("INTEGRATION_TESTS_ENFORCE_REAL_SERVICES", "").lower()
+    if enforce_flag != "true":
+        raise AssertionError(
+            "INTEGRATION_TESTS_ENFORCE_REAL_SERVICES must be set to 'true' for integration tests. "
+            "This ensures real services are used instead of mocks."
+        )
+
+    # Validate service URLs are real, not localhost mocks (unless intentionally testing local services)
+    broker_url = os.environ.get("BUS_BROKER", "")
+    if "mock" in broker_url.lower() or "test" in broker_url.lower():
+        raise AssertionError(
+            f"BUS_BROKER appears to be configured for mock usage: {broker_url}. "
+            "Integration tests should use real message broker."
+        )
+
+    print("Real service configuration validated for integration tests")
+
+# Run enforcement check immediately
+enforce_real_service_usage()
 
 # Dynamically load the root tests/conftest.py so fixtures are available under this collection root
 root_conftest_path = TESTS_DIR / "conftest.py"

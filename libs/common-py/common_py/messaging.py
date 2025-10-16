@@ -116,3 +116,24 @@ class MessageBroker:
             topic=topic,
             queue=queue_name
         )
+
+    async def get_queue_message_count(self, queue_name: str) -> int:
+        """
+        Get the number of messages in a queue
+
+        Args:
+            queue_name: Name of the queue to check
+
+        Returns:
+            Number of messages in the queue
+        """
+        if not self.channel:
+            raise RuntimeError("Not connected to RabbitMQ")
+
+        try:
+            # Declare queue to ensure it exists (passive=True means just check)
+            queue = await self.channel.declare_queue(queue_name, durable=True, passive=True)
+            return queue.declaration_result.message_count
+        except Exception as e:
+            logger.error("Failed to get queue message count", queue_name=queue_name, error=str(e))
+            raise
