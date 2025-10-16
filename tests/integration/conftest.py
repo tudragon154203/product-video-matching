@@ -37,8 +37,7 @@ os.environ.update({
     "POSTGRES_PASSWORD": "dev",
     "POSTGRES_DSN": "postgresql://postgres:dev@localhost:5444/product_video_matching",
     "BUS_BROKER": "amqp://guest:guest@localhost:5672/",
-    "PVM_TEST_MODE": "true",
-    "VIDEO_CRAWLER_MODE": "mock"
+    "VIDEO_CRAWLER_MODE": "live"
 })
 
 # Ensure the centralized config picks up the overrides by reloading after env update
