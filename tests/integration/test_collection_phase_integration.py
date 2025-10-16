@@ -324,13 +324,13 @@ class TestCollectionPhaseIntegration:
         
         # Insert some test data
         await db_manager.execute(
-            "INSERT INTO products (product_id, job_id, src, title) VALUES ($1, $2, $3, $4)",
-            "test_product_1", job_id, "test", "Test Product"
+            "INSERT INTO products (product_id, job_id, src, asin_or_itemid, title, marketplace) VALUES ($1, $2, $3, $4, $5, $6)",
+            f"{job_id}_product_1", job_id, "amazon", "TESTASIN1", "Test Product", "us"
         )
         
         await db_manager.execute(
-            "INSERT INTO videos (video_id, job_id, platform, title) VALUES ($1, $2, $3, $4)",
-            "test_video_1", job_id, "youtube", "Test Video"
+            "INSERT INTO videos (video_id, job_id, platform, url, title) VALUES ($1, $2, $3, $4, $5)",
+            f"{job_id}_video_1", job_id, "youtube", f"https://example.com/{job_id}_video_1", "Test Video"
         )
         
         # Verify data exists
@@ -415,13 +415,13 @@ class TestCollectionPhaseIntegration:
         
         # Insert test data for further validation
         await db_manager.execute(
-            "INSERT INTO products (product_id, job_id, src, title) VALUES ($1, $2, $3, $4)",
-            "test_product_1", job_id, "amazon", "Test Product"
+            "INSERT INTO products (product_id, job_id, src, asin_or_itemid, title, marketplace) VALUES ($1, $2, $3, $4, $5, $6)",
+            f"{job_id}_product_1", job_id, "amazon", "TESTASIN1", "Test Product", "us"
         )
         
         await db_manager.execute(
-            "INSERT INTO videos (video_id, job_id, platform, title) VALUES ($1, $2, $3, $4)",
-            "test_video_1", job_id, "youtube", "Test Video"
+            "INSERT INTO videos (video_id, job_id, platform, url, title) VALUES ($1, $2, $3, $4, $5)",
+            f"{job_id}_video_1", job_id, "youtube", f"https://example.com/{job_id}_video_1", "Test Video"
         )
         
         # Test collection validation

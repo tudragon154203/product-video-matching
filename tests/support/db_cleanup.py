@@ -29,31 +29,37 @@ class CollectionPhaseCleanup:
             
             # Job and event tables
             "jobs",
-            "event_ledger"
+            "phase_events"
         ]
         
         self._table_constraints = {
-            "video_frames": ["video_id"],
-            "product_images": ["product_id"],
-            "matches": ["job_id"],
-            "videos": ["job_id"],
-            "products": ["job_id"],
-            "jobs": ["job_id"],
-            "event_ledger": ["job_id"]
+            "video_frames": "video_id",
+            "product_images": "product_id",
+            "matches": "job_id",
+            "videos": "job_id",
+            "products": "job_id",
+            "jobs": "job_id",
+            "phase_events": "job_id",
         }
     
-    async def cleanup_test_data(self, job_id_pattern: str = "test_%"):
+    async def cleanup_test_data(self, job_id_pattern: str = "test_%", delete_jobs: bool = True):
         """
         Clean up all test data matching the job ID pattern.
         
         Args:
             job_id_pattern: Pattern to match test job IDs (default: "test_%")
+            delete_jobs: When True, also delete job records; when False, preserve jobs
         """
-        logger.info("Starting collection phase cleanup", job_id_pattern=job_id_pattern)
+        logger.info("Starting collection phase cleanup", job_id_pattern=job_id_pattern, delete_jobs=delete_jobs)
         
         try:
+            # Build cleanup order respecting delete_jobs flag
+            cleanup_order = (
+                self._cleanup_order if delete_jobs
+                else [t for t in self._cleanup_order if t != "jobs"]
+            )
             # Clean up in dependency order
-            for table in self._cleanup_order:
+            for table in cleanup_order:
                 await self._cleanup_table(table, job_id_pattern)
             
             logger.info("Collection phase cleanup completed", job_id_pattern=job_id_pattern)
@@ -74,7 +80,8 @@ class CollectionPhaseCleanup:
     
     async def _cleanup_table(self, table_name: str, job_id_pattern: str):
         """Clean up a specific table with proper constraint handling"""
-        constraint_column = self._table_constraints.get(table_name)
+        raw_constraint = self._table_constraints.get(table_name)
+        constraint_column = raw_constraint[0] if isinstance(raw_constraint, list) else raw_constraint
         
         if not constraint_column:
             logger.warning("Unknown table for cleanup", table=table_name)
@@ -109,18 +116,24 @@ class CollectionPhaseCleanup:
         
         logger.debug("Cleaned table", table=table_name, pattern=job_id_pattern)
     
-    async def cleanup_specific_job(self, job_id: str):
+    async def cleanup_specific_job(self, job_id: str, delete_job: bool = False):
         """
         Clean up data for a specific job ID.
         
         Args:
             job_id: Specific job ID to clean up
+            delete_job: When True, also delete the job record; default False preserves the job
         """
-        logger.info("Cleaning up specific job", job_id=job_id)
+        logger.info("Cleaning up specific job", job_id=job_id, delete_job=delete_job)
         
         try:
+            # Build cleanup order, optionally skipping jobs to preserve records
+            cleanup_order = (
+                self._cleanup_order if delete_job
+                else [t for t in self._cleanup_order if t != "jobs"]
+            )
             # Clean up in dependency order
-            for table in self._cleanup_order:
+            for table in cleanup_order:
                 await self._cleanup_specific_job_table(table, job_id)
             
             logger.info("Specific job cleanup completed", job_id=job_id)
@@ -131,7 +144,8 @@ class CollectionPhaseCleanup:
     
     async def _cleanup_specific_job_table(self, table_name: str, job_id: str):
         """Clean up a specific table for a specific job ID"""
-        constraint_column = self._table_constraints.get(table_name)
+        raw_constraint = self._table_constraints.get(table_name)
+        constraint_column = raw_constraint[0] if isinstance(raw_constraint, list) else raw_constraint
         
         if not constraint_column:
             return
@@ -231,17 +245,17 @@ class CollectionPhaseCleanup:
                     # Use subquery to count related records
                     if constraint_column == "video_id":
                         query = f"""
-                            SELECT COUNT(*) FROM {table_name} 
+                            SELECT COUNT(*) FROM {table}
                             WHERE {constraint_column} IN (
-                                SELECT {constraint_column} FROM videos 
+                                SELECT {constraint_column} FROM videos
                                 WHERE job_id LIKE $1
                             )
                         """
                     elif constraint_column == "product_id":
                         query = f"""
-                            SELECT COUNT(*) FROM {table_name} 
+                            SELECT COUNT(*) FROM {table}
                             WHERE {constraint_column} IN (
-                                SELECT {constraint_column} FROM products 
+                                SELECT {constraint_column} FROM products
                                 WHERE job_id LIKE $1
                             )
                         """

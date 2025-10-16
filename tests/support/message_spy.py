@@ -15,6 +15,81 @@ from common_py.logging_config import configure_logging
 logger = configure_logging("test-utils:message-spy")
 
 
+class ExchangeProxy:
+    """
+    Proxy/wrapper around aio_pika Exchange to provide a publish() signature
+    compatible with tests that call:
+        await spy.spy.exchange.publish(spy.spy.channel.default_exchange, '{"a":1}', routing_key="rk")
+    while still supporting the native aio-pika signature:
+        await exchange.publish(Message(...), routing_key="rk")
+    All other attributes/methods are forwarded to the real exchange.
+    """
+    def __init__(self, real_exchange, channel):
+        self._real_exchange = real_exchange
+        self._channel = channel  # retained for potential future needs
+
+    def __getattr__(self, item):
+        # Forward all attribute access to the real exchange
+        return getattr(self._real_exchange, item)
+
+    async def publish(
+        self,
+        first_arg,
+        second_arg=None,
+        routing_key: Optional[str] = None,
+        headers: Optional[Dict[str, Any]] = None,
+        correlation_id: Optional[str] = None,
+        mandatory: bool = False,
+        immediate: bool = False
+    ):
+        """
+        Supports two forms:
+        1) Test-compat signature:
+           publish(_unused_exchange, body_str_or_dict, routing_key="rk", headers=None, correlation_id=None)
+        2) Native aio-pika signature:
+           publish(message: Message, routing_key[, mandatory, immediate])
+           Optionally with routing_key as positional (second_arg).
+        """
+        # Case 2: Native aio-pika call, first_arg is a Message instance
+        if isinstance(first_arg, Message):
+            msg = first_arg
+            # If routing_key provided positionally as second_arg, prefer it unless explicit kw provided
+            effective_rk = routing_key if routing_key is not None else second_arg
+            return await self._real_exchange.publish(
+                msg,
+                routing_key=effective_rk,
+                mandatory=mandatory,
+                immediate=immediate
+            )
+
+        # Case 1: Test-compat call: ignore the first arg (default_exchange), treat second_arg as body
+        _unused_exchange = first_arg
+        body = second_arg
+
+        # Normalize body to JSON bytes
+        if isinstance(body, (dict, list)):
+            body_str = json.dumps(body)
+        elif isinstance(body, (bytes, bytearray)):
+            body_str = body.decode()
+        else:
+            body_str = str(body) if body is not None else ""
+
+        msg = Message(
+            body=body_str.encode(),
+            content_type="application/json",
+            delivery_mode=DeliveryMode.NOT_PERSISTENT,
+            headers=headers or {},
+            correlation_id=correlation_id,
+        )
+
+        return await self._real_exchange.publish(
+            msg,
+            routing_key=routing_key or "",
+            mandatory=mandatory,
+            immediate=immediate
+        )
+
+
 class MessageSpy:
     """
     RabbitMQ message spy for capturing events during integration tests.
@@ -30,6 +105,8 @@ class MessageSpy:
         self.captured_messages = {}
         self.consumers = {}
         self.queue_bindings = {}
+        # Back-compat shim: allow attribute-style access used in some tests (spy.spy)
+        self.spy = self
         
     async def connect(self):
         """Establish connection to RabbitMQ"""
@@ -37,12 +114,14 @@ class MessageSpy:
             self.connection = await aio_pika.connect_robust(self.broker_url)
             self.channel = await self.connection.channel()
             
-            # Declare main exchange
-            self.exchange = await self.channel.declare_exchange(
+            # Declare main exchange (real)
+            self._real_exchange = await self.channel.declare_exchange(
                 "product_video_matching",
                 aio_pika.ExchangeType.TOPIC,
                 durable=True
             )
+            # Provide a proxy that offers a test-compatible publish signature
+            self.exchange = ExchangeProxy(self._real_exchange, self.channel)
             
             logger.info("Message spy connected to RabbitMQ", broker_url=self.broker_url)
             
@@ -72,7 +151,7 @@ class MessageSpy:
             binding_key = self.queue_bindings.get(queue_name)
             routing_key = binding_key if binding_key else queue_name.replace("spy.", "").replace("_", ".")
             try:
-                await queue.unbind(self.exchange, routing_key=routing_key)
+                await queue.unbind(self._real_exchange, routing_key=routing_key)
                 logger.info("Unbound spy queue", queue_name=queue_name, routing_key=routing_key)
             except Exception as e:
                 logger.warning("Failed to unbind spy queue", queue_name=queue_name, error=str(e))
@@ -129,7 +208,7 @@ class MessageSpy:
         )
         
         # Bind queue to routing key
-        await queue.bind(self.exchange, routing_key=routing_key)
+        await queue.bind(self._real_exchange, routing_key=routing_key)
         # Track binding key for safe unbind later
         self.queue_bindings[queue_name] = routing_key
         

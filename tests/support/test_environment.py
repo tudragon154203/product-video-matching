@@ -61,8 +61,10 @@ class CollectionPhaseTestEnvironment:
         try:
             # Generate test job ID if not provided
             if not job_id:
-                timestamp = datetime.utcnow().strftime("%Y%m%d_%H%M%S")
-                self.test_job_id = f"test_job_{timestamp}_{os.getpid()}"
+                # Use microseconds and a random suffix to guarantee uniqueness across rapid concurrent setups
+                timestamp = datetime.utcnow().strftime("%Y%m%d_%H%M%S_%f")
+                unique_suffix = os.urandom(2).hex()
+                self.test_job_id = f"test_job_{timestamp}_{os.getpid()}_{unique_suffix}"
             else:
                 self.test_job_id = job_id
             
@@ -79,8 +81,8 @@ class CollectionPhaseTestEnvironment:
             # Clear any existing messages
             self.spy.clear_messages()
             
-            # Clean up any existing test data
-            await self.cleanup.cleanup_test_data()
+            # Clean up any existing test data without deleting job records (preserve for concurrent setups)
+            await self.cleanup.cleanup_test_data(delete_jobs=False)
             
             # Create test job record
             await self._create_test_job()
@@ -102,9 +104,9 @@ class CollectionPhaseTestEnvironment:
         logger.info("Tearing down collection phase test environment", job_id=self.test_job_id)
         
         try:
-            # Clean up test data
+            # Clean up test data (preserve job record for post-teardown assertions)
             if self.cleanup and self.test_job_id:
-                await self.cleanup.cleanup_specific_job(self.test_job_id)
+                await self.cleanup.cleanup_specific_job(self.test_job_id, delete_job=False)
             
             # Disconnect spy
             if self.spy:

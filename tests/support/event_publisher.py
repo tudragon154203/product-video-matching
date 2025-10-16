@@ -22,6 +22,11 @@ class CollectionEventPublisher:
     def __init__(self, message_broker: MessageBroker):
         self.broker = message_broker
         self.published_events = []
+        # Idempotency guard: track correlation_ids we've already published per topic
+        self._idempotent_correlation_ids = {
+            "products.collect.request": set(),
+            "videos.search.request": set(),
+        }
     
     async def publish_products_collect_request(
         self,
@@ -52,12 +57,23 @@ class CollectionEventPublisher:
         }
         
         correlation_id = correlation_id or str(uuid.uuid4())
-        
+
+        # Idempotency: skip re-publish if this correlation_id has already been used for this topic
+        if correlation_id in self._idempotent_correlation_ids["products.collect.request"]:
+            logger.info(
+                "Skipping duplicate products.collect.request due to idempotent correlation_id",
+                job_id=job_id,
+                correlation_id=correlation_id
+            )
+            return correlation_id
+
         await self.broker.publish_event(
             topic="products.collect.request",
             event_data=event_data,
             correlation_id=correlation_id
         )
+        # Record correlation_id for idempotency tracking
+        self._idempotent_correlation_ids["products.collect.request"].add(correlation_id)
         
         # Track published event
         self.published_events.append({
@@ -108,12 +124,23 @@ class CollectionEventPublisher:
         }
         
         correlation_id = correlation_id or str(uuid.uuid4())
-        
+
+        # Idempotency: skip re-publish if this correlation_id has already been used for this topic
+        if correlation_id in self._idempotent_correlation_ids["videos.search.request"]:
+            logger.info(
+                "Skipping duplicate videos.search.request due to idempotent correlation_id",
+                job_id=job_id,
+                correlation_id=correlation_id
+            )
+            return correlation_id
+
         await self.broker.publish_event(
             topic="videos.search.request",
             event_data=event_data,
             correlation_id=correlation_id
         )
+        # Record correlation_id for idempotency tracking
+        self._idempotent_correlation_ids["videos.search.request"].add(correlation_id)
         
         # Track published event
         self.published_events.append({
