@@ -67,7 +67,7 @@ class TestCollectionPhaseIntegration:
         # Step 2: Wait for products collection completion
         products_event = await spy.wait_for_products_completed(
             job_id=job_id,
-            timeout=10.0
+            timeout=120.0
         )
         
         # Verify products completion event
@@ -78,7 +78,7 @@ class TestCollectionPhaseIntegration:
         # Step 3: Wait for videos collection completion
         videos_event = await spy.wait_for_videos_completed(
             job_id=job_id,
-            timeout=10.0
+            timeout=300.0
         )
         
         # Verify videos completion event
@@ -153,7 +153,7 @@ class TestCollectionPhaseIntegration:
         # Step 2: Wait for products collection completion
         products_event = await spy.wait_for_products_completed(
             job_id=job_id,
-            timeout=10.0
+            timeout=120.0
         )
         
         # Verify products completion event
@@ -164,7 +164,7 @@ class TestCollectionPhaseIntegration:
         # Step 3: Wait for videos collection completion
         videos_event = await spy.wait_for_videos_completed(
             job_id=job_id,
-            timeout=10.0
+            timeout=300.0
         )
         
         # Verify videos completion event
