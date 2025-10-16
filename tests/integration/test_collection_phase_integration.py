@@ -247,7 +247,7 @@ class TestCollectionPhaseIntegration:
             # Publish requests in first environment
             await env1.publish_collection_requests(
                 products_queries=["test product 1"],
-                videos_queries={"vi": ["test video 1"]},
+                videos_queries={"vi": ["test video 1"], "zh": ["测试视频1"]},
                 industry="test industry 1",
                 platforms=["youtube"]
             )
@@ -255,7 +255,7 @@ class TestCollectionPhaseIntegration:
             # Publish requests in second environment
             await env2.publish_collection_requests(
                 products_queries=["test product 2"],
-                videos_queries={"vi": ["test video 2"]},
+                videos_queries={"vi": ["test video 2"], "zh": ["测试视频2"]},
                 industry="test industry 2",
                 platforms=["tiktok"]
             )
@@ -506,7 +506,7 @@ class TestCollectionPhaseIntegration:
         for i, env in enumerate(environments):
             task = env.publish_collection_requests(
                 products_queries=[f"test product {i}"],
-                videos_queries={"vi": [f"test video {i}"]},
+                videos_queries={"vi": [f"test video {i}"], "zh": [f"测试视频{i}"]},
                 industry=f"test industry {i}",
                 platforms=["youtube"]
             )

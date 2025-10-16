@@ -275,7 +275,7 @@ async with CollectionPhaseTestEnvironment(db_manager, message_broker, broker_url
     # Publish collection requests
     await env.publish_collection_requests(
         products_queries=["test product"],
-        videos_queries={"vi": ["test video"]},
+        videos_queries={"vi": ["test video"], "zh": ["测试视频"]},
         industry="test industry",
         platforms=["youtube"]
     )
