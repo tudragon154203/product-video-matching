@@ -193,15 +193,18 @@ class TestVideoProcessor:
         }
         job_id = "test_job_123"
 
+        # Mock database operations for idempotency manager
+        mock_db.fetch_one = AsyncMock(return_value=None)  # No existing video
         mock_db.execute = AsyncMock()
 
-        video = await video_processor._create_and_save_video_record(video_data, job_id)
+        video, created_new = await video_processor._create_and_save_video_record(video_data, job_id)
 
         assert video.platform == "youtube"
         assert video.url == "https://youtube.com/test"
         assert video.title == "Test Video"
         assert video.duration_s == 120
         assert video.video_id is not None
+        assert isinstance(created_new, bool)
         mock_db.execute.assert_called_once()
 
     @pytest.mark.asyncio
@@ -210,8 +213,12 @@ class TestVideoProcessor:
         keyframes = [(10, "/path/frame1.jpg"), (20, "/path/frame2.jpg")]
         video_id = str(uuid.uuid4())
 
-        video_processor.frame_crud.create_video_frame = AsyncMock()
-
+        # Mock database operations for idempotency manager
+        mock_video_id = str(uuid.uuid4())
+        video_processor.idempotency_manager.check_frame_exists = AsyncMock(return_value=False)
+        video_processor.db.execute = AsyncMock()
+        video_processor.db.fetch_one = AsyncMock(return_value=None)
+        
         frame_data = await video_processor._save_keyframes(keyframes, video_id)
 
         assert len(frame_data) == 2

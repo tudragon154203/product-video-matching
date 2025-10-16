@@ -92,7 +92,7 @@ async def test_cross_platform_parallelism():
 
         # Measure time to process multiple platforms
         start_time = time.time()
-        await service.handle_videos_search_request(event_data)
+        await service.handle_videos_search_request(event_data, "test_correlation_id")
         end_time = time.time()
 
         total_time = end_time - start_time
@@ -173,7 +173,7 @@ async def test_max_concurrent_platforms_limit():
 
                     # Measure time to process platforms with concurrency limit
                     start_time = time.time()
-                    await service.handle_videos_search_request(event_data)
+                    await service.handle_videos_search_request(event_data, "test_correlation_id")
                     end_time = time.time()
 
             total_time = end_time - start_time
@@ -227,7 +227,7 @@ async def test_resilience_with_platform_failures():
         }
 
         # This should not raise an exception even though one platform fails
-        await service.handle_videos_search_request(event_data)
+        await service.handle_videos_search_request(event_data, "test_correlation_id")
 
         # Verify that the working platform was called
         assert working_crawler.call_count == 1
@@ -269,7 +269,7 @@ async def test_zero_result_path():
         }
 
         # This should not crash and should return empty results
-        await service.handle_videos_search_request(event_data)
+        await service.handle_videos_search_request(event_data, "test_correlation_id")
 
         # Verify that the event emitter was called to indicate completion
         assert service.event_emitter.broker.publish_event.called

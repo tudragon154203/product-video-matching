@@ -1,7 +1,7 @@
 """Video processing workflow separated from main service."""
 
 import uuid
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
 
 from common_py.crud import VideoCRUD, VideoFrameCRUD
 from common_py.database import DatabaseManager
@@ -11,6 +11,7 @@ from config_loader import config
 from handlers.event_emitter import EventEmitter
 from keyframe_extractor.length_adaptive_extractor import LengthAdaptiveKeyframeExtractor
 from platform_crawler.tiktok.tiktok_downloader import TikTokDownloader
+from services.idempotency_manager import IdempotencyManager
 # Unused exceptions imported but not used in this file
 # from services.exceptions import VideoProcessingError, VideoDownloadError, DatabaseOperationError
 from vision_common import JobProgressManager
@@ -26,12 +27,14 @@ class VideoProcessor:
         db: DatabaseManager,
         event_emitter: Optional[EventEmitter] = None,
         job_progress_manager: Optional[JobProgressManager] = None,
-        video_dir_override: Optional[str] = None
+        video_dir_override: Optional[str] = None,
+        idempotency_manager: Optional[IdempotencyManager] = None
     ):
         self.db = db
         self.event_emitter = event_emitter
         self.job_progress_manager = job_progress_manager
         self._video_dir_override = video_dir_override
+        self.idempotency_manager = idempotency_manager or IdempotencyManager(db)
 
         self.video_crud = VideoCRUD(db) if db else None
         self.frame_crud = VideoFrameCRUD(db) if db else None
@@ -48,7 +51,20 @@ class VideoProcessor:
             Processing result with video_id and frame data
         """
         try:
-            video = await self._create_and_save_video_record(video_data, job_id)
+            video, created_new = await self._create_and_save_video_record(video_data, job_id)
+
+            # If video already existed, check if frames already processed
+            if not created_new:
+                existing_frames = await self.idempotency_manager.get_existing_frames(video.video_id)
+                if existing_frames:
+                    logger.info(f"Video and frames already exist, skipping processing: {video.video_id}")
+                    await self._update_progress(job_id)
+                    return {
+                        "video_id": video.video_id,
+                        "platform": video.platform,
+                        "frames": existing_frames,
+                        "skipped": True
+                    }
 
             # Handle platform-specific processing
             if video.platform == "tiktok":
@@ -62,13 +78,15 @@ class VideoProcessor:
             logger.info(
                 "Processed video",
                 video_id=video.video_id,
-                frame_count=len(keyframes_data)
+                frame_count=len(keyframes_data),
+                created_new=created_new
             )
 
             return {
                 "video_id": video.video_id,
                 "platform": video.platform,
-                "frames": keyframes_data
+                "frames": keyframes_data,
+                "created_new": created_new
             }
 
         except Exception as e:
@@ -178,46 +196,60 @@ class VideoProcessor:
 
         return await self._save_keyframes(keyframes, video.video_id)
 
-    async def _create_and_save_video_record(self, video_data: Dict[str, Any], job_id: str) -> Video:
-        """Create and save video record to database."""
-        video = Video(
-            video_id=str(uuid.uuid4()),
+    async def _create_and_save_video_record(self, video_data: Dict[str, Any], job_id: str) -> Tuple[Video, bool]:
+        """Create and save video record to database with idempotency.
+
+        Returns:
+            Tuple[Video, created_new: bool] - Video record and whether it was newly created
+        """
+        # Use video_id from data if available, otherwise generate new one
+        video_id = video_data.get("video_id", str(uuid.uuid4()))
+
+        # Create video record with idempotency
+        created_new, actual_video_id = await self.idempotency_manager.create_video_with_idempotency(
+            video_id=video_id,
             platform=video_data["platform"],
             url=video_data["url"],
-            title=video_data["title"],
+            title=video_data.get("title"),
+            duration_s=video_data.get("duration_s"),
+            job_id=job_id
+        )
+
+        video = Video(
+            video_id=actual_video_id,
+            platform=video_data["platform"],
+            url=video_data["url"],
+            title=video_data.get("title"),
             duration_s=video_data.get("duration_s")
         )
 
-        await self.db.execute(
-            "INSERT INTO videos (video_id, platform, url, title, duration_s, job_id) "
-            "VALUES ($1, $2, $3, $4, $5, $6)",
-            video.video_id,
-            video.platform,
-            video.url,
-            video.title,
-            video.duration_s,
-            job_id
-        )
-
-        return video
+        return video, created_new
 
     async def _save_keyframes(self, keyframes: List[tuple], video_id: str) -> List[Dict[str, Any]]:
-        """Save keyframes to database and return frame data."""
+        """Save keyframes to database with idempotency and return frame data."""
         frame_data = []
         for i, (timestamp, frame_path) in enumerate(keyframes):
-            frame_id = f"{video_id}_frame_{i}"
-            frame = VideoFrame(
-                frame_id=frame_id,
+            # Create frame with idempotency
+            created_new, frame_id = await self.idempotency_manager.create_frame_with_idempotency(
                 video_id=video_id,
-                ts=timestamp,
+                frame_index=i,
+                timestamp=timestamp,
                 local_path=frame_path
             )
-            await self.frame_crud.create_video_frame(frame)
-            frame_data.append({
-                "frame_id": frame_id,
-                "ts": timestamp,
-                "local_path": frame_path
-            })
+
+            if created_new:
+                frame_data.append({
+                    "frame_id": frame_id,
+                    "ts": timestamp,
+                    "local_path": frame_path
+                })
+            else:
+                # Frame already exists, fetch its data
+                existing_frames = await self.idempotency_manager.get_existing_frames(video_id)
+                existing_frame_data = next((f for f in existing_frames if f["frame_id"] == frame_id), None)
+                if existing_frame_data:
+                    frame_data.append(existing_frame_data)
+
         return frame_data
 
     async def _emit_keyframes_ready_event(
