@@ -7,7 +7,6 @@ and supports parallel processing operations.
 
 import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
-from common_py.models import Video, VideoFrame
 
 from services.video_processor import VideoProcessor
 from services.idempotency_manager import IdempotencyManager

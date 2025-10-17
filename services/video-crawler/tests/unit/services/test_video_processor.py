@@ -214,7 +214,7 @@ class TestVideoProcessor:
         video_id = str(uuid.uuid4())
 
         # Mock database operations for idempotency manager
-        mock_video_id = str(uuid.uuid4())
+        _ = str(uuid.uuid4())
         video_processor.idempotency_manager.check_frame_exists = AsyncMock(return_value=False)
         video_processor.db.execute = AsyncMock()
         video_processor.db.fetch_one = AsyncMock(return_value=None)

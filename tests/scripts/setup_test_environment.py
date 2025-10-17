@@ -295,7 +295,9 @@ def run_validation_tests():
     # Test test collection
     success, output = run_command(
         ["python", "-m", "pytest", "--collect-only", "-q",
-            "tests/integration/test_collection_phase_happy_path.py::TestCollectionPhaseHappyPath::test_collection_phase_happy_path_minimal_dataset"],
+         "tests/integration/test_collection_phase_"
+         "happy_path.py::TestCollectionPhaseHappyPath::"
+         "test_collection_phase_happy_path_minimal_dataset"],
         "Testing specific test collection",
         check=False
     )

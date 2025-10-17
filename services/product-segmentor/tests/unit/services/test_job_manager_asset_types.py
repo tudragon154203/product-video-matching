@@ -38,7 +38,7 @@ class TestJobManagerAssetTypes:
     def service(self, mock_db, mock_broker, mock_job_progress_manager):
         """Create product segmentor service with mocked dependencies."""
         # Mock the entire ProductSegmentorService to avoid torch/CUDA dependencies
-        with patch('services.service.ProductSegmentorService') as mock_service_class:
+        with patch('services.service.ProductSegmentorService') as _:
             service = MagicMock()
             service.db = mock_db
             service.broker = mock_broker
@@ -88,7 +88,7 @@ class TestJobManagerAssetTypes:
 
             async def mock_handle_videos_keyframes_ready_impl(event_data):
                 # Simulate individual frame processing
-                video_id = event_data["video_id"]
+                _ = event_data["video_id"]
                 frames = event_data["frames"]
                 job_id = event_data["job_id"]
 
@@ -319,7 +319,8 @@ class TestJobManagerAssetTypes:
         mock_job_progress_manager.update_job_progress.side_effect = capture_update
 
         # Mock asset processor for frame processing
-        service.asset_processor.handle_single_asset_processing = AsyncMock(return_value=f"mask_path_{i}")
+        # Use a simple mock value instead of trying to access i variable
+        service.asset_processor.handle_single_asset_processing = AsyncMock(return_value="mask_path_mock")
 
         # Test complete workflow: batch event -> individual frame processing
         # 1. Batch event sets expected count

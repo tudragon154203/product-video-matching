@@ -6,7 +6,7 @@ offering significant performance improvements through parallelization while main
 full idempotency and backward compatibility.
 """
 
-from typing import Any, Dict, List, Optional, AsyncGenerator
+from typing import Any, Dict, List, Optional
 import asyncio
 
 from common_py.database import DatabaseManager
@@ -251,7 +251,7 @@ class ParallelVideoService:
             total_completed = stats.get("processing_completed", 0)
 
             if total_started > 0:
-                progress_percentage = (total_completed / total_started) * 100
+                _ = (total_completed / total_started) * 100
 
                 await self.job_progress_manager.update_job_progress(
                     job_id=self._current_job_id or stats.get("job_id", ""),

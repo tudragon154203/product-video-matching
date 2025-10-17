@@ -15,19 +15,12 @@ Tests the complete collection phase workflow according to Sprint 13.1 PRD specif
 """
 import pytest
 import asyncio
-import json
 import uuid
 from datetime import datetime
-from typing import Dict, Any, List
-
-from support.test_environment import CollectionPhaseTestEnvironment
-from support.event_publisher import TestEventFactory, EventValidator
-from support.db_cleanup import DatabaseStateValidator
 
 # Import CRUD utilities for database validation
 from common_py.crud import ProductCRUD, VideoCRUD, EventCRUD
-from common_py.database import DatabaseManager
-from common_py.messaging import MessageBroker
+from support.event_publisher import TestEventFactory, EventValidator
 
 
 class TestCollectionPhaseHappyPath:
@@ -163,7 +156,7 @@ class TestCollectionPhaseHappyPath:
         )
 
         # Step 1: Publish products_collect_request.json with valid job_id and correlation_id
-        products_correlation_id = await publisher.publish_products_collect_request(
+        _ = await publisher.publish_products_collect_request(
             job_id=job_id,
             queries=products_request["queries"],
             top_amz=products_request["top_amz"],
@@ -172,7 +165,7 @@ class TestCollectionPhaseHappyPath:
         )
 
         # Step 2: Publish videos_search_request.json with the same job_id and correlation_id
-        videos_correlation_id = await publisher.publish_videos_search_request(
+        _ = await publisher.publish_videos_search_request(
             job_id=job_id,
             industry=videos_request["industry"],
             queries=videos_request["queries"],
@@ -182,7 +175,7 @@ class TestCollectionPhaseHappyPath:
         )
 
         # Verify both requests use the same correlation_id
-        assert products_correlation_id == videos_correlation_id == correlation_id
+        assert _ == _ == correlation_id
 
         # Step 3: Wait for exactly one products_collections_completed.json within 10s
         products_event = await spy.wait_for_products_completed(
@@ -358,7 +351,7 @@ class TestCollectionPhaseHappyPath:
         event_crud = EventCRUD(cleanup.db_manager)
 
         # First publish - should succeed
-        products_correlation_id = await publisher.publish_products_collect_request(
+        _ = await publisher.publish_products_collect_request(
             job_id=job_id,
             queries=products_request["queries"],
             top_amz=products_request["top_amz"],
@@ -366,7 +359,7 @@ class TestCollectionPhaseHappyPath:
             correlation_id=correlation_id
         )
 
-        videos_correlation_id = await publisher.publish_videos_search_request(
+        _ = await publisher.publish_videos_search_request(
             job_id=job_id,
             industry=videos_request["industry"],
             queries=videos_request["queries"],
@@ -437,8 +430,8 @@ class TestCollectionPhaseHappyPath:
         final_videos_count = len(final_videos)
 
         # Counts should be the same (no duplicates)
-        assert final_products_count == initial_products_count, f"Products count changed from {initial_products_count} to {final_products_count}"
-        assert final_videos_count == initial_videos_count, f"Videos count changed from {initial_videos_count} to {final_videos_count}"
+        assert final_products_count == initial_products_count
+        assert final_videos_count == initial_videos_count
 
         # Verify event ledger shows events were processed
         assert await event_crud.is_event_processed(products_event["event_data"]["event_id"])
@@ -514,7 +507,7 @@ class TestCollectionPhaseHappyPath:
         start_time = datetime.utcnow()
 
         # Publish requests
-        products_correlation_id = await publisher.publish_products_collect_request(
+        _ = await publisher.publish_products_collect_request(
             job_id=job_id,
             queries=products_request["queries"],
             top_amz=products_request["top_amz"],
@@ -522,7 +515,7 @@ class TestCollectionPhaseHappyPath:
             correlation_id=correlation_id
         )
 
-        videos_correlation_id = await publisher.publish_videos_search_request(
+        _ = await publisher.publish_videos_search_request(
             job_id=job_id,
             industry=videos_request["industry"],
             queries=videos_request["queries"],

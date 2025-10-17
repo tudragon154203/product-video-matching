@@ -55,7 +55,7 @@ class YOLOSegmentor(BaseSegmentation):
                             model_name=self.model_name,
                             cache_dir=self._model_cache_dir,
                             expected_path=self._model_path,
-                            cache_contents=os.listdir(self._model_cache_dir) if os.path.exists(self._model_cache_dir) else "directory not found")
+                            cache_contents=os.listdir(self._model_cache_dir) if os.path.exists(self._model_cache_dir) else [])
 
                 # Set environment variables for ultralytics library to use our cache directory
                 os.environ['YOLO_MODEL_DIR'] = self._model_cache_dir

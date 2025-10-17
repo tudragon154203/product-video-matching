@@ -6,13 +6,11 @@ while providing significant performance improvements over sequential processing.
 """
 
 import pytest
-import asyncio
 from unittest.mock import AsyncMock, MagicMock
-from typing import Dict, List
 
 from common_py.database import DatabaseManager
 from services.idempotency_manager import IdempotencyManager
-from services.streaming_pipeline import StreamingVideoPipeline, PipelineConfig, VideoTask
+from services.streaming_pipeline import StreamingVideoPipeline, PipelineConfig
 from services.parallel_video_service import ParallelVideoService
 
 

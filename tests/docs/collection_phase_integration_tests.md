@@ -59,8 +59,14 @@ The Collection Phase Integration Tests validate the end-to-end collection workfl
 ### Running Tests
 
 #### Option 1: Direct Pytest Execution (Recommended)
+
+Note: Root-based pytest runs default to single worker (-n 1). You don't need to pass -n 1 explicitly.
+
 ```bash
-# Run all collection phase tests
+# Run all integration tests from repo root
+pytest -m integration -v
+
+# Run all collection phase tests from repo root
 pytest -m "collection_phase" -v
 
 # Run specific minimal test
@@ -71,6 +77,9 @@ pytest tests/integration/test_collection_phase_happy_path.py::TestCollectionPhas
 
 # Run idempotency test
 pytest tests/integration/test_collection_phase_happy_path.py::TestCollectionPhaseHappyPath::test_collection_phase_idempotency_validation -v --no-cov -s
+
+# Optional coverage flags (documented, not default)
+pytest -m "collection_phase" -v --cov=tests --cov-report=term-missing
 ```
 
 #### Option 2: Test Execution with Coverage
@@ -114,16 +123,21 @@ pytest tests/integration/test_collection_phase_happy_path.py::TestCollectionPhas
 
 ### Test Configuration
 
-The tests use pytest configuration defined in [`pytest.ini`](../pytest.ini):
+The tests use pytest configuration defined in [`pyproject.toml`](../pyproject.toml):
 
-```ini
-[pytest]
-asyncio_mode = auto
-addopts = --doctest-modules --strict-markers -n auto --cov=tests --cov-report=term-missing --cov-report=html:htmlcov --cov-report=xml
-norecursedirs = .git .pytest_cache .tox venv *.egg dist build model_cache
-timeout = 300
-timeout_method = thread
+```toml
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+addopts = "--strict-markers -n 1"
+import_mode = "importlib"
+norecursedirs = [".git", ".pytest_cache", ".tox", "venv", "*.egg", "dist", "build", "model_cache", "data"]
+timeout = 900
+timeout_method = "thread"
+env_override_existing_values = 1
+env_files = ["infra/pvm/.env", "tests/.env.test"]
 ```
+
+Strict markers are enabled and common markers are registered (e.g., unit, integration, collection_phase, performance, idempotency, ci, local, observability, slow). Root-based runs default to single worker (-n 1); global parallelism is not enforced. Pass -n only when you explicitly want parallel execution.
 
 ### Test Markers
 
@@ -386,7 +400,7 @@ DELETE FROM jobs WHERE job_id LIKE 'test_%';
 
 ### Optimization Features
 
-- **Parallel Execution**: Automatic test parallelization with `-n auto`
+- **Parallel Execution**: Optional parallelization via `-n auto` or `-n <N>` when needed; root-based default is single worker (`-n 1`)
 - **CPU-optimized Infrastructure**: Use `docker-compose.dev.cpu.yml`
 - **Aggressive Teardown**: Cost minimization per PRD requirements
 - **Test Isolation**: Proper cleanup and isolation between tests
@@ -466,10 +480,10 @@ ENVIRONMENT=ci python tests/scripts/run_collection_phase_tests.py --test-type ci
 ### Known Working Commands
 
 ```bash
-# Run the main happy path test (currently passing)
+# Run the main happy path test (currently passing) from repo root
 pytest tests/integration/test_collection_phase_happy_path.py::TestCollectionPhaseHappyPath::test_collection_phase_happy_path_minimal_dataset -v --no-cov -s
 
-# Run all collection phase tests
+# Run all collection phase tests from repo root
 pytest -m "collection_phase" -v
 ```
 

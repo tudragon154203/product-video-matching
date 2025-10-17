@@ -2,14 +2,10 @@
 Observability validation utilities for collection phase integration tests.
 Provides comprehensive validation of logs, metrics, and health checks.
 """
-import asyncio
 import json
 import re
-import time
-from typing import Dict, Any, List, Optional, Set, Tuple
-from datetime import datetime, timedelta
-from collections import defaultdict
-import os
+from datetime import datetime
+from typing import Dict, Any, List, Optional
 
 from common_py.logging_config import configure_logging
 from common_py.metrics import metrics, MetricsCollector

@@ -38,7 +38,9 @@ def main():
     # Run the test with pytest
     cmd = [
         sys.executable, "-m", "pytest",
-        "tests/integration/test_collection_phase_happy_path.py::TestCollectionPhaseHappyPath::test_collection_phase_happy_path_minimal_dataset",
+        "tests/integration/test_collection_phase_"
+        "happy_path.py::TestCollectionPhaseHappyPath::"
+        "test_collection_phase_happy_path_minimal_dataset",
         "-v",
         "--tb=short"
     ]

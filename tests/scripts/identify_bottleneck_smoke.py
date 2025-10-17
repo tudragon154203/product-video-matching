@@ -169,7 +169,7 @@ async def analyze_feature_extraction_progress(client, job_id):
             logger.info(f"Feature extraction details: {status_data['details']}")
 
         # Check what assets this job has
-        logger.info(f"Job assets would be checked here - monitoring required completion events")
+        logger.info("Job assets would be checked here - monitoring required completion events")
 
     except Exception as e:
         logger.warning(f"Could not get detailed feature extraction status: {str(e)}")

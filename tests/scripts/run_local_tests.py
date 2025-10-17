@@ -109,25 +109,37 @@ def main():
 
     if args.test_type in ["collection", "all"]:
         test_commands.extend([
-            (["python", "-m", "pytest", "tests/integration/test_collection_phase_happy_path.py::TestCollectionPhaseHappyPath::test_collection_phase_happy_path_minimal_dataset", "-v"],
+            (["python", "-m", "pytest", "tests/integration/test_collection_phase_"
+             "happy_path.py::TestCollectionPhaseHappyPath::test_collection_"
+             "phase_happy_path_minimal_dataset", "-v"],
              "Collection Phase Happy Path Minimal Dataset"),
-            (["python", "-m", "pytest", "tests/integration/test_collection_phase_happy_path.py::TestCollectionPhaseHappyPath::test_collection_phase_idempotency_validation", "-v"],
+            (["python", "-m", "pytest", "tests/integration/test_collection_phase_"
+             "happy_path.py::TestCollectionPhaseHappyPath::test_collection_"
+             "phase_idempotency_validation", "-v"],
              "Collection Phase Idempotency Validation")
         ])
 
     if args.test_type in ["integration", "all"]:
         test_commands.extend([
-            (["python", "-m", "pytest", "tests/integration/test_collection_phase_integration.py::TestCollectionPhaseIntegration::test_complete_collection_workflow", "-v"],
+            (["python", "-m", "pytest", "tests/integration/test_collection_phase_"
+                                  "integration.py::TestCollectionPhaseIntegration::test_complete_"
+                                  "collection_workflow", "-v"],
              "Complete Collection Workflow"),
-            (["python", "-m", "pytest", "tests/integration/test_collection_phase_integration.py::TestCollectionPhaseIntegration::test_concurrent_collection_workflows", "-v"],
+            (["python", "-m", "pytest", "tests/integration/test_collection_phase_"
+                                  "integration.py::TestCollectionPhaseIntegration::test_concurrent_"
+                                  "collection_workflows", "-v"],
              "Concurrent Collection Workflows")
         ])
 
     if args.test_type in ["observability", "all"]:
         test_commands.extend([
-            (["python", "-m", "pytest", "tests/integration/test_observability_validation.py::TestObservabilityValidator::test_observability_validator_initialization", "-v"],
+            (["python", "-m", "pytest", "tests/integration/test_observability_"
+                                  "validation.py::TestObservabilityValidator::test_observability_"
+                                  "validator_initialization", "-v"],
              "Observability Validator Initialization"),
-            (["python", "-m", "pytest", "tests/integration/test_observability_validation.py::TestObservabilityIntegration::test_full_observability_workflow", "-v"],
+            (["python", "-m", "pytest", "tests/integration/test_observability_"
+                                  "validation.py::TestObservabilityIntegration::test_full_"
+                                  "observability_workflow", "-v"],
              "Full Observability Workflow")
         ])
 

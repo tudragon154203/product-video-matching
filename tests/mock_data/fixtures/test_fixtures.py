@@ -13,7 +13,7 @@ from . import (
     MockDataLoader
 )
 from contracts.validator import validator
-import json
+
 import sys
 from pathlib import Path
 

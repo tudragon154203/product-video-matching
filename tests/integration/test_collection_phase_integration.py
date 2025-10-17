@@ -11,7 +11,6 @@ Tests the complete collection phase workflow including:
 """
 import pytest
 import asyncio
-from datetime import datetime
 
 from support.test_environment import CollectionPhaseTestEnvironment
 from support.event_publisher import TestEventFactory
@@ -102,7 +101,7 @@ class TestCollectionPhaseIntegration:
 
         env = collection_phase_test_environment
         spy = env["spy"]
-        cleanup = env["cleanup"]
+        _ = env["cleanup"]
         validator = env["validator"]
         publisher = env["publisher"]
         test_data = env["test_data"]
@@ -187,7 +186,7 @@ class TestCollectionPhaseIntegration:
         """
         env = observability_test_environment
         spy = env["spy"]
-        cleanup = env["cleanup"]
+        _ = env["cleanup"]
         validator = env["validator"]
         publisher = env["publisher"]
         test_data = env["test_data"]

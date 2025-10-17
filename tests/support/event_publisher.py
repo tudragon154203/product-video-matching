@@ -2,7 +2,7 @@
 Event publishing utilities for collection phase integration tests.
 Provides helpers for publishing test events and validating event flow.
 """
-import json
+
 import uuid
 from typing import Dict, Any, Optional, List
 from datetime import datetime

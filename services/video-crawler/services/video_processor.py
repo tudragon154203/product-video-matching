@@ -8,7 +8,8 @@ from typing import Any, Dict, List, Optional, Tuple
 from common_py.crud import VideoCRUD, VideoFrameCRUD
 from common_py.database import DatabaseManager
 from common_py.logging_config import configure_logging
-from common_py.models import Video, VideoFrame
+from common_py.models import Video
+
 from config_loader import config
 from handlers.event_emitter import EventEmitter
 from keyframe_extractor.length_adaptive_extractor import LengthAdaptiveKeyframeExtractor

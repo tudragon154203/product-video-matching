@@ -12,7 +12,7 @@ from dataclasses import dataclass
 
 from common_py.database import DatabaseManager
 from common_py.logging_config import configure_logging
-from config_loader import config
+
 from services.idempotency_manager import IdempotencyManager
 from fetcher.video_fetcher import VideoFetcher
 
@@ -52,11 +52,11 @@ class StreamingVideoPipeline:
     def __init__(
         self,
         db: DatabaseManager,
-        config: Optional[PipelineConfig] = None,
+        pipeline_config: Optional[PipelineConfig] = None,
         idempotency_manager: Optional[IdempotencyManager] = None
     ):
         self.db = db
-        self.config = config or PipelineConfig()
+        self.config = pipeline_config or PipelineConfig()
         self.idempotency_manager = idempotency_manager or IdempotencyManager(db)
 
         # Initialize queues and semaphores

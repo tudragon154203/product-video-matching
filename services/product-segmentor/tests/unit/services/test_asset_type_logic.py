@@ -1,7 +1,7 @@
 """Tests for asset type logic in isolation without torch dependencies."""
 
 import pytest
-from unittest.mock import AsyncMock, patch, MagicMock
+from unittest.mock import AsyncMock
 
 pytestmark = pytest.mark.unit
 
@@ -21,7 +21,6 @@ class TestAssetTypeLogic:
             """Isolated logic from the service method."""
             job_id = event_data["job_id"]
             total_keyframes = event_data.get("total_keyframes", 0)
-            event_id = event_data.get("event_id", "test_event")
 
             # This is the fix: using "frame" instead of "video"
             asset_type = "frame"  # Previously was "video"
@@ -67,7 +66,7 @@ class TestAssetTypeLogic:
         # Simulate individual frame processing logic
         async def handle_videos_keyframes_ready_logic(event_data, job_progress_manager, asset_processor):
             """Isolated logic from the service method."""
-            video_id = event_data["video_id"]
+            _ = event_data["video_id"]
             frames = event_data["frames"]
             job_id = event_data["job_id"]
 

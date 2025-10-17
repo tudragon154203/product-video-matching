@@ -62,22 +62,23 @@ Integration tests must use 'live' mode for real video crawling.
 
 ### Execution
 
+Note: Root-based pytest runs default to single worker (-n 1). You don't need to pass -n 1 explicitly.
+
 ```bash
-# Run all integration tests with real service enforcement
-cd tests/integration
-python -m pytest -v
+# Run all integration tests from repo root
+pytest -m integration -v
 
-# Run specific test file
-python -m pytest test_collection_phase_happy_path.py -v
+# Run collection phase tests from repo root
+pytest -m "collection_phase" -v
 
-# Run with real service validation (default)
-python -m pytest --enforce-live-services -v
+# Optional coverage flags (not default)
+pytest -m integration -v --cov=tests --cov-report=term-missing
 ```
 
 ### Configuration Files
 
-- `pytest.ini`: Enforces real service configuration
-- `.env.integration`: Real service environment variables
+- `pyproject.toml`: Root pytest configuration (strict markers, asyncio_mode=auto, import_mode=importlib, timeout=900, dotenv env_files)
+- `infra/pvm/.env` and `tests/.env.test`: Environment files loaded via pytest-dotenv (override enabled)
 - `conftest.py`: Validation logic for real services
 
 ## Test Validation

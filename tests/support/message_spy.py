@@ -64,7 +64,7 @@ class ExchangeProxy:
             )
 
         # Case 1: Test-compat call: ignore the first arg (default_exchange), treat second_arg as body
-        _unused_exchange = first_arg
+        _ = first_arg
         body = second_arg
 
         # Normalize body to JSON bytes
@@ -385,15 +385,15 @@ class MessageSpy:
         Raises:
             AssertionError: If message not received within timeout
         """
-        predicate = None
+        _ = None
         if expected_event_type:
-            def predicate(msg): return expected_event_type in msg.get("routing_key", "")
+            def predicate_func(msg): return expected_event_type in msg.get("routing_key", "")
 
         message = await self.wait_for_message(
             queue_name=queue_name,
             correlation_id=correlation_id,
             timeout=timeout,
-            predicate=predicate
+            predicate=predicate_func
         )
 
         if not message:
@@ -498,7 +498,7 @@ class CollectionPhaseSpy:
                 "products": products_message,
                 "videos": videos_message
             }
-        except Exception as e:
+        except Exception:
             # Cancel pending tasks
             products_task.cancel()
             videos_task.cancel()

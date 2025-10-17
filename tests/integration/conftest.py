@@ -2,7 +2,7 @@
 # This file is used when running with local config (tests/integration/pytest.ini),
 # where pytest rootdir becomes tests/integration and relative imports may fail.
 
-import types
+
 import importlib
 import os
 import sys

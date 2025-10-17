@@ -3,7 +3,7 @@ Database cleanup utilities for collection phase integration tests.
 Extends existing patterns to handle product tables, video tables, and event ledgers.
 """
 import asyncio
-from typing import List, Optional, Dict, Any
+from typing import List, Optional, Dict
 from common_py.database import DatabaseManager
 from common_py.logging_config import configure_logging
 import time
@@ -101,7 +101,7 @@ class CollectionPhaseCleanup:
                 query = f"""
                     DELETE FROM {table_name} 
                     WHERE {constraint_column} IN (
-                        SELECT {constraint_column} FROM videos 
+                        SELECT {constraint_column} FROM videos
                         WHERE job_id LIKE $1
                     )
                 """
@@ -109,7 +109,7 @@ class CollectionPhaseCleanup:
                 query = f"""
                     DELETE FROM {table_name} 
                     WHERE {constraint_column} IN (
-                        SELECT {constraint_column} FROM products 
+                        SELECT {constraint_column} FROM products
                         WHERE job_id LIKE $1
                     )
                 """
@@ -164,7 +164,7 @@ class CollectionPhaseCleanup:
                 query = f"""
                     DELETE FROM {table_name} 
                     WHERE {constraint_column} IN (
-                        SELECT {constraint_column} FROM videos 
+                        SELECT {constraint_column} FROM videos
                         WHERE job_id = $1
                     )
                 """
@@ -172,7 +172,7 @@ class CollectionPhaseCleanup:
                 query = f"""
                     DELETE FROM {table_name} 
                     WHERE {constraint_column} IN (
-                        SELECT {constraint_column} FROM products 
+                        SELECT {constraint_column} FROM products
                         WHERE job_id = $1
                     )
                 """
@@ -213,7 +213,7 @@ class CollectionPhaseCleanup:
             # Ensure constraints are re-enabled
             try:
                 await self.db_manager.execute("SET session_replication_role = DEFAULT")
-            except:
+            except Exception:
                 pass
             raise
 

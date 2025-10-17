@@ -4,8 +4,8 @@ Shared fixtures and utilities for parallel processing tests.
 
 import asyncio
 import pytest
-from unittest.mock import AsyncMock, MagicMock
-from typing import Dict, Any, List
+from unittest.mock import AsyncMock
+from typing import Dict, Any
 
 from common_py.database import DatabaseManager
 from services.idempotency_manager import IdempotencyManager

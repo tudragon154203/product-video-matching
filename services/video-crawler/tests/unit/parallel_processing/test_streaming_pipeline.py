@@ -8,7 +8,6 @@ queue operations, and parallel processing coordination.
 import pytest
 import asyncio
 from unittest.mock import AsyncMock, MagicMock, patch
-from collections import defaultdict
 
 from services.streaming_pipeline import StreamingVideoPipeline, PipelineConfig, VideoTask
 

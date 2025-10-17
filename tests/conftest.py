@@ -1,6 +1,32 @@
 """
 Pytest configuration and fixtures for integration tests
 """
+# Early sys.path setup to resolve project modules when running from repo root
+import os
+import sys
+from pathlib import Path
+
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
+LIBS_DIR = PROJECT_ROOT / "libs"
+COMMON_PY_DIR = LIBS_DIR / "common-py"
+INFRA_DIR = PROJECT_ROOT / "infra"
+TESTS_DIR = PROJECT_ROOT / "tests"
+
+def _early_sys_path_setup():
+    """Ensure project-specific paths are available before project imports."""
+    for path in (COMMON_PY_DIR, LIBS_DIR, INFRA_DIR, PROJECT_ROOT, TESTS_DIR):
+        path_str = str(path)
+        if path_str not in sys.path:
+            sys.path.append(path_str)
+    # Propagate to PYTHONPATH so subprocesses inherit the same paths
+    pythonpath = os.environ.get("PYTHONPATH", "")
+    paths = [str(COMMON_PY_DIR), str(LIBS_DIR), str(TESTS_DIR), str(PROJECT_ROOT)]
+    merged = os.pathsep.join([p for p in paths + pythonpath.split(os.pathsep) if p])
+    os.environ["PYTHONPATH"] = merged
+
+_early_sys_path_setup()
+
+# Project and third-party imports
 from support.observability_validator import ObservabilityValidator
 from support.event_publisher import CollectionEventPublisher, TestEventFactory
 from support.db_cleanup import CollectionPhaseCleanup, DatabaseStateValidator
@@ -11,37 +37,7 @@ from common_py.database import DatabaseManager
 import pytest
 import pytest_asyncio
 import asyncio
-import asyncpg
 import httpx
-import os
-import sys
-from pathlib import Path
-
-# Add project paths to sys.path for tests
-PROJECT_ROOT = Path(__file__).resolve().parent.parent
-LIBS_DIR = PROJECT_ROOT / "libs"
-COMMON_PY_DIR = LIBS_DIR / "common-py"
-INFRA_DIR = PROJECT_ROOT / "infra"
-TESTS_DIR = PROJECT_ROOT / "tests"
-
-
-def ensure_sys_path():
-    """Ensure project-specific paths are available for imports."""
-    # Include tests directory so top-level imports like 'support' resolve when running from subdir (e.g., tests/integration)
-    for path in (COMMON_PY_DIR, LIBS_DIR, INFRA_DIR, PROJECT_ROOT, TESTS_DIR):
-        path_str = str(path)
-        if path_str not in sys.path:
-            sys.path.append(path_str)
-
-    # Propagate to PYTHONPATH so subprocesses inherit the same paths
-    pythonpath = os.environ.get("PYTHONPATH", "")
-    paths = [str(COMMON_PY_DIR), str(LIBS_DIR), str(TESTS_DIR), str(PROJECT_ROOT)]
-    merged = os.pathsep.join([p for p in paths + pythonpath.split(os.pathsep) if p])
-    os.environ["PYTHONPATH"] = merged
-
-
-ensure_sys_path()
-
 
 # Import test utilities
 

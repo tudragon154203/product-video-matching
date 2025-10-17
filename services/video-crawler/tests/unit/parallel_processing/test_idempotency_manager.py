@@ -5,10 +5,7 @@ Tests database-level and file-level idempotency functionality.
 """
 
 import pytest
-from unittest.mock import AsyncMock, patch, mock_open
-from pathlib import Path
-
-from services.idempotency_manager import IdempotencyManager
+from unittest.mock import patch, mock_open
 
 
 class TestVideoIdempotency:

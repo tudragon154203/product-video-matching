@@ -177,7 +177,7 @@ class ImageStorageManager:
             while True:
                 try:
                     # Use connection-scoped insert for atomicity
-                    inserted_id = await self.image_crud.create_product_image_with_conn(image, conn)
+                    await self.image_crud.create_product_image_with_conn(image, conn)
                     # Publish event immediately after successful insert
                     await self.broker.publish_event(
                         "products.image.ready",
