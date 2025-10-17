@@ -7,6 +7,7 @@ from typing import List, Optional, Dict
 from common_py.database import DatabaseManager
 from common_py.logging_config import configure_logging
 import time
+import asyncpg
 
 logger = configure_logging("test-utils:db-cleanup")
 
@@ -92,7 +93,28 @@ class CollectionPhaseCleanup:
         # For tables with direct job_id constraint
         if constraint_column == "job_id":
             query = f"DELETE FROM {table_name} WHERE {constraint_column} LIKE $1"
-            await self.db_manager.execute(query, job_id_pattern)
+
+            # Pre-clean children for known parent tables to avoid FK violations
+            if table_name == "products":
+                await self._cleanup_table("product_images", job_id_pattern)
+            elif table_name == "videos":
+                await self._cleanup_table("video_frames", job_id_pattern)
+
+            # Retry loop to handle concurrent inserts causing FK violations
+            retries = 3
+            for attempt in range(1, retries + 1):
+                try:
+                    await self.db_manager.execute(query, job_id_pattern)
+                    break
+                except asyncpg.exceptions.ForeignKeyViolationError as e:
+                    if attempt == retries:
+                        raise
+                    # Re-clean children and retry after a short delay
+                    if table_name == "products":
+                        await self._cleanup_table("product_images", job_id_pattern)
+                    elif table_name == "videos":
+                        await self._cleanup_table("video_frames", job_id_pattern)
+                    await asyncio.sleep(0.1)
 
         # For tables with foreign key constraints
         elif constraint_column in ["video_id", "product_id"]:

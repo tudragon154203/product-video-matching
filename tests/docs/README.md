@@ -1,20 +1,122 @@
-# Collection Phase Integration Tests Guide
+# Integration Tests Documentation
 
-This guide provides comprehensive documentation for running and understanding the Collection Phase Integration Tests, which validate the complete workflow from publishing collection requests to verifying completion events and database state.
+This directory contains comprehensive documentation for integration tests that validate the complete microservices workflow with **REAL SERVICE ENFORCEMENT** - no mocks are allowed.
 
 ## Table of Contents
 
-1. [Overview](#overview)
-2. [Quick Start](#quick-start)
-3. [Test Execution](#test-execution)
-4. [Test Scenarios](#test-scenarios)
+1. [Real Service Enforcement](#real-service-enforcement)
+2. [Quick Start Guide](#quick-start-guide)
+3. [Collection Phase Integration Tests](#collection-phase-integration-tests)
+4. [Test Execution](#test-execution)
 5. [Infrastructure Setup](#infrastructure-setup)
 6. [Mock Data Usage](#mock-data-usage)
 7. [Test Components](#test-components)
 8. [Troubleshooting](#troubleshooting)
 9. [Best Practices](#best-practices)
+10. [Performance Considerations](#performance-considerations)
+11. [CI/CD Integration](#cicd-integration)
 
-## Overview
+## Real Service Enforcement
+
+### 🚫 NO MOCKS ALLOWED
+
+These integration tests are designed to validate the complete system with real services:
+
+- **dropship-product-finder**: Must be running in `live` mode
+- **video-crawler**: Must be running in `live` mode
+- **rabbitmq**: Real message broker required
+- **postgresql**: Real database required
+- **main-api**: Must be accessible for health checks
+
+### Environment Variables Enforcement
+
+The following environment variables are **ENFORCED** to prevent mock usage:
+
+```bash
+# Service Modes (must be 'live')
+VIDEO_CRAWLER_MODE=live                    # ❌ mock/test/fake NOT allowed
+DROPSHIP_PRODUCT_FINDER_MODE=live          # ❌ mock/test/fake NOT allowed
+
+# Enforcement Flag
+INTEGRATION_TESTS_ENFORCE_REAL_SERVICES=true  # ❌ false NOT allowed
+```
+
+### Validation Checks
+
+1. **Startup Validation**: `conftest.py` validates real service configuration before any tests run
+2. **Runtime Validation**: Each test method validates real service usage during execution
+3. **Health Check Validation**: Tests verify services are actually responding (not just configured)
+
+### Failure Scenarios
+
+If mock configurations are detected, tests will **FAIL IMMEDIATELY**:
+
+```
+AssertionError: VIDEO_CRAWLER_MODE is set to 'mock'.
+Integration tests must use 'live' mode for real video crawling.
+```
+
+### Why Real Services Only?
+
+1. **True Integration**: Validating actual service interactions, not mock simulations
+2. **End-to-End Testing**: From API request → Real service processing → Database storage
+3. **Production Confidence**: Tests exercise real code paths that will run in production
+4. **API Contract Validation**: Real API responses validate service contracts
+5. **Performance Characteristics**: Real service behavior includes actual network calls, processing times, and error handling
+
+## Quick Start Guide
+
+### Prerequisites
+
+1. **Start the development stack**:
+   ```bash
+   docker compose -f infra/pvm/docker-compose.dev.cpu.yml up -d
+   ```
+
+2. **Run database migrations**:
+   ```bash
+   python scripts/run_migrations.py upgrade
+   ```
+
+3. **Install test dependencies**:
+   ```bash
+   pip install -r requirements-test.txt
+   ```
+
+4. **Configure environment**:
+   ```bash
+   cp infra/pvm/.env.example infra/pvm/.env
+   ```
+
+5. **Real API keys must be configured** (if services require them):
+   - Amazon API keys for product scraping
+   - eBay API keys for product scraping
+   - YouTube API keys for video crawling
+
+### Running Tests
+
+Note: Root-based pytest runs default to single worker (-n 1). You don't need to pass -n 1 explicitly.
+
+```bash
+# Run all integration tests from repo root
+pytest -m integration -v
+
+# Run collection phase tests from repo root
+pytest -m "collection_phase" -v
+
+# Run specific minimal test
+pytest tests/integration/test_collection_phase_happy_path.py::TestCollectionPhaseHappyPath::test_collection_phase_happy_path_minimal_dataset -v --no-cov -s
+
+# Run comprehensive validation test
+pytest tests/integration/test_collection_phase_happy_path.py::TestCollectionPhaseHappyPath::test_collection_phase_comprehensive_validation -v --no-cov -s
+
+# Run idempotency test
+pytest tests/integration/test_collection_phase_happy_path.py::TestCollectionPhaseHappyPath::test_collection_phase_idempotency_validation -v --no-cov -s
+```
+
+## Collection Phase Integration Tests
+
+### Overview
 
 The Collection Phase Integration Tests validate the end-to-end collection workflow according to Sprint 13.1 PRD specifications. The tests ensure that:
 
@@ -32,94 +134,29 @@ The Collection Phase Integration Tests validate the end-to-end collection workfl
 - **Test Environment**: Complete environment setup and teardown
 - **Mock Data**: Synthetic test data with deterministic IDs
 
-## Quick Start
+### Test Scenarios
 
-### Prerequisites
-
-1. Start the development stack:
-   ```bash
-   docker compose -f infra/pvm/docker-compose.dev.cpu.yml up -d
-   ```
-
-2. Run database migrations:
-   ```bash
-   python scripts/run_migrations.py upgrade
-   ```
-
-3. Install test dependencies:
-   ```bash
-   pip install -r requirements-test.txt
-   ```
-
-4. Configure environment:
-   ```bash
-   cp infra/pvm/.env.example infra/pvm/.env
-   ```
-
-### Running Tests
-
-#### Option 1: Direct Pytest Execution (Recommended)
-
-Note: Root-based pytest runs default to single worker (-n 1). You don't need to pass -n 1 explicitly.
-
-```bash
-# Run all integration tests from repo root
-pytest -m integration -v
-
-# Run all collection phase tests from repo root
-pytest -m "collection_phase" -v
-
-# Run specific minimal test
-pytest tests/integration/test_collection_phase_happy_path.py::TestCollectionPhaseHappyPath::test_collection_phase_happy_path_minimal_dataset -v --no-cov -s
-
-# Run comprehensive validation test
-pytest tests/integration/test_collection_phase_happy_path.py::TestCollectionPhaseHappyPath::test_collection_phase_comprehensive_validation -v --no-cov -s
-
-# Run idempotency test
-pytest tests/integration/test_collection_phase_happy_path.py::TestCollectionPhaseHappyPath::test_collection_phase_idempotency_validation -v --no-cov -s
-
-# Optional coverage flags (documented, not default)
-pytest -m "collection_phase" -v --cov=tests --cov-report=term-missing
-```
-
-#### Option 2: Test Execution with Coverage
-```bash
-# Run with coverage report
-pytest -m "collection_phase" -v --cov=tests --cov-report=html:htmlcov --cov-report=term
-
-# Run specific test with coverage
-pytest tests/integration/test_collection_phase_happy_path.py::TestCollectionPhaseHappyPath::test_collection_phase_happy_path_minimal_dataset -v --cov=tests --cov-report=term
-```
-
-## Test Scenarios
-
-### 1. Minimal Dataset Scenario
+#### 1. Minimal Dataset Scenario
 - **Purpose**: Validate basic collection workflow
 - **Duration**: ~25-30 seconds
 - **Data**: 1-3 products, 2-5 videos
 - **Validation**: Event flow, database state, observability, correlation ID propagation
 - **Command**: `pytest tests/integration/test_collection_phase_happy_path.py::TestCollectionPhaseHappyPath::test_collection_phase_happy_path_minimal_dataset -v`
 
-### 2. Comprehensive Scenario
+#### 2. Comprehensive Scenario
 - **Purpose**: Validate complete workflow with full data set
 - **Duration**: ~1-2 minutes
 - **Data**: Multiple products, videos, platforms
 - **Validation**: All aspects of collection workflow
 - **Command**: `pytest tests/integration/test_collection_phase_happy_path.py::TestCollectionPhaseHappyPath::test_collection_phase_comprehensive_validation -v`
 
-### 3. Idempotency Validation
+#### 3. Idempotency Validation
 - **Purpose**: Ensure duplicate requests don't create duplicate data
 - **Duration**: ~30-45 seconds
 - **Validation**: Event ledger tracking, database state, correlation ID consistency
 - **Command**: `pytest tests/integration/test_collection_phase_happy_path.py::TestCollectionPhaseHappyPath::test_collection_phase_idempotency_validation -v`
 
-### 4. All Collection Phase Tests
-- **Purpose**: Run complete test suite for collection phase
-- **Duration**: ~2-3 minutes total
-- **Validation**: Full coverage of collection workflow
-- **Command**: `pytest -m "collection_phase" -v`
-
-## Infrastructure Setup
+## Test Execution
 
 ### Test Configuration
 
@@ -136,8 +173,6 @@ timeout_method = "thread"
 env_override_existing_values = 1
 env_files = ["infra/pvm/.env", "tests/.env.test"]
 ```
-
-Strict markers are enabled and common markers are registered (e.g., unit, integration, collection_phase, performance, idempotency, ci, local, observability, slow). Root-based runs default to single worker (-n 1); global parallelism is not enforced. Pass -n only when you explicitly want parallel execution.
 
 ### Test Markers
 
@@ -161,6 +196,34 @@ REDIS_URL=redis://localhost:6379
 ENVIRONMENT=local
 LOG_LEVEL=INFO
 ```
+
+## Infrastructure Setup
+
+### Configuration Files
+
+- `pyproject.toml`: Root pytest configuration (strict markers, asyncio_mode=auto, import_mode=importlib, timeout=900, dotenv env_files)
+- `infra/pvm/.env` and `tests/.env.test`: Environment files loaded via pytest-dotenv (override enabled)
+- `conftest.py`: Validation logic for real services
+
+### Test Validation
+
+Each test performs the following validations:
+
+#### 1. Configuration Validation
+```python
+self.validate_real_service_usage()  # Checks env vars
+```
+
+#### 2. Service Health Validation
+```python
+await self.validate_services_responding()  # Checks services are running
+```
+
+#### 3. Real Data Validation
+Tests verify that **real data** is collected from services:
+- Products from Amazon/eBay with real ASINs/ItemIDs
+- Videos from YouTube/TikTok with real video IDs
+- Actual database records created by real services
 
 ## Mock Data Usage
 
@@ -230,7 +293,7 @@ async with CollectionPhaseSpy(broker_url) as spy:
     # Spy queues are automatically set up for:
     # - products.collections.completed
     # - videos.collections.completed
-    
+
     # Wait for events
     products_event = await spy.wait_for_products_completed(job_id, timeout=30.0)
     videos_event = await spy.wait_for_videos_completed(job_id, timeout=300.0)
@@ -285,7 +348,7 @@ async with CollectionPhaseTestEnvironment(db_manager, message_broker, broker_url
     # - Test job record
     # - Spy queues
     # - Clean database state
-    
+
     # Publish collection requests
     await env.publish_collection_requests(
         products_queries=["test product"],
@@ -293,7 +356,7 @@ async with CollectionPhaseTestEnvironment(db_manager, message_broker, broker_url
         industry="test industry",
         platforms=["youtube"]
     )
-    
+
     # Wait for completion
     completion = await env.wait_for_collection_completion()
 ```
@@ -331,6 +394,28 @@ docker compose -f infra/pvm/docker-compose.dev.cpu.yml logs rabbitmq
 # Check broker connectivity
 python -c "import aio_pika; asyncio.run(aio_pika.connect('amqp://guest:guest@localhost:5672/'))"
 ```
+
+#### Service Not Running
+```
+AssertionError: Cannot connect to Main API at http://localhost:8888.
+Services may not be running.
+```
+
+**Solution**: Start services with `./up-dev.ps1`
+
+#### Mock Configuration Detected
+```
+AssertionError: VIDEO_CRAWLER_MODE must be 'live', got 'mock'
+```
+
+**Solution**: Ensure environment variables are set to `live` mode
+
+#### Service Health Check Failed
+```
+AssertionError: Main API health check failed: 503
+```
+
+**Solution**: Check service logs and ensure all dependencies are running
 
 #### Test Timeout Issues
 - **Products completion**: Default timeout is 30 seconds
@@ -411,16 +496,16 @@ DELETE FROM jobs WHERE job_id LIKE 'test_%';
 - **Recommended**: 8GB RAM, 4 CPU cores
 - **Storage**: 10GB free space for test data and logs
 
-## Test Results and Reporting
+### Test Results and Reporting
 
-### Report Types
+#### Report Types
 
 - **JSON Report**: `test_report.json` - Detailed test results
 - **Coverage Report**: `htmlcov/index.html` - HTML coverage report
 - **XML Report**: `pytest.xml` - JUnit-compatible XML report
 - **Execution Log**: `test_execution.log` - Detailed execution log
 
-### Coverage Analysis
+#### Coverage Analysis
 
 Generate coverage reports:
 
@@ -487,8 +572,20 @@ pytest tests/integration/test_collection_phase_happy_path.py::TestCollectionPhas
 pytest -m "collection_phase" -v
 ```
 
+## Mock-Free Guarantee
+
+This test suite guarantees that:
+
+- ✅ No service responses are mocked
+- ✅ No external APIs are stubbed
+- ✅ No database interactions are faked
+- ✅ All data comes from real service calls
+- ✅ All failures come from real service behavior
+
+Any attempt to use mocks will result in **immediate test failure**.
+
 ---
 
-**Document Version**: 1.1
-**Last Updated**: October 16, 2025
+**Document Version**: 1.2
+**Last Updated**: October 17, 2025
 **Maintainer**: Development Team

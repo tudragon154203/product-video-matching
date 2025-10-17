@@ -138,7 +138,7 @@ class TestCollectionPhaseIntegration:
         # Step 3: Wait for videos collection completion
         videos_event = await spy.wait_for_videos_completed(
             job_id=job_id,
-            timeout=300.0
+            timeout=600.0
         )
 
         # Verify videos completion event

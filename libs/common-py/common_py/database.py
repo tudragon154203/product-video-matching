@@ -21,7 +21,9 @@ class DatabaseManager:
             self.dsn,
             min_size=1,
             max_size=10,
-            init=lambda conn: conn.execute(f"SET TIME ZONE '{timezone}'")
+            init=lambda conn: conn.execute(f"SET TIME ZONE '{timezone}'"),
+            command_timeout=60.0,
+            server_settings={"application_name": "product_video_matching"}
         )
     
     async def disconnect(self):

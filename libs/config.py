@@ -50,7 +50,7 @@ class Config:
     POSTGRES_PASSWORD: str = field(default_factory=lambda: get_env_var("POSTGRES_PASSWORD", "dev"))
     POSTGRES_DB: str = field(default_factory=lambda: get_env_var("POSTGRES_DB", "product_video_matching"))
     POSTGRES_HOST: str = field(default_factory=lambda: get_env_var("POSTGRES_HOST", "postgres"))
-    POSTGRES_DSN: str = field(default_factory=lambda: get_env_var("POSTGRES_DSN") or f"postgresql://{get_env_var('POSTGRES_USER', 'postgres')}:{get_env_var('POSTGRES_PASSWORD', 'dev')}@{get_env_var('POSTGRES_HOST', 'postgres')}:5432/{get_env_var('POSTGRES_DB', 'product_video_matching')}")
+    POSTGRES_DSN: str = field(default_factory=lambda: get_env_var("POSTGRES_DSN") or f"postgresql://{get_env_var('POSTGRES_USER', 'postgres')}:{get_env_var('POSTGRES_PASSWORD', 'dev')}@{get_env_var('POSTGRES_HOST', 'postgres')}:5432/{get_env_var('POSTGRES_DB', 'product_video_matching')}?sslmode=disable")
     
     # Redis
     PORT_REDIS: str = field(default_factory=lambda: get_env_int("PORT_REDIS", 6380))
