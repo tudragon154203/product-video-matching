@@ -8,6 +8,12 @@ import os
 import sys
 from pathlib import Path
 import importlib.util
+import socket
+import time
+import subprocess
+import shutil
+from urllib.parse import urlparse
+import pytest
 
 # Compute important paths
 INTEGRATION_DIR = Path(__file__).resolve().parent          # tests/integration
@@ -44,6 +50,103 @@ os.environ.update({
     "DROPSHIP_PRODUCT_FINDER_MODE": "live",  # ENFORCE: Real product finding, no mock mode
     "INTEGRATION_TESTS_ENFORCE_REAL_SERVICES": "true"  # ENFORCE: Flag to prevent mock fallbacks
 })
+
+# Auto-start infra (no build) if core ports are not reachable
+def _is_port_open(host: str, port: int, timeout: float = 2.0) -> bool:
+    try:
+        with socket.create_connection((host, port), timeout=timeout):
+            return True
+    except OSError:
+        return False
+
+def _bus_host_port() -> tuple[str, int]:
+    broker = os.environ.get("BUS_BROKER", "")
+    parsed = urlparse(broker)
+    host = parsed.hostname or "localhost"
+    port = parsed.port or 5672
+    return host, int(port)
+
+def _pg_host_port() -> tuple[str, int]:
+    dsn = os.environ.get("POSTGRES_DSN", "")
+    parsed = urlparse(dsn)
+    host = parsed.hostname or os.environ.get("POSTGRES_HOST", "localhost")
+    port = parsed.port or int(os.environ.get("POSTGRES_PORT", "5444"))
+    return host, int(port)
+
+def _ensure_infra_running():
+    bus_host, bus_port = _bus_host_port()
+    pg_host, pg_port = _pg_host_port()
+
+    bus_up = _is_port_open(bus_host, bus_port)
+    pg_up = _is_port_open(pg_host, pg_port)
+
+    if bus_up and pg_up:
+        print(f"[integration] Infra detected: RabbitMQ {bus_host}:{bus_port}, Postgres {pg_host}:{pg_port}")
+        return
+
+    # Only auto-start if both are down to avoid disrupting partial local setups
+    if not bus_up and not pg_up:
+        compose_file = WORKSPACE_ROOT / "infra" / "pvm" / "docker-compose.dev.yml"
+        cmd = ["docker", "compose", "-f", str(compose_file), "up", "-d"]
+        if shutil.which("docker") is None:
+            pytest.fail(
+                f"Required infra not running and 'docker' not found in PATH.\n"
+                f"Please start services manually:\n"
+                f"  docker compose -f {compose_file} up -d\n"
+                f"Ensure Postgres on {pg_host}:{pg_port} and RabbitMQ on {bus_host}:{bus_port} are reachable."
+            )
+        print(f"[integration] Starting infra via: {' '.join(cmd)}")
+        try:
+            result = subprocess.run(cmd, cwd=str(WORKSPACE_ROOT), capture_output=True, text=True, check=False)
+            if result.returncode != 0:
+                print("[integration] docker compose output:\n", result.stdout, "\n", result.stderr)
+                pytest.fail(
+                    "Failed to start infra using docker compose.\n"
+                    f"Try running manually:\n  {' '.join(cmd)}\n"
+                    "After services are healthy, re-run pytest."
+                )
+        except Exception as e:
+            pytest.fail(
+                f"Error invoking docker compose: {e}\n"
+                f"Please run:\n  {' '.join(cmd)}\n"
+                "Then re-run pytest."
+            )
+
+        # Wait for ports to open (max ~120s)
+        deadline = time.time() + 120
+        while time.time() < deadline:
+            bus_up = _is_port_open(bus_host, bus_port)
+            pg_up = _is_port_open(pg_host, pg_port)
+            if bus_up and pg_up:
+                print(f"[integration] Infra ready: RabbitMQ {bus_host}:{bus_port}, Postgres {pg_host}:{pg_port}")
+                break
+            time.sleep(3)
+
+        if not (bus_up and pg_up):
+            pytest.fail(
+                f"Infrastructure failed to become ready within 120s.\n"
+                f"Check container logs and ports:\n"
+                f"  RabbitMQ: {bus_host}:{bus_port}\n  Postgres: {pg_host}:{pg_port}\n"
+                f"Use:\n  docker compose -f {compose_file} logs -f\n"
+                "Resolve issues, then re-run pytest."
+            )
+    else:
+        # One of the services down; provide explicit guidance rather than auto-start to avoid conflicts
+        missing = []
+        if not bus_up:
+            missing.append(f"RabbitMQ at {bus_host}:{bus_port}")
+        if not pg_up:
+            missing.append(f"Postgres at {pg_host}:{pg_port}")
+        compose_file = WORKSPACE_ROOT / "infra" / "pvm" / "docker-compose.dev.yml"
+        pytest.fail(
+            "Detected partial infra readiness:\n"
+            f"  Missing: {', '.join(missing)}\n"
+            "Please ensure all required services are running. You can start the dev stack using:\n"
+            f"  docker compose -f {compose_file} up -d\n"
+            "Then re-run pytest."
+        )
+
+_ensure_infra_running()
 
 # Ensure the centralized config picks up the overrides by reloading after env update
 

@@ -2,60 +2,55 @@
 Pytest configuration and fixtures for integration tests
 """
 # Early sys.path setup to resolve project modules when running from repo root
-import httpx
-import asyncio
-import pytest_asyncio
-import pytest
-from common_py.database import DatabaseManager
-from common_py.messaging import MessageBroker
-from config import config
-from support.message_spy import CollectionPhaseSpy, MessageSpy
-from support.db_cleanup import CollectionPhaseCleanup, DatabaseStateValidator
-from support.event_publisher import CollectionEventPublisher, TestEventFactory
-from support.observability_validator import ObservabilityValidator
+
 import os
 import sys
 from pathlib import Path
 
+# Compute and add project paths BEFORE any project imports
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 LIBS_DIR = PROJECT_ROOT / "libs"
 COMMON_PY_DIR = LIBS_DIR / "common-py"
 INFRA_DIR = PROJECT_ROOT / "infra"
 TESTS_DIR = PROJECT_ROOT / "tests"
 
-
 def _early_sys_path_setup():
     """Ensure project-specific paths are available before project imports."""
-    for path in (COMMON_PY_DIR, LIBS_DIR, INFRA_DIR, PROJECT_ROOT, TESTS_DIR):
-        path_str = str(path)
-        if path_str not in sys.path:
-            sys.path.append(path_str)
+    for p in (COMMON_PY_DIR, LIBS_DIR, INFRA_DIR, PROJECT_ROOT, TESTS_DIR):
+        ps = str(p)
+        if ps in sys.path:
+            continue
+        # Prepend to prioritize our project paths
+        sys.path.insert(0, ps)
     # Propagate to PYTHONPATH so subprocesses inherit the same paths
     pythonpath = os.environ.get("PYTHONPATH", "")
     paths = [str(COMMON_PY_DIR), str(LIBS_DIR), str(TESTS_DIR), str(PROJECT_ROOT)]
     merged = os.pathsep.join([p for p in paths + pythonpath.split(os.pathsep) if p])
     os.environ["PYTHONPATH"] = merged
-
 
 _early_sys_path_setup()
 
+# Minimal diagnostics to validate path setup and config import during collection
+try:
+    from config import config
+    _cfg_mod = sys.modules.get("config")
+    if _cfg_mod and getattr(_cfg_mod, "__file__", None):
+        print(f"[conftest] config loaded from: {_cfg_mod.__file__}")
+except Exception as e:
+    print(f"[conftest] ERROR importing config: {e}")
+    raise
 
-# Project and third-party imports
-
-
-def _early_sys_path_setup():
-    """Ensure project-specific paths are available before project imports."""
-    for path in (COMMON_PY_DIR, LIBS_DIR, INFRA_DIR, PROJECT_ROOT, TESTS_DIR):
-        path_str = str(path)
-        if path_str not in sys.path:
-            sys.path.append(path_str)
-    # Propagate to PYTHONPATH so subprocesses inherit the same paths
-    pythonpath = os.environ.get("PYTHONPATH", "")
-    paths = [str(COMMON_PY_DIR), str(LIBS_DIR), str(TESTS_DIR), str(PROJECT_ROOT)]
-    merged = os.pathsep.join([p for p in paths + pythonpath.split(os.pathsep) if p])
-    os.environ["PYTHONPATH"] = merged
-
-# Import test utilities
+# Third-party imports and project modules (safe after path setup)
+import httpx
+import asyncio
+import pytest_asyncio
+import pytest
+from common_py.database import DatabaseManager
+from common_py.messaging import MessageBroker
+from support.message_spy import CollectionPhaseSpy, MessageSpy
+from support.db_cleanup import CollectionPhaseCleanup, DatabaseStateValidator
+from support.event_publisher import CollectionEventPublisher, TestEventFactory
+from support.observability_validator import ObservabilityValidator
 
 
 @pytest_asyncio.fixture
