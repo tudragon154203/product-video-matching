@@ -6,6 +6,7 @@ ensuring that duplicate videos and frames are not created or processed multiple 
 """
 
 import hashlib
+import asyncio
 from typing import Optional, Tuple
 from pathlib import Path
 
@@ -15,23 +16,78 @@ from common_py.logging_config import configure_logging
 logger = configure_logging("video-crawler:idempotency_manager")
 
 
+def database_retry(max_attempts: int = 3, delay: float = 0.5):
+    """Decorator to retry database operations with exponential backoff."""
+    def decorator(func):
+        async def wrapper(*args, **kwargs):
+            last_exception = None
+            for attempt in range(max_attempts):
+                try:
+                    return await func(*args, **kwargs)
+                except Exception as e:
+                    last_exception = e
+                    error_msg = str(e) or repr(e) or f"Exception type: {type(e).__name__}"
+
+                    # Check if this is a connection-related error that should be retried
+                    if attempt < max_attempts - 1 and any(
+                        keyword in error_msg.lower() for keyword in [
+                            "connection", "timeout", "closed", "pool", "network"
+                        ]
+                    ):
+                        wait_time = delay * (2 ** attempt)  # Exponential backoff
+                        logger.warning(
+                            f"Database operation failed (attempt {attempt + 1}/{max_attempts}), "
+                            f"retrying in {wait_time:.1f}s: {error_msg}"
+                        )
+                        await asyncio.sleep(wait_time)
+                        continue
+                    else:
+                        # Not a connection error or max attempts reached
+                        break
+
+            # If we get here, all attempts failed
+            if last_exception:
+                error_msg = str(last_exception) or repr(last_exception) or f"Exception type: {type(last_exception).__name__}"
+                logger.error(f"Database operation failed after {max_attempts} attempts: {error_msg}")
+                raise last_exception
+
+        return wrapper
+    return decorator
+
+
 class IdempotencyManager:
     """Manages idempotency for video operations."""
 
     def __init__(self, db: DatabaseManager):
         self.db = db
 
+    async def _validate_database_connection(self) -> bool:
+        """Validate that database connection is active."""
+        try:
+            if not self.db or not self.db.pool:
+                logger.error("Database manager or connection pool is not initialized")
+                return False
+
+            # Test connection with a simple query
+            await self.db.fetch_one("SELECT 1")
+            return True
+        except Exception as e:
+            error_msg = str(e) or repr(e) or f"Exception type: {type(e).__name__}"
+            logger.error(f"Database connection validation failed: {error_msg}")
+            return False
+
+    @database_retry(max_attempts=3, delay=0.5)
     async def check_video_exists(self, video_id: str, platform: str) -> bool:
         """Check if video already exists in database."""
-        try:
-            result = await self.db.fetch_one(
-                "SELECT video_id FROM videos WHERE video_id = $1 AND platform = $2",
-                video_id, platform
-            )
-            return result is not None
-        except Exception as e:
-            logger.error(f"Error checking video existence: {e}")
+        # Validate database connection first
+        if not await self._validate_database_connection():
             return False
+
+        result = await self.db.fetch_one(
+            "SELECT video_id FROM videos WHERE video_id = $1 AND platform = $2",
+            video_id, platform
+        )
+        return result is not None
 
     async def check_frame_exists(self, video_id: str, frame_index: int) -> bool:
         """Check if frame already exists for video."""
@@ -43,20 +99,22 @@ class IdempotencyManager:
             )
             return result is not None
         except Exception as e:
-            logger.error(f"Error checking frame existence: {e}")
+            error_msg = str(e) or repr(e) or f"Exception type: {type(e).__name__}"
+            logger.error(f"Error checking frame existence for video_id={video_id}, frame_index={frame_index}: {error_msg}")
             return False
 
+    @database_retry(max_attempts=3, delay=0.5)
     async def get_existing_video(self, video_id: str, platform: str) -> Optional[dict]:
         """Get existing video record if it exists."""
-        try:
-            result = await self.db.fetch_one(
-                "SELECT * FROM videos WHERE video_id = $1 AND platform = $2",
-                video_id, platform
-            )
-            return dict(result) if result else None
-        except Exception as e:
-            logger.error(f"Error getting existing video: {e}")
+        # Validate database connection first
+        if not await self._validate_database_connection():
             return None
+
+        result = await self.db.fetch_one(
+            "SELECT * FROM videos WHERE video_id = $1 AND platform = $2",
+            video_id, platform
+        )
+        return dict(result) if result else None
 
     async def get_existing_frames(self, video_id: str) -> list:
         """Get existing frames for video."""
@@ -70,6 +128,7 @@ class IdempotencyManager:
             logger.error(f"Error getting existing frames: {e}")
             return []
 
+    @database_retry(max_attempts=3, delay=0.5)
     async def create_video_with_idempotency(
         self,
         video_id: str,
@@ -85,29 +144,28 @@ class IdempotencyManager:
         Returns:
             Tuple[created_new: bool, video_id: str]
         """
-        try:
-            # Check if video already exists
-            existing = await self.get_existing_video(video_id, platform)
-            if existing:
-                logger.info(f"Video already exists, skipping creation: {video_id} ({platform})")
-                return False, video_id
+        # Validate database connection first
+        if not await self._validate_database_connection():
+            raise RuntimeError("Database connection is not available for video creation")
 
-            # Create new video record
-            await self.db.execute(
-                """
-                INSERT INTO videos (video_id, platform, url, title, duration_s, job_id, created_at)
-                VALUES ($1, $2, $3, $4, $5, $6, NOW())
-                ON CONFLICT (video_id, platform) DO NOTHING
-                """,
-                video_id, platform, url, title, duration_s, job_id
-            )
+        # Check if video already exists
+        existing = await self.get_existing_video(video_id, platform)
+        if existing:
+            logger.info(f"Video already exists, skipping creation: {video_id} ({platform})")
+            return False, video_id
 
-            logger.info(f"Created new video record: {video_id} ({platform})")
-            return True, video_id
+        # Create new video record
+        await self.db.execute(
+            """
+            INSERT INTO videos (video_id, platform, url, title, duration_s, job_id, created_at)
+            VALUES ($1, $2, $3, $4, $5, $6, NOW())
+            ON CONFLICT (video_id, platform) DO NOTHING
+            """,
+            video_id, platform, url, title, duration_s, job_id
+        )
 
-        except Exception as e:
-            logger.error(f"Error creating video with idempotency: {e}")
-            raise
+        logger.info(f"Created new video record: {video_id} ({platform})")
+        return True, video_id
 
     async def create_frame_with_idempotency(
         self,

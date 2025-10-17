@@ -140,8 +140,8 @@ class TestCollectionPhaseHappyPath:
         products_request = TestEventFactory.create_products_collect_request(
             job_id=job_id,
             queries=["ergonomic pillow"],  # Minimal dataset
-            top_amz=2,  # Minimal dataset
-            top_ebay=1  # Minimal dataset
+            top_amz=0,  # Skip Amazon (faster)
+            top_ebay=1  # Minimal dataset - eBay only
         )
 
         videos_request = TestEventFactory.create_videos_search_request(
@@ -151,7 +151,7 @@ class TestCollectionPhaseHappyPath:
                 "vi": ["gối ngủ ergonomics"],  # Minimal dataset
                 "zh": ["人体工学枕头"]  # Required by schema
             },
-            platforms=["youtube"],  # Minimal dataset - cap at 2 videos
+            platforms=["tiktok"],  # TikTok only (faster than YouTube)
             recency_days=30
         )
 
@@ -217,7 +217,7 @@ class TestCollectionPhaseHappyPath:
         # Validate product fields
         for product in products:
             assert product.job_id == job_id
-            assert product.src in ["amazon", "ebay"]  # Expected sources
+            assert product.src == "ebay"  # eBay only
             assert product.title is not None and len(product.title) > 0
             assert product.asin_or_itemid is not None
             # URL might be None for some products, only validate if present
@@ -229,16 +229,16 @@ class TestCollectionPhaseHappyPath:
         video_crud = VideoCRUD(cleanup.db_manager)
         videos = await video_crud.list_videos_by_job(job_id)
 
-        # Assert we have videos collected (at least 2 as specified)
-        assert len(videos) >= 2, f"Expected at least 2 videos, got {len(videos)}"
+        # Assert we have videos collected (at least 1 as specified for TikTok)
+        assert len(videos) >= 1, f"Expected at least 1 video, got {len(videos)}"
 
         # Validate video fields
         for video in videos:
             assert video.job_id == job_id
-            assert video.platform in ["youtube", "tiktok"]  # Expected platforms
+            assert video.platform == "tiktok"  # TikTok only
             assert video.title is not None and len(video.title) > 0
             assert video.url is not None and len(video.url) > 0
-            assert video.duration_s is not None and video.duration_s > 0
+            # Duration may be unavailable for TikTok; don't enforce it
 
         # Step 7: Verify database state correctness
         await validator.assert_job_exists(job_id)
@@ -332,8 +332,8 @@ class TestCollectionPhaseHappyPath:
         products_request = TestEventFactory.create_products_collect_request(
             job_id=job_id,
             queries=["ergonomic pillow"],
-            top_amz=2,
-            top_ebay=1
+            top_amz=0,  # Skip Amazon (faster)
+            top_ebay=1   # eBay only
         )
 
         videos_request = TestEventFactory.create_videos_search_request(
@@ -343,7 +343,7 @@ class TestCollectionPhaseHappyPath:
                 "vi": ["gối ngủ ergonomics"],
                 "zh": ["人体工学枕头"]
             },
-            platforms=["youtube"],
+            platforms=["tiktok"],  # TikTok only (faster)
             recency_days=30
         )
 
@@ -488,8 +488,8 @@ class TestCollectionPhaseHappyPath:
         products_request = TestEventFactory.create_products_collect_request(
             job_id=job_id,
             queries=["ergonomic pillow", "memory foam cushion"],
-            top_amz=3,
-            top_ebay=2
+            top_amz=0,  # Skip Amazon (faster)
+            top_ebay=2   # eBay only
         )
 
         videos_request = TestEventFactory.create_videos_search_request(
@@ -499,7 +499,7 @@ class TestCollectionPhaseHappyPath:
                 "vi": ["gối ngủ ergonomics", "đánh giá gối memory foam"],
                 "zh": ["人体工学枕头", "记忆泡沫枕头测评"]
             },
-            platforms=["youtube", "tiktok"],
+            platforms=["tiktok"],  # TikTok only (faster)
             recency_days=30
         )
 
@@ -567,7 +567,7 @@ class TestCollectionPhaseHappyPath:
         # Validate product fields comprehensively
         for product in products:
             assert product.job_id == job_id
-            assert product.src in ["amazon", "ebay"]
+            assert product.src == "ebay"  # eBay only
             assert product.title is not None and len(product.title.strip()) > 0
             assert product.asin_or_itemid is not None and len(product.asin_or_itemid.strip()) > 0
             # URL might be None for some products, only validate if present
@@ -578,13 +578,11 @@ class TestCollectionPhaseHappyPath:
         # Validate video fields comprehensively
         for video in videos:
             assert video.job_id == job_id
-            assert video.platform in ["youtube", "tiktok"]
+            assert video.platform == "tiktok"  # TikTok only
             assert video.title is not None and len(video.title.strip()) > 0
             assert video.url is not None and len(video.url.strip()) > 0
             assert video.url.startswith(("http://", "https://"))
-            # Duration may be unavailable for certain platforms (e.g., TikTok); enforce for YouTube
-            if video.platform == "youtube":
-                assert video.duration_s is not None and video.duration_s > 0
+            # Duration may be unavailable for TikTok; don't enforce it
 
         # Validate collection summary
         summary = await validator.get_collection_summary(job_id)

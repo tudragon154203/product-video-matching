@@ -24,6 +24,10 @@ async def mock_db():
     db.fetch_all.return_value = []
     db.execute.return_value = None
 
+    # Add mock pool for connection validation
+    mock_pool = AsyncMock()
+    db.pool = mock_pool
+
     return db
 
 
@@ -285,7 +289,7 @@ class TestIdempotencyIntegration:
 
         # Second frame creation should be prevented
         mock_db.fetch_one.return_value = {"frame_id": "test_video_frame_0"}
-        created_new_2, frame_id_2 = await manager.create_frame_with_idempency(
+        created_new_2, frame_id_2 = await manager.create_frame_with_idempotency(
             video_id="test_video",
             frame_index=0,
             timestamp=0.0,

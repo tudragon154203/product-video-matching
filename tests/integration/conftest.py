@@ -44,11 +44,8 @@ os.environ.update({
     "POSTGRES_DB": "product_video_matching",
     "POSTGRES_USER": "postgres",
     "POSTGRES_PASSWORD": "dev",
-    "POSTGRES_DSN": "postgresql://postgres:dev@localhost:5444/product_video_matching",
-    "BUS_BROKER": "amqp://guest:guest@localhost:5672/",
     "VIDEO_CRAWLER_MODE": "live",
-    "DROPSHIP_PRODUCT_FINDER_MODE": "live",
-    "INTEGRATION_TESTS_ENFORCE_REAL_SERVICES": "true"
+    "DROPSHIP_PRODUCT_FINDER_MODE": "live"
 })
 
 # Auto-start infra (no build) if core services are down

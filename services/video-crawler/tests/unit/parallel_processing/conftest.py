@@ -24,6 +24,10 @@ def mock_db():
     db.fetch_all.return_value = []
     db.execute.return_value = None
 
+    # Add mock pool for connection validation
+    mock_pool = AsyncMock()
+    db.pool = mock_pool
+
     return db
 
 

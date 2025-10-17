@@ -110,9 +110,15 @@ class VideoProcessor:
             }
 
         except Exception as e:
+            error_msg = str(e) or repr(e) or f"Exception type: {type(e).__name__}"
             logger.error(
-                f"Failed to process video: {str(e)}",
-                extra={"video_data": video_data}
+                f"Failed to process video: {error_msg}",
+                extra={
+                    "video_data": video_data,
+                    "exception_type": type(e).__name__,
+                    "video_id": video_data.get("video_id"),
+                    "platform": video_data.get("platform")
+                }
             )
             return {
                 "video_id": None,

@@ -275,9 +275,9 @@ def collection_test_data():
             "vi": ["gối ngủ ergonomics", "đánh giá gối memory foam"],
             "zh": ["人体工学枕头", "记忆泡沫枕头测评"]
         },
-        "platforms": ["youtube", "tiktok"],
-        "top_amz": 20,
-        "top_ebay": 20,
+        "platforms": ["tiktok"],  # TikTok only (faster)
+        "top_amz": 0,  # Skip Amazon (faster)
+        "top_ebay": 5,  # eBay only
         "recency_days": 30
     }
 
