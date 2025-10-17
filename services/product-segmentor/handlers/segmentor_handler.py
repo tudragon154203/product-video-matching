@@ -42,11 +42,12 @@ class ProductSegmentorHandler:
 
     @validate_event("products_image_ready")
     @handle_errors
-    async def handle_products_image_ready(self, event_data: dict) -> None:
+    async def handle_products_image_ready(self, event_data: dict, correlation_id: str = None) -> None:
         """Handle product images ready event.
 
         Args:
             event_data: Event payload containing product image information
+            correlation_id: Optional correlation ID for tracing
         """
         logger.info(
             "Event received",
@@ -60,11 +61,12 @@ class ProductSegmentorHandler:
 
     @validate_event("products_images_ready_batch")
     @handle_errors
-    async def handle_products_images_ready_batch(self, event_data: dict) -> None:
+    async def handle_products_images_ready_batch(self, event_data: dict, correlation_id: str = None) -> None:
         """Handle product images ready batch event.
 
         Args:
             event_data: Batch event payload
+            correlation_id: Optional correlation ID for tracing
         """
         logger.info(
             "Batch event received",
@@ -78,11 +80,12 @@ class ProductSegmentorHandler:
 
     @validate_event("videos_keyframes_ready")
     @handle_errors
-    async def handle_videos_keyframes_ready(self, event_data: dict) -> None:
+    async def handle_videos_keyframes_ready(self, event_data: dict, correlation_id: str = None) -> None:
         """Handle video keyframes ready event.
 
         Args:
             event_data: Event payload containing video keyframe information
+            correlation_id: Optional correlation ID for tracing
         """
         logger.info(
             "Event received",
@@ -96,11 +99,12 @@ class ProductSegmentorHandler:
 
     @validate_event("videos_keyframes_ready_batch")
     @handle_errors
-    async def handle_videos_keyframes_ready_batch(self, event_data: dict) -> None:
+    async def handle_videos_keyframes_ready_batch(self, event_data: dict, correlation_id: str = None) -> None:
         """Handle video keyframes ready batch event.
 
         Args:
             event_data: Batch event payload
+            correlation_id: Optional correlation ID for tracing
         """
         logger.info(
             "Batch event received",
