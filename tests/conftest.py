@@ -2,6 +2,17 @@
 Pytest configuration and fixtures for integration tests
 """
 # Early sys.path setup to resolve project modules when running from repo root
+import httpx
+import asyncio
+import pytest_asyncio
+import pytest
+from common_py.database import DatabaseManager
+from common_py.messaging import MessageBroker
+from config import config
+from support.message_spy import CollectionPhaseSpy, MessageSpy
+from support.db_cleanup import CollectionPhaseCleanup, DatabaseStateValidator
+from support.event_publisher import CollectionEventPublisher, TestEventFactory
+from support.observability_validator import ObservabilityValidator
 import os
 import sys
 from pathlib import Path
@@ -11,6 +22,7 @@ LIBS_DIR = PROJECT_ROOT / "libs"
 COMMON_PY_DIR = LIBS_DIR / "common-py"
 INFRA_DIR = PROJECT_ROOT / "infra"
 TESTS_DIR = PROJECT_ROOT / "tests"
+
 
 def _early_sys_path_setup():
     """Ensure project-specific paths are available before project imports."""
@@ -24,20 +36,24 @@ def _early_sys_path_setup():
     merged = os.pathsep.join([p for p in paths + pythonpath.split(os.pathsep) if p])
     os.environ["PYTHONPATH"] = merged
 
+
 _early_sys_path_setup()
 
+
 # Project and third-party imports
-from support.observability_validator import ObservabilityValidator
-from support.event_publisher import CollectionEventPublisher, TestEventFactory
-from support.db_cleanup import CollectionPhaseCleanup, DatabaseStateValidator
-from support.message_spy import CollectionPhaseSpy, MessageSpy
-from config import config
-from common_py.messaging import MessageBroker
-from common_py.database import DatabaseManager
-import pytest
-import pytest_asyncio
-import asyncio
-import httpx
+
+
+def _early_sys_path_setup():
+    """Ensure project-specific paths are available before project imports."""
+    for path in (COMMON_PY_DIR, LIBS_DIR, INFRA_DIR, PROJECT_ROOT, TESTS_DIR):
+        path_str = str(path)
+        if path_str not in sys.path:
+            sys.path.append(path_str)
+    # Propagate to PYTHONPATH so subprocesses inherit the same paths
+    pythonpath = os.environ.get("PYTHONPATH", "")
+    paths = [str(COMMON_PY_DIR), str(LIBS_DIR), str(TESTS_DIR), str(PROJECT_ROOT)]
+    merged = os.pathsep.join([p for p in paths + pythonpath.split(os.pathsep) if p])
+    os.environ["PYTHONPATH"] = merged
 
 # Import test utilities
 

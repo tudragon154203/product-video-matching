@@ -99,7 +99,7 @@ class CollectionPhaseCleanup:
             # Use subquery to find related records
             if constraint_column == "video_id":
                 query = f"""
-                    DELETE FROM {table_name} 
+                    DELETE FROM {table_name}
                     WHERE {constraint_column} IN (
                         SELECT {constraint_column} FROM videos
                         WHERE job_id LIKE $1
@@ -107,7 +107,7 @@ class CollectionPhaseCleanup:
                 """
             elif constraint_column == "product_id":
                 query = f"""
-                    DELETE FROM {table_name} 
+                    DELETE FROM {table_name}
                     WHERE {constraint_column} IN (
                         SELECT {constraint_column} FROM products
                         WHERE job_id LIKE $1
@@ -162,7 +162,7 @@ class CollectionPhaseCleanup:
             # Use subquery to find related records
             if constraint_column == "video_id":
                 query = f"""
-                    DELETE FROM {table_name} 
+                    DELETE FROM {table_name}
                     WHERE {constraint_column} IN (
                         SELECT {constraint_column} FROM videos
                         WHERE job_id = $1
@@ -170,7 +170,7 @@ class CollectionPhaseCleanup:
                 """
             elif constraint_column == "product_id":
                 query = f"""
-                    DELETE FROM {table_name} 
+                    DELETE FROM {table_name}
                     WHERE {constraint_column} IN (
                         SELECT {constraint_column} FROM products
                         WHERE job_id = $1
