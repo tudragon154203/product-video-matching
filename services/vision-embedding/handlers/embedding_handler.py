@@ -23,21 +23,29 @@ class VisionEmbeddingHandler:
 
     # New masked event handlers
     @validate_event("products_image_masked")
-    async def handle_products_image_masked(self, event_data):
+    async def handle_products_image_masked(
+        self, event_data, correlation_id: str = None
+    ):
         """Handle product image masked event"""
         await self.service.handle_products_image_masked(event_data)
 
     @validate_event("video_keyframes_masked")
-    async def handle_video_keyframes_masked(self, event_data):
+    async def handle_video_keyframes_masked(
+        self, event_data, correlation_id: str = None
+    ):
         """Handle video keyframes masked event"""
         await self.service.handle_video_keyframes_masked(event_data)
 
     @validate_event("products_images_masked_batch")
-    async def handle_products_images_masked_batch(self, event_data):
+    async def handle_products_images_masked_batch(
+        self, event_data, correlation_id: str = None
+    ):
         """Handle products images masked batch event"""
         await self.service.handle_products_images_masked_batch(event_data)
 
     @validate_event("video_keyframes_masked_batch")
-    async def handle_videos_keyframes_masked_batch(self, event_data):
+    async def handle_videos_keyframes_masked_batch(
+        self, event_data, correlation_id: str = None
+    ):
         """Handle videos keyframes masked batch event"""
         await self.service.handle_videos_keyframes_masked_batch(event_data)
