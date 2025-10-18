@@ -54,7 +54,8 @@ class TestVisionKeypointHandler:
         self.mock_service.handle_products_image_masked = AsyncMock()
 
         # Call the handler method
-        await self.handler.handle_products_image_masked(event_data)
+        correlation_id = "test-correlation-id"
+        await self.handler.handle_products_image_masked(event_data, correlation_id)
 
         # Verify the service method was called
         self.mock_service.handle_products_image_masked.assert_called_once_with(event_data)
@@ -75,7 +76,8 @@ class TestVisionKeypointHandler:
         self.mock_service.handle_video_keyframes_masked = AsyncMock()
 
         # Call the handler method
-        await self.handler.handle_video_keyframes_masked(event_data)
+        correlation_id = "test-correlation-id"
+        await self.handler.handle_video_keyframes_masked(event_data, correlation_id)
 
         # Verify the service method was called
         self.mock_service.handle_video_keyframes_masked.assert_called_once_with(event_data)
@@ -90,7 +92,8 @@ class TestVisionKeypointHandler:
         self.mock_service.handle_products_images_masked_batch = AsyncMock()
 
         # Call the handler method
-        await self.handler.handle_products_images_masked_batch(event_data)
+        correlation_id = "test-correlation-id"
+        await self.handler.handle_products_images_masked_batch(event_data, correlation_id)
 
         # Verify the service method was called
         self.mock_service.handle_products_images_masked_batch.assert_called_once_with(event_data)
@@ -105,7 +108,8 @@ class TestVisionKeypointHandler:
         self.mock_service.handle_videos_keyframes_masked_batch = AsyncMock()
 
         # Call the handler method
-        await self.handler.handle_videos_keyframes_masked_batch(event_data)
+        correlation_id = "test-correlation-id"
+        await self.handler.handle_videos_keyframes_masked_batch(event_data, correlation_id)
 
         # Verify the service method was called
         self.mock_service.handle_videos_keyframes_masked_batch.assert_called_once_with(event_data)
