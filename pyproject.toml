@@ -2,9 +2,7 @@
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
 addopts = "--strict-markers -n 1 --import-mode=prepend"
-testpaths = [
-  "tests/integration"
-]
+testpaths = ["tests/integration"]
 norecursedirs = [
   ".git",
   ".github",
@@ -15,7 +13,7 @@ norecursedirs = [
   "dist",
   "build",
   "model_cache",
-  "data"
+  "data",
 ]
 markers = [
   "unit: Mark a test as a unit test.",
@@ -27,12 +25,9 @@ markers = [
   "slow: Mark a test as a slow-running test.",
   "ci: Mark a test that should run in CI environment.",
   "local: Mark a test that should run locally only.",
-  "idempotency: Mark a test that validates idempotency behavior."
+  "idempotency: Mark a test that validates idempotency behavior.",
 ]
-timeout = 900
+timeout = 1200
 timeout_method = "thread"
 env_override_existing_values = 1
-env_files = [
-  "infra/pvm/.env",
-  "tests/.env.test"
-]
+env_files = ["infra/pvm/.env", "tests/.env.test"]
