@@ -56,7 +56,7 @@ class ParallelVideoService:
         )
         self.pipeline = StreamingVideoPipeline(
             db=db,
-            config=config,
+            pipeline_config=config,
             idempotency_manager=self.idempotency_manager
         )
 

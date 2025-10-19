@@ -68,7 +68,7 @@ class TestCollectionPhaseHappyPath:
         main_api_url = os.environ.get("MAIN_API_URL", "http://localhost:8888")
 
         try:
-            async with httpx.AsyncClient(timeout=5.0) as client:
+            async with httpx.AsyncClient(timeout=30.0) as client:
                 response = await client.get(f"{main_api_url}/health")
                 if response.status_code != 200:
                     raise AssertionError(f"Main API health check failed: {response.status_code}")

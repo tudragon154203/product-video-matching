@@ -130,16 +130,16 @@ class TestTikTokIntegration:
         # Mock the job progress manager and event emitter for proper handling
         service.job_progress_manager = AsyncMock()
 
-        async def mock_emit_keyframes_ready_batch(job_id, batch_payload):
+        async def mock_emit_keyframes_ready_batch(job_id, videos, correlation_id=None):
             """Mock event emitter to track processed videos"""
             assert job_id == "test-job-123"
-            assert len(batch_payload) == 2
-            for video_data in batch_payload:
+            assert len(videos) == 2
+            for video_data in videos:
                 assert "video_id" in video_data
                 assert "platform" in video_data
                 assert video_data["platform"] == "tiktok"
 
-        async def mock_emit_collections_completed(job_id):
+        async def mock_emit_collections_completed(job_id, correlation_id=None):
             """Mock event completion"""
             assert job_id == "test-job-123"
             published_topics.append("videos.collections.completed")
@@ -148,7 +148,7 @@ class TestTikTokIntegration:
         service.event_emitter.publish_videos_collections_completed = mock_emit_collections_completed
 
         # Execute the search request
-        await service.handle_videos_search_request(event_data)
+        await service.handle_videos_search_request(event_data, correlation_id="test-correlation-123")
 
         # Verify that TikTok crawler was set up correctly
         assert "tiktok" in service.platform_crawlers
@@ -224,7 +224,7 @@ class TestTikTokIntegration:
 
         # Execute the search request (this will simulate API failure)
         try:
-            await service.handle_videos_search_request(event_data)
+            await service.handle_videos_search_request(event_data, correlation_id="test-correlation-456")
         except Exception:
             # If the API call fails, we still want to verify the error handling
             # The service should still complete the process by calling the zero videos handler
@@ -232,7 +232,7 @@ class TestTikTokIntegration:
 
         # The service should catch the exception and call the zero videos handler
         # which calls publish_videos_collections_completed
-        service.event_emitter.publish_videos_collections_completed.assert_called_once_with("test-job-456")
+        service.event_emitter.publish_videos_collections_completed.assert_called_once_with("test-job-456", "test-correlation-456")
 
         # Verify that job progress was NOT updated for zero videos case
         # since the service skips job progress updates when no videos are found

@@ -8,7 +8,13 @@ Integration tests bootstrap:
 - Import root tests/conftest fixtures into this collection root
 """
 
-import os, sys
+import importlib.util
+from pathlib import Path
+import sys
+import os
+import importlib
+
+# Set up paths first before importing support modules
 sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 # Minimal dotenv loader: load tests/.env.test without overriding existing os.environ
 def load_env_file():
@@ -58,6 +64,10 @@ pythonpath = os.environ.get("PYTHONPATH", "")
 paths = [str(COMMON_PY_DIR), str(LIBS_DIR), str(TESTS_DIR), str(WORKSPACE_ROOT)]
 merged = os.pathsep.join([p for p in paths + pythonpath.split(os.pathsep) if p])
 os.environ["PYTHONPATH"] = merged
+
+# Now import support modules after path setup is complete
+from support.service_enforcement import enforce_real_service_usage
+from support.infra_bootstrap import ensure_infra_running
 
 # Enforce real services via environment overrides (no mocks allowed in integration tests)
 os.environ.update({

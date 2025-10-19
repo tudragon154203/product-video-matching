@@ -320,7 +320,7 @@ class TestEndToEndParallelProcessing:
         }
 
         # Mock the streaming pipeline to return expected structure
-        async def mock_stream():
+        async def mock_stream(platform_queries, job_id, progress_callback=None):
             yield {"type": "video_queued", "video_id": "test1", "platform": "youtube"}
             yield {"type": "video_queued", "video_id": "test2", "platform": "tiktok"}
             yield {"type": "pipeline_complete", "stats": {"processing_completed": 2, "duplicates_skipped": 0, "errors": 0}}
