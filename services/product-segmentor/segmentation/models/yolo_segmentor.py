@@ -57,11 +57,23 @@ class YOLOSegmentor(BaseSegmentation):
                             expected_path=self._model_path,
                             cache_contents=os.listdir(self._model_cache_dir) if os.path.exists(self._model_cache_dir) else [])
 
-                # Set environment variables for ultralytics library to use our cache directory
-                os.environ['YOLO_MODEL_DIR'] = self._model_cache_dir
+                # Change to model cache directory temporarily to ensure model downloads there
+                original_cwd = os.getcwd()
+                try:
+                    os.chdir(self._model_cache_dir)
+                    # Download model from Ultralytics hub - will download to current directory
+                    self._model = YOLO(self._model_name)
 
-                # Ultralytics will download to its cache directory (now mounted to our model_cache)
-                self._model = YOLO(self._model_name)
+                    # Check if model file was created and move it to expected location if needed
+                    downloaded_path = os.path.join(self._model_cache_dir, f"{self._model_name}.pt")
+                    if os.path.exists(downloaded_path) and downloaded_path != self._model_path:
+                        if os.path.exists(self._model_path):
+                            os.remove(self._model_path)
+                        os.rename(downloaded_path, self._model_path)
+
+                finally:
+                    # Restore original working directory
+                    os.chdir(original_cwd)
 
             logger.info("Model initialized successfully",
                         model_name=self.model_name)

@@ -3,7 +3,7 @@ Database cleanup utilities for collection phase integration tests.
 Extends existing patterns to handle product tables, video tables, and event ledgers.
 """
 import asyncio
-from typing import List, Optional, Dict
+from typing import List, Optional, Dict, Any
 from common_py.database import DatabaseManager
 from common_py.logging_config import configure_logging
 import time
@@ -457,3 +457,317 @@ class DatabaseStateValidator:
         )
 
         return summary
+
+
+class FeatureExtractionCleanup:
+    """Database cleanup for feature extraction phase tests"""
+
+    def __init__(self, db_manager: DatabaseManager):
+        self.db_manager = db_manager
+
+    async def cleanup_test_data(self):
+        """Clean up all test data from feature extraction tests"""
+        # Clean up in reverse order of dependencies
+        await self._cleanup_embeddings_and_keypoints()
+        await self._cleanup_masked_paths()
+        await self._cleanup_frames_and_images()
+        await self._cleanup_products_and_videos()
+        await self._cleanup_jobs()
+
+    async def _cleanup_embeddings_and_keypoints(self):
+        """Clean up embeddings and keypoints"""
+        # Clean up image embeddings
+        await self.db_manager.execute(
+            """
+            DELETE FROM image_embeddings
+            WHERE product_id IN (
+                SELECT product_id FROM products WHERE job_id LIKE 'test_%'
+            )
+            """
+        )
+
+        # Clean up image keypoints
+        await self.db_manager.execute(
+            """
+            DELETE FROM image_keypoints
+            WHERE product_id IN (
+                SELECT product_id FROM products WHERE job_id LIKE 'test_%'
+            )
+            """
+        )
+
+        # Clean up video keypoints
+        await self.db_manager.execute(
+            """
+            DELETE FROM video_keypoints
+            WHERE video_id IN (
+                SELECT video_id FROM videos WHERE job_id LIKE 'test_%'
+            )
+            """
+        )
+
+    async def _cleanup_masked_paths(self):
+        """Clean up masked path updates"""
+        # Reset masked paths in product_images
+        await self.db_manager.execute(
+            """
+            UPDATE product_images
+            SET masked_path = NULL
+            WHERE product_id IN (
+                SELECT product_id FROM products WHERE job_id LIKE 'test_%'
+            )
+            """
+        )
+
+        # Reset masked paths in video_frames
+        await self.db_manager.execute(
+            """
+            UPDATE video_frames
+            SET masked_path = NULL
+            WHERE video_id IN (
+                SELECT video_id FROM videos WHERE job_id LIKE 'test_%'
+            )
+            """
+        )
+
+    async def _cleanup_frames_and_images(self):
+        """Clean up video frames and product images"""
+        # Clean up video frames
+        await self.db_manager.execute(
+            """
+            DELETE FROM video_frames
+            WHERE video_id IN (
+                SELECT video_id FROM videos WHERE job_id LIKE 'test_%'
+            )
+            """
+        )
+
+        # Clean up product images
+        await self.db_manager.execute(
+            """
+            DELETE FROM product_images
+            WHERE product_id IN (
+                SELECT product_id FROM products WHERE job_id LIKE 'test_%'
+            )
+            """
+        )
+
+    async def _cleanup_products_and_videos(self):
+        """Clean up products and videos"""
+        # Clean up videos
+        await self.db_manager.execute("DELETE FROM videos WHERE job_id LIKE 'test_%'")
+
+        # Clean up products
+        await self.db_manager.execute("DELETE FROM products WHERE job_id LIKE 'test_%'")
+
+    async def _cleanup_jobs(self):
+        """Clean up job records"""
+        await self.db_manager.execute("DELETE FROM jobs WHERE job_id LIKE 'test_%'")
+
+
+class FeatureExtractionStateValidator:
+    """Validate database state during feature extraction tests"""
+
+    def __init__(self, db_manager: DatabaseManager):
+        self.db_manager = db_manager
+
+    async def validate_initial_state(self, job_id: str) -> Dict[str, Any]:
+        """Validate initial database state before feature extraction"""
+        # Count products
+        products_count = await self.db_manager.fetch_one(
+            "SELECT COUNT(*) as count FROM products WHERE job_id = $1",
+            job_id
+        )
+
+        # Count product images
+        images_count = await self.db_manager.fetch_one(
+            """
+            SELECT COUNT(*) as count FROM product_images pi
+            JOIN products p ON pi.product_id = p.product_id
+            WHERE p.job_id = $1
+            """,
+            job_id
+        )
+
+        # Count videos
+        videos_count = await self.db_manager.fetch_one(
+            "SELECT COUNT(*) as count FROM videos WHERE job_id = $1",
+            job_id
+        )
+
+        # Count video frames
+        frames_count = await self.db_manager.fetch_one(
+            """
+            SELECT COUNT(*) as count FROM video_frames vf
+            JOIN videos v ON vf.video_id = v.video_id
+            WHERE v.job_id = $1
+            """,
+            job_id
+        )
+
+        # Verify no masked paths exist yet
+        masked_images_count = await self.db_manager.fetch_one(
+            """
+            SELECT COUNT(*) as count FROM product_images pi
+            JOIN products p ON pi.product_id = p.product_id
+            WHERE p.job_id = $1 AND pi.masked_path IS NOT NULL
+            """,
+            job_id
+        )
+
+        masked_frames_count = await self.db_manager.fetch_one(
+            """
+            SELECT COUNT(*) as count FROM video_frames vf
+            JOIN videos v ON vf.video_id = v.video_id
+            WHERE v.job_id = $1 AND vf.masked_path IS NOT NULL
+            """,
+            job_id
+        )
+
+        # Verify no features exist yet
+        embeddings_count = await self.db_manager.fetch_one(
+            """
+            SELECT COUNT(*) as count FROM image_embeddings ie
+            JOIN products p ON ie.product_id = p.product_id
+            WHERE p.job_id = $1
+            """,
+            job_id
+        )
+
+        keypoints_count = await self.db_manager.fetch_one(
+            """
+            SELECT COUNT(*) as count FROM image_keypoints ik
+            JOIN products p ON ik.product_id = p.product_id
+            WHERE p.job_id = $1
+            """,
+            job_id
+        )
+
+        return {
+            "products_count": products_count["count"],
+            "images_count": images_count["count"],
+            "videos_count": videos_count["count"],
+            "frames_count": frames_count["count"],
+            "masked_images_count": masked_images_count["count"],
+            "masked_frames_count": masked_frames_count["count"],
+            "embeddings_count": embeddings_count["count"],
+            "keypoints_count": keypoints_count["count"]
+        }
+
+    async def validate_masking_completed(self, job_id: str) -> Dict[str, Any]:
+        """Validate that masking phase completed successfully"""
+        # Count masked images
+        masked_images_count = await self.db_manager.fetch_one(
+            """
+            SELECT COUNT(*) as count FROM product_images pi
+            JOIN products p ON pi.product_id = p.product_id
+            WHERE p.job_id = $1 AND pi.masked_path IS NOT NULL
+            """,
+            job_id
+        )
+
+        # Count masked frames
+        masked_frames_count = await self.db_manager.fetch_one(
+            """
+            SELECT COUNT(*) as count FROM video_frames vf
+            JOIN videos v ON vf.video_id = v.video_id
+            WHERE v.job_id = $1 AND vf.masked_path IS NOT NULL
+            """,
+            job_id
+        )
+
+        return {
+            "masked_images_count": masked_images_count["count"],
+            "masked_frames_count": masked_frames_count["count"]
+        }
+
+    async def validate_feature_extraction_completed(self, job_id: str) -> Dict[str, Any]:
+        """Validate that feature extraction phase completed successfully"""
+        # Count embeddings
+        embeddings_count = await self.db_manager.fetch_one(
+            """
+            SELECT COUNT(*) as count FROM image_embeddings ie
+            JOIN products p ON ie.product_id = p.product_id
+            WHERE p.job_id = $1
+            """,
+            job_id
+        )
+
+        # Count keypoints
+        keypoints_count = await self.db_manager.fetch_one(
+            """
+            SELECT COUNT(*) as count FROM image_keypoints ik
+            JOIN products p ON ik.product_id = p.product_id
+            WHERE p.job_id = $1
+            """,
+            job_id
+        )
+
+        # Count video keypoints
+        video_keypoints_count = await self.db_manager.fetch_one(
+            """
+            SELECT COUNT(*) as count FROM video_keypoints vk
+            JOIN videos v ON vk.video_id = v.video_id
+            WHERE v.job_id = $1
+            """,
+            job_id
+        )
+
+        # Get detailed embeddings info
+        embeddings_details = await self.db_manager.fetch_all(
+            """
+            SELECT ie.product_id, ie.embedding_dim, ie.model_version
+            FROM image_embeddings ie
+            JOIN products p ON ie.product_id = p.product_id
+            WHERE p.job_id = $1
+            """,
+            job_id
+        )
+
+        # Get detailed keypoints info
+        keypoints_details = await self.db_manager.fetch_all(
+            """
+            SELECT ik.product_id, ik.num_keypoints, ik.model_version
+            FROM image_keypoints ik
+            JOIN products p ON ik.product_id = p.product_id
+            WHERE p.job_id = $1
+            """,
+            job_id
+        )
+
+        return {
+            "embeddings_count": embeddings_count["count"],
+            "keypoints_count": keypoints_count["count"],
+            "video_keypoints_count": video_keypoints_count["count"],
+            "embeddings_details": embeddings_details,
+            "keypoints_details": keypoints_details
+        }
+
+    async def validate_no_duplicate_processing(self, job_id: str) -> Dict[str, Any]:
+        """Validate that no duplicate embeddings/keypoints were created"""
+        # Check for duplicate embeddings (same product_id with different IDs)
+        duplicate_embeddings = await self.db_manager.fetch_one(
+            """
+            SELECT COUNT(*) - COUNT(DISTINCT product_id) as duplicates
+            FROM image_embeddings ie
+            JOIN products p ON ie.product_id = p.product_id
+            WHERE p.job_id = $1
+            """,
+            job_id
+        )
+
+        # Check for duplicate keypoints
+        duplicate_keypoints = await self.db_manager.fetch_one(
+            """
+            SELECT COUNT(*) - COUNT(DISTINCT product_id) as duplicates
+            FROM image_keypoints ik
+            JOIN products p ON ik.product_id = p.product_id
+            WHERE p.job_id = $1
+            """,
+            job_id
+        )
+
+        return {
+            "duplicate_embeddings": duplicate_embeddings["duplicates"],
+            "duplicate_keypoints": duplicate_keypoints["duplicates"]
+        }

@@ -1,0 +1,37 @@
+{
+  "job_id": "test_feature_extraction_001",
+  "event_id": "550e8400-e29b-41d4-a716-446655440004",
+  "total_keyframes": 5,
+  "masked_keyframes": [
+    {
+      "video_id": "VIDEO_test_001",
+      "frame_sequence": 1,
+      "masked_path": "/data/tests/videos/masked/video_001_frame_001_masked.png",
+      "original_path": "/data/tests/videos/original/video_001_frame_001.jpg"
+    },
+    {
+      "video_id": "VIDEO_test_001",
+      "frame_sequence": 2,
+      "masked_path": "/data/tests/videos/masked/video_001_frame_002_masked.png",
+      "original_path": "/data/tests/videos/original/video_001_frame_002.jpg"
+    },
+    {
+      "video_id": "VIDEO_test_001",
+      "frame_sequence": 3,
+      "masked_path": "/data/tests/videos/masked/video_001_frame_003_masked.png",
+      "original_path": "/data/tests/videos/original/video_001_frame_003.jpg"
+    },
+    {
+      "video_id": "VIDEO_test_001",
+      "frame_sequence": 4,
+      "masked_path": "/data/tests/videos/masked/video_001_frame_004_masked.png",
+      "original_path": "/data/tests/videos/original/video_001_frame_004.jpg"
+    },
+    {
+      "video_id": "VIDEO_test_001",
+      "frame_sequence": 5,
+      "masked_path": "/data/tests/videos/masked/video_001_frame_005_masked.png",
+      "original_path": "/data/tests/videos/original/video_001_frame_005.jpg"
+    }
+  ]
+}
