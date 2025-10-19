@@ -9,6 +9,7 @@ Tests the complete collection phase workflow including:
 - Database state validation
 - Test isolation and cleanup
 """
+
 import pytest
 import asyncio
 
@@ -18,6 +19,13 @@ from support.db_cleanup import DatabaseStateValidator
 
 import os
 PVM_OBS_WAIT_SECS = float(os.getenv("PVM_OBS_WAIT_SECS", "60"))
+
+pytestmark = [
+    pytest.mark.asyncio,
+    pytest.mark.collection_phase,
+    pytest.mark.integration,
+    pytest.mark.observability
+]
 
 
 class TestCollectionPhaseIntegration:
@@ -74,9 +82,6 @@ class TestCollectionPhaseIntegration:
 
         print("Real services are responding to health checks")
 
-    @pytest.mark.asyncio
-    @pytest.mark.collection_phase
-    @pytest.mark.integration
     async def test_complete_collection_workflow(
         self,
         collection_phase_test_environment
@@ -164,10 +169,6 @@ class TestCollectionPhaseIntegration:
         assert len(products_messages) >= 1
         assert len(videos_messages) >= 1
 
-    @pytest.mark.asyncio
-    @pytest.mark.collection_phase
-    @pytest.mark.integration
-    @pytest.mark.observability
     async def test_complete_collection_workflow_with_observability(
         self,
         observability_test_environment,
@@ -300,9 +301,6 @@ class TestCollectionPhaseIntegration:
             print(f"Message capture validation skipped - services not running. "
                   f"Products messages: {len(products_messages)}, Videos messages: {len(videos_messages)}")
 
-    @pytest.mark.asyncio
-    @pytest.mark.collection_phase
-    @pytest.mark.integration
     async def test_collection_phase_with_test_environment_manager(
         self,
         db_manager,

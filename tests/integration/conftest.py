@@ -103,3 +103,17 @@ spec.loader.exec_module(module)
 for name in dir(module):
     if not name.startswith("_"):
         globals()[name] = getattr(module, name)
+
+# Import feature extraction fixtures
+fixtures_path = TESTS_DIR / "support" / "feature_extraction_fixtures.py"
+spec = importlib.util.spec_from_file_location("feature_extraction_fixtures", str(fixtures_path))
+fixtures_module = importlib.util.module_from_spec(spec)
+sys.modules["feature_extraction_fixtures"] = fixtures_module
+spec.loader.exec_module(fixtures_module)
+
+# Export fixtures from the fixtures module
+for name in dir(fixtures_module):
+    if not name.startswith("_") and hasattr(fixtures_module, name):
+        attr = getattr(fixtures_module, name)
+        if hasattr(attr, "_pytestfixturefunction") or (hasattr(attr, "__pytest_wrapped__") and hasattr(attr.__pytest_wrapped__, "obj")):
+            globals()[name] = attr

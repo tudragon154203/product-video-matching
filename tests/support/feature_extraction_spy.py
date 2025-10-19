@@ -47,49 +47,46 @@ class FeatureExtractionSpy:
         ]
 
         for queue_name, routing_key in queue_configs:
-            namespaced_queue = f"test_feat_ext_{queue_name}_{timestamp}"
+            # Add UUID for uniqueness to avoid conflicts
+            import uuid
+            unique_id = str(uuid.uuid4())[:8]
+            namespaced_queue = f"test_feat_ext_{queue_name}_{timestamp}_{unique_id}"
 
-            # Declare queue with auto-delete
-            await self.broker.channel.queue_declare(
-                queue=namespaced_queue,
+            # Declare queue with auto-delete and TTL
+            queue = await self.broker.channel.declare_queue(
+                namespaced_queue,
                 durable=False,
                 auto_delete=True,
                 arguments={"x-message-ttl": 300000}  # 5 minutes TTL
             )
 
             # Bind to topic exchange
-            await self.broker.channel.queue_bind(
-                queue=namespaced_queue,
-                exchange="pvm_events",
-                routing_key=routing_key
-            )
+            await queue.bind(self.broker.exchange, routing_key=routing_key)
 
             # Start consuming
-            await self.broker.channel.basic_consume(
-                queue=namespaced_queue,
-                on_message_callback=self._create_callback(queue_name)
-            )
+            await queue.consume(self._create_callback(queue_name))
 
             self.queues[queue_name] = namespaced_queue
             self.queue_namespaces[namespaced_queue] = queue_name
 
     def _create_callback(self, event_type: str):
         """Create message callback for specific event type"""
-        async def callback(ch, method, properties, body):
+        async def callback(message):
             try:
-                message = json.loads(body.decode('utf-8'))
+                # Decode the message body
+                body = json.loads(message.body.decode('utf-8'))
                 captured_message = {
-                    "event_data": message,
-                    "routing_key": method.routing_key,
+                    "event_data": body,
+                    "routing_key": message.routing_key,
                     "timestamp": datetime.utcnow().isoformat(),
-                    "headers": dict(properties.headers or {}),
-                    "correlation_id": properties.headers.get("correlation_id") if properties.headers else None
+                    "headers": dict(message.headers or {}),
+                    "correlation_id": message.correlation_id
                 }
                 self.captured_messages[event_type].append(captured_message)
-                await ch.basic_ack(delivery_tag=method.delivery_tag)
+                await message.ack()
             except Exception as e:
                 print(f"Error processing message in {event_type} spy: {e}")
-                await ch.basic_nack(delivery_tag=method.delivery_tag, requeue=False)
+                await message.nack(requeue=False)
 
         return callback
 
@@ -151,7 +148,8 @@ class FeatureExtractionSpy:
             # Delete queues
             for queue_name in self.queues.values():
                 try:
-                    await self.broker.channel.queue_delete(queue=queue_name)
+                    queue = await self.broker.channel.declare_queue(queue_name, durable=False, passive=True)
+                    await queue.delete()
                 except Exception as e:
                     print(f"Error deleting queue {queue_name}: {e}")
 

@@ -13,10 +13,19 @@ Tests the complete collection phase workflow according to Sprint 13.1 PRD specif
 - Validate idempotency by re-publishing same requests
 - ENFORCE: Real service validation before test execution
 """
+
 import pytest
 import asyncio
 import uuid
 from datetime import datetime
+
+pytestmark = [
+    pytest.mark.asyncio,
+    pytest.mark.collection_phase,
+    pytest.mark.ci,
+    pytest.mark.idempotency,
+    pytest.mark.observability
+]
 
 # Import CRUD utilities for database validation
 from common_py.crud import ProductCRUD, VideoCRUD, EventCRUD
@@ -79,9 +88,6 @@ class TestCollectionPhaseHappyPath:
 
         print("Real services are responding to health checks")
 
-    @pytest.mark.asyncio
-    @pytest.mark.collection_phase
-    @pytest.mark.ci
     async def test_collection_phase_happy_path_minimal_dataset(
         self,
         collection_phase_test_environment
@@ -284,10 +290,6 @@ class TestCollectionPhaseHappyPath:
             "videos_count": len(videos)
         }
 
-    @pytest.mark.asyncio
-    @pytest.mark.collection_phase
-    @pytest.mark.idempotency
-    @pytest.mark.ci
     async def test_collection_phase_idempotency_validation(
         self,
         collection_phase_test_environment
@@ -437,9 +439,6 @@ class TestCollectionPhaseHappyPath:
         assert await event_crud.is_event_processed(products_event["event_data"]["event_id"])
         assert await event_crud.is_event_processed(videos_event["event_data"]["event_id"])
 
-    @pytest.mark.asyncio
-    @pytest.mark.collection_phase
-    @pytest.mark.observability
     async def test_collection_phase_comprehensive_validation(
         self,
         collection_phase_test_environment
