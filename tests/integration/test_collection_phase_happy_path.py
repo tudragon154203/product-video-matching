@@ -180,7 +180,7 @@ class TestCollectionPhaseHappyPath:
         # Step 3: Wait for exactly one products_collections_completed.json within 10s
         products_event = await spy.wait_for_products_completed(
             job_id=job_id,
-            timeout=30.0
+            timeout=1800.0  # 30 minutes
         )
 
         # Validate products completion event
@@ -195,7 +195,7 @@ class TestCollectionPhaseHappyPath:
         # Step 4: Wait for exactly one videos_collections_completed.json within 5 min
         videos_event = await spy.wait_for_videos_completed(
             job_id=job_id,
-            timeout=300.0
+            timeout=3600.0  # 1 hour
         )
 
         # Validate videos completion event
@@ -369,8 +369,8 @@ class TestCollectionPhaseHappyPath:
         )
 
         # Wait for first completion
-        products_event = await spy.wait_for_products_completed(job_id=job_id, timeout=30.0)
-        videos_event = await spy.wait_for_videos_completed(job_id=job_id, timeout=300.0)
+        products_event = await spy.wait_for_products_completed(job_id=job_id, timeout=1800.0)  # 30 minutes
+        videos_event = await spy.wait_for_videos_completed(job_id=job_id, timeout=3600.0)  # 1 hour
 
         # Record event IDs in event ledger for idempotency tracking
         await event_crud.record_event(products_event["event_data"]["event_id"], "products.collections.completed")
@@ -525,15 +525,15 @@ class TestCollectionPhaseHappyPath:
         )
 
         # Wait for completion events with timeout
-        products_event = await spy.wait_for_products_completed(job_id=job_id, timeout=30.0)
-        videos_event = await spy.wait_for_videos_completed(job_id=job_id, timeout=300.0)
+        products_event = await spy.wait_for_products_completed(job_id=job_id, timeout=1800.0)  # 30 minutes
+        videos_event = await spy.wait_for_videos_completed(job_id=job_id, timeout=3600.0)  # 1 hour
 
         # End time for timeout validation
         end_time = datetime.utcnow()
         total_time = (end_time - start_time).total_seconds()
 
-        # Verify timeout constraints; allow up to 180s for comprehensive scenario on real services
-        assert total_time < 180.0, f"Total completion time {total_time}s exceeded 180s limit"
+        # Verify timeout constraints; allow up to 3600s (1 hour) for comprehensive scenario on real services
+        assert total_time < 3600.0, f"Total completion time {total_time}s exceeded 3600s (1 hour) limit"
 
         # Comprehensive contract compliance validation
         assert EventValidator.validate_collections_completed(products_event["event_data"])

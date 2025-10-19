@@ -105,11 +105,11 @@ class MessageBroker:
         dlq_name = f"{queue_name}.dlq"
         dlq = await self.channel.declare_queue(dlq_name, durable=True)
         
-        # Initialize MessageHandler here, after exchange is available
-        self.message_handler_instance = MessageHandler(self.exchange, dlq_name)
+        # Create a dedicated MessageHandler for this subscription to ensure correct DLQ routing
+        message_handler = MessageHandler(self.exchange, dlq_name)
 
-        # Start consuming, passing the handler and topic to the new MessageHandler
-        await queue.consume(lambda message: self.message_handler_instance.handle_message(message, handler, topic))
+        # Start consuming with a handler bound to this subscription's DLQ
+        await queue.consume(lambda message: message_handler.handle_message(message, handler, topic))
         
         logger.info(
             "Subscribed to topic",

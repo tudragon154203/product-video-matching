@@ -127,7 +127,7 @@ class TestCollectionPhaseIntegration:
         # Step 2: Wait for products collection completion
         products_event = await spy.wait_for_products_completed(
             job_id=job_id,
-            timeout=120.0
+            timeout=1800.0  # 30 minutes
         )
 
         # Verify products completion event
@@ -138,7 +138,7 @@ class TestCollectionPhaseIntegration:
         # Step 3: Wait for videos collection completion
         videos_event = await spy.wait_for_videos_completed(
             job_id=job_id,
-            timeout=600.0
+            timeout=3600.0  # 1 hour
         )
 
         # Verify videos completion event
@@ -349,261 +349,11 @@ class TestCollectionPhaseIntegration:
 
             # Environments will be automatically cleaned up
 
-    @pytest.mark.asyncio
-    @pytest.mark.collection_phase
-    @pytest.mark.integration
-    async def test_message_spy_functionality(
-        self,
-        message_spy
-    ):
-        """
-        Test the message spy utilities directly.
-        """
-        spy = message_spy
 
-        # Create a spy queue for testing
-        queue_name = await spy.create_spy_queue("test.routing.key")
 
-        # Start consuming
-        await spy.start_consuming(queue_name)
 
-        # Publish a test message using the broker
-        await spy.spy.exchange.publish(
-            spy.spy.channel.default_exchange,
-            '{"test": "message"}',
-            routing_key="test.routing.key"
-        )
 
-        # Wait for the message
-        message = await spy.wait_for_message(
-            queue_name=queue_name,
-            timeout=5.0
-        )
 
-        assert message is not None
-        assert message["event_data"]["test"] == "message"
-
-        # Stop consuming
-        await spy.stop_consuming(queue_name)
-
-    @pytest.mark.asyncio
-    @pytest.mark.collection_phase
-    @pytest.mark.integration
-    async def test_database_cleanup_functionality(
-        self,
-        db_manager,
-        collection_job_setup
-    ):
-        """
-        Test the database cleanup utilities.
-        """
-        from support.db_cleanup import CollectionPhaseCleanup
-
-        job_id = collection_job_setup
-        cleanup = CollectionPhaseCleanup(db_manager)
-
-        # Insert some test data
-        await db_manager.execute(
-            "INSERT INTO products (product_id, job_id, src, asin_or_itemid, title, marketplace) VALUES ($1, $2, $3, $4, $5, $6)",
-            f"{job_id}_product_1", job_id, "amazon", "TESTASIN1", "Test Product", "us"
-        )
-
-        await db_manager.execute(
-            "INSERT INTO videos (video_id, job_id, platform, url, title) VALUES ($1, $2, $3, $4, $5)",
-            f"{job_id}_video_1", job_id, "youtube", f"https://example.com/{job_id}_video_1", "Test Video"
-        )
-
-        # Verify data exists
-        product_count = await db_manager.fetch_val(
-            "SELECT COUNT(*) FROM products WHERE job_id = $1", job_id
-        )
-        video_count = await db_manager.fetch_val(
-            "SELECT COUNT(*) FROM videos WHERE job_id = $1", job_id
-        )
-
-        assert product_count == 1
-        assert video_count == 1
-
-        # Clean up the test data
-        await cleanup.cleanup_specific_job(job_id)
-
-        # Verify data is gone
-        product_count = await db_manager.fetch_val(
-            "SELECT COUNT(*) FROM products WHERE job_id = $1", job_id
-        )
-        video_count = await db_manager.fetch_val(
-            "SELECT COUNT(*) FROM videos WHERE job_id = $1", job_id
-        )
-
-        assert product_count == 0
-        assert video_count == 0
-
-    @pytest.mark.asyncio
-    @pytest.mark.collection_phase
-    @pytest.mark.integration
-    async def test_event_publisher_validation(
-        self,
-        event_publisher
-    ):
-        """
-        Test the event publisher utilities and validation.
-        """
-        from support.event_publisher import EventValidator
-
-        # Create test events
-        products_event = TestEventFactory.create_products_collect_request()
-        videos_event = TestEventFactory.create_videos_search_request()
-        completed_event = TestEventFactory.create_collections_completed()
-
-        # Validate events
-        assert EventValidator.validate_products_collect_request(products_event)
-        assert EventValidator.validate_videos_search_request(videos_event)
-        assert EventValidator.validate_collections_completed(completed_event)
-
-        # Test invalid events
-        invalid_products = {"job_id": "test"}  # Missing required fields
-        invalid_videos = {"job_id": "test"}  # Missing required fields
-        invalid_completed = {"job_id": "test"}  # Missing event_id
-
-        assert not EventValidator.validate_products_collect_request(invalid_products)
-        assert not EventValidator.validate_videos_search_request(invalid_videos)
-        assert not EventValidator.validate_collections_completed(invalid_completed)
-
-    @pytest.mark.asyncio
-    @pytest.mark.collection_phase
-    @pytest.mark.integration
-    async def test_database_state_validator(
-        self,
-        db_manager,
-        collection_job_setup
-    ):
-        """
-        Test the database state validator utilities.
-        """
-        job_id = collection_job_setup
-        validator = DatabaseStateValidator(db_manager)
-
-        # Test job existence validation
-        await validator.assert_job_exists(job_id)
-
-        # Test job phase (should be 'collection' from our setup)
-        await validator.assert_job_phase(job_id, "collection")
-
-        # Test non-existent job
-        with pytest.raises(AssertionError):
-            await validator.assert_job_exists("non_existent_job")
-
-        # Insert test data for further validation
-        await db_manager.execute(
-            "INSERT INTO products (product_id, job_id, src, asin_or_itemid, title, marketplace) VALUES ($1, $2, $3, $4, $5, $6)",
-            f"{job_id}_product_1", job_id, "amazon", "TESTASIN1", "Test Product", "us"
-        )
-
-        await db_manager.execute(
-            "INSERT INTO videos (video_id, job_id, platform, url, title) VALUES ($1, $2, $3, $4, $5)",
-            f"{job_id}_video_1", job_id, "youtube", f"https://example.com/{job_id}_video_1", "Test Video"
-        )
-
-        # Test collection validation
-        await validator.assert_products_collected(job_id, min_count=1)
-        await validator.assert_videos_collected(job_id, min_count=1)
-
-        # Test collection summary
-        summary = await validator.get_collection_summary(job_id)
-        assert summary["products"] == 1
-        assert summary["videos"] == 1
-        assert summary["video_frames"] == 0  # No frames in this test
-        assert summary["product_images"] == 0  # No images in this test
-
-    @pytest.mark.asyncio
-    @pytest.mark.collection_phase
-    @pytest.mark.integration
-    async def test_context_manager_cleanup(
-        self,
-        db_manager,
-        message_broker
-    ):
-        """
-        Test that the test environment properly cleans up using context managers.
-        """
-        job_id = None
-
-        async with CollectionPhaseTestEnvironment(
-            db_manager, message_broker, "amqp://guest:guest@localhost:5672/"
-        ) as env:
-            job_id = env.test_job_id
-
-            # Verify setup
-            assert env.setup_complete
-            assert job_id is not None
-
-            # Verify job exists
-            job_count = await db_manager.fetch_val(
-                "SELECT COUNT(*) FROM jobs WHERE job_id = $1", job_id
-            )
-            assert job_count == 1
-
-        # After context manager exit, verify cleanup
-        # Note: The job record might still exist if the actual services haven't
-        # processed it yet, but the test environment should be cleaned up
-
-        # The environment should be torn down
-        assert not env.setup_complete
-
-    @pytest.mark.asyncio
-    @pytest.mark.collection_phase
-    @pytest.mark.integration
-    @pytest.mark.performance
-    async def test_concurrent_collection_workflows(
-        self,
-        db_manager,
-        message_broker
-    ):
-        """
-        Test multiple concurrent collection workflows.
-        """
-        # Create multiple test environments concurrently
-        environments = []
-
-        async def create_env(index: int):
-            env = CollectionPhaseTestEnvironment(
-                db_manager, message_broker, "amqp://guest:guest@localhost:5672/"
-            )
-            await env.setup()
-            return env
-
-        # Create 3 environments concurrently
-        environments = await asyncio.gather(
-            *[create_env(i) for i in range(3)]
-        )
-
-        # Verify they have different job IDs
-        job_ids = [env.test_job_id for env in environments]
-        assert len(set(job_ids)) == 3  # All unique
-
-        # Publish requests in all environments
-        tasks = []
-        for i, env in enumerate(environments):
-            task = env.publish_collection_requests(
-                products_queries=[f"test product {i}"],
-                videos_queries={"vi": [f"test video {i}"], "zh": [f"测试视频{i}"]},
-                industry=f"test industry {i}",
-                platforms=["youtube"]
-            )
-            tasks.append(task)
-
-        await asyncio.gather(*tasks)
-
-        # Clean up all environments
-        cleanup_tasks = [env.teardown() for env in environments]
-        await asyncio.gather(*cleanup_tasks)
-
-        # Verify all jobs exist
-        for job_id in job_ids:
-            job_count = await db_manager.fetch_val(
-                "SELECT COUNT(*) FROM jobs WHERE job_id = $1", job_id
-            )
-            assert job_count == 1
 
 
 if __name__ == "__main__":

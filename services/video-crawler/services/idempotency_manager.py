@@ -188,6 +188,14 @@ class IdempotencyManager:
                 logger.info(f"Frame already exists, skipping creation: {frame_id}")
                 return False, frame_id
 
+            # Verify parent video exists before inserting frame
+            video_check = await self.db.fetch_one(
+                "SELECT video_id FROM videos WHERE video_id = $1",
+                video_id
+            )
+            if not video_check:
+                raise RuntimeError(f"Parent video {video_id} does not exist for frame insertion")
+
             # Create new frame record
             await self.db.execute(
                 """

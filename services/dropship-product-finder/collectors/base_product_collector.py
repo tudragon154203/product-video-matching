@@ -10,6 +10,7 @@ except ImportError:  # pragma: no cover - exercised only when Pillow missing
     Image = None
 from common_py.logging_config import configure_logging
 from .interface import IProductCollector
+from config_loader import config
 
 logger = configure_logging("dropship-product-finder:base_product_collector")
 
@@ -22,8 +23,11 @@ class BaseProductCollector(IProductCollector):
         self.products_dir = self.data_root / "products"
         self.products_dir.mkdir(parents=True, exist_ok=True)
 
-        # HTTP client for downloading images
-        self.client = httpx.AsyncClient(timeout=30.0, follow_redirects=True)
+        # HTTP client for downloading images (timeout is configurable)
+        self.client = httpx.AsyncClient(
+            timeout=config.IMAGE_DOWNLOAD_TIMEOUT_SECS,
+            follow_redirects=True
+        )
 
     @abstractmethod
     async def collect_products(self, query: str, top_k: int) -> List[Dict[str, Any]]:

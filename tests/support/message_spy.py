@@ -8,6 +8,7 @@ import uuid
 from typing import Dict, Any, List, Optional, Callable
 from datetime import datetime
 import aio_pika
+import os
 from aio_pika import Message, DeliveryMode
 
 from common_py.logging_config import configure_logging
@@ -115,7 +116,7 @@ class MessageSpy:
             self.connection = await aio_pika.connect_robust(self.broker_url)
             self.channel = await self.connection.channel()
 
-            # Declare main exchange (real)
+            # Declare main exchange (real) for test-compat publish proxy
             self._real_exchange = await self.channel.declare_exchange(
                 "product_video_matching",
                 aio_pika.ExchangeType.TOPIC,
@@ -123,6 +124,17 @@ class MessageSpy:
             )
             # Provide a proxy that offers a test-compatible publish signature
             self.exchange = ExchangeProxy(self._real_exchange, self.channel)
+
+            # Build candidate exchanges for binding from environment with fallbacks
+            env_exchange = os.environ.get("BUS_EXCHANGE")
+            candidates: list[str] = []
+            if env_exchange:
+                candidates.append(env_exchange.strip())
+            # Ordered fallbacks - only use exchanges that actually exist
+            candidates.extend(["amq.topic"])
+            # Deduplicate while preserving order
+            seen: set[str] = set()
+            self._candidate_exchanges = [x for x in candidates if not (x in seen or seen.add(x))]
 
             logger.info("Message spy connected to RabbitMQ", broker_url=self.broker_url)
 
@@ -151,11 +163,21 @@ class MessageSpy:
             # Use recorded binding key for safe unbind; fallback to derived key if missing
             binding_key = self.queue_bindings.get(queue_name)
             routing_key = binding_key if binding_key else queue_name.replace("spy.", "").replace("_", ".")
-            try:
-                await queue.unbind(self._real_exchange, routing_key=routing_key)
-                logger.info("Unbound spy queue", queue_name=queue_name, routing_key=routing_key)
-            except Exception as e:
-                logger.warning("Failed to unbind spy queue", queue_name=queue_name, error=str(e))
+            # Unbind from all exchanges we bound to; fallback to main exchange if none recorded
+            bound_list = getattr(self, "queue_exchange_bindings", {}).get(queue_name, [])
+            if bound_list:
+                for ex_name, ex_obj, rk in bound_list:
+                    try:
+                        await queue.unbind(ex_obj, routing_key=rk)
+                        logger.info("Unbound spy queue", queue_name=queue_name, routing_key=rk)
+                    except Exception as e:
+                        logger.warning("Failed to unbind spy queue", queue_name=queue_name, exchange=ex_name, error=str(e))
+            else:
+                try:
+                    await queue.unbind(self._real_exchange, routing_key=routing_key)
+                    logger.info("Unbound spy queue", queue_name=queue_name, routing_key=routing_key)
+                except Exception as e:
+                    logger.warning("Failed to unbind spy queue", queue_name=queue_name, error=str(e))
             try:
                 await queue.delete()
                 logger.info("Deleted spy queue", queue_name=queue_name)
@@ -184,7 +206,7 @@ class MessageSpy:
 
     async def create_spy_queue(self, routing_key: str, queue_name: Optional[str] = None) -> str:
         """
-        Create an ephemeral spy queue bound to a routing key
+        Create an ephemeral spy queue bound to a routing key across compatible exchanges.
 
         Args:
             routing_key: The routing key to spy on (e.g., 'products.collections.completed')
@@ -208,10 +230,73 @@ class MessageSpy:
             exclusive=False  # Allow multiple connections
         )
 
-        # Bind queue to routing key
-        await queue.bind(self._real_exchange, routing_key=routing_key)
-        # Track binding key for safe unbind later
+        # Ensure per-queue exchange binding registry exists
+        if not hasattr(self, "queue_exchange_bindings"):
+            self.queue_exchange_bindings = {}
+
+        bound_list = []
+
+        # Attempt binding to each candidate exchange (primary from env, fallbacks)
+        for ex_name in getattr(self, "_candidate_exchanges", []):
+            ex_obj = None
+            # Try passive resolve first to avoid precondition failures if exchange already exists
+            try:
+                ex_obj = await self.channel.declare_exchange(
+                    ex_name,
+                    aio_pika.ExchangeType.TOPIC,
+                    passive=True
+                )
+            except Exception:
+                # If not present, declare a non-durable topic exchange suitable for tests
+                try:
+                    ex_obj = await self.channel.declare_exchange(
+                        ex_name,
+                        aio_pika.ExchangeType.TOPIC,
+                        durable=False,
+                        auto_delete=False
+                    )
+                except Exception as e2:
+                    logger.warning("Spy failed to resolve exchange for binding", exchange=ex_name, error=str(e2))
+                    ex_obj = None
+
+            if ex_obj is None:
+                continue
+
+            # Bind queue to routing key for this exchange
+            try:
+                await queue.bind(ex_obj, routing_key=routing_key)
+                logger.info(f"Spy bound to exchange='{ex_name}' routing_key='{routing_key}'")
+                bound_list.append((ex_name, ex_obj, routing_key))
+            except Exception as e:
+                logger.warning("Spy failed to bind queue to exchange", queue_name=queue_name, exchange=ex_name, routing_key=routing_key, error=str(e))
+
+        # Always bind to default topic exchange 'amq.topic' as additional fallback if not already included
+        if "amq.topic" not in [name for name, _, _ in bound_list]:
+            try:
+                amq_exchange = await self.channel.declare_exchange(
+                    "amq.topic",
+                    aio_pika.ExchangeType.TOPIC,
+                    passive=True
+                )
+                await queue.bind(amq_exchange, routing_key=routing_key)
+                logger.info(f"Spy bound to exchange='amq.topic' routing_key='{routing_key}'")
+                bound_list.append(("amq.topic", amq_exchange, routing_key))
+            except Exception as e:
+                logger.warning("Spy failed to bind to amq.topic", queue_name=queue_name, routing_key=routing_key, error=str(e))
+
+        # If no bindings succeeded, fallback to the original real exchange to preserve test semantics
+        if not bound_list:
+            try:
+                await queue.bind(self._real_exchange, routing_key=routing_key)
+                logger.info(f"Spy bound to exchange='product_video_matching' routing_key='{routing_key}'")
+                bound_list.append(("product_video_matching", self._real_exchange, routing_key))
+            except Exception as e:
+                logger.error("Spy failed to bind to any exchange", queue_name=queue_name, routing_key=routing_key, error=str(e))
+                raise
+
+        # Track binding key and exchanges for safe unbind later
         self.queue_bindings[queue_name] = routing_key
+        self.queue_exchange_bindings[queue_name] = bound_list
 
         # Initialize captured messages list
         self.captured_messages[queue_name] = []

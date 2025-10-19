@@ -76,9 +76,14 @@ class LifecycleHandler:
             logger.error(f"Failed to subscribe to phase events: {e}")
             raise
 
-    async def handle_products_collections_completed(self, event_data):
+    async def handle_products_collections_completed(self, event_data, correlation_id):
         """Handle products collections completed event"""
         try:
+            logger.info(
+                "Handling products collections completed",
+                job_id=event_data.get("job_id"),
+                correlation_id=correlation_id,
+            )
             await self.phase_event_service.handle_phase_event(
                 "products.collections.completed", event_data
             )
@@ -86,9 +91,14 @@ class LifecycleHandler:
         except Exception as e:
             logger.error(f"Failed to handle products collections completed event: {e}")
 
-    async def handle_videos_collections_completed(self, event_data):
+    async def handle_videos_collections_completed(self, event_data, correlation_id):
         """Handle videos collections completed event"""
         try:
+            logger.info(
+                "Handling videos collections completed",
+                job_id=event_data.get("job_id"),
+                correlation_id=correlation_id,
+            )
             await self.phase_event_service.handle_phase_event(
                 "videos.collections.completed", event_data
             )

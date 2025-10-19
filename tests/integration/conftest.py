@@ -8,6 +8,28 @@ Integration tests bootstrap:
 - Import root tests/conftest fixtures into this collection root
 """
 
+import os, sys
+sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
+# Minimal dotenv loader: load tests/.env.test without overriding existing os.environ
+def load_env_file():
+    base_dir = os.path.dirname(os.path.dirname(__file__))
+    env_path = os.path.join(base_dir, ".env.test")
+    if os.path.isfile(env_path):
+        with open(env_path, "r", encoding="utf-8") as f:
+            for line in f:
+                s = line.strip()
+                if not s or s.startswith("#"):
+                    continue
+                if "=" not in s:
+                    continue
+                k, v = s.split("=", 1)
+                k = k.strip()
+                v = v.strip().strip('"').strip("'")
+                if k and k not in os.environ:
+                    os.environ[k] = v
+
+# Pre-load env before any other imports/enforcement
+load_env_file()
 import importlib
 import os
 import sys

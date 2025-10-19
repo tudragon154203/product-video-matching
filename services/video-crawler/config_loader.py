@@ -4,7 +4,9 @@ Uses environment variables directly since Docker Compose loads both shared and s
 """
 import os
 import sys
+import logging
 from dataclasses import dataclass
+from urllib.parse import urlparse
 
 from dotenv import load_dotenv
 load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), '.env'))
@@ -19,13 +21,37 @@ except ImportError:
     sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
     from libs.config import config as global_config
 
+# Configure a lightweight logger for startup diagnostics
+try:
+    from common_py.logging_config import configure_logging
+    logger = configure_logging("video-crawler:config")
+except Exception:
+    logger = logging.getLogger("video-crawler:config")
+    if not logger.handlers:
+        logging.basicConfig(level=logging.INFO)
+
+
+def _get_effective_dsn() -> str:
+    """
+    Resolve Postgres DSN with explicit precedence:
+    1) POSTGRES_DSN
+    2) DATABASE_URL
+    3) POSTGRES_URI
+    Fallback to global_config.POSTGRES_DSN if none are set.
+    """
+    for key in ("POSTGRES_DSN", "DATABASE_URL", "POSTGRES_URI"):
+        val = os.getenv(key, "").strip()
+        if val:
+            return val
+    return global_config.POSTGRES_DSN
+
 
 @dataclass
 class VideoCrawlerConfig:
     """Configuration for the video crawler service"""
 
-    # Database configuration (from global config)
-    POSTGRES_DSN: str = global_config.POSTGRES_DSN
+    # Database configuration with robust env precedence (no localhost defaults here)
+    POSTGRES_DSN: str = _get_effective_dsn()
     POSTGRES_USER: str = global_config.POSTGRES_USER
     POSTGRES_PASSWORD: str = global_config.POSTGRES_PASSWORD
     POSTGRES_HOST: str = global_config.POSTGRES_HOST
@@ -74,3 +100,12 @@ class VideoCrawlerConfig:
 
 # Create config instance
 config = VideoCrawlerConfig()
+
+# Safe one-line startup log with DB host and database name (mask credentials)
+try:
+    parsed = urlparse(config.POSTGRES_DSN)
+    db_host = parsed.hostname or "unknown-host"
+    db_name = (parsed.path or "").lstrip("/") or "unknown-db"
+    logger.info(f"Database target resolved: host={db_host}, db={db_name}")
+except Exception:
+    logger.info("Database target resolved: host=?, db=?")
