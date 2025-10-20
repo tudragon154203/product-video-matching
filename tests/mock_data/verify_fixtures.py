@@ -27,17 +27,17 @@ def test_product_fixtures():
     print("Testing product fixtures...")
 
     # Test products collect request
-    collect_request = load_json_file(Path(__file__).parent / "products" / "products_collect_request.json")
+    collect_request = load_json_file(Path(__file__).parent / "events" / "collection" / "products_collect_request.json")
     print(f"Products collect request: {collect_request}")
 
     # Test products collections completed
-    collections_completed = load_json_file(Path(__file__).parent / "products" / "products_collections_completed.json")
+    collections_completed = load_json_file(Path(__file__).parent / "events" / "collection" / "products_collections_completed.json")
     print(f"Products collections completed: {collections_completed}")
 
     # Test individual products
     products = []
     for i in range(1, 4):  # Products 1-3
-        product_file = Path(__file__).parent / "products" / f"product_{i:03d}.json"
+        product_file = Path(__file__).parent / "entities" / "products" / f"product_{i:03d}.json"
         if product_file.exists():
             product = load_json_file(product_file)
             products.append(product)
@@ -53,17 +53,17 @@ def test_video_fixtures():
     print("Testing video fixtures...")
 
     # Test videos search request
-    search_request = load_json_file(Path(__file__).parent / "videos" / "videos_search_request.json")
+    search_request = load_json_file(Path(__file__).parent / "events" / "collection" / "videos_search_request.json")
     print(f"Videos search request: {search_request}")
 
     # Test videos collections completed
-    collections_completed = load_json_file(Path(__file__).parent / "videos" / "videos_collections_completed.json")
+    collections_completed = load_json_file(Path(__file__).parent / "events" / "collection" / "videos_collections_completed.json")
     print(f"Videos collections completed: {collections_completed}")
 
     # Test individual videos
     videos = []
     for i in range(1, 3):  # Videos 1-2
-        video_file = Path(__file__).parent / "videos" / f"video_{i:03d}.json"
+        video_file = Path(__file__).parent / "entities" / "videos" / f"video_{i:03d}.json"
         if video_file.exists():
             video = load_json_file(video_file)
             videos.append(video)
@@ -74,7 +74,7 @@ def test_video_fixtures():
     # Test video keyframes
     for i in range(1, 3):
         try:
-            keyframes_file = Path(__file__).parent / "videos" / f"video_{i:03d}_keyframes.json"
+            keyframes_file = Path(__file__).parent / "entities" / "videos" / f"video_{i:03d}_keyframes.json"
             if keyframes_file.exists():
                 keyframes = load_json_file(keyframes_file)
                 print(f"Video {i} keyframes: {len(keyframes['frames'])} frames")
@@ -95,28 +95,28 @@ def validate_against_schemas():
 
     try:
         # Validate products collect request
-        collect_request = load_json_file(Path(__file__).parent / "products" / "products_collect_request.json")
+        collect_request = load_json_file(Path(__file__).parent / "events" / "collection" / "products_collect_request.json")
         validator.validate_event("products_collect_request", collect_request)
         print("+ Products collect request validated successfully")
 
         # Validate products collections completed
-        collections_completed = load_json_file(Path(__file__).parent / "products" / "products_collections_completed.json")
+        collections_completed = load_json_file(Path(__file__).parent / "events" / "collection" / "products_collections_completed.json")
         validator.validate_event("products_collections_completed", collections_completed)
         print("+ Products collections completed validated successfully")
 
         # Validate videos search request
-        search_request = load_json_file(Path(__file__).parent / "videos" / "videos_search_request.json")
+        search_request = load_json_file(Path(__file__).parent / "events" / "collection" / "videos_search_request.json")
         validator.validate_event("videos_search_request", search_request)
         print("+ Videos search request validated successfully")
 
         # Validate videos collections completed
-        videos_completed = load_json_file(Path(__file__).parent / "videos" / "videos_collections_completed.json")
+        videos_completed = load_json_file(Path(__file__).parent / "events" / "collection" / "videos_collections_completed.json")
         validator.validate_event("videos_collections_completed", videos_completed)
         print("+ Videos collections completed validated successfully")
 
         # Validate video keyframes
         for i in range(1, 3):
-            keyframes_file = Path(__file__).parent / "videos" / f"video_{i:03d}_keyframes.json"
+            keyframes_file = Path(__file__).parent / "entities" / "videos" / f"video_{i:03d}_keyframes.json"
             if keyframes_file.exists():
                 keyframes = load_json_file(keyframes_file)
                 validator.validate_event("videos_keyframes_ready", keyframes)
@@ -149,7 +149,52 @@ if __name__ == "__main__":
 
 def load_mock_data(fixture_name: str) -> dict:
     """Load mock data fixture by name for use in tests."""
-    fixture_path = Path(__file__).parent / f"{fixture_name}.json"
+    # Mapping of fixture names to their new organized paths
+    fixture_paths = {
+        # Collection events
+        "products_collect_request": "events/collection/products_collect_request.json",
+        "products_collections_completed": "events/collection/products_collections_completed.json",
+        "videos_search_request": "events/collection/videos_search_request.json",
+        "videos_collections_completed": "events/collection/videos_collections_completed.json",
+
+        # Processing events - products_images_ready
+        "products_images_ready_batch": "events/processing/products_images_ready/products_images_ready_batch.json",
+        "products_images_ready_batch_partial": "events/processing/products_images_ready/products_images_ready_batch_partial.json",
+        "products_images_ready_1": "events/processing/products_images_ready/individual/products_images_ready_1.json",
+        "products_images_ready_2": "events/processing/products_images_ready/individual/products_images_ready_2.json",
+        "products_images_ready_3": "events/processing/products_images_ready/individual/products_images_ready_3.json",
+
+        # Processing events - videos_keyframes_ready
+        "videos_keyframes_ready_batch": "events/processing/videos_keyframes_ready/videos_keyframes_ready_batch.json",
+        "videos_keyframes_ready": "events/processing/videos_keyframes_ready/videos_keyframes_ready.json",
+        "videos_keyframes_ready_1": "events/processing/videos_keyframes_ready/individual/videos_keyframes_ready_1.json",
+        "videos_keyframes_ready_2": "events/processing/videos_keyframes_ready/individual/videos_keyframes_ready_2.json",
+        "videos_keyframes_ready_3": "events/processing/videos_keyframes_ready/individual/videos_keyframes_ready_3.json",
+        "videos_keyframes_ready_4": "events/processing/videos_keyframes_ready/individual/videos_keyframes_ready_4.json",
+        "videos_keyframes_ready_5": "events/processing/videos_keyframes_ready/individual/videos_keyframes_ready_5.json",
+
+        # Feature extraction events
+        "image_embeddings_completed": "events/feature_extraction/image_embeddings_completed.json",
+        "image_keypoints_completed": "events/feature_extraction/image_keypoints_completed.json",
+        "video_keypoints_completed": "events/feature_extraction/video_keypoints_completed.json",
+
+        # Masked data events
+        "products_images_masked_batch": "events/masked_data/products_images_masked_batch.json",
+        "video_keyframes_masked_batch": "events/masked_data/video_keyframes_masked_batch.json",
+
+        # Entity data (for completeness, though not typically loaded via this function)
+        "product_001": "entities/products/product_001.json",
+        "product_002": "entities/products/product_002.json",
+        "product_003": "entities/products/product_003.json",
+        "video_001": "entities/videos/video_001.json",
+        "video_002": "entities/videos/video_002.json",
+        "video_001_keyframes": "entities/videos/video_001_keyframes.json",
+        "video_002_keyframes": "entities/videos/video_002_keyframes.json",
+    }
+
+    # Get the path from mapping, defaulting to direct name if not found
+    relative_path = fixture_paths.get(fixture_name, f"{fixture_name}.json")
+    fixture_path = Path(__file__).parent / relative_path
 
     if not fixture_path.exists():
         raise FileNotFoundError(f"Mock data fixture not found: {fixture_path}")

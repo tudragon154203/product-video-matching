@@ -1,9 +1,0 @@
-{
-  "job_id": "test_job_feature_extraction_happy_path_20250120_141845",
-  "event_id": "7d38202b-1c6f-529e-9834-ad5e1f8c1c2f",
-  "timestamp": "2025-01-20T14:18:45.234567",
-  "product_id": "PROD_ebay_3c8ad9c2",
-  "ready_path": "/data/segmented/products/PROD_ebay_3c8ad9c2_ready.jpg",
-  "src": "ebay",
-  "asin_or_itemid": "123456789012"
-}

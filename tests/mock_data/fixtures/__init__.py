@@ -25,14 +25,14 @@ class MockDataLoader:
     def get_products_collect_request() -> Dict[str, Any]:
         """Get products collect request fixture."""
         return MockDataLoader.load_json_file(
-            MOCK_DATA_DIR / "products" / "products_collect_request.json"
+            MOCK_DATA_DIR / "events" / "collection" / "products_collect_request.json"
         )
 
     @staticmethod
     def get_products_collections_completed() -> Dict[str, Any]:
         """Get products collections completed fixture."""
         return MockDataLoader.load_json_file(
-            MOCK_DATA_DIR / "products" / "products_collections_completed.json"
+            MOCK_DATA_DIR / "events" / "collection" / "products_collections_completed.json"
         )
 
     @staticmethod
@@ -40,7 +40,7 @@ class MockDataLoader:
         """Get all product fixtures."""
         products = []
         for i in range(1, 4):  # Products 1-3
-            product_file = MOCK_DATA_DIR / "products" / f"product_{i:03d}.json"
+            product_file = MOCK_DATA_DIR / "entities" / "products" / f"product_{i:03d}.json"
             if product_file.exists():
                 products.append(MockDataLoader.load_json_file(product_file))
         return products
@@ -48,21 +48,21 @@ class MockDataLoader:
     @staticmethod
     def get_product(product_id: int) -> Dict[str, Any]:
         """Get a specific product fixture by ID (1-3)."""
-        product_file = MOCK_DATA_DIR / "products" / f"product_{product_id:03d}.json"
+        product_file = MOCK_DATA_DIR / "entities" / "products" / f"product_{product_id:03d}.json"
         return MockDataLoader.load_json_file(product_file)
 
     @staticmethod
     def get_videos_search_request() -> Dict[str, Any]:
         """Get videos search request fixture."""
         return MockDataLoader.load_json_file(
-            MOCK_DATA_DIR / "videos" / "videos_search_request.json"
+            MOCK_DATA_DIR / "events" / "collection" / "videos_search_request.json"
         )
 
     @staticmethod
     def get_videos_collections_completed() -> Dict[str, Any]:
         """Get videos collections completed fixture."""
         return MockDataLoader.load_json_file(
-            MOCK_DATA_DIR / "videos" / "videos_collections_completed.json"
+            MOCK_DATA_DIR / "events" / "collection" / "videos_collections_completed.json"
         )
 
     @staticmethod
@@ -70,7 +70,7 @@ class MockDataLoader:
         """Get all video fixtures."""
         videos = []
         for i in range(1, 3):  # Videos 1-2
-            video_file = MOCK_DATA_DIR / "videos" / f"video_{i:03d}.json"
+            video_file = MOCK_DATA_DIR / "entities" / "videos" / f"video_{i:03d}.json"
             if video_file.exists():
                 videos.append(MockDataLoader.load_json_file(video_file))
         return videos
@@ -78,13 +78,13 @@ class MockDataLoader:
     @staticmethod
     def get_video(video_id: int) -> Dict[str, Any]:
         """Get a specific video fixture by ID (1-2)."""
-        video_file = MOCK_DATA_DIR / "videos" / f"video_{video_id:03d}.json"
+        video_file = MOCK_DATA_DIR / "entities" / "videos" / f"video_{video_id:03d}.json"
         return MockDataLoader.load_json_file(video_file)
 
     @staticmethod
     def get_video_keyframes(video_id: int) -> Dict[str, Any]:
         """Get keyframes for a specific video by ID (1-2)."""
-        keyframes_file = MOCK_DATA_DIR / "videos" / f"video_{video_id:03d}_keyframes.json"
+        keyframes_file = MOCK_DATA_DIR / "entities" / "videos" / f"video_{video_id:03d}_keyframes.json"
         return MockDataLoader.load_json_file(keyframes_file)
 
     @staticmethod

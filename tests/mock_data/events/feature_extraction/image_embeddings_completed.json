@@ -1,0 +1,9 @@
+{
+  "job_id": "test_feature_extraction_001",
+  "event_id": "550e8400-e29b-41d4-a716-446655440005",
+  "total_assets": 3,
+  "processed_assets": 3,
+  "failed_assets": 0,
+  "has_partial_completion": false,
+  "watermark_ttl": 300
+}

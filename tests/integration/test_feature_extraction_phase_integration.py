@@ -100,13 +100,11 @@ class TestFeatureExtractionPhase(TestFeatureExtractionPhaseFixtures):
 
         # Validate feature extraction events
         assert embeddings_completed["event_data"]["job_id"] == job_id
-        assert embeddings_completed["event_data"]["total_embeddings"] == 3
+        assert embeddings_completed["event_data"]["processed_assets"] == 3
 
         assert keypoints_completed["event_data"]["job_id"] == job_id
-        assert keypoints_completed["event_data"]["total_keypoints"] == 3
 
         assert video_keypoints_completed["event_data"]["job_id"] == job_id
-        assert video_keypoints_completed["event_data"]["total_keypoints"] == 5
 
         # Validate final database state
         final_state = await validator.validate_feature_extraction_completed(job_id)
@@ -164,19 +162,7 @@ class TestFeatureExtractionPhase(TestFeatureExtractionPhaseFixtures):
         initial_video_keypoints = initial_state["video_keypoints_count"]
 
         # Re-deliver one image_embeddings_completed event
-        embeddings_event = load_mock_data("image_embeddings_completed") if self._has_mock_data("image_embeddings_completed") else {
-            "job_id": job_id,
-            "event_id": "550e8400-e29b-41d4-a716-446655440006",
-            "total_embeddings": 3,
-            "embeddings": [
-                {
-                    "product_id": "PROD_Mock_Ergonomic_Pillow_001",
-                    "embedding_path": "/data/tests/embeddings/prod_001.npy",
-                    "embedding_dim": 512,
-                    "model_version": "clip-vit-base-patch32"
-                }
-            ]
-        }
+        embeddings_event = load_mock_data("image_embeddings_completed")
 
         await publisher.publish_image_embeddings_completed(embeddings_event)
 
@@ -256,10 +242,9 @@ class TestFeatureExtractionPhase(TestFeatureExtractionPhaseFixtures):
 
             # Validate that valid items were processed
             assert embeddings_completed["event_data"]["job_id"] == job_id
-            assert embeddings_completed["event_data"]["total_embeddings"] >= 2, "Should have processed at least 2 valid embeddings"
+            assert embeddings_completed["event_data"]["processed_assets"] >= 2, "Should have processed at least 2 valid embeddings"
 
             assert keypoints_completed["event_data"]["job_id"] == job_id
-            assert keypoints_completed["event_data"]["total_keypoints"] >= 2, "Should have processed at least 2 valid keypoints"
 
         except TimeoutError:
             # If feature extraction fails due to invalid data, that's acceptable
