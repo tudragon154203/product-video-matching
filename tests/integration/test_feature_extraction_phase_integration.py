@@ -63,7 +63,17 @@ class TestFeatureExtractionPhase(TestFeatureExtractionPhaseFixtures):
         assert initial_state["embeddings_count"] == 0, "Expected no embeddings initially"
         assert initial_state["keypoints_count"] == 0, "Expected no keypoints initially"
 
-        # Publish ready events to trigger feature extraction
+        # Publish individual product images ready events first
+        for i in range(1, 4):
+            individual_product_event = load_mock_data(f"products_images_ready_{i}")
+            await publisher.publish_products_images_ready(individual_product_event)
+
+        # Publish individual video keyframes ready events first
+        for i in range(1, 6):
+            individual_video_event = load_mock_data(f"videos_keyframes_ready_{i}")
+            await publisher.publish_video_keyframes_ready(individual_video_event)
+
+        # Then publish batch events for completion detection
         await publisher.publish_products_images_ready_batch(products_ready)
         await publisher.publish_video_keyframes_ready_batch(videos_ready_batch)
 

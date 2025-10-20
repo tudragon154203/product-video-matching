@@ -39,8 +39,8 @@ class FeatureExtractionSpy:
 
         # Set up queues with auto-delete and namespacing
         queue_configs = [
-            ("products_images_masked_batch", "image.masking.completed"),
-            ("video_keyframes_masked_batch", "video.masking.completed"),
+            ("products_images_masked_batch", "products.images.masked.batch"),
+            ("video_keyframes_masked_batch", "video.keyframes.masked.batch"),
             ("image_embeddings_completed", "image.embeddings.completed"),
             ("image_keypoints_completed", "image.keypoints.completed"),
             ("video_keypoints_completed", "video.keypoints.completed")

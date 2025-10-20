@@ -1,0 +1,9 @@
+{
+  "job_id": "test_job_feature_extraction_happy_path_20250120_141845",
+  "event_id": "6d29202a-0b5e-419d-8723-9d4d0f7b0b1e",
+  "timestamp": "2025-01-20T14:18:45.123456",
+  "product_id": "PROD_amazon_6fe9a2b1",
+  "ready_path": "/data/segmented/products/PROD_amazon_6fe9a2b1_ready.jpg",
+  "src": "amazon",
+  "asin_or_itemid": "B08XZXYX4Y"
+}

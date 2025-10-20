@@ -478,10 +478,20 @@ class FeatureExtractionEventPublisher:
         self.message_broker = message_broker
         self.published_events = []
 
+    async def publish_products_images_ready(self, event_data: Dict[str, Any]):
+        """Publish individual products_image_ready event"""
+        # Services subscribe to 'products.image.ready'
+        await self._publish_event("products.image.ready", event_data)
+
     async def publish_products_images_ready_batch(self, event_data: Dict[str, Any]):
         """Publish products_images_ready_batch event"""
         # Services subscribe to 'products.images.ready.batch'
         await self._publish_event("products.images.ready.batch", event_data)
+
+    async def publish_video_keyframes_ready(self, event_data: Dict[str, Any]):
+        """Publish individual video_keyframes_ready event"""
+        # Services subscribe to 'videos.keyframes.ready'
+        await self._publish_event("videos.keyframes.ready", event_data)
 
     async def publish_video_keyframes_ready_batch(self, event_data: Dict[str, Any]):
         """Publish video_keyframes_ready_batch event"""
