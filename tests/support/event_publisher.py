@@ -480,11 +480,13 @@ class FeatureExtractionEventPublisher:
 
     async def publish_products_images_ready_batch(self, event_data: Dict[str, Any]):
         """Publish products_images_ready_batch event"""
-        await self._publish_event("images.ready.batch", event_data)
+        # Services subscribe to 'products.images.ready.batch'
+        await self._publish_event("products.images.ready.batch", event_data)
 
     async def publish_video_keyframes_ready_batch(self, event_data: Dict[str, Any]):
         """Publish video_keyframes_ready_batch event"""
-        await self._publish_event("video.keyframes.ready.batch", event_data)
+        # Services subscribe to 'videos.keyframes.ready.batch'
+        await self._publish_event("videos.keyframes.ready.batch", event_data)
 
     async def publish_image_embeddings_completed(self, event_data: Dict[str, Any]):
         """Publish image_embeddings_completed event (for idempotency test)"""
@@ -499,7 +501,7 @@ class FeatureExtractionEventPublisher:
         await self._publish_event("video.keypoints.completed", event_data)
 
     async def _publish_event(self, routing_key: str, event_data: Dict[str, Any]):
-        """Publish event to RabbitMQ"""
+        """Publish event via common MessageBroker to the configured topic exchange"""
         # Ensure event has required fields
         if "event_id" not in event_data:
             event_data["event_id"] = str(uuid.uuid4())
@@ -507,20 +509,16 @@ class FeatureExtractionEventPublisher:
         if "timestamp" not in event_data:
             event_data["timestamp"] = datetime.utcnow().isoformat()
 
-        # Add correlation_id if not present
-        if "correlation_id" not in event_data:
-            event_data["correlation_id"] = f"test_{event_data.get('job_id', 'unknown')}_{datetime.utcnow().strftime('%Y%m%d_%H%M%S')}"
+        # Generate correlation_id if not present
+        correlation_id = event_data.get("correlation_id") or (
+            f"test_{event_data.get('job_id', 'unknown')}_{datetime.utcnow().strftime('%Y%m%d_%H%M%S')}"
+        )
 
-        # Publish to pvm_events exchange
-        await self.message_broker.publish(
-            exchange="pvm_events",
-            routing_key=routing_key,
-            message=event_data,
-            headers={
-                "correlation_id": event_data["correlation_id"],
-                "event_id": event_data["event_id"],
-                "timestamp": event_data["timestamp"]
-            }
+        # Use the shared broker API which targets 'product_video_matching' topic exchange
+        await self.message_broker.publish_event(
+            topic=routing_key,
+            event_data=event_data,
+            correlation_id=correlation_id,
         )
 
         # Track published event

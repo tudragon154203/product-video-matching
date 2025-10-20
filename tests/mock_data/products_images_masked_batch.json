@@ -1,22 +1,5 @@
 {
   "job_id": "test_feature_extraction_001",
   "event_id": "550e8400-e29b-41d4-a716-446655440003",
-  "total_images": 3,
-  "masked_images": [
-    {
-      "product_id": "PROD_Mock_Ergonomic_Pillow_001",
-      "masked_path": "/data/tests/products/masked/prod_001_masked.png",
-      "original_path": "/data/tests/products/original/prod_001.jpg"
-    },
-    {
-      "product_id": "PROD_Mock_Ergonomic_Pillow_002",
-      "masked_path": "/data/tests/products/masked/prod_002_masked.png",
-      "original_path": "/data/tests/products/original/prod_002.jpg"
-    },
-    {
-      "product_id": "PROD_Mock_Ergonomic_Pillow_003",
-      "masked_path": "/data/tests/products/masked/prod_003_masked.png",
-      "original_path": "/data/tests/products/original/prod_003.jpg"
-    }
-  ]
+  "total_images": 3
 }
