@@ -68,10 +68,15 @@ class TestFeatureExtractionPhase(TestFeatureExtractionPhaseFixtures):
             individual_product_event = load_mock_data(f"products_images_ready_{i}")
             await publisher.publish_products_images_ready(individual_product_event)
 
-        # Publish individual video keyframes ready events first
-        for i in range(1, 6):
-            individual_video_event = load_mock_data(f"videos_keyframes_ready_{i}")
-            await publisher.publish_video_keyframes_ready(individual_video_event)
+        # Publish video keyframes ready events (one per video, matching production schema)
+        # Transform batch event to individual video events matching production schema
+        for video_data in videos_ready_batch["videos"]:
+            video_event = {
+                "job_id": videos_ready_batch["job_id"],
+                "video_id": video_data["video_id"],
+                "frames": video_data["frames"]
+            }
+            await publisher.publish_video_keyframes_ready(video_event)
 
         # Then publish batch events for completion detection
         await publisher.publish_products_images_ready_batch(products_ready)
