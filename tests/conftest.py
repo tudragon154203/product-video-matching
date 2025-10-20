@@ -369,3 +369,9 @@ async def collection_job_setup(db_manager, collection_test_data):
 
     # Clean up the job
     await db_manager.execute("DELETE FROM jobs WHERE job_id = $1", job_id)
+
+
+@pytest_asyncio.fixture
+async def observability_validator(db_manager, message_broker):
+    """Observability validator fixture"""
+    return ObservabilityValidator(db_manager, message_broker)
