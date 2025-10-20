@@ -145,7 +145,7 @@ class TestFeatureExtractionPhase(TestFeatureExtractionPhaseFixtures):
         db_manager = env["db_manager"]
 
         # First complete the happy path scenario
-        await self.test_feat_01_end_to_end_feature_extraction_happy_path(feature_extraction_test_environment)
+        await self.test_end_to_end_feature_extraction_happy_path(feature_extraction_test_environment)
 
         # Get current state
         job_id = "test_feature_extraction_001"
