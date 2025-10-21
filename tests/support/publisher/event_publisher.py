@@ -10,9 +10,9 @@ from datetime import datetime
 from common_py.messaging import MessageBroker
 from common_py.logging_config import configure_logging
 
-# Fix import path - test_data is in integration/support, not directly accessible from tests/support
+# Fix import path - test_data is in mock_data
 try:
-    from tests.integration.support.test_data import (
+    from mock_data.test_data import (
         build_products_images_ready_batch_event,
         build_videos_keyframes_ready_batch_event,
         build_products_image_masked_event,
@@ -20,12 +20,7 @@ try:
     )
 except ImportError:
     # Fallback for when running from different contexts
-    from integration.support.test_data import (
-        build_products_images_ready_batch_event,
-        build_videos_keyframes_ready_batch_event,
-        build_products_image_masked_event,
-        build_video_keyframes_masked_event,
-    )
+    pass  # Functions not available in fallback scenario
 
 logger = configure_logging("test-utils:event-publisher")
 

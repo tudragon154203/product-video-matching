@@ -21,6 +21,7 @@
 - Names: snake_case (modules/functions), PascalCase (classes), UPPER_SNAKE_CASE (constants).
 - Service layout: each service has `Dockerfile`, `main.py`, `config_loader.py`, `handlers/`, `services/`.
 - Tests: `test_*.py`. Keep tests close to features and in root `tests/` for integrations.
+- `__init__.py` files should be empty to avoid namespace pollution and import issues.
 
 ## Testing Guidelines
 - Install test deps: `pip install -r requirements-test.txt`.

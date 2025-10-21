@@ -42,12 +42,12 @@ import sys
 from pathlib import Path
 import importlib.util
 
-from support.infra_bootstrap import ensure_infra_running
-from support.service_enforcement import enforce_real_service_usage
+from support.environment.infra_bootstrap import ensure_infra_running
+from support.utils.service_enforcement import enforce_real_service_usage
 
 # Import media_manager from parent tests directory
 sys.path.insert(0, str(Path(__file__).parent.parent / 'support'))
-from media_manager import ensure_test_media_available
+from utils.media_manager import ensure_test_media_available
 
 # Paths
 INTEGRATION_DIR = Path(__file__).resolve().parent
@@ -70,8 +70,8 @@ merged = os.pathsep.join([p for p in paths + pythonpath.split(os.pathsep) if p])
 os.environ["PYTHONPATH"] = merged
 
 # Now import support modules after path setup is complete
-from support.service_enforcement import enforce_real_service_usage
-from support.infra_bootstrap import ensure_infra_running
+from support.utils.service_enforcement import enforce_real_service_usage
+from support.environment.infra_bootstrap import ensure_infra_running
 
 # Enforce real services via environment overrides (no mocks allowed in integration tests)
 os.environ.update({
@@ -113,7 +113,7 @@ for name in dir(module):
         globals()[name] = getattr(module, name)
 
 # Import feature extraction fixtures
-fixtures_path = TESTS_DIR / "support" / "feature_extraction_fixtures.py"
+fixtures_path = TESTS_DIR / "support" / "fixtures" / "feature_extraction_fixtures.py"
 spec = importlib.util.spec_from_file_location("feature_extraction_fixtures", str(fixtures_path))
 fixtures_module = importlib.util.module_from_spec(spec)
 sys.modules["feature_extraction_fixtures"] = fixtures_module

@@ -47,11 +47,11 @@ import pytest_asyncio
 import pytest
 from common_py.database import DatabaseManager
 from common_py.messaging import MessageBroker
-from support.message_spy import CollectionPhaseSpy, MessageSpy
-from support.db_cleanup import CollectionPhaseCleanup, DatabaseStateValidator, FeatureExtractionCleanup, FeatureExtractionStateValidator
-from support.event_publisher import CollectionEventPublisher, TestEventFactory, FeatureExtractionEventPublisher
-from support.observability_validator import ObservabilityValidator
-from support.feature_extraction_spy import FeatureExtractionSpy
+from support.spy.message_spy import CollectionPhaseSpy, MessageSpy
+from support.validators.db_cleanup import CollectionPhaseCleanup, DatabaseStateValidator, FeatureExtractionCleanup, FeatureExtractionStateValidator
+from support.publisher.event_publisher import CollectionEventPublisher, TestEventFactory, FeatureExtractionEventPublisher
+from support.validators.observability_validator import ObservabilityValidator
+from support.spy.feature_extraction_spy import FeatureExtractionSpy
 
 
 @pytest_asyncio.fixture

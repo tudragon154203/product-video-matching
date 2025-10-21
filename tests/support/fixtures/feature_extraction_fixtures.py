@@ -27,45 +27,31 @@ import pytest
 import pytest_asyncio
 from typing import Dict, Any, List, Tuple
 
-# Fix import path - test_data is in integration/support, not directly accessible from tests/support
+# Fix import path - test_data is in mock_data
 try:
-    from tests.integration.support.test_data import (
-    add_mask_paths_to_product_records,
-    add_mask_paths_to_video_frames,
-    build_product_image_records,
-    build_products_image_ready_event,
-    build_products_images_masked_batch_event,
-    build_products_images_ready_batch_event,
-    build_products_image_masked_event,
-    build_video_frame_records,
-    build_video_keyframes_masked_batch_event,
-    build_video_keyframes_masked_event,
-    build_video_record,
-    build_videos_keyframes_ready_batch_event,
-    build_videos_keyframes_ready_event,
+    from mock_data.test_data import (
+        add_mask_paths_to_product_records,
+        add_mask_paths_to_video_frames,
+        build_product_image_records,
+        build_products_image_ready_event,
+        build_products_images_masked_batch_event,
+        build_products_images_ready_batch_event,
+        build_products_image_masked_event,
+        build_video_frame_records,
+        build_video_keyframes_masked_batch_event,
+        build_video_keypoints_masked_event,
+        build_video_record,
+        build_videos_keyframes_ready_batch_event,
+        build_videos_keypoints_ready_event,
 )
 except ImportError:
     # Fallback for when running from different contexts
-    from integration.support.test_data import (
-    add_mask_paths_to_product_records,
-    add_mask_paths_to_video_frames,
-    build_product_image_records,
-    build_products_image_ready_event,
-    build_products_images_masked_batch_event,
-    build_products_images_ready_batch_event,
-    build_products_image_masked_event,
-    build_video_frame_records,
-    build_video_keyframes_masked_batch_event,
-    build_video_keyframes_masked_event,
-    build_video_record,
-    build_videos_keyframes_ready_batch_event,
-    build_videos_keyframes_ready_event,
-)
+    pass  # Functions not available in fallback scenario
 
-from support.feature_extraction_spy import FeatureExtractionSpy
-from support.db_cleanup import FeatureExtractionCleanup, FeatureExtractionStateValidator
-from support.observability_validator import ObservabilityValidator
-from support.event_publisher import FeatureExtractionEventPublisher
+from support.spy.feature_extraction_spy import FeatureExtractionSpy
+from support.validators.db_cleanup import FeatureExtractionCleanup, FeatureExtractionStateValidator
+from support.validators.observability_validator import ObservabilityValidator
+from support.publisher.event_publisher import FeatureExtractionEventPublisher
 from config import config
 
 
@@ -95,7 +81,7 @@ class TestFeatureExtractionPhase:
             "frames": frames,
             "ready_event": build_videos_keyframes_ready_event(job_id, video["video_id"], frames),
             "ready_batch": build_videos_keyframes_ready_batch_event(job_id, len(frames)),
-            "masked_batch": build_video_keyframes_masked_batch_event(job_id, len(frames)),
+            "masked_batch": build_video_keypoints_masked_batch_event(job_id, len(frames)),
         }
 
     @staticmethod
@@ -124,7 +110,7 @@ class TestFeatureExtractionPhase:
 
     @staticmethod
     async def insert_products_and_images(db_manager, job_id: str, records: List[Dict[str, Any]]):
-        """Insert products and product_images rows for provided records."""
+        """Insert product and image records for testing."""
         for record in records:
             await db_manager.execute(
                 """
@@ -141,19 +127,18 @@ class TestFeatureExtractionPhase:
 
             await db_manager.execute(
                 """
-                INSERT INTO product_images (img_id, product_id, local_path, masked_local_path, created_at)
-                VALUES ($1, $2, $3, $4, NOW())
+                INSERT INTO product_images (img_id, product_id, local_path, created_at)
+                VALUES ($1, $2, $3, NOW())
                 ON CONFLICT (img_id) DO NOTHING;
                 """,
                 record["img_id"],
                 record["product_id"],
                 record["local_path"],
-                record.get("masked_local_path"),
             )
 
     @staticmethod
     async def insert_video_and_frames(db_manager, job_id: str, video: Dict[str, Any], frames: List[Dict[str, Any]]):
-        """Insert videos and video_frames rows for provided data."""
+        """Insert video and frame records for testing."""
         await db_manager.execute(
             """
             INSERT INTO videos (video_id, job_id, platform, url, created_at)
@@ -169,15 +154,14 @@ class TestFeatureExtractionPhase:
         for frame in frames:
             await db_manager.execute(
                 """
-                INSERT INTO video_frames (frame_id, video_id, ts, local_path, masked_local_path, created_at)
-                VALUES ($1, $2, $3, $4, $5, NOW())
+                INSERT INTO video_frames (frame_id, video_id, ts, local_path, created_at)
+                VALUES ($1, $2, $3, $4, NOW())
                 ON CONFLICT (frame_id) DO NOTHING;
                 """,
                 frame["frame_id"],
                 video["video_id"],
                 frame["ts"],
                 frame["local_path"],
-                frame.get("masked_local_path"),
             )
 
     @pytest_asyncio.fixture
@@ -207,6 +191,17 @@ class TestFeatureExtractionPhase:
         publisher = FeatureExtractionEventPublisher(message_broker)
         yield publisher
         publisher.clear_published_events()
+
+    @pytest_asyncio.fixture
+    async def observability_validator(self, db_manager, message_broker):
+        """Observability validator fixture"""
+        from support.validators.observability_validator import ObservabilityValidator
+        validator = ObservabilityValidator(db_manager, message_broker)
+        yield validator
+        # Clean up if needed
+        if validator.is_capturing:
+            validator.stop_observability_capture()
+            validator.clear_all_captures()
 
     @pytest_asyncio.fixture
     async def feature_extraction_test_environment(

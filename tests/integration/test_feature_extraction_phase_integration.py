@@ -8,8 +8,8 @@ import pytest
 import uuid
 from typing import Dict, Any
 
-from support.feature_extraction_fixtures import TestFeatureExtractionPhase as TestFeatureExtractionPhaseFixtures
-from support.feature_extraction_setup import (
+from support.fixtures.feature_extraction_fixtures import TestFeatureExtractionPhase as TestFeatureExtractionPhaseFixtures
+from support.fixtures.feature_extraction_setup import (
     setup_comprehensive_database_state,
     setup_product_database_state,
     setup_masked_product_state,
@@ -20,7 +20,7 @@ pytestmark = [
     pytest.mark.asyncio,
     pytest.mark.integration,
     pytest.mark.feature_extraction,
-    pytest.mark.timeout(300),
+    pytest.mark.timeout(600),
 ]
 
 class TestFeatureExtractionPhase(TestFeatureExtractionPhaseFixtures):

@@ -148,10 +148,10 @@ def build_videos_keyframes_ready_batch_event(
     }
 
 
-def build_video_keyframes_masked_batch_event(
+def build_video_keypoints_masked_batch_event(
     job_id: str, total_keyframes: int
 ) -> Dict[str, Any]:
-    """Create a video.keyframes.masked.batch event payload."""
+    """Create a video.keypoints.masked.batch event payload."""
     return {
         "job_id": job_id,
         "event_id": str(uuid.uuid4()),

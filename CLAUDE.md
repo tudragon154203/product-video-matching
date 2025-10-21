@@ -312,6 +312,10 @@ Hugging Face models are cached in `model_cache/` to avoid repeated downloads:
 
 ## Development Tips
 
+### Python Module Organization
+
+- `__init__.py` files should be empty to avoid namespace pollution and import issues
+
 ### Adding New Services
 
 1. Create service directory in `services/`
