@@ -4,7 +4,7 @@ Products & Videos Collection — Happy Path Integration Test
 Tests the complete collection phase workflow according to Sprint 13.1 PRD specifications:
 - ENFORCE: Real dropship-product-finder and video-crawler services (NO MOCKS)
 - Stack healthy; migrations applied; clean DB
-- Load synthetic fixtures from tests/mock_data (for test data only, not service mocking)
+- Load synthetic fixtures generated via shared test data builders (for test data only, not service mocking)
 - Broker spy queues bound to products and videos collection completed topics
 - Publish collection requests with valid job_id and correlation_id
 - Validate completion events within 10s timeout
@@ -99,7 +99,7 @@ class TestCollectionPhaseHappyPath:
 
         Setup:
         - Stack healthy; migrations applied; clean DB
-        - Load synthetic fixtures from tests/mock_data (for test data only, not service mocking)
+        - Load synthetic fixtures generated via shared test data builders (for test data only, not service mocking)
         - Broker spy queues bound to products and videos collection completed topics
 
         Trigger:
@@ -142,7 +142,7 @@ class TestCollectionPhaseHappyPath:
             job_id
         )
 
-        # Load synthetic fixtures from tests/mock_data
+        # Load synthetic fixtures via test data builders
         products_request = TestEventFactory.create_products_collect_request(
             job_id=job_id,
             queries=["ergonomic pillow"],  # Minimal dataset

@@ -500,9 +500,27 @@ class FeatureExtractionCleanup:
 
     async def _cleanup_masked_paths(self):
         """Clean up masked path updates"""
-        # No masked_path columns in current schema - no cleanup needed
-        # Masking would be handled at the file system level
-        pass
+        await self.db_manager.execute(
+            """
+            UPDATE product_images
+            SET masked_local_path = NULL
+            WHERE masked_local_path IS NOT NULL
+              AND product_id IN (
+                  SELECT product_id FROM products WHERE job_id LIKE 'test_%'
+              )
+            """
+        )
+
+        await self.db_manager.execute(
+            """
+            UPDATE video_frames
+            SET masked_local_path = NULL
+            WHERE masked_local_path IS NOT NULL
+              AND video_id IN (
+                  SELECT video_id FROM videos WHERE job_id LIKE 'test_%'
+              )
+            """
+        )
 
     async def _cleanup_frames_and_images(self):
         """Clean up video frames and product images"""

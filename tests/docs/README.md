@@ -225,60 +225,25 @@ Tests verify that **real data** is collected from services:
 - Videos from YouTube/TikTok with real video IDs
 - Actual database records created by real services
 
-## Mock Data Usage
+## Synthetic Data Helpers
 
-### Mock Data Structure
-
-The tests use synthetic test data located in [`mock_data/`](./mock_data/):
-
-```
-tests/mock_data/
-├── products/                    # Product mock data
-│   ├── products_collect_request.json
-│   ├── products_collections_completed.json
-│   ├── product_001.json
-│   ├── product_002.json
-│   └── product_003.json
-├── videos/                      # Video mock data
-│   ├── videos_search_request.json
-│   ├── videos_collections_completed.json
-│   ├── video_001.json
-│   ├── video_002.json
-│   ├── video_001_keyframes.json
-│   └── video_002_keyframes.json
-└── fixtures/                    # Fixture loader utilities
-    ├── __init__.py
-    └── test_fixtures.py
-```
-
-### Using Mock Data
+Feature extraction tests generate synthetic payloads dynamically using
+`tests/integration/support/test_data.py`. These helpers produce contract-compliant
+events and database rows without relying on static JSON fixtures.
 
 ```python
-from tests.mock_data.fixtures import MockDataLoader
+from tests.integration.support.test_data import (
+    build_product_image_records,
+    build_products_images_ready_batch_event,
+)
 
-# Get products collect request
-request = MockDataLoader.get_products_collect_request()
-
-# Get all products
-products = MockDataLoader.get_all_products()
-
-# Get specific product
-product = MockDataLoader.get_product(1)
-
-# Get videos search request
-request = MockDataLoader.get_videos_search_request()
-
-# Generate deterministic test IDs
-job_id = MockDataLoader.generate_test_job_id("integration_test")
-event_id = MockDataLoader.generate_test_event_id()
+job_id = "test_job_001"
+records = build_product_image_records(job_id)
+ready_event = build_products_images_ready_batch_event(job_id, len(records))
 ```
 
-### Key Features
-
-- **No External Dependencies**: All data is self-contained
-- **Deterministic**: Same IDs and data across test runs
-- **Schema Compliant**: Validated against contract schemas
-- **Minimal**: Small, realistic datasets for fast test execution
+This approach keeps fixtures aligned with schema changes while maintaining
+deterministic, minimal datasets for quick test execution.
 
 ## Test Components
 

@@ -2,12 +2,11 @@
 Feature Extraction End-to-End Integration Tests
 Tests the complete feature extraction pipeline workflow from ready inputs through all phases to completion.
 """
+import time
 import pytest
-import pytest_asyncio
-from typing import Dict, Any
+from typing import Dict, Any, List
 
 from support.feature_extraction_fixtures import TestFeatureExtractionPhase as TestFeatureExtractionPhaseFixtures
-from mock_data.verify_fixtures import load_mock_data
 
 pytestmark = [
     pytest.mark.asyncio,
@@ -47,41 +46,31 @@ class TestFeatureExtractionEndToEnd(TestFeatureExtractionPhaseFixtures):
 
         # Load comprehensive test data
         job_id = "test_e2e_complete_001"
-        products_ready = load_mock_data("products_images_ready_batch")
-        videos_ready = load_mock_data("videos_keyframes_ready")  # Individual video for database setup
-        videos_ready_batch = load_mock_data("videos_keyframes_ready_batch")  # Bare batch for publishing
+        product_records, product_events = self.build_product_dataset(job_id)
+        video_dataset = self.build_video_dataset(job_id)
 
         # Setup complete database state
-        await self._setup_complete_database_state(db_manager, job_id, products_ready, videos_ready)
+        await self._setup_complete_database_state(db_manager, job_id, product_records, video_dataset)
 
         # Validate initial state
         initial_state = await validator.validate_initial_state(job_id)
-        assert initial_state["products_count"] == 3, f"Expected 3 products, got {initial_state['products_count']}"
-        assert initial_state["images_count"] == 3, f"Expected 3 images, got {initial_state['images_count']}"
-        assert initial_state["videos_count"] == 1, f"Expected 1 video, got {initial_state['videos_count']}"
-        assert initial_state["frames_count"] == 5, f"Expected 5 frames, got {initial_state['frames_count']}"
+        assert initial_state["products_count"] == len(product_records), "Unexpected product count"
+        assert initial_state["images_count"] == len(product_records), "Unexpected image count"
+        assert initial_state["videos_count"] == 1, "Unexpected video count"
+        assert initial_state["frames_count"] == len(video_dataset["frames"]), "Unexpected frame count"
         assert initial_state["masked_images_count"] == 0, "Expected no masked images initially"
         assert initial_state["masked_frames_count"] == 0, "Expected no masked frames initially"
         assert initial_state["embeddings_count"] == 0, "Expected no embeddings initially"
         assert initial_state["keypoints_count"] == 0, "Expected no keypoints initially"
 
         # Phase 1: Publish ready events to trigger masking
-        for i in range(1, 4):
-            individual_product_event = load_mock_data(f"products_images_ready_{i}")
-            await publisher.publish_products_images_ready(individual_product_event)
+        for event in product_events["individual"]:
+            await publisher.publish_products_image_ready(event)
 
-        # Publish video keyframes ready events (one per video, matching production schema)
-        # Transform batch event to individual video events matching production schema
-        for video_data in videos_ready_batch["videos"]:
-            video_event = {
-                "job_id": videos_ready_batch["job_id"],
-                "video_id": video_data["video_id"],
-                "frames": video_data["frames"]
-            }
-            await publisher.publish_video_keyframes_ready(video_event)
+        await publisher.publish_video_keyframes_ready(video_dataset["ready_event"])
 
-        await publisher.publish_products_images_ready_batch(products_ready)
-        await publisher.publish_video_keyframes_ready_batch(videos_ready_batch)
+        await publisher.publish_products_images_ready_batch(product_events["ready_batch"])
+        await publisher.publish_video_keyframes_ready_batch(video_dataset["ready_batch"])
 
         # Phase 1 Completion: Wait for masking
         products_masked = await spy.wait_for_products_images_masked(job_id, timeout=120)
@@ -89,13 +78,13 @@ class TestFeatureExtractionEndToEnd(TestFeatureExtractionPhaseFixtures):
 
         # Validate masking phase
         assert products_masked["event_data"]["job_id"] == job_id
-        assert products_masked["event_data"]["total_images"] == 3
+        assert products_masked["event_data"]["total_images"] == len(product_records)
         assert videos_masked["event_data"]["job_id"] == job_id
-        assert videos_masked["event_data"]["total_keyframes"] == 5
+        assert videos_masked["event_data"]["total_keyframes"] == len(video_dataset["frames"])
 
         masking_state = await validator.validate_masking_completed(job_id)
-        assert masking_state["masked_images_count"] == 3, f"Expected 3 masked images, got {masking_state['masked_images_count']}"
-        assert masking_state["masked_frames_count"] == 5, f"Expected 5 masked frames, got {masking_state['masked_frames_count']}"
+        assert masking_state["masked_images_count"] == len(product_records), "Masked image count mismatch"
+        assert masking_state["masked_frames_count"] == len(video_dataset["frames"]), "Masked frame count mismatch"
 
         # Phase 2: Wait for embedding extraction (triggered by masking completion)
         embeddings_completed = await spy.wait_for_image_embeddings_completed(job_id, timeout=180)
@@ -114,12 +103,16 @@ class TestFeatureExtractionEndToEnd(TestFeatureExtractionPhaseFixtures):
 
         # Validate final state - complete feature extraction
         final_state = await validator.validate_feature_extraction_completed(job_id)
-        assert final_state["embeddings_count"] == 3, f"Expected 3 embeddings, got {final_state['embeddings_count']}"
-        assert final_state["keypoints_count"] == 3, f"Expected 3 keypoints, got {final_state['keypoints_count']}"
-        assert final_state["video_keypoints_count"] == 5, f"Expected 5 video keypoints, got {final_state['video_keypoints_count']}"
+        assert final_state["embeddings_count"] == len(product_records), "Embedding count mismatch"
+        assert final_state["keypoints_count"] == len(product_records), "Keypoint count mismatch"
+        assert final_state["video_keypoints_count"] == len(video_dataset["frames"]), "Video keypoint count mismatch"
 
         # Validate detailed feature data
-        await self._validate_complete_feature_data(final_state)
+        await self._validate_complete_feature_data(
+            final_state,
+            expected_products=len(product_records),
+            expected_frames=len(video_dataset["frames"]),
+        )
 
         # Validate comprehensive observability
         await self._validate_end_to_end_observability(observability, job_id)
@@ -149,19 +142,15 @@ class TestFeatureExtractionEndToEnd(TestFeatureExtractionPhaseFixtures):
 
         # Setup and trigger pipeline
         job_id = "test_e2e_ordering_001"
-        products_ready = load_mock_data("products_images_ready_batch")
-        videos_ready = load_mock_data("videos_keyframes_ready")
-        videos_ready_batch = load_mock_data("videos_keyframes_ready_batch")
+        product_records, product_events = self.build_product_dataset(job_id)
+        video_dataset = self.build_video_dataset(job_id)
 
-        await self._setup_complete_database_state(db_manager, job_id, products_ready, videos_ready)
+        await self._setup_complete_database_state(db_manager, job_id, product_records, video_dataset)
 
-        # Start timing
-        import time
         start_time = time.time()
 
-        # Publish events
-        await publisher.publish_products_images_ready_batch(products_ready)
-        await publisher.publish_video_keyframes_ready_batch(videos_ready_batch)
+        await publisher.publish_products_images_ready_batch(product_events["ready_batch"])
+        await publisher.publish_video_keyframes_ready_batch(video_dataset["ready_batch"])
 
         # Capture completion times
         products_masked = await spy.wait_for_products_images_masked(job_id, timeout=120)
@@ -212,19 +201,15 @@ class TestFeatureExtractionEndToEnd(TestFeatureExtractionPhaseFixtures):
 
         # Setup and time the complete pipeline
         job_id = "test_e2e_performance_001"
-        products_ready = load_mock_data("products_images_ready_batch")
-        videos_ready = load_mock_data("videos_keyframes_ready")
-        videos_ready_batch = load_mock_data("videos_keyframes_ready_batch")
+        product_records, product_events = self.build_product_dataset(job_id)
+        video_dataset = self.build_video_dataset(job_id)
 
-        await self._setup_complete_database_state(db_manager, job_id, products_ready, videos_ready)
+        await self._setup_complete_database_state(db_manager, job_id, product_records, video_dataset)
 
-        # Start pipeline timing
-        import time
         pipeline_start = time.time()
 
-        # Execute complete pipeline
-        await publisher.publish_products_images_ready_batch(products_ready)
-        await publisher.publish_video_keyframes_ready_batch(videos_ready_batch)
+        await publisher.publish_products_images_ready_batch(product_events["ready_batch"])
+        await publisher.publish_video_keyframes_ready_batch(video_dataset["ready_batch"])
 
         # Wait for all phases
         await spy.wait_for_products_images_masked(job_id, timeout=120)
@@ -242,63 +227,27 @@ class TestFeatureExtractionEndToEnd(TestFeatureExtractionPhaseFixtures):
         # Validate performance metrics captured
         await self._validate_performance_observability(observability, job_id, total_duration)
 
-    async def _setup_complete_database_state(self, db_manager, job_id: str, products_ready: Dict, videos_ready: Dict):
-        """Setup complete database state for end-to-end tests"""
-        # Create job record
-        await db_manager.execute(
-            """
-            INSERT INTO jobs (job_id, industry, phase, created_at, updated_at)
-            VALUES ($1, 'ergonomic pillows', 'feature_extraction', NOW(), NOW())
-            ON CONFLICT (job_id) DO NOTHING;
-            """,
-            job_id
-        )
+    async def _setup_complete_database_state(
+        self,
+        db_manager,
+        job_id: str,
+        product_records: List[Dict[str, Any]],
+        video_dataset: Dict[str, Any],
+    ):
+        """Setup complete database state for end-to-end tests."""
+        await self.ensure_job(db_manager, job_id)
+        await self.insert_products_and_images(db_manager, job_id, product_records)
+        await self.insert_video_and_frames(db_manager, job_id, video_dataset["video"], video_dataset["frames"])
 
-        # Insert product records
-        for img in products_ready["ready_images"]:
-            await db_manager.execute(
-                """
-                INSERT INTO products (product_id, job_id, src, asin_or_itemid, created_at, updated_at)
-                VALUES ($1, $2, $3, $4, NOW(), NOW())
-                ON CONFLICT (product_id) DO NOTHING;
-                """,
-                img["product_id"], job_id, img["src"], img.get("asin_or_itemid")
-            )
-
-            await db_manager.execute(
-                """
-                INSERT INTO product_images (product_id, image_path, created_at, updated_at)
-                VALUES ($1, $2, NOW(), NOW())
-                ON CONFLICT (product_id, image_path) DO NOTHING;
-                """,
-                img["product_id"], img["ready_path"]
-            )
-
-        # Insert video records
-        for frame in videos_ready["frames"]:
-            await db_manager.execute(
-                """
-                INSERT INTO videos (video_id, job_id, platform, created_at, updated_at)
-                VALUES ($1, $2, 'youtube', NOW(), NOW())
-                ON CONFLICT (video_id) DO NOTHING;
-                """,
-                videos_ready["video_id"], job_id
-            )
-
-            await db_manager.execute(
-                """
-                INSERT INTO video_frames (video_id, frame_sequence, frame_path, created_at, updated_at)
-                VALUES ($1, $2, $3, NOW(), NOW())
-                ON CONFLICT (video_id, frame_sequence) DO NOTHING;
-                """,
-                videos_ready["video_id"], frame["frame_id"], frame["local_path"]
-            )
-
-    async def _validate_complete_feature_data(self, final_state: Dict):
-        """Validate completeness and quality of extracted feature data"""
-        # Validate embeddings data
+    async def _validate_complete_feature_data(
+        self,
+        final_state: Dict,
+        expected_products: int,
+        expected_frames: int,
+    ):
+        """Validate completeness and quality of extracted feature data."""
         embeddings_details = final_state["embeddings_details"]
-        assert len(embeddings_details) == 3, "Expected embeddings for all 3 products"
+        assert len(embeddings_details) == expected_products, "Embedding detail count mismatch"
 
         for embedding in embeddings_details:
             assert embedding["embedding_dim"] > 0, f"Invalid embedding dimension for {embedding['product_id']}"
@@ -307,7 +256,7 @@ class TestFeatureExtractionEndToEnd(TestFeatureExtractionPhaseFixtures):
 
         # Validate keypoints data
         keypoints_details = final_state["keypoints_details"]
-        assert len(keypoints_details) == 3, "Expected keypoints for all 3 products"
+        assert len(keypoints_details) == expected_products, "Keypoint detail count mismatch"
 
         for keypoints in keypoints_details:
             assert keypoints["num_keypoints"] > 0, f"Invalid keypoints count for {keypoints['product_id']}"
@@ -316,7 +265,7 @@ class TestFeatureExtractionEndToEnd(TestFeatureExtractionPhaseFixtures):
 
         # Validate video keypoints data
         video_keypoints_details = final_state.get("video_keypoints_details", [])
-        assert len(video_keypoints_details) == 5, "Expected video keypoints for all 5 frames"
+        assert len(video_keypoints_details) == expected_frames, "Video keypoint detail count mismatch"
 
         for video_keypoints in video_keypoints_details:
             assert video_keypoints["num_keypoints"] > 0, f"Invalid video keypoints count for frame"
@@ -408,10 +357,3 @@ class TestFeatureExtractionEndToEnd(TestFeatureExtractionPhaseFixtures):
         # Performance metrics should be available
         assert len(perf_metrics) >= 0, "Performance metrics should be captured"
 
-    def _has_mock_data(self, filename: str) -> bool:
-        """Check if mock data file exists"""
-        try:
-            load_mock_data(filename)
-            return True
-        except:
-            return False

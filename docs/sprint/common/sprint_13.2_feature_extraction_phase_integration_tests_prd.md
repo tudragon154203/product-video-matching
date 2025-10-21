@@ -11,7 +11,7 @@ Related docs: [docker-compose.dev.cpu.yml](../../infra/pvm/docker-compose.dev.cp
   - Correct persistence of embeddings and keypoints with referential integrity.
   - Basic idempotency assurance for re-delivery scenarios.
   - Observability coverage across the entire feature extraction pipeline.
-  - Synthetic, consistent, mocked test data used exclusively from [tests/mock_data](../../tests/mock_data); do not read from [data](../../data/).
+- Synthetic, consistent, mocked test data generated via [`tests/integration/support/test_data.py`](../../tests/integration/support/test_data.py); do not read from [data](../../data/).
 - Non-goals:
   - Comprehensive error scenarios, retries, and video embeddings completion (no schema) are out of scope.
   - Performance/stress testing not included.
@@ -45,14 +45,14 @@ Related docs: [docker-compose.dev.cpu.yml](../../infra/pvm/docker-compose.dev.cp
 - Pytest configs: [pytest.ini](../../pytest.ini), [services/pytest.ini](../../services/pytest.ini).
 - Messaging conventions: [messaging.py](../../libs/common-py/common_py/messaging.py).
 - Observability utilities: [metrics.py](../../libs/common-py/common_py/metrics.py), [health.py](../../libs/common-py/common_py/health.py).
-- Models cache: fixtures in [tests/mock_data](../../tests/mock_data) provide minimal assets; no reliance on [model_cache](../../model_cache/) contents.
+- Models cache: fixtures produced by the shared builders provide minimal assets; no reliance on [model_cache](../../model_cache/) contents.
 
 ## 5) Test Data and Fixtures
-- Synthetic dataset location: [tests/mock_data](../../tests/mock_data)
+- Synthetic dataset builders: [`tests/integration/support/test_data.py`](../../tests/integration/support/test_data.py)
   - Ready product images: batch of 3 items with deterministic IDs
   - Ready keyframes: synthetic frames for one short video with deterministic sequence
   - Masked outputs: minimal placeholder assets for processing
-- Do not read from [data](../../data/); use [tests/mock_data](../../tests/mock_data) exclusively.
+- Do not read from [data](../../data/); rely on the dynamic builders exclusively.
 - Spy queues: ephemeral and namespaced per event type; auto-delete after test.
 - DB cleanup: TRUNCATE all updated tables and event ledgers between tests.
 
@@ -62,8 +62,8 @@ Related docs: [docker-compose.dev.cpu.yml](../../infra/pvm/docker-compose.dev.cp
 - Purpose: Validate complete pipeline from ready inputs through masking to feature completion.
 - Setup:
   - Stack healthy; migrations applied; clean DB.
-  - Load synthetic ready batch from [tests/mock_data](../../tests/mock_data) for images.
-  - Load keyframes fixtures from [tests/mock_data](../../tests/mock_data).
+  - Use `build_products_images_ready_batch_event` for synthetic ready batches.
+  - Use `build_videos_keyframes_ready_batch_event` for video keyframes.
   - Spy queues bound to all intermediate and completion events.
 - Expected:
   - **Masking Phase**: Exactly one products_images_masked_batch and one video_keyframes_masked_batch observed.
@@ -85,7 +85,7 @@ Related docs: [docker-compose.dev.cpu.yml](../../infra/pvm/docker-compose.dev.cp
 ### FEAT-03 Pipeline Continuity — Partial Batch Processing (Critical)
 - Purpose: Validate pipeline handles mixed successful processing when some items fail.
 - Setup:
-  - Load batch with 2 valid items and 1 invalid/malformed item in [tests/mock_data](../../tests/mock_data).
+  - Build partial batches using helper functions to mix valid/invalid items.
 - Expected:
   - Valid items processed completely through masking → feature extraction.
   - Invalid item gracefully handled without breaking pipeline.
@@ -110,7 +110,7 @@ Related docs: [docker-compose.dev.cpu.yml](../../infra/pvm/docker-compose.dev.cp
 
 ## 9) Cost and Efficiency Notes
 - Combined scenarios reduce total runtime vs. separate phase tests.
-- Synthetic fixtures from [tests/mock_data](../../tests/mock_data) ensure consistency and avoid external dependencies.
+- Synthetic fixtures from the shared builders ensure consistency and avoid external dependencies.
 - Minimal test data (3 images, 1 video) keeps processing time reasonable.
 - Focus on critical scenarios over comprehensive edge case coverage.
 

@@ -25,7 +25,38 @@ _setup_sys_path()
 
 import pytest
 import pytest_asyncio
-from typing import Dict, Any
+from typing import Dict, Any, List, Tuple
+
+# Fix import path - test_data is in integration/support, not directly accessible from tests/support
+try:
+    from tests.integration.support.test_data import (
+    add_mask_paths_to_product_records,
+    add_mask_paths_to_video_frames,
+    build_product_image_records,
+    build_products_image_ready_event,
+    build_products_images_masked_batch_event,
+    build_products_images_ready_batch_event,
+    build_video_frame_records,
+    build_video_keyframes_masked_batch_event,
+    build_video_record,
+    build_videos_keyframes_ready_batch_event,
+    build_videos_keyframes_ready_event,
+)
+except ImportError:
+    # Fallback for when running from different contexts
+    from integration.support.test_data import (
+    add_mask_paths_to_product_records,
+    add_mask_paths_to_video_frames,
+    build_product_image_records,
+    build_products_image_ready_event,
+    build_products_images_masked_batch_event,
+    build_products_images_ready_batch_event,
+    build_video_frame_records,
+    build_video_keyframes_masked_batch_event,
+    build_video_record,
+    build_videos_keyframes_ready_batch_event,
+    build_videos_keyframes_ready_event,
+)
 
 from support.feature_extraction_spy import FeatureExtractionSpy
 from support.db_cleanup import FeatureExtractionCleanup, FeatureExtractionStateValidator
@@ -38,6 +69,112 @@ from config import config
 @pytest.mark.feature_extraction
 class TestFeatureExtractionPhase:
     """Feature Extraction Phase Integration Tests"""
+
+    @staticmethod
+    def build_product_dataset(job_id: str, count: int = 3) -> Tuple[List[Dict[str, Any]], Dict[str, Any]]:
+        """Return product records and associated events for a job."""
+        records = build_product_image_records(job_id, count)
+        events = {
+            "individual": [build_products_image_ready_event(job_id, rec) for rec in records],
+            "ready_batch": build_products_images_ready_batch_event(job_id, len(records)),
+            "masked_batch": build_products_images_masked_batch_event(job_id, len(records)),
+        }
+        return records, events
+
+    @staticmethod
+    def build_video_dataset(job_id: str, frame_count: int = 5) -> Dict[str, Any]:
+        """Return video metadata, frame records, and events for a job."""
+        video = build_video_record(job_id)
+        frames = build_video_frame_records(job_id, video["video_id"], frame_count)
+        return {
+            "video": video,
+            "frames": frames,
+            "ready_event": build_videos_keyframes_ready_event(job_id, video["video_id"], frames),
+            "ready_batch": build_videos_keyframes_ready_batch_event(job_id, len(frames)),
+            "masked_batch": build_video_keyframes_masked_batch_event(job_id, len(frames)),
+        }
+
+    @staticmethod
+    def prepare_masked_product_records(records: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        """Return product records with masked paths populated."""
+        return add_mask_paths_to_product_records(records)
+
+    @staticmethod
+    def prepare_masked_video_frames(frames: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        """Return video frame records with masked paths populated."""
+        return add_mask_paths_to_video_frames(frames)
+
+    @staticmethod
+    async def ensure_job(db_manager, job_id: str, phase: str = "feature_extraction", industry: str = "ergonomic pillows"):
+        """Ensure a job row exists for the provided job_id."""
+        await db_manager.execute(
+            """
+            INSERT INTO jobs (job_id, industry, phase, created_at, updated_at)
+            VALUES ($1, $2, $3, NOW(), NOW())
+            ON CONFLICT (job_id) DO NOTHING;
+            """,
+            job_id,
+            industry,
+            phase,
+        )
+
+    @staticmethod
+    async def insert_products_and_images(db_manager, job_id: str, records: List[Dict[str, Any]]):
+        """Insert products and product_images rows for provided records."""
+        for record in records:
+            await db_manager.execute(
+                """
+                INSERT INTO products (product_id, job_id, src, asin_or_itemid, marketplace, created_at)
+                VALUES ($1, $2, $3, $4, $5, NOW())
+                ON CONFLICT (product_id) DO NOTHING;
+                """,
+                record["product_id"],
+                job_id,
+                record["src"],
+                record["asin_or_itemid"],
+                record["marketplace"],
+            )
+
+            await db_manager.execute(
+                """
+                INSERT INTO product_images (img_id, product_id, local_path, masked_local_path, created_at)
+                VALUES ($1, $2, $3, $4, NOW())
+                ON CONFLICT (img_id) DO NOTHING;
+                """,
+                record["img_id"],
+                record["product_id"],
+                record["local_path"],
+                record.get("masked_local_path"),
+            )
+
+    @staticmethod
+    async def insert_video_and_frames(db_manager, job_id: str, video: Dict[str, Any], frames: List[Dict[str, Any]]):
+        """Insert videos and video_frames rows for provided data."""
+        await db_manager.execute(
+            """
+            INSERT INTO videos (video_id, job_id, platform, url, created_at)
+            VALUES ($1, $2, $3, $4, NOW())
+            ON CONFLICT (video_id) DO NOTHING;
+            """,
+            video["video_id"],
+            job_id,
+            video["platform"],
+            video["url"],
+        )
+
+        for frame in frames:
+            await db_manager.execute(
+                """
+                INSERT INTO video_frames (frame_id, video_id, ts, local_path, masked_local_path, created_at)
+                VALUES ($1, $2, $3, $4, $5, NOW())
+                ON CONFLICT (frame_id) DO NOTHING;
+                """,
+                frame["frame_id"],
+                video["video_id"],
+                frame["ts"],
+                frame["local_path"],
+                frame.get("masked_local_path"),
+            )
 
     @pytest_asyncio.fixture
     async def feature_extraction_spy(self, message_broker):

@@ -9,6 +9,12 @@ from datetime import datetime
 
 from common_py.messaging import MessageBroker
 from common_py.logging_config import configure_logging
+from .test_data import (
+    build_products_images_ready_batch_event,
+    build_products_images_masked_batch_event,
+    build_video_keyframes_masked_batch_event,
+    build_videos_keyframes_ready_batch_event,
+)
 
 logger = configure_logging("test-utils:event-publisher")
 
@@ -478,15 +484,22 @@ class FeatureExtractionEventPublisher:
         self.message_broker = message_broker
         self.published_events = []
 
-    async def publish_products_images_ready(self, event_data: Dict[str, Any]):
-        """Publish individual products_image_ready event"""
-        # Services subscribe to 'products.image.ready'
+    async def publish_products_image_ready(self, event_data: Dict[str, Any]):
+        """Publish individual products.image.ready event"""
         await self._publish_event("products.image.ready", event_data)
+
+    async def publish_products_images_ready(self, event_data: Dict[str, Any]):
+        """Compatibility wrapper for legacy name"""
+        await self.publish_products_image_ready(event_data)
 
     async def publish_products_images_ready_batch(self, event_data: Dict[str, Any]):
         """Publish products_images_ready_batch event"""
         # Services subscribe to 'products.images.ready.batch'
         await self._publish_event("products.images.ready.batch", event_data)
+
+    async def publish_products_images_masked_batch(self, event_data: Dict[str, Any]):
+        """Publish products.images.masked.batch event"""
+        await self._publish_event("products.images.masked.batch", event_data)
 
     async def publish_video_keyframes_ready(self, event_data: Dict[str, Any]):
         """Publish individual video_keyframes_ready event"""
@@ -497,6 +510,10 @@ class FeatureExtractionEventPublisher:
         """Publish video_keyframes_ready_batch event"""
         # Services subscribe to 'videos.keyframes.ready.batch'
         await self._publish_event("videos.keyframes.ready.batch", event_data)
+
+    async def publish_video_keyframes_masked_batch(self, event_data: Dict[str, Any]):
+        """Publish videos.keyframes.masked.batch event"""
+        await self._publish_event("videos.keyframes.masked.batch", event_data)
 
     async def publish_image_embeddings_completed(self, event_data: Dict[str, Any]):
         """Publish image_embeddings_completed event (for idempotency test)"""
@@ -510,15 +527,12 @@ class FeatureExtractionEventPublisher:
         """Publish video_keypoints_completed event (for idempotency test)"""
         await self._publish_event("video.keypoints.completed", event_data)
 
+    async def publish_raw_event(self, routing_key: str, event_data: Dict[str, Any]):
+        """Publish an event exactly as provided (used for malformed payload tests)."""
+        await self._publish_event(routing_key, event_data)
+
     async def _publish_event(self, routing_key: str, event_data: Dict[str, Any]):
         """Publish event via common MessageBroker to the configured topic exchange"""
-        # Ensure event has required fields
-        if "event_id" not in event_data:
-            event_data["event_id"] = str(uuid.uuid4())
-
-        if "timestamp" not in event_data:
-            event_data["timestamp"] = datetime.utcnow().isoformat()
-
         # Generate correlation_id if not present
         correlation_id = event_data.get("correlation_id") or (
             f"test_{event_data.get('job_id', 'unknown')}_{datetime.utcnow().strftime('%Y%m%d_%H%M%S')}"
@@ -557,114 +571,59 @@ class FeatureExtractionEventFactory:
     """Factory for creating feature extraction test events"""
 
     @staticmethod
-    def create_products_images_ready_batch(job_id: str, products: list = None) -> Dict[str, Any]:
-        """Create products_images_ready_batch event"""
-        if products is None:
-            products = [
-                {
-                    "product_id": f"PROD_test_{str(uuid.uuid4())[:8]}",
-                    "ready_path": f"/data/tests/products/ready/test_{str(uuid.uuid4())[:8]}.jpg",
-                    "src": "amazon",
-                    "asin_or_itemid": f"TEST_{str(uuid.uuid4())[:8]}"
-                }
-                for _ in range(3)
-            ]
+    def create_products_images_ready_batch(job_id: str, total_images: int = 3) -> Dict[str, Any]:
+        """Create products.images.ready.batch event"""
+        return build_products_images_ready_batch_event(job_id, total_images)
 
+    @staticmethod
+    def create_products_images_masked_batch(job_id: str, total_images: int = 3) -> Dict[str, Any]:
+        """Create products.images.masked.batch event"""
+        return build_products_images_masked_batch_event(job_id, total_images)
+
+    @staticmethod
+    def create_video_keyframes_ready_batch(job_id: str, total_keyframes: int = 5) -> Dict[str, Any]:
+        """Create videos.keyframes.ready.batch event"""
+        return build_videos_keyframes_ready_batch_event(job_id, total_keyframes)
+
+    @staticmethod
+    def create_video_keyframes_masked_batch(job_id: str, total_keyframes: int = 5) -> Dict[str, Any]:
+        """Create videos.keyframes.masked.batch event"""
+        return build_video_keyframes_masked_batch_event(job_id, total_keyframes)
+
+    @staticmethod
+    def create_image_embeddings_completed(
+        job_id: str,
+        total_assets: int,
+        processed_assets: Optional[int] = None,
+        failed_assets: Optional[int] = None,
+        has_partial_completion: bool = False,
+        watermark_ttl: int = 300,
+    ) -> Dict[str, Any]:
+        """Create image.embeddings.completed event"""
+        processed = processed_assets if processed_assets is not None else total_assets
+        failed = failed_assets if failed_assets is not None else max(0, total_assets - processed)
         return {
             "job_id": job_id,
             "event_id": str(uuid.uuid4()),
-            "timestamp": datetime.utcnow().isoformat(),
-            "total_images": len(products),
-            "ready_images": products
+            "total_assets": total_assets,
+            "processed_assets": processed,
+            "failed_assets": failed,
+            "has_partial_completion": has_partial_completion,
+            "watermark_ttl": watermark_ttl,
         }
 
     @staticmethod
-    def create_video_keyframes_ready_batch(job_id: str, keyframes: list = None) -> Dict[str, Any]:
-        """Create video_keyframes_ready_batch event"""
-        if keyframes is None:
-            video_id = f"VIDEO_test_{str(uuid.uuid4())[:8]}"
-            keyframes = [
-                {
-                    "video_id": video_id,
-                    "frame_sequence": i + 1,
-                    "ready_path": f"/data/tests/videos/ready/{video_id}_frame_{i+1:03d}.jpg",
-                    "timestamp": datetime.utcnow().isoformat()
-                }
-                for i in range(5)
-            ]
-
+    def create_image_keypoints_completed(job_id: str) -> Dict[str, Any]:
+        """Create image.keypoints.completed event"""
         return {
             "job_id": job_id,
             "event_id": str(uuid.uuid4()),
-            "timestamp": datetime.utcnow().isoformat(),
-            "total_keyframes": len(keyframes),
-            "ready_keyframes": keyframes
         }
 
     @staticmethod
-    def create_image_embeddings_completed(job_id: str, embeddings: list = None) -> Dict[str, Any]:
-        """Create image_embeddings_completed event"""
-        if embeddings is None:
-            embeddings = [
-                {
-                    "product_id": f"PROD_test_{str(uuid.uuid4())[:8]}",
-                    "embedding_path": f"/data/tests/embeddings/test_{str(uuid.uuid4())[:8]}.npy",
-                    "embedding_dim": 512,
-                    "model_version": "clip-vit-base-patch32"
-                }
-                for _ in range(3)
-            ]
-
+    def create_video_keypoints_completed(job_id: str) -> Dict[str, Any]:
+        """Create video.keypoints.completed event"""
         return {
             "job_id": job_id,
             "event_id": str(uuid.uuid4()),
-            "timestamp": datetime.utcnow().isoformat(),
-            "total_embeddings": len(embeddings),
-            "embeddings": embeddings
-        }
-
-    @staticmethod
-    def create_image_keypoints_completed(job_id: str, keypoints: list = None) -> Dict[str, Any]:
-        """Create image_keypoints_completed event"""
-        if keypoints is None:
-            keypoints = [
-                {
-                    "product_id": f"PROD_test_{str(uuid.uuid4())[:8]}",
-                    "keypoints_path": f"/data/tests/keypoints/test_{str(uuid.uuid4())[:8]}.json",
-                    "num_keypoints": 1000,
-                    "model_version": "akaze"
-                }
-                for _ in range(3)
-            ]
-
-        return {
-            "job_id": job_id,
-            "event_id": str(uuid.uuid4()),
-            "timestamp": datetime.utcnow().isoformat(),
-            "total_keypoints": len(keypoints),
-            "keypoints": keypoints
-        }
-
-    @staticmethod
-    def create_video_keypoints_completed(job_id: str, video_keypoints: list = None) -> Dict[str, Any]:
-        """Create video_keypoints_completed event"""
-        if video_keypoints is None:
-            video_id = f"VIDEO_test_{str(uuid.uuid4())[:8]}"
-            video_keypoints = [
-                {
-                    "video_id": video_id,
-                    "frame_sequence": i + 1,
-                    "keypoints_path": f"/data/tests/video_keypoints/{video_id}_frame_{i+1:03d}.json",
-                    "num_keypoints": 800,
-                    "model_version": "akaze"
-                }
-                for i in range(5)
-            ]
-
-        return {
-            "job_id": job_id,
-            "event_id": str(uuid.uuid4()),
-            "timestamp": datetime.utcnow().isoformat(),
-            "total_keypoints": len(video_keypoints),
-            "keypoints": video_keypoints
         }

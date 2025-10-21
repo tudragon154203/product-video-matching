@@ -11,7 +11,7 @@ Related docs: [docker-compose.dev.cpu.yml](../../infra/pvm/docker-compose.dev.cp
   - ✅ **IMPLEMENTED**: State correctness in Postgres for products and videos.
   - ✅ **IMPLEMENTED**: Comprehensive idempotency assurance with event ledger validation.
   - ✅ **IMPLEMENTED**: Observability via standardized logs, metrics, and health.
-  - ✅ **IMPLEMENTED**: Synthetic, consistent, test data used exclusively from [tests/mock_data](../../tests/mock_data); enforced real service usage.
+- ✅ **IMPLEMENTED**: Synthetic, consistent, test data generated via [`tests/integration/support/test_data.py`](../../tests/integration/support/test_data.py); enforced real service usage.
 - Non-goals:
   - Failure modes, retries, and ordering variations are out of scope to minimize test runtime. Video collection flow is implemented with configurable caps to control runtime.
 
@@ -43,7 +43,7 @@ Related docs: [docker-compose.dev.cpu.yml](../../infra/pvm/docker-compose.dev.cp
 - ✅ **IMPLEMENTED** Service enforcement: [validate_real_service_usage()](../../tests/integration/test_collection_phase_happy_path.py:35) ensures no mocks allowed
 
 ## 5) Test Data and Fixtures
-- ✅ **IMPLEMENTED** Synthetic dataset location: [tests/mock_data](../../tests/mock_data)
+- ✅ **IMPLEMENTED** Synthetic dataset builders: [`tests/integration/support/test_data.py`](../../tests/integration/support/test_data.py)
   - ✅ **IMPLEMENTED** Products: Configurable items with deterministic IDs and synthetic metadata via [TestEventFactory](../../tests/support/event_publisher.py)
   - ✅ **IMPLEMENTED** Videos: Configurable caps per test; synthetic metadata; real service calls enforced
   - ✅ **IMPLEMENTED** Fixture loaders ensure consistent payloads via [collection_test_data](../../tests/conftest.py:270) fixture
@@ -105,7 +105,7 @@ Related docs: [docker-compose.dev.cpu.yml](../../infra/pvm/docker-compose.dev.cp
 - ✅ **IMPLEMENTED** Configurable video collection caps via [collection_test_data](../../tests/conftest.py:270) fixture
 - ✅ **IMPLEMENTED** eBay-only product collection (skip Amazon) for faster execution
 - ✅ **IMPLEMENTED** TikTok-only video collection for faster processing vs YouTube
-- ✅ **IMPLEMENTED** Synthetic fixtures in [tests/mock_data](../../tests/mock_data) with no external dependencies
+- ✅ **IMPLEMENTED** Synthetic fixtures sourced from dynamic builders (no external dependencies)
 - ✅ **IMPLEMENTED** Aggressive cleanup via [CollectionPhaseCleanup](../../tests/support/db_cleanup.py) between tests
 - ✅ **IMPLEMENTED** Optimized timeouts: 30 min for products, 1 hour for videos (realistic for live services)
 
