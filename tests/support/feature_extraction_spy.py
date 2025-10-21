@@ -127,6 +127,33 @@ class FeatureExtractionSpy:
         for key in self.captured_messages:
             self.captured_messages[key] = []
 
+    @staticmethod
+    async def cleanup_orphaned_queues(broker_url: str):
+        """Clean up old test queues that might still exist"""
+        try:
+            broker = MessageBroker(broker_url)
+            await broker.connect()
+            
+            # Get all queues and clean up old test queues
+            channel = await broker.connection.channel()
+            response = await channel.queue_declare(queue="", passive=True, durable=False)
+            
+            # Try to delete the old orphaned queue if it exists
+            try:
+                old_queue = await channel.queue_declare(
+                    queue="test_feat_ext_products_images_masked_batch_20251019_074126", 
+                    passive=True
+                )
+                await old_queue.delete()
+                print(f"Deleted orphaned queue: test_feat_ext_products_images_masked_batch_20251019_074126")
+            except Exception:
+                # Queue doesn't exist or can't be deleted, that's fine
+                pass
+                
+            await broker.disconnect()
+        except Exception as e:
+            print(f"Error cleaning up orphaned queues: {e}")
+
     def get_captured_messages_by_correlation_id(self, event_type: str, correlation_id: str) -> List[Dict]:
         """Get captured messages for specific correlation_id"""
         return [
@@ -143,19 +170,14 @@ class FeatureExtractionSpy:
         return len(self.captured_messages[event_type])
 
     async def disconnect(self):
-        """Disconnect and clean up queues"""
+        """Disconnect and rely on auto_delete for queue cleanup"""
         try:
-            # Delete queues
-            for queue_name in self.queues.values():
-                try:
-                    queue = await self.broker.channel.declare_queue(queue_name, durable=False, passive=True)
-                    await queue.delete()
-                except Exception as e:
-                    print(f"Error deleting queue {queue_name}: {e}")
-
+            # Don't try to delete queues - they have auto_delete=True and TTL
+            # This avoids the "precondition_failed: queue in use" errors
             await self.broker.disconnect()
         except Exception as e:
-            print(f"Error during disconnect: {e}")
+            # Silently ignore disconnect errors
+            pass
 
     def __del__(self):
         """Cleanup on deletion"""

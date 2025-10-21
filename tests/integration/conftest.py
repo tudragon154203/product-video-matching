@@ -45,6 +45,10 @@ import importlib.util
 from support.infra_bootstrap import ensure_infra_running
 from support.service_enforcement import enforce_real_service_usage
 
+# Import media_manager from parent tests directory
+sys.path.insert(0, str(Path(__file__).parent.parent / 'support'))
+from media_manager import ensure_test_media_available
+
 # Paths
 INTEGRATION_DIR = Path(__file__).resolve().parent
 TESTS_DIR = INTEGRATION_DIR.parent
@@ -79,6 +83,10 @@ os.environ.update({
     "VIDEO_CRAWLER_MODE": "live",
     "DROPSHIP_PRODUCT_FINDER_MODE": "live"
 })
+
+# Ensure test media files are available (auto-copy from tests/mock_data if needed)
+if not ensure_test_media_available(WORKSPACE_ROOT):
+    print("WARNING: Failed to ensure test media files are available")
 
 # Auto-start infra (no build) if core services are down
 ensure_infra_running(WORKSPACE_ROOT)

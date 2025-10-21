@@ -3,6 +3,7 @@ Feature Extraction Embeddings Integration Tests
 Tests the CLIP embedding generation phase of the feature extraction pipeline.
 """
 import pytest
+import uuid
 from typing import Any, Dict, List
 
 from support.feature_extraction_fixtures import TestFeatureExtractionPhase as TestFeatureExtractionPhaseFixtures
@@ -13,6 +14,7 @@ try:
         add_mask_paths_to_product_records,
         build_product_image_records,
         build_products_images_masked_batch_event,
+        build_products_image_masked_event,
     )
 except ImportError:
     # Fallback for when running from different contexts
@@ -20,6 +22,7 @@ except ImportError:
         add_mask_paths_to_product_records,
         build_product_image_records,
         build_products_images_masked_batch_event,
+        build_products_image_masked_event,
     )
 
 pytestmark = [
@@ -45,7 +48,7 @@ class TestFeatureExtractionEmbeddings(TestFeatureExtractionPhaseFixtures):
         observability = env["observability"]
         db_manager = env["db_manager"]
 
-        job_id = "test_embeddings_001"
+        job_id = f"test_embeddings_{uuid.uuid4().hex[:8]}"
         base_records, events = self.build_product_dataset(job_id)
         masked_records = self.prepare_masked_product_records(base_records)
 
@@ -61,6 +64,11 @@ class TestFeatureExtractionEmbeddings(TestFeatureExtractionPhaseFixtures):
         assert initial_state["embeddings_count"] == 0, "Embeddings should be empty before processing"
 
         await publisher.publish_products_images_masked_batch(events["masked_batch"])
+
+        # Publish individual masked events for each product image
+        for record in masked_records:
+            individual_masked_event = build_products_image_masked_event(job_id, record)
+            await publisher.publish_products_image_masked(individual_masked_event)
 
         embeddings_completed = await spy.wait_for_image_embeddings_completed(job_id, timeout=180)
 
@@ -91,7 +99,7 @@ class TestFeatureExtractionEmbeddings(TestFeatureExtractionPhaseFixtures):
         publisher = env["publisher"]
         db_manager = env["db_manager"]
 
-        job_id = "test_embeddings_single_001"
+        job_id = f"test_embeddings_single_{uuid.uuid4().hex[:8]}"
         base_records, events = self.build_product_dataset(job_id, count=1)
         masked_records = self.prepare_masked_product_records(base_records)
 
@@ -107,6 +115,10 @@ class TestFeatureExtractionEmbeddings(TestFeatureExtractionPhaseFixtures):
         assert initial_state["embeddings_count"] == 0, "Embeddings should be empty before processing"
 
         await publisher.publish_products_images_masked_batch(events["masked_batch"])
+
+        # Publish individual masked event for the single product image
+        individual_masked_event = build_products_image_masked_event(job_id, masked_records[0])
+        await publisher.publish_products_image_masked(individual_masked_event)
 
         embeddings_completed = await spy.wait_for_image_embeddings_completed(job_id, timeout=120)
 
@@ -136,7 +148,7 @@ class TestFeatureExtractionEmbeddings(TestFeatureExtractionPhaseFixtures):
         observability = env["observability"]
         db_manager = env["db_manager"]
 
-        job_id = "test_embeddings_invalid_001"
+        job_id = f"test_embeddings_invalid_{uuid.uuid4().hex[:8]}"
         base_records = build_product_image_records(job_id, count=3)
         masked_records = add_mask_paths_to_product_records(base_records)
 
@@ -152,6 +164,11 @@ class TestFeatureExtractionEmbeddings(TestFeatureExtractionPhaseFixtures):
 
         products_masked_event = build_products_images_masked_batch_event(job_id, len(masked_records))
         await publisher.publish_products_images_masked_batch(products_masked_event)
+
+        # Publish individual masked events for each product image
+        for record in masked_records:
+            individual_masked_event = build_products_image_masked_event(job_id, record)
+            await publisher.publish_products_image_masked(individual_masked_event)
 
         try:
             embeddings_completed = await spy.wait_for_image_embeddings_completed(job_id, timeout=180)

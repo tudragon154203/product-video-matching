@@ -15,12 +15,16 @@ try:
     from tests.integration.support.test_data import (
         build_products_images_ready_batch_event,
         build_videos_keyframes_ready_batch_event,
+        build_products_image_masked_event,
+        build_video_keyframes_masked_event,
     )
 except ImportError:
     # Fallback for when running from different contexts
     from integration.support.test_data import (
         build_products_images_ready_batch_event,
         build_videos_keyframes_ready_batch_event,
+        build_products_image_masked_event,
+        build_video_keyframes_masked_event,
     )
 
 logger = configure_logging("test-utils:event-publisher")
@@ -507,6 +511,14 @@ class FeatureExtractionEventPublisher:
     async def publish_products_images_masked_batch(self, event_data: Dict[str, Any]):
         """Publish products.images.masked.batch event"""
         await self._publish_event("products.images.masked.batch", event_data)
+
+    async def publish_products_image_masked(self, event_data: Dict[str, Any]):
+        """Publish individual products.image.masked event"""
+        await self._publish_event("products.image.masked", event_data)
+
+    async def publish_video_keyframes_masked(self, event_data: Dict[str, Any]):
+        """Publish individual video.keyframes.masked event"""
+        await self._publish_event("video.keyframes.masked", event_data)
 
     async def publish_video_keyframes_ready(self, event_data: Dict[str, Any]):
         """Publish individual video_keyframes_ready event"""

@@ -47,7 +47,7 @@ class TestFeatureExtractionKeypoints(TestFeatureExtractionPhaseFixtures):
         observability = env["observability"]
         db_manager = env["db_manager"]
 
-        job_id = "test_keypoints_001"
+        job_id = f"test_keypoints_{uuid.uuid4().hex[:8]}"
         base_records, events = self.build_product_dataset(job_id)
         masked_records = self.prepare_masked_product_records(base_records)
 
