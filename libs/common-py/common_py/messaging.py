@@ -21,10 +21,13 @@ class MessageBroker:
         self.exchange = None
         self.message_handler_instance = None # New instance
     
-    async def connect(self):
+    async def connect(self, timeout: float = 30.0):
         """Establish connection to RabbitMQ"""
         try:
-            self.connection = await aio_pika.connect_robust(self.broker_url)
+            self.connection = await asyncio.wait_for(
+                aio_pika.connect_robust(self.broker_url),
+                timeout=timeout
+            )
             self.channel = await self.connection.channel()
             
             # Declare main exchange

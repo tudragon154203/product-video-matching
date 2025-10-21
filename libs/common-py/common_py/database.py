@@ -1,3 +1,4 @@
+import asyncio
 import asyncpg
 import os
 from typing import Optional, List, Dict, Any, Tuple
@@ -12,18 +13,21 @@ class DatabaseManager:
         self.dsn = dsn
         self.pool: Optional[asyncpg.Pool] = None
     
-    async def connect(self):
+    async def connect(self, timeout: float = 30.0):
         """Create connection pool"""
         # Get timezone from environment variable
         timezone = os.getenv("TZ", "UTC")
-        
-        self.pool = await asyncpg.create_pool(
-            self.dsn,
-            min_size=1,
-            max_size=10,
-            init=lambda conn: conn.execute(f"SET TIME ZONE '{timezone}'"),
-            command_timeout=60.0,
-            server_settings={"application_name": "product_video_matching"}
+
+        self.pool = await asyncio.wait_for(
+            asyncpg.create_pool(
+                self.dsn,
+                min_size=1,
+                max_size=10,
+                init=lambda conn: conn.execute(f"SET TIME ZONE '{timezone}'"),
+                command_timeout=60.0,
+                server_settings={"application_name": "product_video_matching"}
+            ),
+            timeout=timeout
         )
     
     async def disconnect(self):

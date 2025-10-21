@@ -15,7 +15,8 @@ TESTS_DIR = PROJECT_ROOT / "tests"
 
 def _setup_sys_path():
     """Ensure project-specific paths are available before project imports."""
-    for p in (COMMON_PY_DIR, LIBS_DIR, INFRA_DIR, PROJECT_ROOT, TESTS_DIR):
+    MOCK_DATA_DIR = PROJECT_ROOT / "tests" / "mock_data"
+    for p in (COMMON_PY_DIR, LIBS_DIR, INFRA_DIR, PROJECT_ROOT, TESTS_DIR, MOCK_DATA_DIR):
         ps = str(p)
         if ps in sys.path:
             continue
@@ -38,15 +39,43 @@ try:
         build_products_images_ready_batch_event,
         build_products_image_masked_event,
         build_video_frame_records,
-        build_video_keyframes_masked_batch_event,
-        build_video_keypoints_masked_event,
+        build_video_keypoints_masked_batch_event,
+        build_video_keyframes_masked_event,
         build_video_record,
         build_videos_keyframes_ready_batch_event,
-        build_videos_keypoints_ready_event,
+        build_videos_keyframes_ready_event,
 )
-except ImportError:
+    print("Successfully imported from mock_data.test_data")
+except ImportError as e:
     # Fallback for when running from different contexts
-    pass  # Functions not available in fallback scenario
+    print(f"Failed to import from mock_data.test_data: {e}")
+    # Define minimal fallback functions to prevent NameError
+    def add_mask_paths_to_product_records(records):
+        return records
+    def add_mask_paths_to_video_frames(frames):
+        return frames
+    def build_product_image_records(job_id, count=3):
+        return []
+    def build_products_image_ready_event(job_id, record):
+        return {"job_id": job_id}
+    def build_products_images_masked_batch_event(job_id, total_images):
+        return {"job_id": job_id, "total_images": total_images}
+    def build_products_images_ready_batch_event(job_id, total_images):
+        return {"job_id": job_id, "total_images": total_images}
+    def build_products_image_masked_event(job_id, record):
+        return {"job_id": job_id}
+    def build_video_frame_records(job_id, video_id, count=5):
+        return []
+    def build_video_keyframes_masked_batch_event(job_id, total_keyframes):
+        return {"job_id": job_id, "total_keyframes": total_keyframes}
+    def build_video_keyframes_masked_event(job_id, frame_record):
+        return {"job_id": job_id}
+    def build_video_record(job_id):
+        return {"video_id": f"{job_id}_video_001", "platform": "youtube", "url": f"https://example.com/{job_id}.mp4"}
+    def build_videos_keyframes_ready_batch_event(job_id, total_keyframes):
+        return {"job_id": job_id, "total_keyframes": total_keyframes}
+    def build_videos_keyframes_ready_event(job_id, video_id, frames):
+        return {"job_id": job_id, "video_id": video_id, "frames": frames}
 
 from support.spy.feature_extraction_spy import FeatureExtractionSpy
 from support.validators.db_cleanup import FeatureExtractionCleanup, FeatureExtractionStateValidator

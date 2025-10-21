@@ -129,7 +129,7 @@ async def setup_masked_product_state(
     # Note: Skip mask_path update as the column doesn't exist in current schema
 
 
-async def test_idempotency(
+async def run_idempotency_test(
     env: Dict[str, Any],
     job_id: str
 ) -> None:
