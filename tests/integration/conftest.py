@@ -8,7 +8,7 @@ Integration tests bootstrap:
 - Import root tests/conftest fixtures into this collection root
 """
 
-from utils.media_manager import ensure_test_media_available
+from support.utils.media_manager import ensure_test_media_available
 from support.utils.service_enforcement import enforce_real_service_usage
 from support.environment.infra_bootstrap import ensure_infra_running
 import importlib.util
