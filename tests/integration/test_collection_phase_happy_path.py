@@ -29,7 +29,7 @@ pytestmark = [
 
 # Import CRUD utilities for database validation
 from common_py.crud import ProductCRUD, VideoCRUD, EventCRUD
-from support.event_publisher import TestEventFactory, EventValidator
+from support.publisher.event_publisher import TestEventFactory, EventValidator
 
 
 class TestCollectionPhaseHappyPath:

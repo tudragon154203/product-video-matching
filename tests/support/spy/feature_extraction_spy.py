@@ -25,7 +25,8 @@ class FeatureExtractionSpy:
             "video_keyframes_masked_batch": [],
             "image_embeddings_completed": [],
             "image_keypoints_completed": [],
-            "video_keypoints_completed": []
+            "video_keypoints_completed": [],
+            "match_request": []
         }
         self.queues: Dict[str, str] = {}
         self.queue_namespaces: Dict[str, str] = {}
@@ -43,7 +44,8 @@ class FeatureExtractionSpy:
             ("video_keyframes_masked_batch", "video.keyframes.masked.batch"),
             ("image_embeddings_completed", "image.embeddings.completed"),
             ("image_keypoints_completed", "image.keypoints.completed"),
-            ("video_keypoints_completed", "video.keypoints.completed")
+            ("video_keypoints_completed", "video.keypoints.completed"),
+            ("match_request", "match.request")
         ]
 
         for queue_name, routing_key in queue_configs:
@@ -109,6 +111,10 @@ class FeatureExtractionSpy:
     async def wait_for_video_keypoints_completed(self, job_id: str, timeout: float = 300.0) -> Dict[str, Any]:
         """Wait for video_keypoints_completed event"""
         return await self._wait_for_event("video_keypoints_completed", job_id, timeout)
+
+    async def wait_for_match_request(self, job_id: str, timeout: float = 300.0) -> Dict[str, Any]:
+        """Wait for match_request event"""
+        return await self._wait_for_event("match_request", job_id, timeout)
 
     async def _wait_for_event(self, event_type: str, job_id: str, timeout: float) -> Dict[str, Any]:
         """Wait for specific event type for given job_id"""
