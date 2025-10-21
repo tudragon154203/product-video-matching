@@ -120,4 +120,11 @@ class JobProgressManager:
 
     async def update_expected_and_recheck_completion(self, job_id: str, asset_type: str, real_expected: int, event_type_prefix: str = "embeddings"):
         """Update expected count with real value and re-check completion condition"""
-        return await self.base_manager.update_expected_and_recheck_completion(job_id, asset_type, real_expected, event_type_prefix)
+        completion_detected = await self.base_manager.update_expected_and_recheck_completion(job_id, asset_type, real_expected, event_type_prefix)
+        
+        # If completion was detected, publish completion event
+        if completion_detected:
+            logger.info("Completion detected, publishing completion event", job_id=job_id, asset_type=asset_type, event_type_prefix=event_type_prefix)
+            await self.completion_publisher.publish_completion_event(job_id, event_type_prefix=event_type_prefix)
+        
+        return completion_detected
