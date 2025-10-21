@@ -21,7 +21,7 @@ async def setup_comprehensive_database_state(
         """,
         job_id
     )
-    
+
     # Insert product records
     for record in product_records:
         await db_manager.execute(
@@ -36,7 +36,7 @@ async def setup_comprehensive_database_state(
             record["asin_or_itemid"],
             record["marketplace"],
         )
-        
+
         await db_manager.execute(
             """
             INSERT INTO product_images (img_id, product_id, local_path, created_at)
@@ -47,7 +47,7 @@ async def setup_comprehensive_database_state(
             record["product_id"],
             record["local_path"],
         )
-    
+
     # Insert video and frames
     video = video_dataset["video"]
     await db_manager.execute(
@@ -61,7 +61,7 @@ async def setup_comprehensive_database_state(
         video["platform"],
         video["url"],
     )
-    
+
     for frame in video_dataset["frames"]:
         await db_manager.execute(
             """
@@ -91,7 +91,7 @@ async def setup_product_database_state(
         """,
         job_id
     )
-    
+
     # Insert product records
     for record in product_records:
         await db_manager.execute(
@@ -106,7 +106,7 @@ async def setup_product_database_state(
             record["asin_or_itemid"],
             record["marketplace"],
         )
-        
+
         await db_manager.execute(
             """
             INSERT INTO product_images (img_id, product_id, local_path, created_at)
@@ -136,13 +136,13 @@ async def run_idempotency_test(
     """Test idempotency for completion events"""
     publisher = env["publisher"]
     validator = env["validator"]
-    
+
     # Get current state
     try:
         current_state = await validator.validate_feature_extraction_completed(job_id)
         baseline_embeddings = current_state.get("embeddings_count", 0)
         baseline_keypoints = current_state.get("keypoints_count", 0)
-        
+
         # Try to republish completion events (if any were captured)
         # Note: In a real scenario, these would come from the spy
         print("✓ Idempotency test completed - no duplicate processing detected")

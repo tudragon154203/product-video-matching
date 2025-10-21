@@ -2,6 +2,14 @@
 Feature Extraction Fixtures
 Pytest fixtures for feature extraction phase integration tests.
 """
+from config import config
+from support.publisher.event_publisher import FeatureExtractionEventPublisher
+from support.validators.observability_validator import ObservabilityValidator
+from support.validators.db_cleanup import FeatureExtractionCleanup, FeatureExtractionStateValidator
+from support.spy.feature_extraction_spy import FeatureExtractionSpy
+from typing import Dict, Any, List, Tuple
+import pytest_asyncio
+import pytest
 import os
 import sys
 from pathlib import Path
@@ -13,6 +21,7 @@ COMMON_PY_DIR = LIBS_DIR / "common-py"
 INFRA_DIR = PROJECT_ROOT / "infra"
 TESTS_DIR = PROJECT_ROOT / "tests"
 
+
 def _setup_sys_path():
     """Ensure project-specific paths are available before project imports."""
     MOCK_DATA_DIR = PROJECT_ROOT / "tests" / "mock_data"
@@ -22,11 +31,9 @@ def _setup_sys_path():
             continue
         sys.path.insert(0, ps)
 
+
 _setup_sys_path()
 
-import pytest
-import pytest_asyncio
-from typing import Dict, Any, List, Tuple
 
 # Fix import path - test_data is in mock_data
 try:
@@ -44,44 +51,51 @@ try:
         build_video_record,
         build_videos_keyframes_ready_batch_event,
         build_videos_keyframes_ready_event,
-)
+    )
     print("Successfully imported from mock_data.test_data")
 except ImportError as e:
     # Fallback for when running from different contexts
     print(f"Failed to import from mock_data.test_data: {e}")
     # Define minimal fallback functions to prevent NameError
+
     def add_mask_paths_to_product_records(records):
         return records
+
     def add_mask_paths_to_video_frames(frames):
         return frames
+
     def build_product_image_records(job_id, count=3):
         return []
+
     def build_products_image_ready_event(job_id, record):
         return {"job_id": job_id}
+
     def build_products_images_masked_batch_event(job_id, total_images):
         return {"job_id": job_id, "total_images": total_images}
+
     def build_products_images_ready_batch_event(job_id, total_images):
         return {"job_id": job_id, "total_images": total_images}
+
     def build_products_image_masked_event(job_id, record):
         return {"job_id": job_id}
+
     def build_video_frame_records(job_id, video_id, count=5):
         return []
+
     def build_video_keyframes_masked_batch_event(job_id, total_keyframes):
         return {"job_id": job_id, "total_keyframes": total_keyframes}
+
     def build_video_keyframes_masked_event(job_id, frame_record):
         return {"job_id": job_id}
+
     def build_video_record(job_id):
         return {"video_id": f"{job_id}_video_001", "platform": "youtube", "url": f"https://example.com/{job_id}.mp4"}
+
     def build_videos_keyframes_ready_batch_event(job_id, total_keyframes):
         return {"job_id": job_id, "total_keyframes": total_keyframes}
+
     def build_videos_keyframes_ready_event(job_id, video_id, frames):
         return {"job_id": job_id, "video_id": video_id, "frames": frames}
-
-from support.spy.feature_extraction_spy import FeatureExtractionSpy
-from support.validators.db_cleanup import FeatureExtractionCleanup, FeatureExtractionStateValidator
-from support.validators.observability_validator import ObservabilityValidator
-from support.publisher.event_publisher import FeatureExtractionEventPublisher
-from config import config
 
 
 @pytest.mark.integration

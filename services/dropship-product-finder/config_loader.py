@@ -73,7 +73,7 @@ class DropshipProductFinderConfig:
     BROWSE_CONCURRENCY: int = int(os.getenv("BROWSE_CONCURRENCY", "4"))
     ITEM_CONCURRENCY: int = int(os.getenv("ITEM_CONCURRENCY", "4"))
     IMAGE_DOWNLOAD_TIMEOUT_SECS: float = float(os.getenv("IMAGE_DOWNLOAD_TIMEOUT_SECS", 30.0))
-    
+
     @property
     def EBAY_CLIENT_ID(self) -> str:
         """Get the appropriate client ID based on environment"""

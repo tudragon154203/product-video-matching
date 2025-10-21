@@ -15,8 +15,8 @@ class TestHandlerMessagingIntegration:
     def mock_dependencies(self):
         """Mock all external dependencies"""
         with patch('handlers.keypoint_handler.DatabaseManager') as mock_db, \
-             patch('handlers.keypoint_handler.MessageBroker') as mock_broker, \
-             patch('handlers.keypoint_handler.VisionKeypointService') as mock_service:
+                patch('handlers.keypoint_handler.MessageBroker') as mock_broker, \
+                patch('handlers.keypoint_handler.VisionKeypointService') as mock_service:
 
             # Create mock instances
             db_instance = Mock()

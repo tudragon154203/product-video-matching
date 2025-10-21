@@ -53,7 +53,7 @@ class TestForeignKeyRaceCondition:
 
         # Verify video check was called (should be the last call)
         video_check_calls = [call for call in mock_db.fetch_one.call_args_list
-                           if "SELECT video_id FROM videos" in str(call)]
+                             if "SELECT video_id FROM videos" in str(call)]
         assert len(video_check_calls) == 1
         assert video_check_calls[0][0][1] == video_id
 
@@ -195,7 +195,7 @@ class TestForeignKeyRaceCondition:
 
         # Verify video check was NOT called (early exit for performance)
         video_check_calls = [call for call in mock_db.fetch_one.call_args_list
-                           if "SELECT video_id FROM videos" in str(call)]
+                             if "SELECT video_id FROM videos" in str(call)]
         assert len(video_check_calls) == 0
 
         # Verify frame insertion was NOT called since frame already exists

@@ -268,7 +268,8 @@ class MessageSpy:
                 logger.info(f"Spy bound to exchange='{ex_name}' routing_key='{routing_key}'")
                 bound_list.append((ex_name, ex_obj, routing_key))
             except Exception as e:
-                logger.warning("Spy failed to bind queue to exchange", queue_name=queue_name, exchange=ex_name, routing_key=routing_key, error=str(e))
+                logger.warning("Spy failed to bind queue to exchange", queue_name=queue_name,
+                               exchange=ex_name, routing_key=routing_key, error=str(e))
 
         # Always bind to default topic exchange 'amq.topic' as additional fallback if not already included
         if "amq.topic" not in [name for name, _, _ in bound_list]:

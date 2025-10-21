@@ -139,15 +139,15 @@ class FeatureExtractionSpy:
         try:
             broker = MessageBroker(broker_url)
             await broker.connect()
-            
+
             # Get all queues and clean up old test queues
             channel = await broker.connection.channel()
             response = await channel.queue_declare(queue="", passive=True, durable=False)
-            
+
             # Try to delete the old orphaned queue if it exists
             try:
                 old_queue = await channel.queue_declare(
-                    queue="test_feat_ext_products_images_masked_batch_20251019_074126", 
+                    queue="test_feat_ext_products_images_masked_batch_20251019_074126",
                     passive=True
                 )
                 await old_queue.delete()
@@ -155,7 +155,7 @@ class FeatureExtractionSpy:
             except Exception:
                 # Queue doesn't exist or can't be deleted, that's fine
                 pass
-                
+
             await broker.disconnect()
         except Exception as e:
             print(f"Error cleaning up orphaned queues: {e}")

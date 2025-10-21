@@ -14,6 +14,8 @@ Tests the complete collection phase workflow according to Sprint 13.1 PRD specif
 - ENFORCE: Real service validation before test execution
 """
 
+from support.publisher.event_publisher import TestEventFactory, EventValidator
+from common_py.crud import ProductCRUD, VideoCRUD, EventCRUD
 import pytest
 import asyncio
 import uuid
@@ -28,8 +30,6 @@ pytestmark = [
 ]
 
 # Import CRUD utilities for database validation
-from common_py.crud import ProductCRUD, VideoCRUD, EventCRUD
-from support.publisher.event_publisher import TestEventFactory, EventValidator
 
 
 class TestCollectionPhaseHappyPath:

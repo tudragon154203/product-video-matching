@@ -3,6 +3,17 @@ Pytest configuration and fixtures for integration tests
 """
 # Early sys.path setup to resolve project modules when running from repo root
 
+from support.spy.feature_extraction_spy import FeatureExtractionSpy
+from support.validators.observability_validator import ObservabilityValidator
+from support.publisher.event_publisher import CollectionEventPublisher, TestEventFactory, FeatureExtractionEventPublisher
+from support.validators.db_cleanup import CollectionPhaseCleanup, DatabaseStateValidator, FeatureExtractionCleanup, FeatureExtractionStateValidator
+from support.spy.message_spy import CollectionPhaseSpy, MessageSpy
+from common_py.messaging import MessageBroker
+from common_py.database import DatabaseManager
+import pytest
+import pytest_asyncio
+import asyncio
+import httpx
 import os
 import sys
 from pathlib import Path
@@ -13,6 +24,7 @@ LIBS_DIR = PROJECT_ROOT / "libs"
 COMMON_PY_DIR = LIBS_DIR / "common-py"
 INFRA_DIR = PROJECT_ROOT / "infra"
 TESTS_DIR = PROJECT_ROOT / "tests"
+
 
 def _early_sys_path_setup():
     """Ensure project-specific paths are available before project imports."""
@@ -28,6 +40,7 @@ def _early_sys_path_setup():
     merged = os.pathsep.join([p for p in paths + pythonpath.split(os.pathsep) if p])
     os.environ["PYTHONPATH"] = merged
 
+
 _early_sys_path_setup()
 
 # Minimal diagnostics to validate path setup and config import during collection
@@ -41,17 +54,6 @@ except Exception as e:
     raise
 
 # Third-party imports and project modules (safe after path setup)
-import httpx
-import asyncio
-import pytest_asyncio
-import pytest
-from common_py.database import DatabaseManager
-from common_py.messaging import MessageBroker
-from support.spy.message_spy import CollectionPhaseSpy, MessageSpy
-from support.validators.db_cleanup import CollectionPhaseCleanup, DatabaseStateValidator, FeatureExtractionCleanup, FeatureExtractionStateValidator
-from support.publisher.event_publisher import CollectionEventPublisher, TestEventFactory, FeatureExtractionEventPublisher
-from support.validators.observability_validator import ObservabilityValidator
-from support.spy.feature_extraction_spy import FeatureExtractionSpy
 
 
 @pytest_asyncio.fixture

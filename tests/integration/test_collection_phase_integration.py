@@ -348,12 +348,6 @@ class TestCollectionPhaseIntegration:
             # Environments will be automatically cleaned up
 
 
-
-
-
-
-
-
 if __name__ == "__main__":
     # This allows running the tests directly
     pytest.main([__file__, "-v"])

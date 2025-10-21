@@ -8,6 +8,9 @@ Integration tests bootstrap:
 - Import root tests/conftest fixtures into this collection root
 """
 
+from utils.media_manager import ensure_test_media_available
+from support.utils.service_enforcement import enforce_real_service_usage
+from support.environment.infra_bootstrap import ensure_infra_running
 import importlib.util
 from pathlib import Path
 import sys
@@ -17,6 +20,8 @@ import importlib
 # Set up paths first before importing support modules
 sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 # Minimal dotenv loader: load tests/.env.test without overriding existing os.environ
+
+
 def load_env_file():
     base_dir = os.path.dirname(os.path.dirname(__file__))
     env_path = os.path.join(base_dir, ".env.test")
@@ -34,20 +39,13 @@ def load_env_file():
                 if k and k not in os.environ:
                     os.environ[k] = v
 
+
 # Pre-load env before any other imports/enforcement
 load_env_file()
-import importlib
-import os
-import sys
-from pathlib import Path
-import importlib.util
 
-from support.environment.infra_bootstrap import ensure_infra_running
-from support.utils.service_enforcement import enforce_real_service_usage
 
 # Import media_manager from parent tests directory
 sys.path.insert(0, str(Path(__file__).parent.parent / 'support'))
-from utils.media_manager import ensure_test_media_available
 
 # Paths
 INTEGRATION_DIR = Path(__file__).resolve().parent
@@ -70,8 +68,6 @@ merged = os.pathsep.join([p for p in paths + pythonpath.split(os.pathsep) if p])
 os.environ["PYTHONPATH"] = merged
 
 # Now import support modules after path setup is complete
-from support.utils.service_enforcement import enforce_real_service_usage
-from support.environment.infra_bootstrap import ensure_infra_running
 
 # Enforce real services via environment overrides (no mocks allowed in integration tests)
 os.environ.update({

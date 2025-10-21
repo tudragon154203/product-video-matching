@@ -22,7 +22,7 @@ def build_product_image_records(job_id: str, count: int = 3) -> List[Dict[str, A
     """
     # Available test files
     test_files = ["prod_001.jpg", "prod_002.jpg", "prod_003.jpg"]
-    
+
     records: List[Dict[str, Any]] = []
     for idx in range(1, min(count, len(test_files)) + 1):
         product_id = f"{job_id}_product_{idx:03d}"
@@ -108,9 +108,9 @@ def build_video_record(job_id: str) -> Dict[str, Any]:
 def build_video_frame_records(job_id: str, video_id: str, count: int = 5) -> List[Dict[str, Any]]:
     """Generate frame records for a video using existing test files."""
     # Use existing test video frame files
-    test_files = ["video_001_frame_001.jpg", "video_001_frame_002.jpg", "video_001_frame_003.jpg", 
+    test_files = ["video_001_frame_001.jpg", "video_001_frame_002.jpg", "video_001_frame_003.jpg",
                   "video_001_frame_004.jpg", "video_001_frame_005.jpg"]
-    
+
     frames: List[Dict[str, Any]] = []
     for idx in range(1, min(count, len(test_files)) + 1):
         frames.append(
