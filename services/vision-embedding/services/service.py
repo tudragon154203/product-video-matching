@@ -369,11 +369,11 @@ class VisionEmbeddingService:
                 self.extractor.extract_embeddings,
             )
 
-            if success:
-                await self._update_and_check_completion_per_asset_first(
-                    job_id,
-                    "image",
-                )
+            # Always update progress, whether success or failure
+            await self._update_and_check_completion_per_asset_first(
+                job_id,
+                "image",
+            )
 
         except Exception as e:
             logger.error(

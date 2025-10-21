@@ -22,6 +22,7 @@ class FeatureExtractionSpy:
         self.broker = MessageBroker(broker_url)
         self.captured_messages: Dict[str, List[Dict]] = {
             "products_images_masked_batch": [],
+            "products_image_masked": [],
             "video_keyframes_masked_batch": [],
             "image_embeddings_completed": [],
             "image_keypoints_completed": [],
@@ -40,6 +41,7 @@ class FeatureExtractionSpy:
         # Set up queues with auto-delete and namespacing
         queue_configs = [
             ("products_images_masked_batch", "products.images.masked.batch"),
+            ("products_image_masked", "products.image.masked"),
             ("video_keyframes_masked_batch", "video.keyframes.masked.batch"),
             ("image_embeddings_completed", "image.embeddings.completed"),
             ("image_keypoints_completed", "image.keypoints.completed"),
@@ -93,6 +95,25 @@ class FeatureExtractionSpy:
     async def wait_for_products_images_masked(self, job_id: str, timeout: float = 300.0) -> Dict[str, Any]:
         """Wait for products_images_masked_batch event"""
         return await self._wait_for_event("products_images_masked_batch", job_id, timeout)
+
+    async def wait_for_products_image_masked(self, job_id: str, timeout: float = 300.0) -> List[Dict[str, Any]]:
+        """Wait for individual products_image_masked events for given job_id"""
+        start_time = asyncio.get_event_loop().time()
+        found_messages = []
+
+        while (asyncio.get_event_loop().time() - start_time) < timeout:
+            # Check for messages matching this job_id
+            found_messages = [
+                msg for msg in self.captured_messages["products_image_masked"]
+                if msg["event_data"].get("job_id") == job_id
+            ]
+            
+            if found_messages:
+                return found_messages
+                
+            await asyncio.sleep(0.5)
+
+        raise TimeoutError(f"No products_image_masked events found for job_id {job_id} within {timeout}s")
 
     async def wait_for_video_keyframes_masked(self, job_id: str, timeout: float = 300.0) -> Dict[str, Any]:
         """Wait for video_keyframes_masked_batch event"""

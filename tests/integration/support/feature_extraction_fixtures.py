@@ -68,6 +68,17 @@ class TestFeatureExtractionPhase:
         publisher.clear_published_events()
 
     @pytest_asyncio.fixture
+    async def observability_validator(self, db_manager, message_broker):
+        """Observability validator fixture"""
+        from support.observability_validator import ObservabilityValidator
+        validator = ObservabilityValidator(db_manager, message_broker)
+        yield validator
+        # Clean up if needed
+        if validator.is_capturing:
+            validator.stop_observability_capture()
+            validator.clear_all_captures()
+
+    @pytest_asyncio.fixture
     async def feature_extraction_test_environment(
         self,
         db_manager,
