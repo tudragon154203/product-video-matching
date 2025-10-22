@@ -163,21 +163,59 @@ async def http_client():
 @pytest_asyncio.fixture
 async def clean_database(db_manager):
     """Clean database before each test"""
-    # Clean up test data
-    await db_manager.execute("DELETE FROM matches WHERE job_id LIKE 'test_%'")
-    await db_manager.execute("DELETE FROM video_frames WHERE video_id IN (SELECT video_id FROM videos WHERE job_id LIKE 'test_%')")
-    await db_manager.execute("DELETE FROM product_images WHERE product_id IN (SELECT product_id FROM products WHERE job_id LIKE 'test_%')")
-    await db_manager.execute("DELETE FROM videos WHERE job_id LIKE 'test_%'")
-    await db_manager.execute("DELETE FROM products WHERE job_id LIKE 'test_%'")
-    await db_manager.execute("DELETE FROM jobs WHERE job_id LIKE 'test_%'")
+    # Clean up test data with error handling for corrupted data
+    tables_to_clean = [
+        ("matches", "job_id"),
+        ("video_frames", "video_id"),
+        ("product_images", "product_id"),
+        ("videos", "job_id"),
+        ("products", "job_id"),
+        ("processed_events", "event_id"),
+        ("phase_events", "job_id"),
+        ("jobs", "job_id"),
+    ]
+    
+    for table, id_column in tables_to_clean:
+        try:
+            if table == "video_frames":
+                await db_manager.execute(
+                    f"DELETE FROM {table} WHERE video_id IN (SELECT video_id FROM videos WHERE job_id LIKE 'test_%')"
+                )
+            elif table == "product_images":
+                await db_manager.execute(
+                    f"DELETE FROM {table} WHERE product_id IN (SELECT product_id FROM products WHERE job_id LIKE 'test_%')"
+                )
+            elif table == "processed_events":
+                await db_manager.execute(
+                    f"DELETE FROM {table} WHERE event_id LIKE 'test_%' OR event_id LIKE 'idempotency_test_%'"
+                )
+            else:
+                await db_manager.execute(f"DELETE FROM {table} WHERE {id_column} LIKE 'test_%'")
+        except Exception as e:
+            # Log but don't fail on cleanup errors (e.g., corrupted data)
+            print(f"Warning: Failed to clean {table}: {e}")
+    
     yield
-    # Clean up after test
-    await db_manager.execute("DELETE FROM matches WHERE job_id LIKE 'test_%'")
-    await db_manager.execute("DELETE FROM video_frames WHERE video_id IN (SELECT video_id FROM videos WHERE job_id LIKE 'test_%')")
-    await db_manager.execute("DELETE FROM product_images WHERE product_id IN (SELECT product_id FROM products WHERE job_id LIKE 'test_%')")
-    await db_manager.execute("DELETE FROM videos WHERE job_id LIKE 'test_%'")
-    await db_manager.execute("DELETE FROM products WHERE job_id LIKE 'test_%'")
-    await db_manager.execute("DELETE FROM jobs WHERE job_id LIKE 'test_%'")
+    
+    # Clean up after test with same error handling
+    for table, id_column in tables_to_clean:
+        try:
+            if table == "video_frames":
+                await db_manager.execute(
+                    f"DELETE FROM {table} WHERE video_id IN (SELECT video_id FROM videos WHERE job_id LIKE 'test_%')"
+                )
+            elif table == "product_images":
+                await db_manager.execute(
+                    f"DELETE FROM {table} WHERE product_id IN (SELECT product_id FROM products WHERE job_id LIKE 'test_%')"
+                )
+            elif table == "processed_events":
+                await db_manager.execute(
+                    f"DELETE FROM {table} WHERE event_id LIKE 'test_%' OR event_id LIKE 'idempotency_test_%'"
+                )
+            else:
+                await db_manager.execute(f"DELETE FROM {table} WHERE {id_column} LIKE 'test_%'")
+        except Exception as e:
+            print(f"Warning: Failed to clean {table}: {e}")
 
 
 @pytest.fixture

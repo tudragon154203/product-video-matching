@@ -27,53 +27,28 @@ from mock_data.matching_events import MATCHING_TEST_SCENARIOS
 from support.publisher.event_publisher import MatchingEventPublisher
 from support.spy.message_spy import MessageSpy
 from support.validators.db_cleanup import DatabaseStateValidator
+from support.fixtures.matching_phase_setup import (
+    setup_comprehensive_matching_database_state,
+    setup_low_similarity_matching_database_state,
+    setup_partial_asset_matching_database_state,
+    cleanup_test_database_state,
+    run_matching_idempotency_test
+)
 from common_py.crud import MatchCRUD, EventCRUD
 
 
 class TestMatchingPhaseIntegration:
     """Test suite for matching phase integration scenarios."""
 
-    async def cleanup_test_data(self, db_manager, job_prefix: str):
+    async def cleanup_test_data(self, db_manager, job_id: str):
         """Clean up test data to avoid conflicts between test runs."""
-        # Clean up existing test data
-        tables_to_clean = [
-            "matches", "processed_events", "phase_events", 
-            "video_frames", "product_images", "videos", 
-            "products", "jobs"
-        ]
-        
-        for table in tables_to_clean:
-            try:
-                await db_manager.execute(
-                    f"DELETE FROM {table} WHERE job_id LIKE $1",
-                    f"{job_prefix}%"
-                )
-            except Exception as e:
-                # Table might not exist or column might not have job_id
-                pass
-        
-        # Clean up by video_id and product_id patterns
-        try:
-            await db_manager.execute(
-                "DELETE FROM videos WHERE video_id LIKE $1",
-                f"{job_prefix}%"
-            )
-        except Exception:
-            pass
-        
-        try:
-            await db_manager.execute(
-                "DELETE FROM products WHERE product_id LIKE $1",
-                f"{job_prefix}%"
-            )
-        except Exception:
-            pass
+        await cleanup_test_database_state(db_manager, job_id)
 
     @pytest.fixture
     async def matching_test_environment(self, db_manager, message_broker, clean_database):
         """Set up matching test environment with spies and validators."""
         # Explicit cleanup of test data to avoid conflicts
-        await self.cleanup_test_data(db_manager, "test_matching_")
+        await self.cleanup_test_data(db_manager, "test_matching_env")
         # Get broker URL from environment
         import os
         broker_url = os.environ.get("RABBITMQ_URL", "amqp://guest:guest@localhost:5672/")
@@ -104,6 +79,7 @@ class TestMatchingPhaseIntegration:
             "matchings_completed_queue": matchings_completed_queue,
             "db_validator": db_validator,
             "publisher": publisher,
+            "db_manager": db_manager,
         }
         
         # Cleanup spies
@@ -114,59 +90,7 @@ class TestMatchingPhaseIntegration:
 
     async def seed_job_with_prerequisites(self, db_manager, job_id: str, dataset: Dict[str, Any]):
         """Seed job with products, videos, frames and prerequisite phase events."""
-        # Insert video record
-        video_record = dataset["video_record"]
-        await db_manager.execute(
-            "INSERT INTO videos (video_id, platform, url, job_id) VALUES ($1, $2, $3, $4)",
-            video_record["video_id"], video_record["platform"], video_record["url"], job_id
-        )
-        
-        # Insert product and image records
-        for record in dataset["product_records"]:
-            await db_manager.execute(
-                """INSERT INTO products (product_id, src, asin_or_itemid, marketplace, job_id) 
-                   VALUES ($1, $2, $3, $4, $5)""",
-                record["product_id"], record["src"], record["asin_or_itemid"], record["marketplace"], job_id
-            )
-            await db_manager.execute(
-                """INSERT INTO product_images (img_id, product_id, local_path, 
-                   emb_rgb, emb_gray, kp_blob_path) VALUES ($1, $2, $3, $4, $5, $6)""",
-                record["img_id"], record["product_id"], record["local_path"],
-                str(record["emb_rgb"]), str(record["emb_gray"]), record["kp_blob_path"]
-            )
-        
-        # Insert video frame records
-        for frame in dataset["frames"]:
-            # Ensure video_id is present
-            if "video_id" not in frame:
-                frame["video_id"] = video_record["video_id"]
-            
-            await db_manager.execute(
-                """INSERT INTO video_frames (frame_id, video_id, ts, local_path,
-                   emb_rgb, emb_gray, kp_blob_path) VALUES ($1, $2, $3, $4, $5, $6, $7)""",
-                frame["frame_id"], frame["video_id"], frame["ts"], frame["local_path"],
-                str(frame["emb_rgb"]), str(frame["emb_gray"]), frame["kp_blob_path"]
-            )
-        
-        # Insert job record and set phase to 'matching'
-        await db_manager.execute(
-            """INSERT INTO jobs (job_id, phase, industry, created_at, updated_at) 
-               VALUES ($1, $2, $3, NOW(), NOW())""",
-            job_id, "matching", "test_industry"
-        )
-        
-        # Insert prerequisite phase events to simulate feature extraction completion
-        import uuid
-        await db_manager.execute(
-            """INSERT INTO phase_events (event_id, job_id, name, received_at)
-               VALUES ($1, $2, $3, NOW())""",
-            str(uuid.uuid4()), job_id, "image.embeddings.completed"
-        )
-        await db_manager.execute(
-            """INSERT INTO phase_events (event_id, job_id, name, received_at)
-               VALUES ($1, $2, $3, NOW())""",
-            str(uuid.uuid4()), job_id, "video.keypoints.completed"
-        )
+        await setup_comprehensive_matching_database_state(db_manager, job_id, dataset)
 
     @pytest.mark.asyncio
     async def test_matching_full_pipeline_acceptable_pair(self, matching_test_environment, db_manager):
@@ -255,8 +179,8 @@ class TestMatchingPhaseIntegration:
         # Create dataset with low similarity embeddings
         dataset = build_low_similarity_matching_dataset(job_id)
         
-        # Seed database with test data
-        await self.seed_job_with_prerequisites(db_manager, job_id, dataset)
+        # Seed database with test data for zero matches scenario
+        await setup_low_similarity_matching_database_state(db_manager, job_id, dataset)
         
         # Publish match request
         match_request = dataset["match_request"]
@@ -376,8 +300,8 @@ class TestMatchingPhaseIntegration:
             if record["product_id"].endswith("_002"):
                 record["kp_blob_path"] = None  # Missing keypoints for fallback test
         
-        # Seed database with test data
-        await self.seed_job_with_prerequisites(db_manager, job_id, dataset)
+        # Seed database with test data for partial assets scenario
+        await setup_partial_asset_matching_database_state(db_manager, job_id, dataset)
         
         # Publish match request
         match_request = dataset["match_request"]

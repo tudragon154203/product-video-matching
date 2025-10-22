@@ -3,7 +3,11 @@
     "allow": [
       "Bash*",
       "Bash:*",
-      "Bash(find tests/unit -name \"test_*.py\" -exec echo \"=== {} ===\" ; -exec wc -l {} ;)"
+      "Bash(find tests/unit -name \"test_*.py\" -exec echo \"=== {} ===\" ; -exec wc -l {} ;)",
+      "Bash(python -m pytest:*)",
+      "Bash(python:*)",
+      "Bash(docker compose:*)",
+      "Bash(find:*)"
     ]
   },
   "enableAllProjectMcpServers": true
