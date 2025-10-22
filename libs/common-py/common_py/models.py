@@ -64,4 +64,5 @@ class Match(BaseModel):
     ts: Optional[float] = None
     score: float
     evidence_path: Optional[str] = None
+    status: Optional[str] = "accepted"
     created_at: Optional[datetime] = None

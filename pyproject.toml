@@ -26,6 +26,7 @@ markers = [
   "ci: Mark a test that should run in CI environment.",
   "local: Mark a test that should run locally only.",
   "idempotency: Mark a test that validates idempotency behavior.",
+  "matching: Mark a test as a matching phase integration test.",
 ]
 timeout = 1200
 timeout_method = "thread"

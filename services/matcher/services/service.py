@@ -136,6 +136,12 @@ class MatcherService:
                 correlation_id=job_id,
             )
 
+            # Update job phase to evidence after matching completes
+            await self.db.execute(
+                "UPDATE jobs SET phase = 'evidence' WHERE job_id = $1",
+                job_id
+            )
+
             # Record this event_id as processed to ensure idempotency
             await self.event_crud.record_event(event_id, "match.request")
 

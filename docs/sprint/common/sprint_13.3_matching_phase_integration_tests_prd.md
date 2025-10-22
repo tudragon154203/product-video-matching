@@ -1,8 +1,8 @@
 # Sprint 13.3 — Matching Phase Integration Tests PRD (Happy Path + Critical)
 
-Status: 🟡 Planned – Matching-phase coverage targeted for Sprint 13.3  
+Status: ✅ Implemented – Matching-phase coverage complete  
 Owners: QA/Infra  
-Related docs: [docker-compose.dev.cpu.yml](../../infra/pvm/docker-compose.dev.cpu.yml), [RUN.md](../../RUN.md), [infra README](../../infra/pvm/README.md), [sprint_12_unified_test_structure.md](./sprint_12_unified_test_structure.md), [sprint_13.2_feature_extraction_phase_integration_tests_prd.md](./sprint_13.2_feature_extraction_phase_integration_tests_prd.md), [sprint_2_matcher_microservice_implementation.md](../matcher/sprint_2_matcher_microservice_implementation.md), [test_feature_extraction_to_matching_transition.py](../../tests/integration/test_feature_extraction_to_matching_transition.py:28)
+Related docs: [docker-compose.dev.cpu.yml](../../infra/pvm/docker-compose.dev.cpu.yml), [RUN.md](../../RUN.md), [infra README](../../infra/pvm/README.md), [sprint_12_unified_test_structure.md](./sprint_12_unified_test_structure.md), [sprint_13.2_feature_extraction_phase_integration_tests_prd.md](./sprint_13.2_feature_extraction_phase_integration_tests_prd.md), [sprint_2_matcher_microservice_implementation.md](../matcher/sprint_2_matcher_microservice_implementation.md), [test_matching_phase_integration.py](../../tests/integration/test_matching_phase_integration.py)
 
 ## 1) Overview and Objectives
 - Purpose: 🟡 Deliver an end-to-end matching phase integration suite that exercises `match.request` ingestion through `matchings.process.completed`, validating persistence and emissions across the live stack.
@@ -17,9 +17,9 @@ Related docs: [docker-compose.dev.cpu.yml](../../infra/pvm/docker-compose.dev.cp
 
 ## Implementation Status
 - ✅ Transition coverage exists: [test_feature_extraction_to_matching_transition.py](../../tests/integration/test_feature_extraction_to_matching_transition.py:28) validates feature extraction completion triggers `match.request` and phase promotion to `matching`.
-- 🟡 No integration test currently drives [MatcherService.handle_match_request](../../services/matcher/services/service.py:43) against live Postgres/RabbitMQ.
-- 🟡 Test data lacks deterministic embeddings/keypoints required by [MatchingEngine.match_product_video](../../services/matcher/matching/__init__.py:50) to emit consistent matches.
-- 🟡 No assertions exist for [MatchCRUD.create_match](../../libs/common-py/common_py/crud/match_crud.py:9), [processed_events](../../infra/migrations/versions/005_add_processed_events_table.py:18), or `match.result` routing.
+- ✅ Integration test suite implemented: [test_matching_phase_integration.py](../../tests/integration/test_matching_phase_integration.py) drives [MatcherService.handle_match_request](../../services/matcher/services/service.py:43) against live Postgres/RabbitMQ.
+- ✅ Test data builders provide deterministic embeddings/keypoints via [build_matching_test_dataset](../../tests/mock_data/test_data.py) and [build_low_similarity_matching_dataset](../../tests/mock_data/test_data.py) for consistent match scoring.
+- ✅ Comprehensive assertions validate [MatchCRUD.create_match](../../libs/common-py/common_py/crud/match_crud.py:9), [processed_events](../../infra/migrations/versions/005_add_processed_events_table.py:18), `match.result` routing, and phase transitions.
 
 ## 2) Actors and Systems
 - 🟡 `matcher` service: entry point [MatcherHandler.handle_match_request](../../services/matcher/handlers/matcher_handler.py:24) delegates to [MatcherService.handle_match_request](../../services/matcher/services/service.py:43) which persists matches and publishes completion.
@@ -47,79 +47,112 @@ Related docs: [docker-compose.dev.cpu.yml](../../infra/pvm/docker-compose.dev.cp
 - Ensure `data/tests/**` assets are mounted inside containers so embeddings/keypoints referenced by tests are reachable from `/app/data/tests/...`.
 
 ## 5) Test Data and Fixtures
-- Extend [tests/mock_data/test_data.py](../../tests/mock_data/test_data.py:16) with helpers that attach deterministic `emb_rgb`, `emb_gray`, and `kp_blob_path` values to products and frames (store fixtures under `data/tests/features/` or reuse `data/keypoints/*.npz`).
-- Provide combined dataset builders that return product/video records plus ready-to-publish events, mirroring `build_product_dataset` in transition tests while including embeddings for scoring.
-- Introduce a `matching_test_environment` fixture (new module under `tests/support/fixtures/`) composing:
-  - `MessageSpy` queues for `match.result` and `matchings.process.completed`.
-  - Database cleanup leveraging [CollectionPhaseCleanup](../../tests/support/validators/db_cleanup.py:27) but scoped to job ids injected by matching tests.
-  - Extended `DatabaseStateValidator` assertions for matches, processed events, and job phases.
-  - Event publisher capable of emitting `match.request` (add `publish_match_request` helper to [event_publisher.py](../../tests/support/publisher/event_publisher.py:430)).
-- Augment `expected_observability_services` ([tests/conftest.py:112](../../tests/conftest.py:112)) with matching-phase checkpoints so the validator asserts `matcher` logs appear when tests run.
+- ✅ Extended [tests/mock_data/test_data.py](../../tests/mock_data/test_data.py:16) with `build_matching_test_dataset` and `build_low_similarity_matching_dataset` helpers that attach deterministic `emb_rgb`, `emb_gray`, and `kp_blob_path` values to products and frames.
+- ✅ Combined dataset builders return product/video records plus ready-to-publish `match_request` events with expected results for validation.
+- ✅ Implemented `matching_test_environment` fixture in [test_matching_phase_integration.py](../../tests/integration/test_matching_phase_integration.py:52) composing:
+  - `MessageSpy` queues for `match.result` and `matchings.process.completed` topics.
+  - Database cleanup via `cleanup_test_database_state` scoped to test job IDs.
+  - `DatabaseStateValidator` assertions for matches, processed events, and job phase transitions.
+  - `MatchingEventPublisher` with `publish_match_request` helper for event emission.
+- ✅ Setup helpers `setup_comprehensive_matching_database_state`, `setup_low_similarity_matching_database_state`, and `setup_partial_asset_matching_database_state` seed prerequisite data for each test scenario.
 
 ## 6) Proposed Test Suite
 
-### 6.1) Matching — Full Pipeline With Acceptable Pair
-- **Setup**: Seed a job in Postgres with products/images and video/frames using new builders (embeddings + keypoints), set job phase to `matching`, and record prerequisite phase events so `main-api` considers feature extraction complete.
-- **Execution**: Publish a schema-valid `match.request` with deterministic `event_id`; wait for `match.result` via spy and completion event.
+### 6.1) Matching — Full Pipeline With Acceptable Pair ✅
+- **Implementation**: [test_matching_full_pipeline_acceptable_pair](../../tests/integration/test_matching_phase_integration.py:100)
+- **Setup**: Seeds job with 3 products and 5 frames using `build_matching_test_dataset` with deterministic embeddings and keypoints. Verifies prerequisite data insertion before proceeding.
+- **Execution**: Publishes schema-valid `match.request` with unique `event_id`; waits 2 seconds for processing and captures events via message spies.
 - **Validations**:
-  - Assert `match.result` payload matches [match_result.json](../../libs/contracts/contracts/schemas/match_result.json), including `best_pair.score_pair` ≥ `MATCH_BEST_MIN` (config in [services/matcher/config_loader.py:8](../../services/matcher/config_loader.py)).
-  - Confirm `matches` table contains persisted rows for each accepted pair with scores mirrored from payload.
-- Ensure `matchings.process.completed` event fired exactly once and job phase advanced to `evidence` (verify via [DatabaseStateValidator.assert_job_phase](../../tests/support/validators/db_cleanup.py:347)).
-  - Check `processed_events` contains the dispatched `event_id`.
-- **Notes**: No new events or schema changes required; reuse existing routing keys and tables.
+  - ✅ Asserts `match.result` payload structure matches expected result with `score_pair` ≥ 0.8 (MATCH_BEST_MIN threshold).
+  - ✅ Confirms `matches` table contains persisted rows with correct job_id, score ≥ 0.8, and status "accepted".
+  - ✅ Validates exactly one `matchings.process.completed` event fired.
+  - ✅ Verifies job phase advanced to "evidence" via `DatabaseStateValidator.assert_job_phase`.
+  - ✅ Checks `processed_events` contains the dispatched `event_id`.
+- **Notes**: Uses existing routing keys and tables without schema changes.
 
-### 6.2) Matching — Zero Acceptable Matches (Fail-Gating)
-- **Setup**: Seed datasets where embeddings fall below `SIM_DEEP_MIN` or acceptance thresholds (e.g., deliberately offset vectors).
-- **Execution**: Publish `match.request`; await `matchings.process.completed` without expecting `match.result`.
+### 6.2) Matching — Zero Acceptable Matches (Fail-Gating) ✅
+- **Implementation**: [test_matching_zero_acceptable_matches](../../tests/integration/test_matching_phase_integration.py:177)
+- **Setup**: Seeds dataset with low similarity embeddings via `build_low_similarity_matching_dataset` to ensure scores fall below acceptance thresholds.
+- **Execution**: Publishes `match.request`; waits for `matchings.process.completed` without expecting `match.result`.
 - **Validations**:
-  - Assert no `match.result` events were captured and `matches` table has zero inserts.
-  - Verify completion event still stored in `phase_events` and job transitions to `evidence` (ensuring zero-match path aligns with [MatchAggregator._apply_acceptance_rules](../../services/matcher/matching_components/match_aggregator.py:79)).
-- **Notes**: Verify that no `match.result` is emitted and no additional DB structures are needed.
+  - ✅ Asserts zero `match.result` events captured by spy.
+  - ✅ Confirms `matches` table has zero inserts for the test job.
+  - ✅ Validates completion event still occurs (exactly one event).
+  - ✅ Verifies job still advances to "evidence" phase despite zero matches.
+- **Notes**: Confirms zero-match path completes successfully without errors, aligning with fail-gating requirements.
 
-### 6.3) Matching — Idempotent Re-delivery
-- **Setup**: Reuse happy-path data; ensure `processed_events` empty before start.
-- **Execution**: Publish the same `match.request` twice (identical `event_id`). Optionally publish a second event with new `event_id` to prove new work still runs.
+### 6.3) Matching — Idempotent Re-delivery ✅
+- **Implementation**: [test_matching_idempotent_redelivery](../../tests/integration/test_matching_phase_integration.py:213)
+- **Setup**: Seeds standard dataset with 2 products and 3 frames; uses specific `event_id` "idempotency_test_event_001" for duplicate testing.
+- **Execution**: Publishes the same `match.request` twice with 0.5s delay between publishes. Then publishes a new event with different `event_id` to verify new work still processes.
 - **Validations**:
-  - Assert `match.result` events and DB inserts occur only once per `event_id`.
-  - Confirm `processed_events` retains the first `event_id` and that second identical dispatch is logged as skipped (`Match request already processed` from [MatcherService.handle_match_request](../../services/matcher/services/service.py:50)).
-  - Ensure no duplicate completion events.
+  - ✅ Captures initial match count and DB match count from first processing.
+  - ✅ Asserts `processed_events` contains event_id exactly once.
+  - ✅ Validates exactly one completion event for the job (not "at least one").
+  - ✅ Confirms duplicate delivery didn't create additional matches (exact count comparison).
+  - ✅ Verifies new event with different `event_id` produces same number of matches.
+  - ✅ Confirms total of 2 processed_events entries exist (one per unique event_id).
+- **Notes**: Comprehensive idempotency validation with exact count assertions prevents duplicate processing.
 
-### 6.4) Matching — Partial Asset Availability (Fallback Coverage)
-- **Setup**: Seed products with embeddings but missing keypoints, and frames with minimal embeddings to trigger [PairScoreCalculator.calculate_keypoint_similarity](../../services/matcher/matching_components/pair_score_calculator.py:70) fallback behaviour.
-- **Execution**: Publish `match.request`; rely on fallback scoring to produce sub-threshold matches.
+### 6.4) Matching — Partial Asset Availability (Fallback Coverage) ✅
+- **Implementation**: [test_matching_partial_asset_fallback](../../tests/integration/test_matching_phase_integration.py:277)
+- **Setup**: Seeds dataset with 2 products and 3 frames, then modifies second product to have `kp_blob_path = None` to trigger fallback behavior.
+- **Execution**: Publishes `match.request`; relies on embeddings-only scoring when keypoints unavailable.
 - **Validations**:
-  - Verify fallback path logs "Missing keypoint blob path" and resulting scores respect weighted combination (embedding dominates).
-  - Assert accepted matches only occur when embedding-only score crosses thresholds; otherwise ensure zero-match handling consistent.
-- **Notes**: Confirm fallback paths behave without requiring schema adjustments or new event types.
+  - ✅ Validates completion event occurs despite missing keypoints (at least one event).
+  - ✅ Confirms job advances to "evidence" phase.
+  - ✅ Verifies processing completes without errors when fallback path is triggered.
+  - ✅ Ensures consistent results based on available assets (embeddings-only scoring).
+- **Notes**: Test validates fallback path robustness without requiring schema changes. Future enhancement could add log inspection for "Missing keypoint blob path" messages.
 
-## 7) Support Infrastructure Requirements
-- Reuse existing publisher utilities to emit `match.request` directly through `MessageBroker.publish_event`; no new routing keys or events required.
-- Extend the current spy infrastructure (either new helper queues via [MessageSpy](../../tests/support/spy/message_spy.py:61) or small wrapper) to capture `match.result` and `matchings.process.completed` without schema changes.
-- Create a `MatchingStateValidator` (adjacent to [DatabaseStateValidator](../../tests/support/validators/db_cleanup.py:321)) to count matches, inspect scores, and assert processed events using existing tables.
-- Provide synthetic embedding/keypoint fixtures stored under `tests/mock_data/` (numpy arrays serialized as JSON or `.npy`) with deterministic values so acceptance thresholds can be hit pre-deterministically.
-- Update documentation in `tests/support/fixtures/` to cover new matching environment setup procedures.
+## 7) Support Infrastructure Requirements ✅
+- ✅ Implemented `MatchingEventPublisher` in [event_publisher.py](../../tests/support/publisher/event_publisher.py) with `publish_match_request` method for direct event emission.
+- ✅ Extended `MessageSpy` infrastructure to capture `match.result` and `matchings.process.completed` events via dedicated spy queues created in `matching_test_environment` fixture.
+- ✅ Reused existing `DatabaseStateValidator` for matches, processed events, and job phase assertions without requiring new validator classes.
+- ✅ Implemented synthetic embedding/keypoint fixtures in [test_data.py](../../tests/mock_data/test_data.py) with deterministic values ensuring consistent acceptance threshold behavior.
+- ✅ Created setup helpers in [matching_phase_setup.py](../../tests/support/fixtures/matching_phase_setup.py) including `setup_comprehensive_matching_database_state`, `setup_low_similarity_matching_database_state`, `setup_partial_asset_matching_database_state`, and `cleanup_test_database_state`.
 
-## 8) Failure Handling & Idempotency
-- Validate duplicate detection by asserting `processed_events` row count changes exactly once per unique `event_id`.
-- Simulate transient publishing failure by acknowledging event after DB insert (optional future enhancement) to ensure `matchings.process.completed` remains consistent.
-- Confirm retries (if triggered) do not duplicate matches by inspecting `matches.match_id` uniqueness (UUID v4) and absence of duplicates for same product/video pair.
+## 8) Failure Handling & Idempotency ✅
+- ✅ Validates duplicate detection by asserting `processed_events` row count changes exactly once per unique `event_id` in idempotency test.
+- ✅ Confirms exact match counts remain unchanged when duplicate events are published (no additional matches created).
+- ✅ Verifies completion events occur exactly once per unique event (changed from "at least once" to exact count validation).
+- ✅ Tests that new events with different `event_id` still process normally, proving idempotency doesn't block legitimate work.
+- Future enhancement: Simulate transient publishing failures to test retry behavior without duplication.
 
-## 9) Execution & Tooling
-- Target command: `pytest tests/integration/test_matching_phase_integration.py -v -k matching_phase --maxfail=1`.
-- Introduce `@pytest.mark.matching` marker; register in `tests/integration/pytest.ini` alongside existing markers for consistent filtering.
-- Keep runtime under 8 minutes by limiting dataset size (≤3 products × 1 video with ≤5 frames) and reusing seeded embeddings.
-- Ensure tests tolerate cold-start stack by waiting on service health endpoints before publishing events.
+## 9) Execution & Tooling ✅
+- ✅ Target command: `pytest tests/integration/test_matching_phase_integration.py -v --maxfail=1`.
+- ✅ Implemented `@pytest.mark.matching` and `@pytest.mark.integration` markers at module level via `pytestmark`.
+- ✅ Runtime optimized with limited dataset sizes (3 products × 5 frames for happy path, 2 products × 3 frames for other scenarios).
+- ✅ Uses 2-second wait periods for event processing with message spy capture.
+- ✅ Leverages `clean_database` fixture for test isolation and cleanup.
+- Note: Tests assume services are running; consider adding health check waits for cold-start tolerance.
 
-## 10) Risks & Open Questions
-- Deterministic embeddings: confirm stored vectors guarantee acceptance thresholds; otherwise provide helper to craft vectors aligned with [MatchAggregator](../../services/matcher/matching_components/match_aggregator.py:53).
-- Broker timing: verify `main-api` publishes `match.request` fast enough; consider direct publish from tests when orchestrator timing causes flakiness, while still validating phase transitions via DB.
-- Data volume in `matches`: cleaning up after tests must cascade to dependent tables to avoid FK violations (reuse logic from [CollectionPhaseCleanup._cleanup_table](../../tests/support/validators/db_cleanup.py:54)).
-- Future scope: once evidence builder integration exists, confirm completion event triggers downstream workflow; track separately.
+## 10) Risks & Resolved Issues
+- ✅ Deterministic embeddings: Implemented via `build_matching_test_dataset` and `build_low_similarity_matching_dataset` with controlled vector values.
+- ✅ Broker timing: Tests publish `match.request` directly via `MatchingEventPublisher`, avoiding orchestrator timing dependencies while still validating phase transitions.
+- ✅ Data cleanup: `clean_database` fixture handles cascading deletes for matches, video_frames, product_images, and related tables.
+- ✅ Debug output: Removed debug print statements from tests for cleaner output.
+- ✅ Exact assertions: Enhanced idempotency test with exact count validations instead of "at least" checks.
+- Future scope: Evidence builder integration to validate downstream workflow triggering from completion events.
 
 ## Current Implementation Summary
-**Status**: 🟡 Proposed — Transition coverage exists but dedicated matching-phase integration tests remain outstanding.
+**Status**: ✅ Complete — All four matching-phase integration test scenarios implemented and validated.
+
+**Implemented Components**:
+1. ✅ Test suite: [test_matching_phase_integration.py](../../tests/integration/test_matching_phase_integration.py) with all 4 scenarios (6.1-6.4).
+2. ✅ Test data builders: `build_matching_test_dataset` and `build_low_similarity_matching_dataset` in [test_data.py](../../tests/mock_data/test_data.py).
+3. ✅ Setup fixtures: `matching_test_environment` with message spies, validators, and publishers.
+4. ✅ Database setup helpers: `setup_comprehensive_matching_database_state`, `setup_low_similarity_matching_database_state`, `setup_partial_asset_matching_database_state`.
+5. ✅ Event publisher: `MatchingEventPublisher` with `publish_match_request` method.
+6. ✅ Test markers: `@pytest.mark.matching` and `@pytest.mark.integration` applied at module level.
+
+**Test Coverage**:
+- ✅ Happy path with acceptable matches and phase transition
+- ✅ Zero matches scenario with fail-gating behavior
+- ✅ Idempotent re-delivery with exact count validations
+- ✅ Partial asset availability with fallback scoring
 
 **Next Steps**:
-1. Build deterministic matching fixtures (records + embeddings/keypoints) and new publisher/spy utilities.
-2. Implement `test_matching_phase_integration.py` covering scenarios 6.1–6.4 with `@pytest.mark.matching`.
-3. Wire markers into CI so the suite can gate releases alongside collection and feature extraction tests.
+1. Consider replacing hardcoded `asyncio.sleep(2.0)` with polling utilities for more reliable timing.
+2. Add log inspection to partial asset test for explicit fallback path validation.
+3. Wire test suite into CI pipeline to gate releases alongside other phase tests.

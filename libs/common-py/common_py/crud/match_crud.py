@@ -9,13 +9,13 @@ class MatchCRUD:
     async def create_match(self, match: Match) -> str:
         """Create a new match"""
         query = """
-        INSERT INTO matches (match_id, job_id, product_id, video_id, best_img_id, best_frame_id, ts, score, evidence_path)
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+        INSERT INTO matches (match_id, job_id, product_id, video_id, best_img_id, best_frame_id, ts, score, evidence_path, status)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
         RETURNING match_id
         """
         return await self.db.fetch_val(
             query, match.match_id, match.job_id, match.product_id, match.video_id,
-            match.best_img_id, match.best_frame_id, match.ts, match.score, match.evidence_path
+            match.best_img_id, match.best_frame_id, match.ts, match.score, match.evidence_path, match.status
         )
     
     async def get_match(self, match_id: str) -> Optional[Match]:

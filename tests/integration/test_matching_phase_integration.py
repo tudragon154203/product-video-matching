@@ -107,14 +107,18 @@ class TestMatchingPhaseIntegration:
         # Create test dataset with deterministic embeddings
         dataset = build_matching_test_dataset(job_id, num_products=3, num_frames=5)
         
-        # Debug: Check what's in the dataset
-        print(f"Dataset keys: {dataset.keys()}")
-        print(f"Number of frames: {len(dataset['frames'])}")
-        if dataset['frames']:
-            print(f"First frame keys: {dataset['frames'][0].keys()}")
-        
         # Seed database with test data
         await self.seed_job_with_prerequisites(db_manager, job_id, dataset)
+        
+        # Verify data was actually inserted
+        products_count = await db_manager.fetch_one("SELECT COUNT(*) as count FROM products WHERE job_id = $1", job_id)
+        videos_count = await db_manager.fetch_one("SELECT COUNT(*) as count FROM videos WHERE job_id = $1", job_id)
+        frames_count = await db_manager.fetch_one("SELECT COUNT(*) as count FROM video_frames WHERE video_id LIKE $1", f"{job_id}%")
+        
+        # Only proceed if data is set up correctly
+        assert products_count['count'] > 0, f"No products found for job_id {job_id}"
+        assert videos_count['count'] > 0, f"No videos found for job_id {job_id}"
+        assert frames_count['count'] > 0, f"No frames found for job_id {job_id}"
         
         # Publish match request
         match_request = dataset["match_request"]
@@ -242,13 +246,15 @@ class TestMatchingPhaseIntegration:
         
         # Validate match results occur only once
         match_results = env["match_result_spy"].get_captured_messages(env["match_result_queue"])
-        assert len(match_results) > 0, "Expected match results from first processing"
+        initial_match_count = len(match_results)
+        assert initial_match_count > 0, "Expected match results from first processing"
         
         # Validate matches table has only one set of matches
         matches = await db_manager.fetch_all(
             "SELECT * FROM matches WHERE job_id = $1", job_id
         )
-        assert len(matches) > 0, "Expected matches from first processing"
+        initial_db_match_count = len(matches)
+        assert initial_db_match_count > 0, "Expected matches from first processing"
         
         # Validate processed_events contains the event_id only once
         processed_events = await db_manager.fetch_all(
@@ -258,10 +264,16 @@ class TestMatchingPhaseIntegration:
         
         # Validate completion event occurs only once
         completion_events = env["matchings_completed_spy"].get_captured_messages(env["matchings_completed_queue"])
-        # Note: This might be tricky to validate exactly once due to timing,
-        # but we should ensure no duplicates
         completion_job_events = [e for e in completion_events if e["event_data"]["job_id"] == job_id]
-        assert len(completion_job_events) >= 1, "Expected at least one completion event"
+        initial_completion_count = len(completion_job_events)
+        assert initial_completion_count == 1, f"Expected exactly one completion event, got {initial_completion_count}"
+        
+        # Verify that duplicate delivery didn't create additional matches
+        final_matches = await db_manager.fetch_all(
+            "SELECT * FROM matches WHERE job_id = $1", job_id
+        )
+        assert len(final_matches) == initial_db_match_count, \
+            f"Duplicate event created additional matches: expected {initial_db_match_count}, got {len(final_matches)}"
         
         # Test with new event_id to ensure new work still runs
         new_match_request = {
@@ -278,7 +290,15 @@ class TestMatchingPhaseIntegration:
         
         # Should process new event normally
         new_match_results = env["match_result_spy"].get_captured_messages(env["match_result_queue"])
-        assert len(new_match_results) > 0, "Expected new event to be processed"
+        assert len(new_match_results) == initial_match_count, \
+            f"New event should produce same number of matches: expected {initial_match_count}, got {len(new_match_results)}"
+        
+        # Verify new event created additional processed_events entry
+        all_processed_events = await db_manager.fetch_all(
+            "SELECT * FROM processed_events WHERE event_id LIKE 'idempotency_test_event_%'"
+        )
+        assert len(all_processed_events) == 2, \
+            f"Expected 2 processed events (one per unique event_id), got {len(all_processed_events)}"
 
     @pytest.mark.asyncio
     async def test_matching_partial_asset_fallback(self, matching_test_environment, db_manager):

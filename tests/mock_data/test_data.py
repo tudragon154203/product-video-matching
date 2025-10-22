@@ -282,22 +282,23 @@ def build_matching_test_dataset(job_id: str, num_products: int = 3, num_frames: 
 
 def build_low_similarity_matching_dataset(job_id: str) -> Dict[str, Any]:
     """Build dataset with low similarity to test zero-match scenario."""
-    
+
     # Create video and frames with very different embeddings
     video_record = build_video_record(job_id)
     video_id = video_record["video_id"]
     frames = build_video_frames_with_embeddings(job_id, video_id, 3)
-    
-    # Make embeddings very different to ensure no matches
-    for frame in frames:
-        frame["emb_rgb"] = [0.9] * 512  # Very different from products
-        frame["emb_gray"] = [0.8] * 512
-    
-    # Create products with standard embeddings
+
+    # Create truly orthogonal embeddings - alternating positive and negative values
+    # to ensure very low cosine similarity with standard product embeddings
+    for idx, frame in enumerate(frames):
+        frame["emb_rgb"] = [0.9 if i % 2 == 0 else -0.9 for i in range(512)]  # Orthogonal pattern
+        frame["emb_gray"] = [0.8 if i % 3 == 0 else -0.8 for i in range(512)]  # Different orthogonal pattern
+
+    # Create products with standard embeddings (all positive values)
     product_records = build_product_images_with_embeddings(job_id, 2)
-    
+
     match_request = build_match_request_event(job_id)
-    
+
     return {
         "job_id": job_id,
         "video_record": video_record,

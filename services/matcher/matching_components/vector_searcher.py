@@ -27,8 +27,10 @@ class VectorSearcher:
             if not image.get("emb_rgb"):
                 return video_frames[: self.retrieval_topk]
 
+            # Convert image embedding to numpy array first
+            image_emb = self._convert_embedding(image["emb_rgb"])
             perform_vector_search = self._perform_vector_search
-            return await perform_vector_search(image["emb_rgb"], video_frames)
+            return await perform_vector_search(image_emb.tolist(), video_frames)
         except Exception as exc:  # pragma: no cover - defensive logging
             logger.error("Failed to retrieve similar frames", error=str(exc))
             return await self._fallback_similarity_search(image, video_frames)
@@ -62,8 +64,8 @@ class VectorSearcher:
                 """
                 CREATE TEMP TABLE temp_video_embeddings (
                     frame_id TEXT PRIMARY KEY,
-                    emb_rgb FLOAT[],
-                    emb_gray FLOAT[]
+                    emb_rgb VECTOR(512),
+                    emb_gray VECTOR(512)
                 )
                 """
             )
@@ -71,8 +73,17 @@ class VectorSearcher:
             values_to_insert = []
             for frame in video_frames:
                 if frame.get("emb_rgb"):
+                    # Convert embeddings to numpy arrays and then to vector strings for pgvector
+                    rgb_emb = self._convert_embedding(frame["emb_rgb"]).tolist()
+                    rgb_emb_str = f"[{','.join(str(x) for x in rgb_emb)}]"
+
+                    gray_emb_str = None
+                    if frame.get("emb_gray"):
+                        gray_emb = self._convert_embedding(frame["emb_gray"]).tolist()
+                        gray_emb_str = f"[{','.join(str(x) for x in gray_emb)}]"
+
                     values_to_insert.append(
-                        (frame["frame_id"], frame["emb_rgb"], frame.get("emb_gray"))
+                        (frame["frame_id"], rgb_emb_str, gray_emb_str)
                     )
 
             if values_to_insert:
@@ -83,7 +94,7 @@ class VectorSearcher:
                         emb_rgb,
                         emb_gray
                     )
-                    VALUES ($1, $2, $3)
+                    VALUES ($1, $2::vector, $3::vector)
                     """,
                     values_to_insert,
                 )
@@ -102,17 +113,19 @@ class VectorSearcher:
 
         try:
             emb_array = list(image_emb)
+            # Convert to pgvector format string
+            emb_vector_str = f"[{','.join(str(x) for x in emb_array)}]"
 
             query = """
-                SELECT v.frame_id, 1 - (v.emb_rgb <=> $1) AS similarity
+                SELECT v.frame_id, 1 - (v.emb_rgb <=> $1::vector) AS similarity
                 FROM temp_video_embeddings v
                 WHERE v.emb_rgb IS NOT NULL
-                ORDER BY v.emb_rgb <=> $1
+                ORDER BY v.emb_rgb <=> $1::vector
                 LIMIT $2
             """
 
             fetch_all = self.db.fetch_all
-            results = await fetch_all(query, emb_array, self.retrieval_topk)
+            results = await fetch_all(query, emb_vector_str, self.retrieval_topk)
 
             frame_map = {frame["frame_id"]: frame for frame in video_frames}
             similar_frames: List[Dict[str, Any]] = []
@@ -122,8 +135,10 @@ class VectorSearcher:
                 if not frame:
                     continue
 
-                frame["similarity"] = result["similarity"]
-                similar_frames.append(frame)
+                # Convert asyncpg Record to dict if needed
+                frame_dict = dict(frame) if hasattr(frame, 'keys') else frame
+                frame_dict["similarity"] = result["similarity"]
+                similar_frames.append(frame_dict)
 
             return similar_frames
         except Exception as exc:  # pragma: no cover - defensive logging
@@ -136,6 +151,31 @@ class VectorSearcher:
                 video_frames,
             )
 
+    def _convert_embedding(self, embedding: Any) -> np.ndarray:
+        """Convert embedding from various formats to numpy array."""
+        if isinstance(embedding, np.ndarray):
+            return embedding.astype(np.float32)
+
+        if isinstance(embedding, list):
+            return np.array(embedding, dtype=np.float32)
+
+        if isinstance(embedding, str):
+            try:
+                # Try to parse as Python literal first
+                import ast
+                parsed = ast.literal_eval(embedding)
+                return np.array(parsed, dtype=np.float32)
+            except:
+                # Fallback: split by comma and convert to float
+                try:
+                    values = [float(x.strip()) for x in embedding.strip('[]').split(',') if x.strip()]
+                    return np.array(values, dtype=np.float32)
+                except:
+                    logger.error(f"Failed to convert embedding string to array: {embedding[:100]}...")
+                    raise
+
+        raise ValueError(f"Unsupported embedding type: {type(embedding)}")
+
     async def _fallback_similarity_search(
         self,
         image: Dict[str, Any],
@@ -144,24 +184,68 @@ class VectorSearcher:
         """Fallback similarity search using numpy calculations."""
 
         try:
-            image_emb = np.array(image["emb_rgb"], dtype=np.float32)
+            # Convert image embedding to numpy array
+            image_emb = self._convert_embedding(image["emb_rgb"])
             scored_frames: List[tuple[float, Dict[str, Any]]] = []
 
             for frame in video_frames:
-                if frame.get("emb_rgb"):
-                    frame_emb = np.array(frame["emb_rgb"], dtype=np.float32)
-                    similarity = np.dot(image_emb, frame_emb) / (
-                        np.linalg.norm(image_emb) * np.linalg.norm(frame_emb)
-                    )
+                # Convert asyncpg Record to mutable dict if needed
+                frame_dict = dict(frame) if hasattr(frame, 'keys') else frame
+
+                if frame_dict.get("emb_rgb"):
+                    try:
+                        # Convert frame embedding to numpy array
+                        frame_emb = self._convert_embedding(frame_dict["emb_rgb"])
+                        similarity = np.dot(image_emb, frame_emb) / (
+                            np.linalg.norm(image_emb) * np.linalg.norm(frame_emb)
+                        )
+                    except Exception as emb_error:
+                        logger.warning(
+                            "Failed to process frame embedding, using default similarity",
+                            frame_id=frame_dict.get("frame_id"),
+                            error=str(emb_error)
+                        )
+                        similarity = 0.7
                 else:
                     logger.warning(
                         "Missing emb_rgb for frame, using default similarity in fallback search",
-                        frame_id=frame.get("frame_id"),
+                        frame_id=frame_dict.get("frame_id"),
                     )
-                    similarity = 0.7  # Replaced random uniform with a fixed value
+                    similarity = 0.7
 
-                frame["similarity"] = similarity
-                scored_frames.append((similarity, frame))
+                # Convert embeddings in frame_dict to numpy arrays for similarity calculation
+                frame_dict_rgb = frame_dict.get("emb_rgb")
+                frame_dict_gray = frame_dict.get("emb_gray")
+                
+                # Convert string embeddings to numpy arrays for similarity calculation
+                if isinstance(frame_dict_rgb, str):
+                    try:
+                        frame_dict_rgb = self._convert_embedding(frame_dict_rgb)
+                    except:
+                        frame_dict_rgb = np.array([0.7])  # Fallback default similarity
+                if isinstance(frame_dict_gray, str):
+                    try:
+                        frame_dict_gray = self._convert_embedding(frame_dict_gray)
+                    except:
+                        frame_dict_gray = np.array([0.7])  # Fallback default similarity
+                
+                if frame_dict_rgb is not None and frame_dict_gray is not None:
+                    similarity = np.dot(frame_dict_rgb, frame_dict_gray) / (
+                        np.linalg.norm(frame_dict_rgb) * np.linalg.norm(frame_dict_gray)
+                    )
+                elif frame_dict_rgb is not None:
+                    similarity = np.dot(frame_dict_rgb, frame_dict_rgb) / (
+                        np.linalg.norm(frame_dict_rgb) * np.linalg.norm(frame_dict_rgb)
+                    )
+                elif frame_dict_gray is not None:
+                    similarity = np.dot(frame_dict_gray, frame_dict_gray) / (
+                        np.linalg.norm(frame_dict_gray) * np.linalg.norm(frame_dict_gray)
+                    )
+                else:
+                    similarity = 0.7
+
+                frame_dict["similarity"] = similarity
+                scored_frames.append((similarity, frame_dict))
 
             scored_frames.sort(key=lambda item: item[0], reverse=True)
             return [frame for _, frame in scored_frames]

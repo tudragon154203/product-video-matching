@@ -6,21 +6,30 @@ from typing import Dict, Any, List
 import uuid
 
 
+def format_embedding_for_pgvector(embedding: List[float]) -> str:
+    """Format embedding list as pgvector-compatible string without spaces."""
+    return f"[{','.join(str(x) for x in embedding)}]"
+
+
 async def setup_comprehensive_matching_database_state(
     db_manager,
     job_id: str,
     dataset: Dict[str, Any]
 ) -> None:
     """Setup comprehensive database state for matching phase end-to-end testing"""
+    print(f"DEBUG: Setting up database state for job_id: {job_id}")
+    print(f"DEBUG: Dataset keys: {dataset.keys()}")
     
     # Insert video record
     video_record = dataset["video_record"]
+    print(f"DEBUG: Inserting video record: {video_record}")
     await db_manager.execute(
         """INSERT INTO videos (video_id, platform, url, job_id, created_at) 
            VALUES ($1, $2, $3, $4, NOW())
            ON CONFLICT (video_id) DO NOTHING;""",
         video_record["video_id"], video_record["platform"], video_record["url"], job_id
     )
+    print(f"DEBUG: Video record inserted")
     
     # Insert product and image records with feature extraction data
     for record in dataset["product_records"]:
@@ -31,12 +40,14 @@ async def setup_comprehensive_matching_database_state(
             record["product_id"], record["src"], record["asin_or_itemid"], record["marketplace"], job_id
         )
         await db_manager.execute(
-            """INSERT INTO product_images (img_id, product_id, local_path, 
-               emb_rgb, emb_gray, kp_blob_path, created_at) 
-               VALUES ($1, $2, $3, $4, $5, $6, NOW())
+            """INSERT INTO product_images (img_id, product_id, local_path,
+               emb_rgb, emb_gray, kp_blob_path, created_at)
+               VALUES ($1, $2, $3, $4::vector, $5::vector, $6, NOW())
                ON CONFLICT (img_id) DO NOTHING;""",
             record["img_id"], record["product_id"], record["local_path"],
-            str(record["emb_rgb"]), str(record["emb_gray"]), record["kp_blob_path"]
+            format_embedding_for_pgvector(record["emb_rgb"]),
+            format_embedding_for_pgvector(record["emb_gray"]),
+            record["kp_blob_path"]
         )
     
     # Insert video frame records with feature extraction data
@@ -47,11 +58,13 @@ async def setup_comprehensive_matching_database_state(
         
         await db_manager.execute(
             """INSERT INTO video_frames (frame_id, video_id, ts, local_path,
-               emb_rgb, emb_gray, kp_blob_path, created_at) 
-               VALUES ($1, $2, $3, $4, $5, $6, $7, NOW())
+               emb_rgb, emb_gray, kp_blob_path, created_at)
+               VALUES ($1, $2, $3, $4, $5::vector, $6::vector, $7, NOW())
                ON CONFLICT (frame_id) DO NOTHING;""",
             frame["frame_id"], frame["video_id"], frame["ts"], frame["local_path"],
-            str(frame["emb_rgb"]), str(frame["emb_gray"]), frame["kp_blob_path"]
+            format_embedding_for_pgvector(frame["emb_rgb"]),
+            format_embedding_for_pgvector(frame["emb_gray"]),
+            frame["kp_blob_path"]
         )
     
     # Insert job record and set phase to 'matching'
@@ -116,22 +129,26 @@ async def setup_partial_asset_matching_database_state(
         if kp_blob_path is None:
             # Insert without keypoint blob path for fallback scenario
             await db_manager.execute(
-                """INSERT INTO product_images (img_id, product_id, local_path, 
-                   emb_rgb, emb_gray, kp_blob_path, created_at) 
-                   VALUES ($1, $2, $3, $4, $5, $6, NOW())
+                """INSERT INTO product_images (img_id, product_id, local_path,
+                   emb_rgb, emb_gray, kp_blob_path, created_at)
+                   VALUES ($1, $2, $3, $4::vector, $5::vector, $6, NOW())
                    ON CONFLICT (img_id) DO NOTHING;""",
                 record["img_id"], record["product_id"], record["local_path"],
-                str(record["emb_rgb"]), str(record["emb_gray"]), None
+                format_embedding_for_pgvector(record["emb_rgb"]),
+                format_embedding_for_pgvector(record["emb_gray"]),
+                None
             )
         else:
             # Full record with keypoints
             await db_manager.execute(
-                """INSERT INTO product_images (img_id, product_id, local_path, 
-                   emb_rgb, emb_gray, kp_blob_path, created_at) 
-                   VALUES ($1, $2, $3, $4, $5, $6, NOW())
+                """INSERT INTO product_images (img_id, product_id, local_path,
+                   emb_rgb, emb_gray, kp_blob_path, created_at)
+                   VALUES ($1, $2, $3, $4::vector, $5::vector, $6, NOW())
                    ON CONFLICT (img_id) DO NOTHING;""",
                 record["img_id"], record["product_id"], record["local_path"],
-                str(record["emb_rgb"]), str(record["emb_gray"]), kp_blob_path
+                format_embedding_for_pgvector(record["emb_rgb"]),
+                format_embedding_for_pgvector(record["emb_gray"]),
+                kp_blob_path
             )
     
     # Insert video frames with full assets
@@ -141,11 +158,13 @@ async def setup_partial_asset_matching_database_state(
         
         await db_manager.execute(
             """INSERT INTO video_frames (frame_id, video_id, ts, local_path,
-               emb_rgb, emb_gray, kp_blob_path, created_at) 
-               VALUES ($1, $2, $3, $4, $5, $6, $7, NOW())
+               emb_rgb, emb_gray, kp_blob_path, created_at)
+               VALUES ($1, $2, $3, $4, $5::vector, $6::vector, $7, NOW())
                ON CONFLICT (frame_id) DO NOTHING;""",
             frame["frame_id"], frame["video_id"], frame["ts"], frame["local_path"],
-            str(frame["emb_rgb"]), str(frame["emb_gray"]), frame["kp_blob_path"]
+            format_embedding_for_pgvector(frame["emb_rgb"]),
+            format_embedding_for_pgvector(frame["emb_gray"]),
+            frame["kp_blob_path"]
         )
     
     # Insert job record

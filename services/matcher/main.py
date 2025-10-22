@@ -31,6 +31,18 @@ async def service_context():
 async def main():
     """Main service loop"""
     try:
+        # Print configuration for debugging
+        import os
+        from config_loader import config
+        print(f"Environment variables loaded:")
+        print(f"  POSTGRES_HOST: {os.getenv('POSTGRES_HOST', 'NOT SET')}")
+        print(f"  POSTGRES_PORT: {os.getenv('POSTGRES_PORT', 'NOT SET')}")
+        print(f"  POSTGRES_USER: {os.getenv('POSTGRES_USER', 'NOT SET')}")
+        print(f"  POSTGRES_DB: {os.getenv('POSTGRES_DB', 'NOT SET')}")
+        print(f"  BUS_BROKER: {os.getenv('BUS_BROKER', 'NOT SET')}")
+        print(f"Database DSN: {config.POSTGRES_DSN}")
+        print(f"Broker URL: {config.BUS_BROKER}")
+        
         async with service_context() as handler:
             # Subscribe to events
             await handler.broker.subscribe_to_topic(
@@ -50,4 +62,11 @@ async def main():
         logger.error("Service error", error=str(e))
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    try:
+        asyncio.run(main())
+    except KeyboardInterrupt:
+        logger.info("Shutting down matcher service")
+    except Exception as e:
+        logger.error("Service error", error=str(e))
+        import traceback
+        traceback.print_exc()
