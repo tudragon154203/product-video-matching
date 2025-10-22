@@ -181,3 +181,127 @@ def add_mask_paths_to_video_frames(frames: Iterable[Dict[str, Any]]) -> List[Dic
             item["masked_local_path"] = item["local_path"]
         prepared.append(item)
     return prepared
+
+
+def build_match_request_event(job_id: str, event_id: str = None) -> Dict[str, Any]:
+    """Create a schema-compliant match.request event."""
+    return {
+        "job_id": job_id,
+        "event_id": event_id or str(uuid.uuid4()),
+    }
+
+
+def build_product_images_with_embeddings(job_id: str, count: int = 3) -> List[Dict[str, Any]]:
+    """Generate product image records with deterministic embeddings for matching tests."""
+    records = build_masked_product_image_records(job_id, count)
+    
+    # Add deterministic embedding values that will pass similarity thresholds
+    for idx, record in enumerate(records):
+        record.update({
+            "emb_rgb": [0.1 + idx * 0.1] * 512,  # 512-dimensional CLIP embeddings
+            "emb_gray": [0.2 + idx * 0.05] * 512,
+            "kp_blob_path": f"/app/data/tests/keypoints/product_{idx+1}_keypoints.npz",
+        })
+    
+    return records
+
+
+def build_video_frames_with_embeddings(job_id: str, video_id: str, count: int = 5) -> List[Dict[str, Any]]:
+    """Generate video frame records with deterministic embeddings for matching tests."""
+    frames = build_video_frame_records(job_id, video_id, count)
+    frames = add_mask_paths_to_video_frames(frames)
+    
+    # Add deterministic embedding values that will create good matches
+    for idx, frame in enumerate(frames):
+        frame.update({
+            "emb_rgb": [0.15 + idx * 0.08] * 512,  # Similar to product embeddings
+            "emb_gray": [0.18 + idx * 0.04] * 512,
+            "kp_blob_path": f"/app/data/tests/keypoints/frame_{idx+1}_keypoints.npz",
+        })
+    
+    return frames
+
+
+def build_expected_match_result_event(job_id: str, product_id: str, video_id: str, 
+                                    img_id: str, frame_id: str, score: float = 0.85) -> Dict[str, Any]:
+    """Create an expected match.result event for test validation."""
+    return {
+        "job_id": job_id,
+        "product_id": product_id,
+        "video_id": video_id,
+        "best_pair": {
+            "img_id": img_id,
+            "frame_id": frame_id,
+            "score_pair": score,
+        },
+        "score": score,
+        "ts": 1.0,  # Default timestamp
+    }
+
+
+def build_expected_matchings_process_completed_event(job_id: str, event_id: str = None) -> Dict[str, Any]:
+    """Create an expected matchings.process.completed event for test validation."""
+    return {
+        "job_id": job_id,
+        "event_id": event_id or str(uuid.uuid4()),
+    }
+
+
+def build_matching_test_dataset(job_id: str, num_products: int = 3, num_frames: int = 5) -> Dict[str, Any]:
+    """Build a complete test dataset for matching phase integration tests."""
+    
+    # Create video and frames
+    video_record = build_video_record(job_id)
+    video_id = video_record["video_id"]
+    frames = build_video_frames_with_embeddings(job_id, video_id, num_frames)
+    
+    # Create products with images
+    product_records = build_product_images_with_embeddings(job_id, num_products)
+    
+    # Build match request event
+    match_request = build_match_request_event(job_id)
+    
+    # Build expected results (first product matches first frame with high score)
+    product_id = product_records[0]["product_id"] if product_records else f"{job_id}_product_001"
+    img_id = product_records[0]["img_id"] if product_records else f"{job_id}_img_001"
+    frame_id = frames[0]["frame_id"] if frames else f"{video_id}_frame_001"
+    
+    expected_match_result = build_expected_match_result_event(
+        job_id, product_id, video_id, img_id, frame_id, 0.92
+    )
+    
+    return {
+        "job_id": job_id,
+        "video_record": video_record,
+        "frames": frames,
+        "product_records": product_records,
+        "match_request": match_request,
+        "expected_match_result": expected_match_result,
+    }
+
+
+def build_low_similarity_matching_dataset(job_id: str) -> Dict[str, Any]:
+    """Build dataset with low similarity to test zero-match scenario."""
+    
+    # Create video and frames with very different embeddings
+    video_record = build_video_record(job_id)
+    video_id = video_record["video_id"]
+    frames = build_video_frames_with_embeddings(job_id, video_id, 3)
+    
+    # Make embeddings very different to ensure no matches
+    for frame in frames:
+        frame["emb_rgb"] = [0.9] * 512  # Very different from products
+        frame["emb_gray"] = [0.8] * 512
+    
+    # Create products with standard embeddings
+    product_records = build_product_images_with_embeddings(job_id, 2)
+    
+    match_request = build_match_request_event(job_id)
+    
+    return {
+        "job_id": job_id,
+        "video_record": video_record,
+        "frames": frames,
+        "product_records": product_records,
+        "match_request": match_request,
+    }
