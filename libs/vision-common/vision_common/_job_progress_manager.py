@@ -19,7 +19,7 @@ class JobProgressManager:
         self.broker = broker
         self.base_manager = BaseJobProgressManager(broker)
         self.completion_publisher = CompletionEventPublisher(broker, self.base_manager)
-        self.watermark_timer_manager = WatermarkTimerManager(self.completion_publisher)
+        self.watermark_timer_manager = WatermarkTimerManager(self.completion_publisher, self.base_manager)
 
     def _mark_batch_initialized(self, job_id: str, asset_type: str):
         self.base_manager._mark_batch_initialized(job_id, asset_type)

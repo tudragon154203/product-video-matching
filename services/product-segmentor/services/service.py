@@ -203,6 +203,9 @@ class ProductSegmentorService:
 
         await self.job_progress_manager._start_watermark_timer(job_id, 300, "segmentation")
 
+        # Mark batch initialized to prevent resetting expected to high sentinel on per-asset events
+        self.job_progress_manager._mark_batch_initialized(job_id, asset_type)
+
         if total_items == 0:
             logger.info(
                 "Zero-asset job - publishing immediate batch completion",

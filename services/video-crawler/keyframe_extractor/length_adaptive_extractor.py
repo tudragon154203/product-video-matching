@@ -66,7 +66,7 @@ class LengthAdaptiveKeyframeExtractor(AbstractKeyframeExtractor):
             av1_env_vars = {
                 'FFMPEG_HWACCEL': 'none',
                 'AV1_FORCE_SOFTWARE_DECODER': '1',
-                'OPENCV_FFMPEG_CAPTURE_OPTIONS': 'avioflags;direct;pixel_format;yuv420p'
+                'OPENCV_FFMPEG_CAPTURE_OPTIONS': 'avioflags;direct'
             }
 
             for key, value in av1_env_vars.items():

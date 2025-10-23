@@ -81,13 +81,30 @@ class BaseJobProgressManager:
         # 2. Current expected is artificially high and we have a real count, or
         # 3. We're explicitly setting to 0 for zero-asset jobs
         current_expected = job_data["expected"]
-        if (actual_expected > 0 and actual_expected < 1000000) or \
-           (current_expected >= 1000000 and actual_expected > 0 and actual_expected < 1000000) or \
-           (actual_expected == 0 and current_expected == 0):
+        should_update_expected = (
+            (actual_expected > 0 and actual_expected < 1000000) or
+            (current_expected >= 1000000 and actual_expected > 0 and actual_expected < 1000000) or
+            (actual_expected == 0 and current_expected == 0)
+        )
+        if should_update_expected:
             job_data["expected"] = actual_expected
-            logger.debug("Updated expected count", job_id=job_id, old_expected=current_expected, new_expected=actual_expected)
+            # Align asset_type with the latest context to avoid cross-type confusion per job_id
+            job_data["asset_type"] = asset_type
+            logger.debug(
+                "Updated expected count",
+                job_id=job_id,
+                old_expected=current_expected,
+                new_expected=actual_expected,
+                asset_type=asset_type
+            )
         else:
-            logger.debug("Preserving existing expected count", job_id=job_id, current_expected=current_expected, requested_expected=actual_expected)
+            logger.debug(
+                "Preserving existing expected count",
+                job_id=job_id,
+                current_expected=current_expected,
+                requested_expected=actual_expected,
+                asset_type=job_data.get("asset_type")
+            )
 
     async def initialize_with_high_expected(self, job_id: str, asset_type: str, high_expected: int = 1000000):
         """Initialize job tracking with high expected count for per-asset first scenarios"""

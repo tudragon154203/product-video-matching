@@ -142,8 +142,7 @@ class CompletionEventPublisher:
                    job_id=job_id, event_id=event_id,
                    total=expected, done=done, is_timeout=is_timeout)
         
-        # Cleanup job tracking
-        self.base_manager._cleanup_job_tracking(job_id)
+        # Cleanup handled by JobProgressManager to also cancel timers; do not cleanup here
 
     async def publish_completion_event_with_count(self, job_id: str, asset_type: str, expected: int, done: int, event_type_prefix: str = "embeddings"):
         """Publish completion event with specific counts"""
@@ -189,8 +188,7 @@ class CompletionEventPublisher:
                    job_id=job_id, event_id=event_id,
                    total=expected, done=done, is_timeout=False)
         
-        # Cleanup job tracking
-        self.base_manager._cleanup_job_tracking(job_id)
+        # Cleanup handled by JobProgressManager to also cancel timers; do not cleanup here
         
         # For segmentation completion, emit masked batch events if this is a segmentation job
         if event_type_prefix == "segmentation":
