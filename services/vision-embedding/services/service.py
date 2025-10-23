@@ -238,7 +238,8 @@ class VisionEmbeddingService:
         asset_type: str,
     ) -> None:
         """Update progress for per-asset-first processing patterns."""
-        if job_id not in self.progress_manager.job_tracking:
+        key = f"{job_id}:{asset_type}:embeddings"
+        if key not in self.progress_manager.job_tracking:
             logger.info(
                 "Initializing job tracking with high expected count "
                 "(per-asset first)",

@@ -38,10 +38,11 @@ class AssetProcessor:
             # Update database
             await db_update_func(asset_id, mask_path)
 
-            # Increment processed count using main job progress manager to enable automatic completion
-            await self.job_progress_manager.update_job_progress(job_id, asset_type, 0, 1, "segmentation")
-            current_processed = self.job_progress_manager.job_tracking[job_id]["done"]
-            total_expected = self.job_progress_manager.job_tracking[job_id]["expected"]
+            # Increment processed count using segmentation prefix to enable automatic completion
+            await self.job_progress_manager.update_job_progress(job_id, asset_type, 0, 1, event_type_prefix="segmentation")
+            key = f"{job_id}:{asset_type}:segmentation"
+            current_processed = self.job_progress_manager.job_tracking[key]["done"]
+            total_expected = self.job_progress_manager.job_tracking[key]["expected"]
 
             logger.debug("Progress update",
                          job_id=job_id,

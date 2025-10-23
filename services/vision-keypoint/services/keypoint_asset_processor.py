@@ -142,7 +142,7 @@ class KeypointAssetProcessor:
                 asset_type=asset_type,
             )
             await self.progress_manager.initialize_with_high_expected(
-                job_id, asset_type
+                job_id, asset_type, event_type_prefix="keypoints"
             )
 
         await self.progress_manager.update_job_progress(
@@ -220,9 +220,10 @@ class KeypointAssetProcessor:
                 job_id=job_id,
                 asset_type=asset_type,
             )
-            if job_id not in self.progress_manager.job_tracking:
+            key = f"{job_id}:{asset_type}:keypoints"
+            if key not in self.progress_manager.job_tracking:
                 await self.progress_manager.initialize_with_high_expected(
-                    job_id, asset_type, 0
+                    job_id, asset_type, 0, event_type_prefix="keypoints"
                 )
             await self.progress_manager.update_job_progress(
                 job_id,
@@ -232,7 +233,8 @@ class KeypointAssetProcessor:
                 "keypoints",
             )
 
-        if job_id in self.progress_manager.job_tracking:
+        key = f"{job_id}:{asset_type}:keypoints"
+        if key in self.progress_manager.job_tracking:
             logger.info(
                 "Checking for completion after batch initialization",
                 job_id=job_id,

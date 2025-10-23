@@ -44,28 +44,25 @@ class JobProgressManager:
 
     async def update_job_progress(self, job_id: str, asset_type: str, expected_count: int, increment: int = 1, event_type_prefix: str = "embeddings"):
         await self.base_manager.update_job_progress(job_id, asset_type, expected_count, increment, event_type_prefix)
-        # Check completion condition - but only if we have a real expected count (not 0 from per-asset-first processing)
-        job_data = self.base_manager.job_tracking[job_id]
-        current_expected = job_data["expected"]
-
-        # Don't trigger completion if expected is 0 (indicates per-asset-first initialization)
-        # or if expected is artificially high (1000000+) and we haven't received the real count yet
-        if current_expected == 0 or current_expected >= 1000000:
-            logger.debug("Skipping completion check - expected count not finalized yet",
-                        job_id=job_id, asset_type=asset_type, expected=current_expected, done=job_data["done"])
+        key = f"{job_id}:{asset_type}:{event_type_prefix}"
+        job_data = self.base_manager.job_tracking.get(key)
+        if not job_data:
             return
-
+        current_expected = job_data["expected"]
+        if current_expected == 0 or current_expected >= 1000000:
+            logger.debug("Skipping completion check - expected not finalized",
+                        job_id=job_id, asset_type=asset_type, event_type_prefix=event_type_prefix,
+                        expected=current_expected, done=job_data["done"])
+            return
         if job_data["done"] >= job_data["expected"]:
+            done = job_data["done"]
+            expected = job_data["expected"]
             logger.info("Automatic completion triggered by progress update",
-                       job_id=job_id,
-                       asset_type=asset_type,
-                       done=job_data["done"],
-                       expected=job_data["expected"],
+                       job_id=job_id, asset_type=asset_type, event_type_prefix=event_type_prefix,
+                       done=done, expected=expected,
                        completion_trigger="update_job_progress",
                        current_completion_events_sent=len(self.completion_publisher._completion_events_sent))
-            logger.debug("Completion condition met, attempting to publish event", job_id=job_id,
-                         done=job_data["done"], expected=job_data["expected"])
-            await self.completion_publisher.publish_completion_event(job_id, event_type_prefix=event_type_prefix)
+            await self.completion_publisher.publish_completion_event_with_count(job_id, asset_type, expected, done, event_type_prefix)
 
     async def publish_completion_event_with_count(self, job_id: str, asset_type: str, expected: int, done: int, event_type_prefix: str = "embeddings"):
         await self.completion_publisher.publish_completion_event_with_count(job_id, asset_type, expected, done, event_type_prefix)
@@ -114,17 +111,17 @@ class JobProgressManager:
     def _completion_events_sent(self) -> Set[str]:
         return self.completion_publisher._completion_events_sent
 
-    async def initialize_with_high_expected(self, job_id: str, asset_type: str, high_expected: int = 1000000):
-        """Initialize job tracking with high expected count for per-asset first scenarios"""
-        await self.base_manager.initialize_with_high_expected(job_id, asset_type, high_expected)
+    async def initialize_with_high_expected(self, job_id: str, asset_type: str, high_expected: int = 1000000, event_type_prefix: str = "embeddings"):
+        """Initialize tracking with high expected for per-asset-first"""
+        await self.base_manager.initialize_with_high_expected(job_id, asset_type, high_expected, event_type_prefix)
 
     async def update_expected_and_recheck_completion(self, job_id: str, asset_type: str, real_expected: int, event_type_prefix: str = "embeddings"):
-        """Update expected count with real value and re-check completion condition"""
         completion_detected = await self.base_manager.update_expected_and_recheck_completion(job_id, asset_type, real_expected, event_type_prefix)
-        
-        # If completion was detected, publish completion event
         if completion_detected:
+            key = f"{job_id}:{asset_type}:{event_type_prefix}"
+            job_data = self.base_manager.job_tracking.get(key, {"done": 0, "expected": real_expected})
+            done = job_data["done"]
+            expected = job_data["expected"]
             logger.info("Completion detected, publishing completion event", job_id=job_id, asset_type=asset_type, event_type_prefix=event_type_prefix)
-            await self.completion_publisher.publish_completion_event(job_id, event_type_prefix=event_type_prefix)
-        
+            await self.completion_publisher.publish_completion_event_with_count(job_id, asset_type, expected, done, event_type_prefix)
         return completion_detected

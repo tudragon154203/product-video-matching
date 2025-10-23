@@ -70,12 +70,21 @@ class CompletionEventPublisher:
 
     async def publish_completion_event(self, job_id: str, is_timeout: bool = False, event_type_prefix: str = "embeddings"):
         """Publish completion event with progress data"""
-        if job_id not in self.base_manager.job_tracking:
-            logger.warning("Job not found in tracking", job_id=job_id)
+        # Find tracking entry by (job_id, *, event_type_prefix)
+        job_key = None
+        for key in self.base_manager.job_tracking.keys():
+            if key.startswith(f"{job_id}:") and key.endswith(f":{event_type_prefix}"):
+                job_key = key
+                break
+        if not job_key:
+            logger.warning("Job not found in tracking for completion publish", job_id=job_id, event_type_prefix=event_type_prefix)
             return
-            
-        job_data = self.base_manager.job_tracking[job_id]
-        asset_type = job_data["asset_type"]
+        job_data = self.base_manager.job_tracking[job_key]
+        # key format: job_id:asset_type:event_type_prefix
+        try:
+            _, asset_type, _ = job_key.split(":", 2)
+        except Exception:
+            asset_type = job_data.get("asset_type", "image")
         expected = job_data["expected"]
         done = job_data["done"]
         

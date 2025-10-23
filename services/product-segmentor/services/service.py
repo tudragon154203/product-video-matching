@@ -169,7 +169,7 @@ class ProductSegmentorService:
             # Initialize job with high expected count to prevent premature completion
             # before batch event arrives with actual total
             if not self.job_progress_manager._is_batch_initialized(job_id, "image"):
-                await self.job_progress_manager.initialize_with_high_expected(job_id, "image")
+                await self.job_progress_manager.initialize_with_high_expected(job_id, "image", event_type_prefix="segmentation")
                 logger.debug(
                     "Initialized job with high expected count for single image",
                     job_id=job_id,
@@ -234,7 +234,7 @@ class ProductSegmentorService:
                 asset_type,
                 total_items,
                 0,
-                "segmentation",
+                event_type_prefix="segmentation",
             )
             logger.debug(
                 "Batch initialized - waiting for individual asset processing",
@@ -299,7 +299,7 @@ class ProductSegmentorService:
             "frame",
             len(frames),
             0,
-            "segmentation",
+            event_type_prefix="segmentation",
         )
 
         # Note: Completion check moved to individual asset processing to avoid duplicate events
@@ -379,6 +379,8 @@ class ProductSegmentorService:
                 "products_images_ready_batch",
                 event_id,
             )
+            # If expected already met (e.g., per-asset-first), recheck completion and emit masked batch
+            await self.job_progress_manager.update_expected_and_recheck_completion(job_id, "image", total_images, event_type_prefix="segmentation")
 
         except Exception as e:
             logger.error(
