@@ -71,6 +71,24 @@ class LifecycleHandler:
                 self.handle_videos_collections_completed,
             )
 
+            # Subscribe to feature extraction completion events
+            await self.broker.subscribe_to_topic(
+                "image.embeddings.completed",
+                self.handle_image_embeddings_completed,
+            )
+            await self.broker.subscribe_to_topic(
+                "video.embeddings.completed",
+                self.handle_video_embeddings_completed,
+            )
+            await self.broker.subscribe_to_topic(
+                "image.keypoints.completed",
+                self.handle_image_keypoints_completed,
+            )
+            await self.broker.subscribe_to_topic(
+                "video.keypoints.completed",
+                self.handle_video_keypoints_completed,
+            )
+
             logger.info("Subscribed to phase completion events")
         except Exception as e:
             logger.error(f"Failed to subscribe to phase events: {e}")
@@ -105,3 +123,63 @@ class LifecycleHandler:
             logger.info(f"Processed videos collections completed event for job {event_data.get('job_id')}")
         except Exception as e:
             logger.error(f"Failed to handle videos collections completed event: {e}")
+
+    async def handle_image_embeddings_completed(self, event_data, correlation_id):
+        """Handle image embeddings completed event"""
+        try:
+            logger.info(
+                "Handling image embeddings completed",
+                job_id=event_data.get("job_id"),
+                correlation_id=correlation_id,
+            )
+            await self.phase_event_service.handle_phase_event(
+                "image.embeddings.completed", event_data
+            )
+            logger.info(f"Processed image embeddings completed event for job {event_data.get('job_id')}")
+        except Exception as e:
+            logger.error(f"Failed to handle image embeddings completed event: {e}")
+
+    async def handle_video_embeddings_completed(self, event_data, correlation_id):
+        """Handle video embeddings completed event"""
+        try:
+            logger.info(
+                "Handling video embeddings completed",
+                job_id=event_data.get("job_id"),
+                correlation_id=correlation_id,
+            )
+            await self.phase_event_service.handle_phase_event(
+                "video.embeddings.completed", event_data
+            )
+            logger.info(f"Processed video embeddings completed event for job {event_data.get('job_id')}")
+        except Exception as e:
+            logger.error(f"Failed to handle video embeddings completed event: {e}")
+
+    async def handle_image_keypoints_completed(self, event_data, correlation_id):
+        """Handle image keypoints completed event"""
+        try:
+            logger.info(
+                "Handling image keypoints completed",
+                job_id=event_data.get("job_id"),
+                correlation_id=correlation_id,
+            )
+            await self.phase_event_service.handle_phase_event(
+                "image.keypoints.completed", event_data
+            )
+            logger.info(f"Processed image keypoints completed event for job {event_data.get('job_id')}")
+        except Exception as e:
+            logger.error(f"Failed to handle image keypoints completed event: {e}")
+
+    async def handle_video_keypoints_completed(self, event_data, correlation_id):
+        """Handle video keypoints completed event"""
+        try:
+            logger.info(
+                "Handling video keypoints completed",
+                job_id=event_data.get("job_id"),
+                correlation_id=correlation_id,
+            )
+            await self.phase_event_service.handle_phase_event(
+                "video.keypoints.completed", event_data
+            )
+            logger.info(f"Processed video keypoints completed event for job {event_data.get('job_id')}")
+        except Exception as e:
+            logger.error(f"Failed to handle video keypoints completed event: {e}")
