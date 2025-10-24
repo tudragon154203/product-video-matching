@@ -217,7 +217,7 @@ class ProductSegmentorService:
                     job_id=job_id,
                     total_images=0,
                 )
-            elif asset_type == "frame":
+            elif asset_type == "video":
                 await self.job_progress_manager.publish_videos_keyframes_masked_batch(
                     job_id=job_id,
                     total_keyframes=0,
@@ -241,6 +241,15 @@ class ProductSegmentorService:
                 job_id=job_id,
                 total_items=total_items,
             )
+
+        # After initializing batch, update expected count and recheck completion.
+        # This will emit appropriate batch completion events when done >= expected.
+        await self.job_progress_manager.update_expected_and_recheck_completion(
+            job_id,
+            asset_type,
+            total_items,
+            event_type_prefix="segmentation",
+        )
 
     async def handle_videos_keyframes_ready(self, event_data: dict) -> None:
         """Handle video keyframes ready event.
@@ -266,7 +275,7 @@ class ProductSegmentorService:
 
             mask_path = await self.asset_processor.handle_single_asset_processing(
                 event_data=frame,
-                asset_type="frame",
+                asset_type="video",
                 asset_id_key="frame_id",
                 db_update_func=self.db_updater.update_video_frame_mask,
                 emit_masked_func=None,  # Individual frame masked event handled by batch emitter
@@ -296,7 +305,7 @@ class ProductSegmentorService:
         # Completion checks are handled by individual processing steps and the job-level batch event.
         await self.job_progress_manager.update_job_progress(
             job_id,
-            "frame",
+            "video",
             0,
             0,
             event_type_prefix="segmentation",
@@ -335,7 +344,7 @@ class ProductSegmentorService:
 
             await self._handle_batch_event(
                 job_id,
-                "frame",
+                "video",
                 total_keyframes,
                 "videos_keyframes_ready_batch",
                 event_id,
@@ -379,8 +388,6 @@ class ProductSegmentorService:
                 "products_images_ready_batch",
                 event_id,
             )
-            # If expected already met (e.g., per-asset-first), recheck completion and emit masked batch
-            await self.job_progress_manager.update_expected_and_recheck_completion(job_id, "image", total_images, event_type_prefix="segmentation")
 
         except Exception as e:
             logger.error(

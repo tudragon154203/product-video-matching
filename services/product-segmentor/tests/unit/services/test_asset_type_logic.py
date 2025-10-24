@@ -22,13 +22,13 @@ class TestAssetTypeLogic:
             job_id = event_data["job_id"]
             total_keyframes = event_data.get("total_keyframes", 0)
 
-            # This is the fix: using "frame" instead of "video"
-            asset_type = "frame"  # Previously was "video"
+            # This is the fix: using "video" instead of "video"
+            asset_type = "video"  # Previously was "video"
 
             # Simulate _handle_batch_event call
             await job_progress_manager.update_job_progress(
                 job_id,
-                asset_type,  # Should be "frame"
+                asset_type,  # Should be "video"
                 total_keyframes,
                 0,
                 "segmentation",
@@ -48,10 +48,10 @@ class TestAssetTypeLogic:
         )
 
         # Verify the logic
-        assert asset_type_used == "frame"
+        assert asset_type_used == "video"
         mock_job_progress_manager.update_job_progress.assert_called_once_with(
             "test_job_123",
-            "frame",  # This is the key assertion
+            "video",  # This is the key assertion
             50,
             0,
             "segmentation",
@@ -59,7 +59,7 @@ class TestAssetTypeLogic:
 
     @pytest.mark.asyncio
     async def test_individual_frame_processing_logic(self):
-        """Test that individual frame processing uses 'frame' asset type."""
+        """Test that individual frame processing uses 'video' asset type."""
         mock_job_progress_manager = AsyncMock()
         mock_asset_processor = AsyncMock()
 
@@ -74,7 +74,7 @@ class TestAssetTypeLogic:
             for frame in frames:
                 await asset_processor.handle_single_asset_processing(
                     event_data=frame,
-                    asset_type="frame",  # Individual frames use "frame"
+                    asset_type="video",  # Individual frames use "video"
                     asset_id_key="frame_id",
                     db_update_func=AsyncMock(),
                     emit_masked_func=None,
@@ -84,7 +84,7 @@ class TestAssetTypeLogic:
             # Update progress for the batch
             await job_progress_manager.update_job_progress(
                 job_id,
-                "frame",  # Should match individual processing
+                "video",  # Should match individual processing
                 len(frames),
                 0,
                 "segmentation",
@@ -109,12 +109,12 @@ class TestAssetTypeLogic:
 
         # Check that both calls use 'frame' asset type
         for call in mock_asset_processor.handle_single_asset_processing.call_args_list:
-            assert call.kwargs["asset_type"] == "frame"
+            assert call.kwargs["asset_type"] == "video"
 
         # Verify batch progress update uses 'frame'
         mock_job_progress_manager.update_job_progress.assert_called_once_with(
             "test_job_123",
-            "frame",
+            "video",
             2,
             0,
             "segmentation",
@@ -131,7 +131,7 @@ class TestAssetTypeLogic:
             """Simulate the complete workflow with consistent asset types."""
 
             # 1. Batch event sets up expected count
-            batch_asset_type = "frame"  # The fix
+            batch_asset_type = "video"  # The fix
             asset_types_used.append(("batch", batch_asset_type))
 
             await mock_job_progress_manager.update_job_progress(
@@ -144,7 +144,7 @@ class TestAssetTypeLogic:
 
             # 2. Individual processing uses same asset type
             for i in range(total_frames):
-                individual_asset_type = "frame"  # Must match batch
+                individual_asset_type = "video"  # Must match batch
                 asset_types_used.append(("individual", individual_asset_type))
 
                 await mock_job_progress_manager.update_job_progress(
@@ -160,7 +160,7 @@ class TestAssetTypeLogic:
 
         # Verify all asset types are consistent
         for operation, asset_type in asset_types_used:
-            assert asset_type == "frame", f"{operation} operation used {asset_type}, expected 'frame'"
+            assert asset_type == "video", f"{operation} operation used {asset_type}, expected 'frame'"
 
         # Verify job progress calls
         assert mock_job_progress_manager.update_job_progress.call_count == 6  # 1 batch + 5 individual
@@ -177,7 +177,7 @@ class TestAssetTypeLogic:
                     job_id=job_id,
                     total_images=0,
                 )
-            elif asset_type == "frame":
+            elif asset_type == "video":
                 await mock_job_progress_manager.publish_videos_keyframes_masked_batch(
                     job_id=job_id,
                     total_keyframes=0,
@@ -195,7 +195,7 @@ class TestAssetTypeLogic:
         mock_job_progress_manager.reset_mock()
 
         # Test zero frames
-        await handle_zero_asset_batch("zero_frame_job", "frame")
+        await handle_zero_asset_batch("zero_frame_job", "video")
         mock_job_progress_manager.publish_videos_keyframes_masked_batch.assert_called_once_with(
             job_id="zero_frame_job", total_keyframes=0
         )
@@ -206,9 +206,9 @@ class TestAssetTypeLogic:
         def get_asset_type_for_operation(operation, context):
             """Isolated asset type decision logic."""
             if operation == "video_keyframes_batch":
-                return "frame"  # The fix
+                return "video"  # The fix
             elif operation == "video_keyframes_individual":
-                return "frame"
+                return "video"
             elif operation == "product_images_batch":
                 return "image"
             elif operation == "product_images_individual":
@@ -217,15 +217,15 @@ class TestAssetTypeLogic:
                 raise ValueError(f"Unknown operation: {operation}")
 
         # Test the decision logic
-        assert get_asset_type_for_operation("video_keyframes_batch", {}) == "frame"
-        assert get_asset_type_for_operation("video_keyframes_individual", {}) == "frame"
+        assert get_asset_type_for_operation("video_keyframes_batch", {}) == "video"
+        assert get_asset_type_for_operation("video_keyframes_individual", {}) == "video"
         assert get_asset_type_for_operation("product_images_batch", {}) == "image"
         assert get_asset_type_for_operation("product_images_individual", {}) == "image"
 
         # Verify consistency for video operations
         video_batch = get_asset_type_for_operation("video_keyframes_batch", {})
         video_individual = get_asset_type_for_operation("video_keyframes_individual", {})
-        assert video_batch == video_individual == "frame"
+        assert video_batch == video_individual == "video"
 
         # Verify consistency for image operations
         image_batch = get_asset_type_for_operation("product_images_batch", {})

@@ -51,22 +51,19 @@ class TestJobManagerAssetTypes:
             service.db_updater = AsyncMock()
             service.asset_processor = AsyncMock()
 
-            # Mock the methods we need to test
-            service.handle_videos_keyframes_ready_batch = AsyncMock()
-            service.handle_products_images_ready_batch = AsyncMock()
-            service.handle_videos_keyframes_ready = AsyncMock()
+            # Mock the _handle_batch_event method to track calls properly
             service._handle_batch_event = AsyncMock()
 
             # Make the actual methods call our mocks with proper return values
             async def mock_handle_videos_keyframes_ready_batch_impl(event_data):
-                # Simulate the implementation using frame asset type
+                # Simulate the implementation using video asset type
                 job_id = event_data["job_id"]
                 total_keyframes = event_data.get("total_keyframes", 0)
                 event_id = event_data.get("event_id")
 
                 await service._handle_batch_event(
                     job_id,
-                    "frame",  # This is the fix we're testing
+                    "video",  # This is the fix we're testing
                     total_keyframes,
                     "videos_keyframes_ready_batch",
                     event_id,
@@ -96,7 +93,7 @@ class TestJobManagerAssetTypes:
                 for frame in frames:
                     await service.asset_processor.handle_single_asset_processing(
                         event_data=frame,
-                        asset_type="frame",
+                        asset_type="video",
                         asset_id_key="frame_id",
                         db_update_func=service.db_updater.update_video_frame_mask,
                         emit_masked_func=None,
@@ -106,7 +103,7 @@ class TestJobManagerAssetTypes:
                 # Update progress for the batch
                 await service.job_progress_manager.update_job_progress(
                     job_id,
-                    "frame",
+                    "video",
                     len(frames),
                     0,
                     "segmentation",
@@ -134,9 +131,12 @@ class TestJobManagerAssetTypes:
         }
 
         # Call the batch event handler
+        print(f"DEBUG: Calling handle_videos_keyframes_ready_batch with: {batch_event_data}")
+        print(f"DEBUG: service.side_effect: {service.handle_videos_keyframes_ready_batch.side_effect}")
         await service.handle_videos_keyframes_ready_batch(batch_event_data)
+        print(f"DEBUG: After call, update_job_progress call count: {mock_job_progress_manager.update_job_progress.call_count}")
 
-        # Verify that _handle_batch_event was called with 'frame' asset type
+        # Verify that _handle_batch_event was called with 'video' asset type
         mock_job_progress_manager.update_job_progress.assert_called_once()
         call_args = mock_job_progress_manager.update_job_progress.call_args
 
@@ -149,7 +149,7 @@ class TestJobManagerAssetTypes:
 
         # Verify the asset type is 'frame' (the fix we implemented)
         assert actual_job_id == "test_job_123"
-        assert actual_asset_type == "frame"  # This is the key assertion
+        assert actual_asset_type == "video"  # This is the key assertion
         assert actual_total_items == 50
         assert actual_increment == 0
         assert actual_operation == "segmentation"
@@ -192,7 +192,7 @@ class TestJobManagerAssetTypes:
 
         # Check that both calls use 'frame' asset type
         for call in mock_job_progress_manager.update_job_progress_manager.call_args_list:
-            assert call[0][1] == "frame"  # asset_type parameter
+            assert call[0][1] == "video"  # asset_type parameter
             assert call[0][2] == 1      # total_items per frame
             assert call[0][4] == "segmentation"  # operation
 
@@ -276,7 +276,7 @@ class TestJobManagerAssetTypes:
         })
 
         video_call = mock_job_progress_manager.update_job_progress.call_args_list[0]
-        assert video_call[0][1] == "frame"  # This is our fix
+        assert video_call[0][1] == "video"  # This is our fix
         assert video_call[0][2] == 50
 
         mock_job_progress_manager.reset_mock()
@@ -297,7 +297,7 @@ class TestJobManagerAssetTypes:
         frame_calls = mock_job_progress_manager.update_job_progress.call_args_list
         assert len(frame_calls) == 2
         for call in frame_calls:
-            assert call[0][1] == "frame"  # Consistent asset type for frames
+            assert call[0][1] == "video"  # Consistent asset type for frames
 
     @pytest.mark.asyncio
     async def test_job_progress_manager_integration(
@@ -350,21 +350,21 @@ class TestJobManagerAssetTypes:
 
         # Verify batch setup (first call)
         batch_call = progress_updates[0]
-        assert batch_call['asset_type'] == "frame"
+        assert batch_call['asset_type'] == "video"
         assert batch_call['total_items'] == 5
         assert batch_call['increment'] == 0
 
         # Verify individual frame processing
         for i in range(1, 6):  # 5 individual frames
             frame_call = progress_updates[i]
-            assert frame_call['asset_type'] == "frame"
+            assert frame_call['asset_type'] == "video"
             assert frame_call['total_items'] == 1  # Each frame updates by 1
             assert frame_call['increment'] == 0
 
         # Verify the frame progress from individual handler (last 5 calls)
         frame_handler_calls = progress_updates[1:6]  # Calls from handle_videos_keyframes_ready
         for i in range(5):
-            assert frame_handler_calls[i]['asset_type'] == "frame"
+            assert frame_handler_calls[i]['asset_type'] == "video"
 
         # All operations should use segmentation
         for update in progress_updates:

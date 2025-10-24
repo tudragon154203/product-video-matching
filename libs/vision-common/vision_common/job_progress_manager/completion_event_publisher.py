@@ -208,7 +208,7 @@ class CompletionEventPublisher:
         """Emit masked batch events when segmentation completes"""
         if asset_type == "image":
             await self.publish_products_images_masked_batch(job_id, done)
-        elif asset_type == "frame":
+        elif asset_type == "video":
             await self.publish_videos_keyframes_masked_batch(job_id, done)
 
     async def publish_products_images_masked_batch(self, job_id: str, total_images: int) -> None:
