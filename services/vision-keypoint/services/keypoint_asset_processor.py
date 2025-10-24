@@ -106,8 +106,8 @@ class KeypointAssetProcessor:
             # Emit keypoint ready event (per asset)
             event_id = str(uuid.uuid4())
             await self.broker.publish_event(
-                f"{asset_type}.keypoint.ready",
-                {
+                topic=f"{asset_type}.keypoint.ready",
+                event_data={
                     "job_id": job_id,
                     "asset_id": asset_id,
                     "event_id": event_id,

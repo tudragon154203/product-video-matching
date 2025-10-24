@@ -32,7 +32,7 @@ class ImageStorageManager:
         """Store a single product and its images within a single transaction on one DB connection.
 
         Ensures product insert and subsequent image inserts are atomic to avoid FK violations.
-        Publishes individual image.ready events immediately after each successful image insert.
+        Defers publishing image.ready events until after COMMIT to avoid race conditions.
         """
         start_time = time.perf_counter()
         images = product_data.get("images", [])
@@ -90,8 +90,9 @@ class ImageStorageManager:
                 )
 
                 # Insert images using same connection with FK-violation-aware retry
+                events_to_publish: List[Dict[str, Any]] = []
                 await self._download_and_store_product_images(
-                    product, images, source, job_id, correlation_id, conn
+                    product, images, source, job_id, correlation_id, conn, events_to_publish
                 )
 
                 # Commit transaction
@@ -104,6 +105,18 @@ class ImageStorageManager:
                     images_count=len(images),
                     elapsed_ms=elapsed_ms,
                 )
+
+                # Publish buffered events after commit
+                for evt in events_to_publish:
+                    await self.broker.publish_event(
+                        evt["topic"], evt["payload"], correlation_id=evt["correlation_id"]
+                    )
+                    logger.info(
+                        "Published individual image ready event",
+                        product_id=evt["payload"].get("product_id"),
+                        image_id=evt["payload"].get("image_id"),
+                        job_id=evt["payload"].get("job_id"),
+                    )
             except Exception as e:
                 # Rollback on any failure and re-raise
                 try:
@@ -129,6 +142,7 @@ class ImageStorageManager:
         job_id: str,
         correlation_id: str,
         conn: asyncpg.Connection,
+        events_buffer: List[Dict[str, Any]],
     ):
         """
         Download images and store them using the provided DB connection.
@@ -178,22 +192,19 @@ class ImageStorageManager:
                 try:
                     # Use connection-scoped insert for atomicity
                     await self.image_crud.create_product_image_with_conn(image, conn)
-                    # Publish event immediately after successful insert
-                    await self.broker.publish_event(
-                        "products.image.ready",
+
+                    # Buffer event for post-commit publishing
+                    events_buffer.append(
                         {
-                            "product_id": product.product_id,
-                            "image_id": image_id,
-                            "local_path": local_path,
-                            "job_id": job_id,
-                        },
-                        correlation_id=correlation_id,
-                    )
-                    logger.info(
-                        "Published individual image ready event",
-                        product_id=product.product_id,
-                        image_id=image_id,
-                        job_id=job_id,
+                            "topic": "products.image.ready",
+                            "payload": {
+                                "product_id": product.product_id,
+                                "image_id": image_id,
+                                "local_path": local_path,
+                                "job_id": job_id,
+                            },
+                            "correlation_id": correlation_id,
+                        }
                     )
                     break
                 except Exception as e:

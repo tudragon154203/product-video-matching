@@ -58,7 +58,7 @@ class CompletionEventPublisher:
     async def _publish_event(self, event_type: str, event_data: Dict[str, Any], 
                            completion_key: str, message: str) -> None:
         """Publish event with standardized logging and error handling"""
-        await self.broker.publish_event(event_type, event_data)
+        await self.broker.publish_event(topic=event_type, event_data=event_data)
         logger.info(message, job_id=event_data["job_id"], event_id=event_data["event_id"],
                    total=event_data["total_assets"], done=event_data["processed_assets"])
 
@@ -146,7 +146,7 @@ class CompletionEventPublisher:
         logger.debug("Marked completion event as sent", job_id=job_id, asset_type=asset_type,
                      completion_key=completion_key, total_set_size=len(self._completion_events_sent))
         
-        await self.broker.publish_event(event_type, event_data)
+        await self.broker.publish_event(topic=event_type, event_data=event_data)
         logger.info(f"Emitted {asset_type} {event_type_prefix} completed event",
                    job_id=job_id, event_id=event_id,
                    total=expected, done=done, is_timeout=is_timeout)
@@ -183,8 +183,9 @@ class CompletionEventPublisher:
         logger.debug("Checking for existing completion event", job_id=job_id, asset_type=asset_type,
                      completion_key_in_set=completion_key in self._completion_events_sent)
         if completion_key in self._completion_events_sent:
-            logger.info("Completion event already sent for this job and asset type, skipping duplicate",
-                       job_id=job_id, asset_type=asset_type)
+            logger.warning("DUPLICATE COMPLETION EVENT DETECTED - skipping",
+                          job_id=job_id, asset_type=asset_type, event_type_prefix=event_type_prefix,
+                          completion_key=completion_key, current_set_size=len(self._completion_events_sent))
             return
             
         # Mark this job and asset_type as having sent completion event
@@ -192,7 +193,7 @@ class CompletionEventPublisher:
         logger.debug("Added completion key to set", job_id=job_id, asset_type=asset_type,
                      current_set_size=len(self._completion_events_sent))
         
-        await self.broker.publish_event(event_type, event_data)
+        await self.broker.publish_event(topic=event_type, event_data=event_data)
         logger.info(f"Emitted {asset_type} {event_type_prefix} completed event",
                    job_id=job_id, event_id=event_id,
                    total=expected, done=done, is_timeout=False)
@@ -234,7 +235,7 @@ class CompletionEventPublisher:
         # Mark this job as having sent the completion event
         self._completion_events_sent.add(completion_key)
         
-        await self.broker.publish_event("products.images.masked.batch", event_data)
+        await self.broker.publish_event(topic="products.images.masked.batch", event_data=event_data)
         logger.info(f"Emitted products images masked batch event",
                    job_id=job_id, event_id=event_id, total_images=total_images)
 
@@ -262,7 +263,7 @@ class CompletionEventPublisher:
         # Mark this job as having sent the completion event
         self._completion_events_sent.add(completion_key)
         
-        await self.broker.publish_event("video.keyframes.masked.batch", event_data)
+        await self.broker.publish_event(topic="video.keyframes.masked.batch", event_data=event_data)
         logger.info(f"Emitted videos keyframes masked batch event",
                    job_id=job_id, event_id=event_id, total_keyframes=total_keyframes)
 
@@ -290,6 +291,6 @@ class CompletionEventPublisher:
         # Mark this job as having sent the completion event
         self._completion_events_sent.add(completion_key)
         
-        await self.broker.publish_event("videos.keyframes.ready.batch", event_data)
+        await self.broker.publish_event(topic="videos.keyframes.ready.batch", event_data=event_data)
         logger.info(f"Emitted videos keyframes ready batch event",
                    job_id=job_id, event_id=event_id, total_keyframes=total_keyframes)

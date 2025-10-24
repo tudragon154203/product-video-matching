@@ -292,17 +292,17 @@ class ProductSegmentorService:
                 processed=len(processed_frames),
             )
 
-        # Update progress for the batch of frames.
-        # Completion checks are handled by individual processing steps.
+        # Do not reset expected here; per-video batches would overwrite job-level expected.
+        # Completion checks are handled by individual processing steps and the job-level batch event.
         await self.job_progress_manager.update_job_progress(
             job_id,
             "frame",
-            len(frames),
+            0,
             0,
             event_type_prefix="segmentation",
         )
 
-        # Note: Completion check moved to individual asset processing to avoid duplicate events
+        # Note: Expected is set via videos_keyframes_ready_batch; avoid per-video overwrites.
 
     async def handle_videos_keyframes_ready_batch(self, event_data: dict) -> None:
         """Handle video keyframes batch completion event.
