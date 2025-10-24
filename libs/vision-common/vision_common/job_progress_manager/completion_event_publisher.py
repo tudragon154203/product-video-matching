@@ -50,9 +50,21 @@ class CompletionEventPublisher:
         }
 
     def _determine_event_type(self, asset_type: str, event_type_prefix: str) -> str:
-        """Determine the event type based on asset type and prefix"""
+        """Determine the event type based on asset type and prefix
+        Correct topics:
+        - products images segmentation batch → products.images.masked.batch
+        - video keyframes segmentation batch → video.keyframes.masked.batch
+        - embeddings/keypoints completion → image|video.<prefix>.completed
+        """
         if event_type_prefix == "segmentation":
-            return f"{asset_type}.masked.batch" if asset_type in ["products", "video"] else f"{asset_type}.{event_type_prefix}.completed"
+            if asset_type == "image" or asset_type == "products":
+                return "products.images.masked.batch"
+            elif asset_type == "video":
+                return "video.keyframes.masked.batch"
+            else:
+                # Fallback to completed naming if unknown asset_type
+                return f"{asset_type}.segmentation.completed"
+        # Non-segmentation completion events
         return f"image.{event_type_prefix}.completed" if asset_type == "image" else f"video.{event_type_prefix}.completed"
 
     async def _publish_event(self, event_type: str, event_data: Dict[str, Any], 
