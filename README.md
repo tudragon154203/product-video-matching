@@ -13,7 +13,8 @@ This system processes industry keywords to find visual matches between products 
 - **GPU acceleration** for embedding generation (with CPU fallback)
 - **Vector similarity search** using PostgreSQL + pgvector
 - **Evidence generation** with visual proof of matches
-- **REST API** for results and system management
+- **Integrated REST API** for job management and results
+- **Modern Web UI** built with Next.js and TypeScript
 - **Docker Compose** development environment
 
 ## Architecture
@@ -107,7 +108,7 @@ This system processes industry keywords to find visual matches between products 
 
 - Docker and Docker Compose
 - Python 3.10.8 (for development)
-- Make (optional, for convenience commands)
+- PowerShell (for Windows development scripts)
 
 
 ### 1. Clone and Setup
@@ -120,44 +121,42 @@ cd product-video-matching
 ### 2. Start Development Environment
 
 ```bash
-# Using Make (recommended)
-make up-dev
+# Windows PowerShell (recommended)
+.\_up-dev.ps1
 
 # Or using Docker Compose directly
 docker compose -f infra/pvm/docker-compose.dev.yml up -d --build
-
-# Windows PowerShell:
-.\up-dev.ps1
 ```
 
 ### 3. Run Database Migrations
 
-Note: `requirements-migrate.txt` is only needed if you want to migrate the database.
-
 ```bash
-make migrate
+# Windows PowerShell
+.\_migrate.ps1
 
-# Windows PowerShell:
-.\migrate.ps1
+# Or run directly
+python scripts/run_migrations.py
 ```
 
-### 4. Seed with Sample Data
+### 4. Run Smoke Test
 
 ```bash
-make seed
+# Windows PowerShell
+.\_smoke.ps1
 
-# Windows PowerShell:
-.\seed.ps1
+# Or run directly (if exists)
+python tests/manual_smoke_test.py
 ```
 
-### 5. Run Smoke Test
+## Access the Services
 
-```bash
-make smoke
+Once all services are running:
 
-# Windows PowerShell:
-.\smoke.ps1
-```
+- **Main API**: http://localhost:8888
+- **Web UI**: http://localhost:3000
+- **Database UI (pgAdmin)**: http://localhost:8081
+- **Redis UI (RedisInsight)**: http://localhost:5540
+- **RabbitMQ Management**: http://localhost:15672
 
 ## Testing
 
@@ -198,7 +197,7 @@ For detailed test documentation, see [CLAUDE.md](CLAUDE.md#testing) and the serv
 ### Starting a Matching Job
 
 ```bash
-curl -X POST http://localhost:8000/start-job \\
+curl -X POST http://localhost:8888/start-job \\
   -H "Content-Type: application/json" \\
   -d '{
     "industry": "ergonomic pillows",
@@ -212,40 +211,49 @@ curl -X POST http://localhost:8000/start-job \\
 ### Checking Job Status
 
 ```bash
-curl http://localhost:8000/status/{job_id}
+curl http://localhost:8888/status/{job_id}
 ```
 
 ### Getting Results
 
 ```bash
 # All results
-curl http://localhost:8000/results
+curl http://localhost:8888/results
 
 # Filtered results
-curl "http://localhost:8000/results?min_score=0.8&industry=pillows"
+curl "http://localhost:8888/results?min_score=0.8&industry=pillows"
 
 # Specific match details
-curl http://localhost:8000/matches/{match_id}
+curl http://localhost:8888/matches/{match_id}
 ```
 
 ### Viewing Evidence
 
 Evidence images are available at:
 ```
-http://localhost:8000/evidence/{match_id}
+http://localhost:8888/evidence/{match_id}
 ```
 
 ## API Documentation
 
-### Main API (Port 8000)
+### Main API (Port 8888)
 
 - `POST /start-job` - Start a new matching job
 - `GET /status/{job_id}` - Get job status and progress
 - `GET /results` - List matching results (with filtering)
 - `GET /matches/{id}` - Get match details
 - `GET /evidence/{match_id}` - Get evidence image
+- `GET /products` - Get products with pagination
+- `GET /videos` - Get videos with pagination
 - `GET /stats` - System statistics
 - `GET /health` - Health check
+
+### Web UI (Port 3000)
+
+- Modern React/Next.js interface for job management
+- Real-time job progress tracking
+- Product and video browsing with pagination
+- Interactive match results with evidence images
 
 
 ## Docker Build Optimization
@@ -311,7 +319,8 @@ This allows developers to modify shared library code and see changes take effect
 
 ```
 ├── services/           # Microservices
-│   ├── main-api/      # Job orchestration and results API
+│   ├── main-api/      # Job orchestration and integrated API
+│   ├── front-end/     # Next.js Web UI (React/TypeScript)
 │   ├── dropship-product-finder/  # Product collection
 │   ├── video-crawler/    # Video processing
 │   ├── vision-embedding/   # Deep learning features
@@ -325,42 +334,51 @@ This allows developers to modify shared library code and see changes take effect
 │   └── vision-common/ # Vision processing
 ├── infra/             # Infrastructure
 │   ├── pvm/           # Docker Compose files
-│   └── migrations/    # Database migrations
+│   ├── migrations/    # Database migrations
+│   └── init_db/      # Database initialization
 ├── data/              # Local data storage
 ├── scripts/           # Development scripts
-└── ops/               # Monitoring configs
+├── model_cache/       # Hugging Face model cache
+└── docs/              # Documentation and sprint specs
 ```
 
 ### Running Tests
 
 ```bash
-# Integration tests
-make test
+# Navigate to service directory first, then run:
+cd services/video-crawler
+python -m pytest -m unit          # Fast unit tests only
+python -m pytest -m integration  # Integration tests with external APIs
+python -m pytest tests/ -v       # All tests
 
-# Or manually
-python scripts/run_tests.py
+# Front-end tests
+cd services/front-end
+npm test                          # Jest unit tests
+npm run test:e2e                  # Playwright end-to-end tests
 ```
 
 ### Development Commands
 
 ```bash
-# Start services
-make up-dev
+# Start all services
+.\_up-dev.ps1
 
-# View logs
-make logs
+# Stop all services
+.\_down-dev.ps1
 
-# Restart specific service
-make restart-main-api
+# Restart services
+.\_restart.ps1
 
-# View service logs
-make logs-main-api
+# View logs (use Docker Compose directly)
+docker compose -f infra/pvm/docker-compose.dev.yml logs -f main-api
+docker compose -f infra/pvm/docker-compose.dev.yml logs -f front-end
 
 # Check service health
-make health
+curl http://localhost:8888/health
 
-# Clean up
-make down
+# Code formatting
+.\_autopep.ps1                    # Python formatting
+.\_flake8.ps1                     # Linting
 ```
 
 ### Adding New Services
@@ -379,28 +397,32 @@ For information about event contracts and message schemas, see [CONTRACTS.md](CO
 
 ### Environment Variables
 
-Key configuration options (set in docker-compose.dev.yml):
+Key configuration options (set in `.env`):
 
 ```bash
-# Database
-POSTGRES_DSN=postgresql://postgres:dev@localhost:5435/postgres
+# Database Configuration
+POSTGRES_USER=postgres
+POSTGRES_PASSWORD=postgres
+POSTGRES_DB=postgres
+POSTGRES_HOST=localhost
+POSTGRES_PORT=5435
 
-# Message Broker
-BUS_BROKER=amqp://guest:guest@localhost:5672/
+# Service Ports
+PORT_MAIN=8888          # Main API
+PORT_UI=3000            # Web UI
+PORT_RESULTS=8080        # (deprecated)
+PORT_REDIS=6379         # Redis
+PORT_REDIS_UI=5540       # Redis UI
+PORT_POSTGRES_UI=8081    # pgAdmin
 
-# Data Storage
-DATA_ROOT_CONTAINER=/app/data
+# Data Paths
+DATA_ROOT_HOST=data        # Host path
+DATA_ROOT=./data          # Container path
+MODEL_CACHE=model_cache   # Hugging Face models
 
-# Vision Models
-EMBED_MODEL=clip-vit-b32
-
-# Matching Thresholds
-RETRIEVAL_TOPK=20
-SIM_DEEP_MIN=0.82
-INLIERS_MIN=0.35
-MATCH_BEST_MIN=0.88
-MATCH_CONS_MIN=2
-MATCH_ACCEPT=0.80
+# Environment
+ENVIRONMENT=development
+LOG_LEVEL=INFO
 ```
 
 ### Matching Parameters
@@ -421,7 +443,7 @@ The system uses configurable thresholds for matching:
 All services expose `/health` endpoints:
 
 ```bash
-curl http://localhost:8000/health  # Main API
+curl http://localhost:8888/health  # Main API
 ```
 
 ### Metrics
@@ -429,7 +451,7 @@ curl http://localhost:8000/health  # Main API
 Basic metrics are available through service endpoints:
 
 ```bash
-curl http://localhost:8000/stats      # System statistics
+curl http://localhost:8888/stats      # System statistics
 ```
 
 ### Logs
@@ -437,8 +459,12 @@ curl http://localhost:8000/stats      # System statistics
 Structured JSON logs are available via Docker Compose:
 
 ```bash
-make logs                    # All services
-make logs-main-api      # Specific service
+# All services
+docker compose -f infra/pvm/docker-compose.dev.yml logs -f
+
+# Specific service
+docker compose -f infra/pvm/docker-compose.dev.yml logs -f main-api
+docker compose -f infra/pvm/docker-compose.dev.yml logs -f front-end
 ```
 
 ## Troubleshooting
@@ -447,15 +473,20 @@ make logs-main-api      # Specific service
 
 1. **Services not starting**
    - Check Docker daemon is running
-   - Verify ports 5435, 5672, 8000 are available
-   - Run `make down` then `make up-dev`
+   - Verify ports 5435, 5672, 8888, 3000 are available
+   - Run `.\_down-dev.ps1` then `.\_up-dev.ps1`
 
 2. **Database connection errors**
    - Ensure PostgreSQL container is healthy
-   - Check `POSTGRES_DSN` in docker-compose.dev.yml
-   - Run `make migrate` after startup
+   - Check `.env` file for correct database configuration
+   - Run `.\_migrate.ps1` after startup
 
-3. **No matches found**
+3. **Web UI not loading**
+   - Ensure front-end service is running
+   - Check port 3000 availability
+   - Verify Main API is accessible on port 8888
+
+4. **No matches found**
    - This is expected with mock data in MVP
    - Check job status for errors
    - Verify all services are healthy
@@ -469,14 +500,15 @@ make logs-main-api      # Specific service
 
 Enable debug logging:
 
-Set `LOG_LEVEL=DEBUG` in the service environment in docker-compose.dev.yml
+Set `LOG_LEVEL=DEBUG` in the `.env` file
 
 ### Service Dependencies
 
 Service startup order:
-1. PostgreSQL, RabbitMQ
+1. PostgreSQL, RabbitMQ, Redis
 2. Main API
-3. All processing services
+3. Front-end (depends on Main API)
+4. All processing services
 
 ## Performance
 
