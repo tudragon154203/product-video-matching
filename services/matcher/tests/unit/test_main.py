@@ -153,7 +153,7 @@ class TestMain:
 
             # Should handle and log the error (not raise)
             await main()
-            
+
             # Verify error was logged
             mock_logger.error.assert_called()
 

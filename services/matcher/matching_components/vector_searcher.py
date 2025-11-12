@@ -165,14 +165,14 @@ class VectorSearcher:
                 import ast
                 parsed = ast.literal_eval(embedding)
                 return np.array(parsed, dtype=np.float32)
-            except:
+            except (ValueError, SyntaxError):
                 # Fallback: split by comma and convert to float
                 try:
                     values = [float(x.strip()) for x in embedding.strip('[]').split(',') if x.strip()]
                     return np.array(values, dtype=np.float32)
-                except:
+                except (ValueError, TypeError) as e:
                     logger.error(f"Failed to convert embedding string to array: {embedding[:100]}...")
-                    raise
+                    raise e
 
         raise ValueError(f"Unsupported embedding type: {type(embedding)}")
 
@@ -216,19 +216,19 @@ class VectorSearcher:
                 # Convert embeddings in frame_dict to numpy arrays for similarity calculation
                 frame_dict_rgb = frame_dict.get("emb_rgb")
                 frame_dict_gray = frame_dict.get("emb_gray")
-                
+
                 # Convert string embeddings to numpy arrays for similarity calculation
                 if isinstance(frame_dict_rgb, str):
                     try:
                         frame_dict_rgb = self._convert_embedding(frame_dict_rgb)
-                    except:
+                    except (ValueError, TypeError):
                         frame_dict_rgb = np.array([0.7])  # Fallback default similarity
                 if isinstance(frame_dict_gray, str):
                     try:
                         frame_dict_gray = self._convert_embedding(frame_dict_gray)
-                    except:
+                    except (ValueError, TypeError):
                         frame_dict_gray = np.array([0.7])  # Fallback default similarity
-                
+
                 if frame_dict_rgb is not None and frame_dict_gray is not None:
                     similarity = np.dot(frame_dict_rgb, frame_dict_gray) / (
                         np.linalg.norm(frame_dict_rgb) * np.linalg.norm(frame_dict_gray)

@@ -4,10 +4,9 @@ Core Integration Tests for Main API
 These tests focus on essential integration scenarios without heavy mocking.
 Tests should use real database connections and test actual API behavior.
 """
+import asyncio
 import pytest
 import httpx
-import asyncio
-from datetime import datetime, timezone
 
 pytestmark = pytest.mark.integration
 
@@ -218,8 +217,6 @@ class TestErrorHandlingIntegration:
 
 if __name__ == "__main__":
     # Run tests directly
-    import asyncio
-
     async def run_tests():
         test_instance = TestCoreIntegration()
         error_test_instance = TestErrorHandlingIntegration()

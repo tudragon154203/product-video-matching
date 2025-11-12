@@ -35,7 +35,11 @@ class MatcherConfig:
     POSTGRES_HOST: str = os.getenv("POSTGRES_HOST", global_config.POSTGRES_HOST)
     POSTGRES_PORT: str = os.getenv("POSTGRES_PORT", "5432")
     POSTGRES_DB: str = os.getenv("POSTGRES_DB", global_config.POSTGRES_DB)
-    POSTGRES_DSN: str = os.getenv("POSTGRES_DSN") or f"postgresql://{POSTGRES_USER}:{POSTGRES_PASSWORD}@{POSTGRES_HOST}:{POSTGRES_PORT}/{POSTGRES_DB}?sslmode=disable"
+    POSTGRES_DSN: str = (
+        os.getenv("POSTGRES_DSN") or
+        f"postgresql://{POSTGRES_USER}:{POSTGRES_PASSWORD}@"
+        f"{POSTGRES_HOST}:{POSTGRES_PORT}/{POSTGRES_DB}?sslmode=disable"
+    )
 
     # Message broker configuration (from service env with fallback to global config)
     BUS_BROKER: str = os.getenv("BUS_BROKER", global_config.BUS_BROKER)

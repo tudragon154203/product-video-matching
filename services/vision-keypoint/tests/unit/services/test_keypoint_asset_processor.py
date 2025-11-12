@@ -293,6 +293,10 @@ class TestKeypointAssetProcessor:
             event_type="test_event"
         )
 
-        # Assertions - initialize_with_high_expected should be called for zero-asset job when tracking doesn't exist
-        self.mock_progress_manager.initialize_with_high_expected.assert_called_once_with("zero_job", "image", 0, event_type_prefix="keypoints")
+        # Assertions - initialize_with_high_expected should be called
+        # for zero-asset job when tracking doesn't exist
+        self.mock_progress_manager.initialize_with_high_expected \
+            .assert_called_once_with(
+                "zero_job", "image", 0, event_type_prefix="keypoints"
+            )
         self.mock_progress_manager.update_job_progress.assert_called_once()

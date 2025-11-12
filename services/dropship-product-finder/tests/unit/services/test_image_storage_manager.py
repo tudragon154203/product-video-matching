@@ -1,5 +1,4 @@
 import uuid
-from common_py.models import ProductImage
 from services.image_storage_manager import ImageStorageManager
 import pytest
 from unittest.mock import AsyncMock, patch, MagicMock

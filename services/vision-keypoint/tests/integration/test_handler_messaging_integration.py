@@ -1,7 +1,6 @@
 """Integration test for handler messaging with correct method signatures"""
 
 import pytest
-import asyncio
 from unittest.mock import Mock, AsyncMock, patch
 from handlers.keypoint_handler import VisionKeypointHandler
 from common_py.messaging_handler import MessageHandler
@@ -44,11 +43,6 @@ class TestHandlerMessagingIntegration:
 
     async def test_handler_signature_compatibility_with_messaging_system(self, handler):
         """Test that handler methods have correct signatures for messaging system"""
-
-        # Mock the message handler's broker exchange and DLQ
-        mock_exchange = Mock()
-        mock_dlq_name = "test.dlq"
-        message_handler = MessageHandler(mock_exchange, mock_dlq_name)
 
         # Test data that would come from RabbitMQ
         event_data = {
@@ -121,8 +115,10 @@ class TestHandlerMessagingIntegration:
         # Verify all methods were called successfully
         handler.service.handle_products_image_masked.assert_called_once()
         handler.service.handle_video_keyframes_masked.assert_called_once()
-        handler.service.handle_products_images_masked_batch.assert_called_once()
-        handler.service.handle_videos_keyframes_masked_batch.assert_called_once()
+        batch_handler = handler.service.handle_products_images_masked_batch
+        batch_handler.assert_called_once()
+        keyframes_handler = handler.service.handle_videos_keyframes_masked_batch
+        keyframes_handler.assert_called_once()
 
     async def test_message_handler_calls_with_correct_signature(self, mock_dependencies):
         """Test the full message handling flow with correct signatures"""
@@ -139,7 +135,7 @@ class TestHandlerMessagingIntegration:
         # Create message handler
         mock_exchange = Mock()
         mock_dlq_name = "test.dlq"
-        message_handler = MessageHandler(mock_exchange, mock_dlq_name)
+        msg_handler = MessageHandler(mock_exchange, mock_dlq_name)
 
         # Create mock message
         import json
@@ -158,7 +154,7 @@ class TestHandlerMessagingIntegration:
 
         # Test the full flow - this should not raise a signature error
         try:
-            await message_handler.handle_message(
+            await msg_handler.handle_message(
                 mock_message,
                 handler.handle_products_image_masked,
                 "products.image.masked"

@@ -3,11 +3,10 @@
 import os
 import tempfile
 import shutil
-from unittest.mock import AsyncMock, patch, MagicMock
+from unittest.mock import patch, MagicMock
 from pathlib import Path
 
 import pytest
-import numpy as np
 
 from segmentation.models.yolo_segmentor import YOLOSegmentor
 
@@ -158,14 +157,13 @@ class TestYOLOSegmentor:
             mock_config.MODEL_CACHE = temp_model_cache
 
             # Simulate ultralytics creating file with different naming
-            unexpected_path = os.path.join(temp_model_cache, 'yolo11l-seg.pt')
-            expected_path = os.path.join(temp_model_cache, 'yolo11l-seg.pt')
+            model_path = os.path.join(temp_model_cache, 'yolo11l-seg.pt')
 
-            # Create file at unexpected location
-            Path(unexpected_path).touch()
+            # Create file at location
+            Path(model_path).touch()
 
             with patch('os.path.exists') as mock_exists:
-                mock_exists.side_effect = lambda path: path == unexpected_path
+                mock_exists.side_effect = lambda path: path == model_path
 
                 with patch('os.rename') as mock_rename:
                     segmentor = YOLOSegmentor('yolo11l-seg')

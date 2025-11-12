@@ -1,6 +1,5 @@
 import pytest
-import asyncio
-from unittest.mock import Mock, AsyncMock, patch
+from unittest.mock import Mock, patch
 
 from handlers.decorators import validate_event, handle_errors
 from contracts.validator import validator
@@ -71,7 +70,7 @@ class TestValidateEventDecorator:
     @pytest.mark.asyncio
     async def test_validate_event_missing_data_raises_error(self):
         """Test that the decorator raises ValueError when event_data is missing"""
-        with patch.object(validator, 'validate_event') as mock_validate:
+        with patch.object(validator, 'validate_event'):
             @validate_event("products_image_masked")  # Use a real schema
             async def test_handler(self):
                 return "should not reach here"

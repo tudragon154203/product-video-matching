@@ -2,7 +2,6 @@ import pytest
 from unittest.mock import AsyncMock
 import sys
 import os
-import redis.asyncio as redis  # Import redis directly
 
 pytestmark = pytest.mark.unit
 
@@ -27,9 +26,8 @@ async def test_service_context_happy_path(monkeypatch):
     mock_db_disconnect = AsyncMock()
     mock_broker_connect = AsyncMock()
     mock_broker_disconnect = AsyncMock()
-    mock_redis_ping = AsyncMock(return_value="PONG")
     mock_redis_close = AsyncMock(return_value=None)
-    mock_update_redis_client = AsyncMock(return_value=None)  # Fix: return None instead of coroutine
+    mock_update_redis_client = AsyncMock(return_value=None)
 
     class MockDB:
         connect = mock_db_connect
@@ -64,7 +62,7 @@ async def test_service_context_happy_path(monkeypatch):
     monkeypatch.setattr("main.redis", MockRedis)
 
     # Execute the context manager
-    async with service_context() as handler:
+    async with service_context():
         # Assert connections were made
         mock_db_connect.assert_called_once()
         mock_broker_connect.assert_called_once()

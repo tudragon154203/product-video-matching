@@ -1,6 +1,5 @@
 """Utilities for calculating embedding similarities."""
 
-import ast
 from typing import Any, Dict, List
 
 import numpy as np
@@ -38,7 +37,7 @@ class EmbeddingSimilarity:
             # Debug logging to understand embedding formats
             img_rgb = image_embedding.get("emb_rgb")
             frame_rgb = frame_embedding.get("emb_rgb")
-            
+
             logger.debug(
                 "Embedding details",
                 img_rgb_type=type(img_rgb),
@@ -46,7 +45,7 @@ class EmbeddingSimilarity:
                 img_rgb_len=len(img_rgb) if hasattr(img_rgb, '__len__') else None,
                 frame_rgb_len=len(frame_rgb) if hasattr(frame_rgb, '__len__') else None,
             )
-            
+
             # Skip validation for now - proceed with embedding calculation
             # String embeddings from pgvector will be handled in the calculation logic
             # if not self._validate_embeddings(image_embedding, frame_embedding):
@@ -100,14 +99,14 @@ class EmbeddingSimilarity:
                 import ast
                 try:
                     img_rgb = ast.literal_eval(img_rgb)
-                except:
+                except (ValueError, SyntaxError):
                     img_rgb = [float(x) for x in img_rgb.strip('[]').split(',') if x.strip()]
 
             if isinstance(frame_rgb, str):
                 import ast
                 try:
                     frame_rgb = ast.literal_eval(frame_rgb)
-                except:
+                except (ValueError, SyntaxError):
                     frame_rgb = [float(x) for x in frame_rgb.strip('[]').split(',') if x.strip()]
 
             rgb_similarity = self._calculate_cosine_similarity(
@@ -128,13 +127,13 @@ class EmbeddingSimilarity:
             if isinstance(img_gray, str):
                 try:
                     img_gray = ast.literal_eval(img_gray)
-                except:
+                except (ValueError, SyntaxError):
                     img_gray = [float(x) for x in img_gray.strip('[]').split(',') if x.strip()]
 
             if isinstance(frame_gray, str):
                 try:
                     frame_gray = ast.literal_eval(frame_gray)
-                except:
+                except (ValueError, SyntaxError):
                     frame_gray = [float(x) for x in frame_gray.strip('[]').split(',') if x.strip()]
 
             gray_similarity = self._calculate_cosine_similarity(
@@ -166,7 +165,7 @@ class EmbeddingSimilarity:
         frame_rgb = frame_embedding.get("emb_rgb")
         img_gray = image_embedding.get("emb_gray")
         frame_gray = frame_embedding.get("emb_gray")
-        
+
         # Helper function to check if embedding is valid (string, list, tuple, or ndarray with content)
         def is_embedding_valid(emb):
             if emb is None:
@@ -178,7 +177,7 @@ class EmbeddingSimilarity:
             if hasattr(emb, '__len__'):
                 return len(emb) > 0
             return False
-        
+
         return (
             isinstance(image_embedding, dict)
             and isinstance(frame_embedding, dict)

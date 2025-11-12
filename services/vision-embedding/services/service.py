@@ -361,7 +361,7 @@ class VisionEmbeddingService:
             local_path = event_data["local_path"]
             job_id = event_data.get("job_id")
 
-            success = await self._handle_single_asset_processing(
+            await self._handle_single_asset_processing(
                 job_id,
                 image_id,
                 "image",
