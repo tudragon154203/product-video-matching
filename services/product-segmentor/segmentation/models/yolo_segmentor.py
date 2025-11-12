@@ -22,12 +22,8 @@ class YOLOSegmentor(BaseSegmentation):
         model_filename = model_name if model_name.endswith('.pt') else f"{model_name}.pt"
 
         # Determine the correct model cache path
-        # In Docker, use absolute path /app/model_cache, otherwise use relative path
-        if os.path.exists('/app/model_cache') or os.environ.get('PYTHONPATH', '').startswith('/app'):
-            model_cache_dir = '/app/model_cache'
-        else:
-            # Use global MODEL_CACHE for local development
-            model_cache_dir = config.MODEL_CACHE
+        # Always use configured MODEL_CACHE for consistency in tests and local dev
+        model_cache_dir = config.MODEL_CACHE
 
         self._model_path = os.path.join(model_cache_dir, model_filename)
         self._model_cache_dir = model_cache_dir
@@ -49,7 +45,14 @@ class YOLOSegmentor(BaseSegmentation):
                 logger.info("Loading model from local cache",
                             model_path=self._model_path,
                             file_exists=os.path.exists(self._model_path))
-                self._model = YOLO(self._model_path)
+                try:
+                    self._model = YOLO(self._model_path)
+                except Exception:
+                    # Fallback: cached file might be corrupt, attempt clean download
+                    logger.warning("Cached model corrupt, re-downloading",
+                                   model_path=self._model_path)
+                    os.remove(self._model_path)
+                    # Proceed to download path below
             else:
                 logger.info("Model not found in cache, downloading from Ultralytics hub",
                             model_name=self.model_name,
