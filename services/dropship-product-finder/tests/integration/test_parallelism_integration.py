@@ -68,7 +68,7 @@ async def test_parallel_execution_with_real_components():
     start_time = time.time()
 
     amazon_count, ebay_count = await manager.collect_and_store_products(
-        "integration_test_job", queries, top_amz, top_ebay
+        "integration_test_job", queries, top_amz, top_ebay, "test_correlation_id"
     )
 
     end_time = time.time()
@@ -160,7 +160,7 @@ async def test_error_resilience_integration():
     top_ebay = 1
 
     amazon_count, ebay_count = await manager.collect_and_store_products(
-        "error_test_job", queries, top_amz, top_ebay
+        "error_test_job", queries, top_amz, top_ebay, "test_correlation_id"
     )
 
     # Amazon should have 2 successful products (electronics failed, fashion succeeded, home succeeded)

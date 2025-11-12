@@ -1,6 +1,7 @@
 # Mac dev 
 infra/pvm/sync_compose.py.backup
 
+
 # LLM
 demo/
 desktop.ini
@@ -14,6 +15,7 @@ mcp.json
 infra/qdrant/data
 .stfolder
 .stignore
+.kiro/
 
 # Docs
 .roo*

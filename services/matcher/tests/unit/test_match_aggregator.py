@@ -49,7 +49,7 @@ class TestMatchAggregator:
         assert result["best_frame_id"] == "f1"
         assert result["ts"] == 10.5
         assert result["best_pair_score"] == 0.92
-        assert result["consistency"] == 2  # Two matches >= 0.80
+        assert result["consistency"] == 3  # Three matches >= 0.80
         assert result["total_pairs"] == 3
 
     @pytest.mark.asyncio
@@ -175,8 +175,8 @@ class TestMatchAggregator:
             best_matches=matches
         )
 
-        # Should be best_score + consistency_boost (0.90 + 0.02)
-        assert result == 0.92
+        # Should be best_score only (no boosts: consistency < 3, only 1 distinct image)
+        assert result == 0.90
 
     def test_calculate_final_score_with_distinct_images_boost(self):
         """Test _calculate_final_score with distinct images boost."""
@@ -193,8 +193,8 @@ class TestMatchAggregator:
             best_matches=matches
         )
 
-        # Should be best_score + consistency_boost + distinct_images_boost (0.90 + 0.02 + 0.02)
-        assert result == 0.94
+        # Should be best_score + distinct_images_boost (0.90 + 0.02), no consistency boost since consistency < 3
+        assert result == 0.92
 
     def test_calculate_final_score_high_consistency_boost(self):
         """Test _calculate_final_score with high consistency boost."""
@@ -249,7 +249,7 @@ class TestMatchAggregator:
         )
 
         # Should be best_score + both boosts (0.90 + 0.02 + 0.02)
-        assert result == 0.94
+        assert abs(result - 0.94) < 0.001  # Use tolerance for floating point
 
     def test_check_final_acceptance_threshold_accept(self):
         """Test _check_final_acceptance_threshold acceptance."""

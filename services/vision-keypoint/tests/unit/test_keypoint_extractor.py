@@ -271,17 +271,20 @@ class TestKeypointExtractor:
         mock_imread.return_value = np.random.randint(0, 255, (100, 100), dtype=np.uint8)
         mock_resize.return_value = np.random.randint(0, 255, (64, 64), dtype=np.uint8)
 
-        # Mock successful keypoint detection
-        mock_keypoint = Mock()
-        mock_keypoint.pt = (10, 20)
-        mock_keypoint.angle = 45.0
-        mock_keypoint.response = 0.8
-        mock_keypoint.octave = 1
-        mock_keypoint.size = 5.0
+        # Mock successful keypoint detection with enough keypoints
+        mock_keypoints = []
+        for i in range(15):  # More than 10 to avoid SIFT fallback
+            mock_kp = Mock()
+            mock_kp.pt = (10 + i, 20 + i)
+            mock_kp.angle = 45.0
+            mock_kp.response = 0.8
+            mock_kp.octave = 1
+            mock_kp.size = 5.0
+            mock_keypoints.append(mock_kp)
 
         mock_akaze_instance = Mock()
-        mock_akaze_instance.detectAndCompute.return_value = ([mock_keypoint],
-                                                             np.random.randint(0, 255, (1, 64), dtype=np.uint8))
+        mock_akaze_instance.detectAndCompute.return_value = (mock_keypoints,
+                                                             np.random.randint(0, 255, (15, 64), dtype=np.uint8))
 
         self.extractor.akaze = mock_akaze_instance
 

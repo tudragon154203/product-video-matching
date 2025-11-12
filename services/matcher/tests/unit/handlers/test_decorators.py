@@ -129,7 +129,7 @@ class TestHandleErrors:
             mock_logger.error.assert_called_once()
             error_call = mock_logger.error.call_args
             assert "Error in test_function" in error_call[0][0]
-            assert "Test error" in error_call[1]["error"]
+            assert "Test error" in error_call[0][0]
 
     @pytest.mark.asyncio
     async def test_handle_errors_with_different_exception_types(self):
@@ -147,7 +147,7 @@ class TestHandleErrors:
             mock_logger.error.assert_called_once()
             error_call = mock_logger.error.call_args
             assert "Error in test_function" in error_call[0][0]
-            assert "Runtime error" in error_call[1]["error"]
+            assert "Runtime error" in error_call[0][0]
 
     @pytest.mark.asyncio
     async def test_handle_errors_preserves_function_metadata(self):

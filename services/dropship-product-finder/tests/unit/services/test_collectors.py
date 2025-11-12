@@ -22,6 +22,7 @@ def mock_redis():
     redis.setex = AsyncMock()
     redis.set = AsyncMock()
     redis.delete = AsyncMock()
+    redis.ping = AsyncMock(return_value="PONG")  # Add ping method
     return redis
 
 

@@ -13,8 +13,13 @@ pytestmark = pytest.mark.unit
 
 @pytest.fixture
 def mock_db():
-    """Mock database manager."""
-    return MagicMock()
+    """Mock database manager with proper pool handling."""
+    db_mock = MagicMock()
+    # Mock database connection and pool
+    conn_mock = MagicMock(execute=AsyncMock(), fetchval=AsyncMock())
+    db_mock.pool = MagicMock()
+    db_mock.pool.acquire = MagicMock(return_value=MagicMock(__aenter__=AsyncMock(return_value=conn_mock), __aexit__=AsyncMock()))
+    return db_mock
 
 
 @pytest.fixture

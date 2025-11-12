@@ -126,10 +126,11 @@ class TestMatcherHandler:
                 test_event_data = {
                     "product_id": "test_product",
                     "video_id": "test_video",
-                    "job_id": "test_job"
+                    "job_id": "test_job",
+                    "event_id": "test_event_123"
                 }
 
-                await handler.handle_match_request(test_event_data)
+                await handler.handle_match_request(test_event_data, "test_correlation_id")
 
                 # Verify service method was called with correct data
                 mock_service.handle_match_request.assert_called_once_with(test_event_data)
@@ -162,7 +163,8 @@ class TestMatcherHandler:
                 test_event_data = {
                     "product_id": "test_product",
                     "video_id": "test_video",
-                    "job_id": "test_job"
+                    "job_id": "test_job",
+                    "event_id": "test_event_123"
                 }
 
                 # Mock the initialize method to track if it's called
@@ -171,7 +173,7 @@ class TestMatcherHandler:
                 # Mock the decorators to bypass validation for this test
                 with patch('handlers.matcher_handler.validate_event'), \
                         patch('handlers.matcher_handler.handle_errors'):
-                    await handler.handle_match_request(test_event_data)
+                    await handler.handle_match_request(test_event_data, "test_correlation_id")
 
                 # Note: Since decorators are mocked, initialize won't be called automatically
                 # In real scenario, decorators would handle the flow
@@ -205,7 +207,8 @@ class TestMatcherHandler:
                 test_event_data = {
                     "product_id": "test_product",
                     "video_id": "test_video",
-                    "job_id": "test_job"
+                    "job_id": "test_job",
+                    "event_id": "test_event_123"
                 }
 
                 # Mock decorators to bypass validation
@@ -214,7 +217,7 @@ class TestMatcherHandler:
                     mock_error_handler.side_effect = lambda func: func
 
                     with pytest.raises(ValueError, match="Service error"):
-                        await handler.handle_match_request(test_event_data)
+                        await handler.handle_match_request(test_event_data, "test_correlation_id")
 
                     mock_service.handle_match_request.assert_called_once_with(test_event_data)
 

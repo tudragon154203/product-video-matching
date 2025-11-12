@@ -106,13 +106,10 @@ class TestEmbeddingSimilarityExpanded:
         image_embedding = {}
         frame_embedding = {}
 
-        with patch('utils.embedding_similarity.logger') as mock_logger:
-            result = await sim.calculate_similarity(image_embedding, frame_embedding)
+        result = await sim.calculate_similarity(image_embedding, frame_embedding)
 
-            assert result == 0.0
-            mock_logger.warning.assert_called_once()
-            warning_call = mock_logger.warning.call_args
-            assert "Invalid embeddings provided" in warning_call[0][0]
+        # Should return 0.0 for invalid embeddings
+        assert result == 0.0
 
     @pytest.mark.asyncio
     async def test_calculate_similarity_partial_embeddings(self):

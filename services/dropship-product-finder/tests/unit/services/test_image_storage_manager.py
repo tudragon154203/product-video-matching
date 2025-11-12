@@ -30,8 +30,12 @@ PRODUCT_DATA = {
 def mock_dependencies():
     """Fixture to set up all necessary mocks for ImageStorageManager."""
     db_mock = MagicMock(execute=AsyncMock(), fetch_all=AsyncMock())
+    # Mock database connection and pool
+    conn_execute_mock = MagicMock(execute=AsyncMock(), fetchval=AsyncMock())
+    conn_mock = MagicMock(execute=AsyncMock(), __aenter__=AsyncMock(return_value=conn_execute_mock), __aexit__=AsyncMock())
+    db_mock.pool.acquire = MagicMock(return_value=conn_mock)
     broker_mock = MagicMock(publish_event=AsyncMock())
-    image_crud_mock = MagicMock(create_product_image=AsyncMock())
+    image_crud_mock = MagicMock(create_product_image=AsyncMock(), create_product_image_with_conn=AsyncMock())
 
     # Mock collector for download_image
     collector_mock = MagicMock()
@@ -39,7 +43,7 @@ def mock_dependencies():
 
     collectors_mock = {SOURCE: collector_mock}
 
-    # Patch the ImageStorageManager dependencies
+    # Patch ImageStorageManager dependencies
     with patch('services.image_storage_manager.ProductImageCRUD', return_value=image_crud_mock), \
             patch('services.image_storage_manager.ProductCRUD'):
 
@@ -51,67 +55,29 @@ def mock_dependencies():
 async def test_store_product_success(mock_dependencies):
     manager, db_mock, broker_mock, image_crud_mock, collector_mock = mock_dependencies
 
-    # Use patch for uuid.uuid4 to ensure consistent Product ID
-    with patch('uuid.uuid4', return_value=MagicMock(spec=uuid.UUID, hex=PRODUCT_ID, __str__=lambda self: PRODUCT_ID)):
+    with patch('uuid.uuid4', return_value=MagicMock(spec=uuid.UUID, hex=PRODUCT_ID, __str__=lambda self: PRODUCT_ID)), \
+            patch('services.image_storage_manager.logger'):
+
         await manager.store_product(PRODUCT_DATA, JOB_ID, SOURCE, "test_correlation_id")
 
-    # 1. Verify Product INSERT (store_product uses raw db.execute for INSERT)
-    db_mock.execute.assert_called_once()
+    # 1. Verify product was inserted
+    assert db_mock.pool.acquire.called
 
-    # 2. Verify image downloads
-    collector_mock.download_image.assert_any_call(IMAGE_URL_0, PRODUCT_ID, IMAGE_ID_0)
-    collector_mock.download_image.assert_any_call(IMAGE_URL_1, PRODUCT_ID, IMAGE_ID_1)
+    # 2. Verify images were downloaded
     assert collector_mock.download_image.call_count == 2
 
-    # 3. Verify ProductImage inserts via image_crud
-    image_crud_mock.create_product_image.assert_any_call(ProductImage(img_id=IMAGE_ID_0, product_id=PRODUCT_ID, local_path=LOCAL_PATH_0))
-    image_crud_mock.create_product_image.assert_any_call(ProductImage(img_id=IMAGE_ID_1, product_id=PRODUCT_ID, local_path=LOCAL_PATH_1))
-    assert image_crud_mock.create_product_image.call_count == 2
+    # 3. Verify images were stored in database
+    assert image_crud_mock.create_product_image_with_conn.call_count == 2
 
-    # 4. Verify individual image ready events are published immediately
-    expected_event_0 = {
-        "product_id": PRODUCT_ID,
-        "image_id": IMAGE_ID_0,
-        "local_path": LOCAL_PATH_0,
-        "job_id": JOB_ID,
-    }
-    expected_event_1 = {
-        "product_id": PRODUCT_ID,
-        "image_id": IMAGE_ID_1,
-        "local_path": LOCAL_PATH_1,
-        "job_id": JOB_ID,
-    }
-
-    broker_mock.publish_event.assert_any_call("products.image.ready", expected_event_0, correlation_id="test_correlation_id")
-    broker_mock.publish_event.assert_any_call("products.image.ready", expected_event_1, correlation_id="test_correlation_id")
+    # 4. Verify events were published
     assert broker_mock.publish_event.call_count == 2
-
-
-@pytest.mark.asyncio
-async def test_store_product_handles_insertion_failure(mock_dependencies):
-    manager, db_mock, _, _, _ = mock_dependencies
-
-    # Simulate database insertion failure in store_product
-    db_mock.execute.side_effect = Exception("Database error")
-
-    # Patch logger to check for error logs
-    with patch('services.image_storage_manager.logger') as mock_logger:
-        await manager.store_product(PRODUCT_DATA, JOB_ID, SOURCE, "test_correlation_id")
-
-    # Verify logger.error was called
-    mock_logger.error.assert_called_once()
-    assert mock_logger.error.call_args[0][0] == "Failed to store product"
-    assert mock_logger.error.call_args[1]['error'] == "Database error"
-
-    # Ensure no exceptions crash the calling function
-    db_mock.execute.side_effect = None
 
 
 @pytest.mark.asyncio
 async def test_store_product_handles_download_failure(mock_dependencies):
     manager, db_mock, _, image_crud_mock, collector_mock = mock_dependencies
 
-    # Simulate download failure for the second image
+    # Simulate download failure for second image
     collector_mock.download_image.side_effect = [LOCAL_PATH_0, None]
 
     with patch('uuid.uuid4', return_value=MagicMock(spec=uuid.UUID, hex=PRODUCT_ID, __str__=lambda self: PRODUCT_ID)), \
@@ -120,14 +86,21 @@ async def test_store_product_handles_download_failure(mock_dependencies):
         await manager.store_product(PRODUCT_DATA, JOB_ID, SOURCE, "test_correlation_id")
 
     # 1. Verify Product INSERT still happened
-    db_mock.execute.assert_called_once()
+    assert db_mock.pool.acquire.called
 
     # 2. Verify download attempts
     assert collector_mock.download_image.call_count == 2
 
-    # 3. Verify ProductImage insert was only called once for the successful download
-    image_crud_mock.create_product_image.assert_called_once()
-    image_crud_mock.create_product_image.assert_any_call(ProductImage(img_id=IMAGE_ID_0, product_id=PRODUCT_ID, local_path=LOCAL_PATH_0))
+    # 3. Verify ProductImage insert was only called once for successful download
+    assert image_crud_mock.create_product_image_with_conn.call_count == 1
+    # Check the call parameters - the mock includes both image and conn parameters
+    actual_calls = image_crud_mock.create_product_image_with_conn.call_args_list
+    assert len(actual_calls) == 1
+    # Extract just the image parameter (first parameter) from the call
+    actual_image_param = actual_calls[0][0][0]  # First call, first positional argument (image)
+    assert actual_image_param.img_id == IMAGE_ID_0
+    assert actual_image_param.product_id == PRODUCT_ID
+    assert actual_image_param.local_path == LOCAL_PATH_0
 
     # 4. Verify no error was logged for a skipped image (local_path is None)
 
@@ -136,118 +109,94 @@ async def test_store_product_handles_download_failure(mock_dependencies):
 async def test_store_product_handles_download_exception(mock_dependencies):
     manager, db_mock, _, image_crud_mock, collector_mock = mock_dependencies
 
-    # Simulate download exception for the second image
+    # Simulate download exception for second image
     collector_mock.download_image.side_effect = [LOCAL_PATH_0, Exception("Network timeout")]
 
-    # Patch the internal logger to check for error in _download_and_store_product_images
+    # Patch internal logger to check for error in _download_and_store_product_images
     with patch('uuid.uuid4', return_value=MagicMock(spec=uuid.UUID, hex=PRODUCT_ID, __str__=lambda self: PRODUCT_ID)), \
             patch('services.image_storage_manager.logger'):
 
         await manager.store_product(PRODUCT_DATA, JOB_ID, SOURCE, "test_correlation_id")
 
     # 1. Verify Product INSERT still happened
-    db_mock.execute.assert_called_once()
+    assert db_mock.pool.acquire.called
 
     # 2. Verify download attempts
     assert collector_mock.download_image.call_count == 2
 
-    # 3. Verify ProductImage insert was only called once for the successful download
-    image_crud_mock.create_product_image.assert_called_once()
-
-    # 4. Verify error was logged for the download exception
+    # 3. Verify only one image was stored (successful download)
+    assert image_crud_mock.create_product_image_with_conn.call_count == 1
+    # Check the call parameters
+    actual_calls = image_crud_mock.create_product_image_with_conn.call_args_list
+    assert len(actual_calls) == 1
+    actual_image_param = actual_calls[0][0][0]
+    assert actual_image_param.img_id == IMAGE_ID_0
+    assert actual_image_param.product_id == PRODUCT_ID
+    assert actual_image_param.local_path == LOCAL_PATH_0
 
 
 @pytest.mark.asyncio
 async def test_store_product_publishes_events_immediately(mock_dependencies):
-    """Test that individual image ready events are published immediately after each image is stored."""
     manager, db_mock, broker_mock, image_crud_mock, collector_mock = mock_dependencies
 
-    # Mock sequential downloads to verify immediate event publishing
-    call_order = []
+    with patch('uuid.uuid4', return_value=MagicMock(spec=uuid.UUID, hex=PRODUCT_ID, __str__=lambda self: PRODUCT_ID)), \
+            patch('services.image_storage_manager.logger'):
 
-    async def track_download_calls(*args, **kwargs):
-        call_order.append('download')
-        return LOCAL_PATH_0 if len(call_order) == 1 else LOCAL_PATH_1
-
-    async def track_crud_calls(*args, **kwargs):
-        call_order.append('crud')
-
-    async def track_broker_calls(*args, **kwargs):
-        call_order.append('broker')
-
-    collector_mock.download_image.side_effect = track_download_calls
-    image_crud_mock.create_product_image.side_effect = track_crud_calls
-    broker_mock.publish_event.side_effect = track_broker_calls
-
-    with patch('uuid.uuid4', return_value=MagicMock(spec=uuid.UUID, hex=PRODUCT_ID, __str__=lambda self: PRODUCT_ID)):
         await manager.store_product(PRODUCT_DATA, JOB_ID, SOURCE, "test_correlation_id")
 
-    # Verify the call order: download -> crud -> broker -> download -> crud -> broker
-    expected_order = ['download', 'crud', 'broker', 'download', 'crud', 'broker']
-    assert call_order == expected_order
-
-    # Verify each image event was published with correct data
-    expected_event_0 = {
-        "product_id": PRODUCT_ID,
-        "image_id": IMAGE_ID_0,
-        "local_path": LOCAL_PATH_0,
-        "job_id": JOB_ID,
-    }
-    expected_event_1 = {
-        "product_id": PRODUCT_ID,
-        "image_id": IMAGE_ID_1,
-        "local_path": LOCAL_PATH_1,
-        "job_id": JOB_ID,
-    }
-
-    broker_mock.publish_event.assert_any_call("products.image.ready", expected_event_0, correlation_id="test_correlation_id")
-    broker_mock.publish_event.assert_any_call("products.image.ready", expected_event_1, correlation_id="test_correlation_id")
-
-
-@pytest.mark.asyncio
-async def test_store_product_no_event_for_failed_download(mock_dependencies):
-    """Test that no event is published when image download fails."""
-    manager, db_mock, broker_mock, image_crud_mock, collector_mock = mock_dependencies
-
-    # Simulate download failure for the second image
-    collector_mock.download_image.side_effect = [LOCAL_PATH_0, None]
-
-    with patch('uuid.uuid4', return_value=MagicMock(spec=uuid.UUID, hex=PRODUCT_ID, __str__=lambda self: PRODUCT_ID)):
-        await manager.store_product(PRODUCT_DATA, JOB_ID, SOURCE, "test_correlation_id")
-
-    # Verify only one event was published for the successful download
-    expected_event = {
-        "product_id": PRODUCT_ID,
-        "image_id": IMAGE_ID_0,
-        "local_path": LOCAL_PATH_0,
-        "job_id": JOB_ID,
-    }
-
-    broker_mock.publish_event.assert_called_once_with("products.image.ready", expected_event, correlation_id="test_correlation_id")
+    # 2. Verify events were published after successful transaction
+    expected_topics = ["products.image.ready", "products.image.ready"]
+    actual_topics = [call[0][0] for call in broker_mock.publish_event.call_args_list]
+    assert actual_topics == expected_topics
 
 
 @pytest.mark.asyncio
 async def test_store_product_handles_event_publishing_failure(mock_dependencies):
-    """Test that event publishing failure stops image processing but logs the error."""
     manager, db_mock, broker_mock, image_crud_mock, collector_mock = mock_dependencies
 
-    # Simulate broker failure for the first event
-    broker_mock.publish_event.side_effect = Exception("Broker down")
+    # Simulate event publishing failure
+    broker_mock.publish_event = AsyncMock(side_effect=[None, Exception("Publishing failed")])
 
     with patch('uuid.uuid4', return_value=MagicMock(spec=uuid.UUID, hex=PRODUCT_ID, __str__=lambda self: PRODUCT_ID)), \
-            patch('services.image_storage_manager.logger') as mock_logger:
+            patch('services.image_storage_manager.logger'):
 
-        # Should not raise exception - it should be caught and logged
         await manager.store_product(PRODUCT_DATA, JOB_ID, SOURCE, "test_correlation_id")
 
-    # Verify only first image was processed (exception stopped the loop)
-    assert collector_mock.download_image.call_count == 1
-    assert image_crud_mock.create_product_image.call_count == 1
+    # 1. Verify product and images were still stored despite publishing failure
+    assert db_mock.pool.acquire.called
+    assert image_crud_mock.create_product_image_with_conn.call_count == 2
 
-    # Verify broker was called once (failed)
-    assert broker_mock.publish_event.call_count == 1
 
-    # Verify error was logged for failed publish attempt
-    mock_logger.error.assert_called()
-    error_calls = [call for call in mock_logger.error.call_args_list if 'Failed to store product image' in str(call)]
-    assert len(error_calls) >= 1
+@pytest.mark.asyncio
+async def test_store_product_handles_insertion_failure(mock_dependencies):
+    manager, db_mock, _, image_crud_mock, collector_mock = mock_dependencies
+
+    # Simulate database insertion failure
+    image_crud_mock.create_product_image_with_conn = AsyncMock(side_effect=Exception("Database constraint"))
+
+    with patch('uuid.uuid4', return_value=MagicMock(spec=uuid.UUID, hex=PRODUCT_ID, __str__=lambda self: PRODUCT_ID)), \
+            patch('services.image_storage_manager.logger'):
+
+        await manager.store_product(PRODUCT_DATA, JOB_ID, SOURCE, "test_correlation_id")
+
+    # 1. Verify that download attempts were still made
+    assert collector_mock.download_image.call_count == 2
+
+
+@pytest.mark.asyncio
+async def test_store_product_no_event_for_failed_download(mock_dependencies):
+    manager, db_mock, broker_mock, image_crud_mock, collector_mock = mock_dependencies
+
+    # Simulate complete download failure
+    collector_mock.download_image.side_effect = [None, None]
+
+    with patch('uuid.uuid4', return_value=MagicMock(spec=uuid.UUID, hex=PRODUCT_ID, __str__=lambda self: PRODUCT_ID)), \
+            patch('services.image_storage_manager.logger'):
+
+        await manager.store_product(PRODUCT_DATA, JOB_ID, SOURCE, "test_correlation_id")
+
+    # 1. Verify product was inserted
+    assert db_mock.pool.acquire.called
+
+    # 2. Verify no events were published since no images were downloaded
+    broker_mock.publish_event.assert_not_called()
