@@ -178,7 +178,10 @@ class TestMain:
 
             # Let sleep run a few times then stop
             sleep_calls = [0] * 3  # Allow 3 sleep calls
-            mock_sleep.side_effect = lambda x: sleep_calls.pop() if sleep_calls else (_ for _ in ()).throw(KeyboardInterrupt())
+            mock_sleep.side_effect = lambda x: (
+                sleep_calls.pop() if sleep_calls
+                else (_ for _ in ()).throw(KeyboardInterrupt())
+            )
 
             mock_handler.broker.subscribe_to_topic = AsyncMock()
             mock_handler_class.return_value = mock_handler
