@@ -194,7 +194,7 @@ class TestBatchParallelProcessing:
         """Test batch processing with duplicate videos."""
         mock_videos = sample_video_data_list[:2]
 
-        with patch('services.parallel_video_service.VideoFetcher') as mock_fetcher_class:
+        with patch('fetcher.video_fetcher.VideoFetcher') as mock_fetcher_class:
             mock_fetcher = AsyncMock()
             mock_fetcher.fetch_videos = AsyncMock(return_value=mock_videos)
             mock_fetcher_class.return_value = mock_fetcher
@@ -218,7 +218,7 @@ class TestBatchParallelProcessing:
     @pytest.mark.asyncio
     async def test_process_videos_batch_fetcher_errors(self, parallel_video_service, platform_queries):
         """Test batch processing when VideoFetcher has errors."""
-        with patch('services.parallel_video_service.VideoFetcher') as mock_fetcher_class:
+        with patch('fetcher.video_fetcher.VideoFetcher') as mock_fetcher_class:
             mock_fetcher = AsyncMock()
             mock_fetcher.fetch_videos = AsyncMock(side_effect=Exception("Fetch error"))
             mock_fetcher_class.return_value = mock_fetcher
@@ -228,7 +228,8 @@ class TestBatchParallelProcessing:
                 job_id="test_job"
             )
 
-        assert result["summary"]["total_errors"] == 1
+        # Expect 2 errors - one for each platform (youtube and tiktok)
+        assert result["summary"]["total_errors"] == 2
 
     @pytest.mark.asyncio
     async def test_process_videos_batch_processing_errors(self, parallel_video_service, platform_queries, sample_video_data_list):

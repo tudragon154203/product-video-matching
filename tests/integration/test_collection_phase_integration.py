@@ -13,9 +13,7 @@ Tests the complete collection phase workflow including:
 import pytest
 import asyncio
 
-from support.test_environment import CollectionPhaseTestEnvironment
-from support.event_publisher import TestEventFactory
-from support.db_cleanup import DatabaseStateValidator
+# Unused imports removed
 
 import os
 PVM_OBS_WAIT_SECS = float(os.getenv("PVM_OBS_WAIT_SECS", "60"))

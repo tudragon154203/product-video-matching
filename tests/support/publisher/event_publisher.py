@@ -15,8 +15,6 @@ try:
     from mock_data.test_data import (
         build_products_images_ready_batch_event,
         build_videos_keyframes_ready_batch_event,
-        build_products_image_masked_event,
-        build_video_keyframes_masked_event,
     )
 except ImportError:
     # Fallback for when running from different contexts
@@ -665,34 +663,34 @@ class FeatureExtractionEventFactory:
 
 class MatchingEventPublisher:
     """Event publisher for matching phase tests"""
-    
+
     def __init__(self, message_broker: MessageBroker):
         self.message_broker = message_broker
         self.published_events = []
-    
+
     async def publish_match_request(self, event_data: Dict[str, Any]):
         """Publish match.request event to trigger matching process"""
         await self._publish_event("match.request", event_data)
-    
+
     async def _publish_event(self, routing_key: str, event_data: Dict[str, Any]):
         """Publish event via common MessageBroker to the configured topic exchange"""
         correlation_id = event_data.get("correlation_id") or (
             f"test_{event_data.get('job_id', 'unknown')}_{datetime.utcnow().strftime('%Y%m%d_%H%M%S')}"
         )
-        
+
         await self.message_broker.publish_event(
             topic=routing_key,
             event_data=event_data,
             correlation_id=correlation_id
         )
-        
+
         self.published_events.append({
             "routing_key": routing_key,
             "payload": event_data,
             "correlation_id": correlation_id,
             "timestamp": datetime.utcnow().isoformat()
         })
-        
+
         logger.info(
             f"Published matching event: {routing_key}",
             job_id=event_data.get("job_id"),

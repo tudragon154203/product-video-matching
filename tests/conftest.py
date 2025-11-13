@@ -3,10 +3,10 @@ Pytest configuration and fixtures for integration tests
 """
 # Early sys.path setup to resolve project modules when running from repo root
 
-from support.spy.feature_extraction_spy import FeatureExtractionSpy
+# Unused imports removed
+from support.publisher.event_publisher import CollectionEventPublisher, TestEventFactory
+from support.validators.db_cleanup import CollectionPhaseCleanup, DatabaseStateValidator
 from support.validators.observability_validator import ObservabilityValidator
-from support.publisher.event_publisher import CollectionEventPublisher, TestEventFactory, FeatureExtractionEventPublisher
-from support.validators.db_cleanup import CollectionPhaseCleanup, DatabaseStateValidator, FeatureExtractionCleanup, FeatureExtractionStateValidator
 from support.spy.message_spy import CollectionPhaseSpy, MessageSpy
 from common_py.messaging import MessageBroker
 from common_py.database import DatabaseManager
@@ -174,7 +174,7 @@ async def clean_database(db_manager):
         ("phase_events", "job_id"),
         ("jobs", "job_id"),
     ]
-    
+
     for table, id_column in tables_to_clean:
         try:
             if table == "video_frames":
@@ -194,9 +194,9 @@ async def clean_database(db_manager):
         except Exception as e:
             # Log but don't fail on cleanup errors (e.g., corrupted data)
             print(f"Warning: Failed to clean {table}: {e}")
-    
+
     yield
-    
+
     # Clean up after test with same error handling
     for table, id_column in tables_to_clean:
         try:

@@ -134,7 +134,8 @@ class TestFrameIdempotency:
     @pytest.mark.asyncio
     async def test_create_frame_with_idempotency_new(self, idempotency_manager, mock_db):
         """Test creating new frame with idempotency."""
-        mock_db.fetch_one.return_value = None  # Frame doesn't exist
+        # First call: frame doesn't exist, Second call: video exists
+        mock_db.fetch_one.side_effect = [None, {"video_id": "test_video"}]
 
         created_new, frame_id = await idempotency_manager.create_frame_with_idempotency(
             video_id="test_video",
@@ -304,7 +305,10 @@ class TestIdempotencyManagerIntegration:
 
         # Step 1: Create frames for the first time
         for i, (timestamp, path) in enumerate(sample_keyframes):
-            mock_db.fetch_one.return_value = None  # Frame doesn't exist
+            # Reset side_effect for each iteration: frame doesn't exist, video exists
+            mock_db.fetch_one.side_effect = [None, {"video_id": video_id}]
+            mock_db.execute.reset_mock()
+
             created_new, frame_id = await idempotency_manager.create_frame_with_idempotency(
                 video_id=video_id,
                 frame_index=i,
@@ -317,7 +321,10 @@ class TestIdempotencyManagerIntegration:
         # Step 2: Try to create same frames again (should be prevented)
         for i, (timestamp, path) in enumerate(sample_keyframes):
             existing_frame = {"frame_id": f"{video_id}_frame_{i}"}
+            # Reset to return_value for consistent behavior
+            mock_db.fetch_one.side_effect = None
             mock_db.fetch_one.return_value = existing_frame
+
             created_new, frame_id = await idempotency_manager.create_frame_with_idempotency(
                 video_id=video_id,
                 frame_index=i,

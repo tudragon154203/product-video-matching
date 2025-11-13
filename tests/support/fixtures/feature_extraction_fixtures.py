@@ -4,13 +4,11 @@ Pytest fixtures for feature extraction phase integration tests.
 """
 from config import config
 from support.publisher.event_publisher import FeatureExtractionEventPublisher
-from support.validators.observability_validator import ObservabilityValidator
 from support.validators.db_cleanup import FeatureExtractionCleanup, FeatureExtractionStateValidator
 from support.spy.feature_extraction_spy import FeatureExtractionSpy
 from typing import Dict, Any, List, Tuple
 import pytest_asyncio
 import pytest
-import os
 import sys
 from pathlib import Path
 

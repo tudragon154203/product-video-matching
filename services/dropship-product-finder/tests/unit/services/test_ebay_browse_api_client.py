@@ -41,7 +41,7 @@ def mock_config():
     mock.TIMEOUT_SECS_BROWSE = 10
     # Patch both module-level config and imported config in client module
     with patch("config_loader.config", mock), \
-         patch("services.ebay_browse_api_client.config", mock):
+            patch("services.ebay_browse_api_client.config", mock):
         yield mock
 
 

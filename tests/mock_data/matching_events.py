@@ -3,8 +3,7 @@ Mock matching events for integration testing.
 Provides pre-built events for common matching test scenarios.
 """
 
-import uuid
-from typing import Dict, Any, List
+from typing import Dict, Any
 
 
 def get_match_request_happy_path() -> Dict[str, Any]:
@@ -18,7 +17,7 @@ def get_match_request_happy_path() -> Dict[str, Any]:
 def get_match_request_idempotency_test() -> Dict[str, Any]:
     """Get a match.request event for idempotency testing (duplicate event_id)."""
     return {
-        "job_id": "test_job_002", 
+        "job_id": "test_job_002",
         "event_id": "550e8400-e29b-41d4-a716-446655440002",  # Same event_id will be reused
     }
 

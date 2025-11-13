@@ -4,7 +4,7 @@ Spy for RabbitMQ messages during feature extraction phase integration tests.
 """
 import asyncio
 import json
-from typing import Dict, List, Optional, Any
+from typing import Dict, List, Any
 from datetime import datetime
 
 from common_py.messaging import MessageBroker
@@ -142,7 +142,7 @@ class FeatureExtractionSpy:
 
             # Get all queues and clean up old test queues
             channel = await broker.connection.channel()
-            response = await channel.queue_declare(queue="", passive=True, durable=False)
+            await channel.queue_declare(queue="", passive=True, durable=False)
 
             # Try to delete the old orphaned queue if it exists
             try:
@@ -151,7 +151,7 @@ class FeatureExtractionSpy:
                     passive=True
                 )
                 await old_queue.delete()
-                print(f"Deleted orphaned queue: test_feat_ext_products_images_masked_batch_20251019_074126")
+                print("Deleted orphaned queue: test_feat_ext_products_images_masked_batch_20251019_074126")
             except Exception:
                 # Queue doesn't exist or can't be deleted, that's fine
                 pass
@@ -181,7 +181,7 @@ class FeatureExtractionSpy:
             # Don't try to delete queues - they have auto_delete=True and TTL
             # This avoids the "precondition_failed: queue in use" errors
             await self.broker.disconnect()
-        except Exception as e:
+        except Exception:
             # Silently ignore disconnect errors
             pass
 

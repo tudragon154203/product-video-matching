@@ -134,14 +134,14 @@ async def run_idempotency_test(
     job_id: str
 ) -> None:
     """Test idempotency for completion events"""
-    publisher = env["publisher"]
-    validator = env["validator"]
+    # publisher = env["publisher"]  # Not used in this function
+    # validator = env["validator"]  # Not used in this function
 
     # Get current state
     try:
-        current_state = await validator.validate_feature_extraction_completed(job_id)
-        baseline_embeddings = current_state.get("embeddings_count", 0)
-        baseline_keypoints = current_state.get("keypoints_count", 0)
+        # current_state = await validator.validate_feature_extraction_completed(job_id)  # Not used
+        # baseline_embeddings = current_state.get("embeddings_count", 0)  # Not used if needed
+        # baseline_keypoints = current_state.get("keypoints_count", 0)  # Not used if needed
 
         # Try to republish completion events (if any were captured)
         # Note: In a real scenario, these would come from the spy

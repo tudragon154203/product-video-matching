@@ -106,7 +106,7 @@ class CollectionPhaseCleanup:
                 try:
                     await self.db_manager.execute(query, job_id_pattern)
                     break
-                except asyncpg.exceptions.ForeignKeyViolationError as e:
+                except asyncpg.exceptions.ForeignKeyViolationError:
                     if attempt == retries:
                         raise
                     # Re-clean children and retry after a short delay

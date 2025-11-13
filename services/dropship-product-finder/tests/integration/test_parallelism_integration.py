@@ -43,7 +43,7 @@ async def test_parallel_execution_with_real_components():
             self.stored_products = []
             self.storage_delay = 0.01  # Simulate storage I/O delay
 
-        async def store_product(self, product: dict, job_id: str, platform: str):
+        async def store_product(self, product: dict, job_id: str, platform: str, correlation_id: str):
             await asyncio.sleep(self.storage_delay)  # Simulate storage operation
             self.stored_products.append(
                 {"product": product, "job_id": job_id, "platform": platform}
@@ -138,7 +138,7 @@ async def test_error_resilience_integration():
         def __init__(self):
             self.stored_products = []
 
-        async def store_product(self, product: dict, job_id: str, platform: str):
+        async def store_product(self, product: dict, job_id: str, platform: str, correlation_id: str):
             self.stored_products.append(
                 {"product": product, "job_id": job_id, "platform": platform}
             )

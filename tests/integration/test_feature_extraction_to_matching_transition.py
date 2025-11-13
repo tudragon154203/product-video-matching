@@ -3,15 +3,14 @@ Feature Extraction to Matching Transition Integration Test
 Tests the transition from feature extraction phase to matching phase, validating that main-api
 emits match.request events after all feature extraction work is completed.
 """
-import asyncio
+# Unused import removed
 import pytest
 import uuid
 from typing import Dict, Any
 
 from support.fixtures.feature_extraction_fixtures import TestFeatureExtractionPhase as TestFeatureExtractionPhaseFixtures
 from support.fixtures.feature_extraction_setup import (
-    setup_comprehensive_database_state,
-    run_idempotency_test
+    setup_comprehensive_database_state
 )
 
 pytestmark = [
@@ -79,7 +78,7 @@ class TestFeatureExtractionToMatchingTransition(TestFeatureExtractionPhaseFixtur
         videos_masked = None
 
         try:
-            products_masked = await spy.wait_for_products_images_masked(job_id, timeout=15)
+            await spy.wait_for_products_images_masked(job_id, timeout=15)
             assert products_masked["event_data"]["job_id"] == job_id
             print("✓ Product masking completed")
         except TimeoutError:
@@ -98,7 +97,7 @@ class TestFeatureExtractionToMatchingTransition(TestFeatureExtractionPhaseFixtur
         video_keypoints_completed = None
 
         try:
-            embeddings_completed = await spy.wait_for_image_embeddings_completed(job_id, timeout=20)
+            await spy.wait_for_image_embeddings_completed(job_id, timeout=20)
             assert embeddings_completed["event_data"]["job_id"] == job_id
             print("✓ Image embeddings completed")
         except TimeoutError:
@@ -162,7 +161,7 @@ class TestFeatureExtractionToMatchingTransition(TestFeatureExtractionPhaseFixtur
         if match_request:
             # If match request was received, job should be in matching phase
             assert current_phase == "matching", f"Expected job phase 'matching', got '{current_phase}'"
-            print(f"✓ Job successfully transitioned to matching phase")
+            print("✓ Job successfully transitioned to matching phase")
         else:
             # If no match request, phase might still be feature_extraction or could be matching
             print(f"⚠ Job phase: {current_phase}")
@@ -223,19 +222,19 @@ class TestFeatureExtractionToMatchingTransition(TestFeatureExtractionPhaseFixtur
 
         # Wait for feature extraction completion (without expecting match request)
         try:
-            products_masked = await spy.wait_for_products_images_masked(job_id, timeout=15)
+            await spy.wait_for_products_images_masked(job_id, timeout=15)
             print("✓ Product masking completed")
         except TimeoutError:
             print("⚠ Product masking timeout")
 
         try:
-            embeddings_completed = await spy.wait_for_image_embeddings_completed(job_id, timeout=20)
+            await spy.wait_for_image_embeddings_completed(job_id, timeout=20)
             print("✓ Image embeddings completed")
         except TimeoutError:
             print("⚠ Image embeddings timeout")
 
         try:
-            keypoints_completed = await spy.wait_for_image_keypoints_completed(job_id, timeout=20)
+            await spy.wait_for_image_keypoints_completed(job_id, timeout=20)
             print("✓ Image keypoints completed")
         except TimeoutError:
             print("⚠ Image keypoints timeout")

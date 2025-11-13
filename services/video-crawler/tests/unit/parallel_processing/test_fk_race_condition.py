@@ -32,15 +32,11 @@ class TestForeignKeyRaceCondition:
         timestamp = 10.0
         local_path = "/path/to/frame.jpg"
 
-        # Mock database calls to handle both frame existence and video existence checks
-        async def mock_fetch_one(query, *args):
-            if "SELECT frame_id FROM video_frames" in query:
-                return None  # Frame doesn't exist
-            elif "SELECT video_id FROM videos" in query:
-                return None  # Video doesn't exist
-            return None
-
-        mock_db.fetch_one.side_effect = mock_fetch_one
+        # Setup mock to return None for all fetch_one calls
+        # First call: validate_database_connection (SELECT 1)
+        # Second call: check_frame_exists (frame doesn't exist)
+        # Third call: video existence check (video doesn't exist)
+        mock_db.fetch_one.side_effect = [{"result": 1}, None, None]
 
         # Test that frame creation fails
         with pytest.raises(RuntimeError, match=f"Parent video {video_id} does not exist for frame insertion"):

@@ -54,6 +54,7 @@ class TestJobManagerAssetTypes:
             # Bind job progress manager for closure use
             jpm = mock_job_progress_manager
             # Mock the _handle_batch_event method but provide side_effect to simulate progress manager behavior
+
             async def _handle_batch_event_impl(job_id, asset_type, total_items, event_type, event_id=None):
                 # Warn on unknown asset type regardless of count to align test expectations
                 if asset_type not in ("image", "video"):

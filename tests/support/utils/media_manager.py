@@ -4,7 +4,6 @@ Auto-copies test media files from mock_data to data/ directory before tests run.
 This ensures test media files are always available even if data/ is cleaned up.
 """
 
-import os
 import shutil
 from pathlib import Path
 from typing import Optional

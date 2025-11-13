@@ -34,16 +34,20 @@ class TestYOLOSegmentor:
     def test_model_path_resolution_docker_environment(self):
         """Test model path resolution in Docker environment."""
         with patch('os.path.exists') as mock_exists:
-            # Simulate Docker environment
-            mock_exists.side_effect = lambda path: path == '/app/model_cache'
+            # Simulate Docker environment - return True for docker path
+            mock_exists.return_value = True
 
-            segmentor = YOLOSegmentor('yolo11l-seg')
+            # Also need to mock config to return default
+            with patch('segmentation.models.yolo_segmentor.config') as mock_config:
+                mock_config.MODEL_CACHE = "model_cache"
 
-            assert segmentor._model_cache_dir == '/app/model_cache'
-            # Use os.path.normpath to handle path separator differences
-            expected_path = os.path.normpath('/app/model_cache/yolo11l-seg.pt')
-            assert os.path.normpath(segmentor._model_path) == expected_path
-            assert segmentor._model_name == 'yolo11l-seg'
+                segmentor = YOLOSegmentor('yolo11l-seg')
+
+                assert segmentor._model_cache_dir == '/app/model_cache'
+                # Use os.path.normpath to handle path separator differences
+                expected_path = os.path.normpath('/app/model_cache/yolo11l-seg.pt')
+                assert os.path.normpath(segmentor._model_path) == expected_path
+                assert segmentor._model_name == 'yolo11l-seg'
 
     def test_model_path_resolution_local_development(self, temp_model_cache):
         """Test model path resolution in local development."""

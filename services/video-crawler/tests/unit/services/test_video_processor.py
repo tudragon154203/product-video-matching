@@ -17,11 +17,14 @@ def mock_db():
     db_mock = MagicMock()
     # Mock database connection and pool with all methods that might be called
     # Connection returns concrete dicts/lists to satisfy code paths expecting mappings
+
     async def _fetch_one_return(*args, **kwargs):
         # Return an example row as a dict when called in existence checks
         return {"video_id": str(uuid.uuid4())}
+
     async def _fetch_all_return(*args, **kwargs):
         return []
+
     async def _execute_return(*args, **kwargs):
         return None
 
@@ -70,6 +73,7 @@ def video_processor(mock_db, mock_event_emitter, mock_job_progress_manager):
     vp.idempotency_manager._validate_database_connection = _AsyncMock(return_value=True)
     vp.idempotency_manager.get_existing_video = _AsyncMock(return_value=None)
     vp.idempotency_manager.create_video_with_idempotency = _AsyncMock(return_value=(True, str(uuid.uuid4())))
+
     async def _create_frame(video_id: str, frame_index: int, timestamp: float, local_path: str):
         return True, f"{video_id}_frame_{frame_index}"
     vp.idempotency_manager.create_frame_with_idempotency = _AsyncMock(side_effect=_create_frame)
@@ -117,7 +121,8 @@ class TestVideoProcessor:
 
         # Mock keyframe extraction and frame CRUD entirely
         from unittest.mock import AsyncMock as _AsyncMock
-        with patch.object(video_processor.keyframe_extractor, 'extract_keyframes', new=_AsyncMock(return_value=[(10, "/path/frame1.jpg"), (20, "/path/frame2.jpg")])) as mock_extract:
+        keyframes = [(10, "/path/frame1.jpg"), (20, "/path/frame2.jpg")]
+        with patch.object(video_processor.keyframe_extractor, 'extract_keyframes', new=_AsyncMock(return_value=keyframes)):
             pass  # return_value handled by AsyncMock above
 
             # Mock frame CRUD entirely since it uses real db
