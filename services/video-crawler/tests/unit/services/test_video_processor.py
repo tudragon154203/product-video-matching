@@ -323,10 +323,11 @@ class TestVideoProcessor:
         # Should not raise exception
         await video_processor._update_progress(job_id)
 
-    def test_initialize_keyframe_extractor(self, video_processor):
+    def test_initialize_keyframe_extractor(self, video_processor, tmp_path):
         """Test keyframe extractor initialization."""
         # This should not raise exception
-        video_processor.initialize_keyframe_extractor("/test/path")
+        test_dir = tmp_path / "keyframes"
+        video_processor.initialize_keyframe_extractor(str(test_dir))
 
         # Verify the extractor was reinitialized
         assert video_processor.keyframe_extractor is not None
