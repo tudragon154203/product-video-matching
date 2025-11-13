@@ -1,6 +1,7 @@
 # Mac dev 
 infra/pvm/sync_compose.py.backup
 
+
 # LLM
 demo/
 desktop.ini
@@ -14,15 +15,17 @@ mcp.json
 infra/qdrant/data
 .stfolder
 .stignore
+.kiro/
 
 # Docs
 .roo*
 .clinerules*
 .playwright-mcp
 
-# Environment variables - ALL .env files
+# Environment variables - ALL .env files except examples
 .env*
-!*.env.example
+!.env.example
+!*/.env.example
 
 # Nodejs
 *node_modules/
@@ -43,6 +46,8 @@ dist/
 downloads/
 eggs/
 .eggs/
+.coverage*
+
 # Python lib directories (virtual environments)
 venv/lib/
 env/lib/

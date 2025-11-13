@@ -1,6 +1,7 @@
+import asyncio
 import asyncpg
 import os
-from typing import Optional, List, Dict, Any
+from typing import Optional, List, Dict, Any, Tuple
 from .logging_config import configure_logging
 
 logger = configure_logging("common-py:database")
@@ -12,16 +13,21 @@ class DatabaseManager:
         self.dsn = dsn
         self.pool: Optional[asyncpg.Pool] = None
     
-    async def connect(self):
+    async def connect(self, timeout: float = 30.0):
         """Create connection pool"""
         # Get timezone from environment variable
         timezone = os.getenv("TZ", "UTC")
-        
-        self.pool = await asyncpg.create_pool(
-            self.dsn,
-            min_size=1,
-            max_size=10,
-            init=lambda conn: conn.execute(f"SET TIME ZONE '{timezone}'")
+
+        self.pool = await asyncio.wait_for(
+            asyncpg.create_pool(
+                self.dsn,
+                min_size=1,
+                max_size=10,
+                init=lambda conn: conn.execute(f"SET TIME ZONE '{timezone}'"),
+                command_timeout=60.0,
+                server_settings={"application_name": "product_video_matching"}
+            ),
+            timeout=timeout
         )
     
     async def disconnect(self):
@@ -37,6 +43,14 @@ class DatabaseManager:
         async with self.pool.acquire() as conn:
             return await conn.execute(query, *args)
     
+    async def executemany(self, query: str, args: List[Tuple]) -> None:
+        """Execute a query for multiple sets of parameters"""
+        if not self.pool:
+            raise RuntimeError("Database not connected")
+        
+        async with self.pool.acquire() as conn:
+            await conn.executemany(query, args)
+
     async def fetch_one(self, query: str, *args) -> Optional[Dict[str, Any]]:
         """Fetch single row"""
         if not self.pool:

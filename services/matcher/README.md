@@ -1,29 +1,55 @@
 # Matcher Microservice
 
-## Overview
-This microservice contains the core logic for matching products with video content. It leverages deep learning embeddings and traditional computer vision techniques to identify visual similarities.
+The matcher service ranks and verifies product–video pairs once upstream
+services have produced embeddings and keypoints. It pulls stored features from
+Postgres, runs vector similarity search to shortlist candidate frames, applies
+lightweight pair scoring, and emits contract-compliant events for downstream
+consumers.
 
-## Functionality
-- Compares product embeddings with video frame embeddings.
-- Applies computer vision algorithms (e.g., AKAZE/SIFT + RANSAC) for precise matching.
-- Determines the confidence score of potential matches.
+## High-level flow
+1. Consume `match.request` events containing `{ job_id, event_id }`.
+2. Load product images and video frames for the job from Postgres, including
+   `emb_rgb`, `emb_gray`, and `kp_blob_path` populated by vision services.
+3. For each product image, run `VectorSearcher` to retrieve the top-K most
+   similar frames (pgvector-style query with numpy fallback).
+4. Score each candidate pair with `PairScoreCalculator`, mixing embedding and
+   keypoint signals.
+5. Aggregate matches via `MatchAggregator`, apply acceptance thresholds, and
+   publish `match.result` events plus a terminal
+   `matchings.process.completed` event.
 
-## In/Out Events
-### Input Events
-- `ProductEmbeddingReady`: Event indicating that product embeddings are available for matching.
-  - Data: `{"product_id": "prod-456", "embedding_vector": [0.1, 0.2, ...]}`
-- `VideoFrameEmbeddingReady`: Event indicating that video frame embeddings are available.
-  - Data: `{"video_id": "vid-789", "frame_number": 10, "embedding_vector": [0.3, 0.4, ...]}`
+## Code structure
+- `matching/` – `MatchingEngine`, the orchestration layer around search,
+  scoring, and aggregation.
+- `matching_components/` – vector search, pair scoring, and aggregation helper
+  classes.
+- `services/service.py` – orchestrates job-level processing, persists matches,
+  and publishes events.
+- `handlers/matcher_handler.py` – wires up database/broker connections and
+  validates incoming events.
+- `embedding_similarity.py` – cosine similarity helpers for RGB/gray vectors.
+- `config_loader.py` – loads global + service-specific configuration.
 
-### Output Events
-- `MatchFound`: Event indicating a successful match between a product and a video segment.
-  - Data: `{"match_id": "abc-123", "product_id": "prod-456", "video_id": "vid-789", "timestamp": 123.45, "confidence": 0.95}`
+## Configuration
+Environment variables are loaded from `.env` in conjunction with the shared
+`libs/config`. Key values:
 
-## Current Progress
-- Initial implementation of CLIP embedding similarity matching.
-- Integration of AKAZE/SIFT for keypoint matching.
+| Variable | Description |
+| --- | --- |
+| `POSTGRES_*`, `BUS_BROKER`, `DATA_ROOT_CONTAINER` | Supplied by global config |
+| `RETRIEVAL_TOPK` | Number of candidate frames to consider (default 20) |
+| `SIM_DEEP_MIN` | Minimum embedding similarity for acceptance (default 0.82) |
+| `INLIERS_MIN` | Minimum keypoint inlier ratio (default 0.35) |
+| `MATCH_BEST_MIN`, `MATCH_CONS_MIN`, `MATCH_ACCEPT` | Aggregation thresholds |
 
-## What's Next
-- Optimize matching algorithms for speed and accuracy.
-- Explore advanced matching techniques and models.
-- Implement batch processing for improved efficiency.
+## Development
+Install dependencies and run unit tests from the service directory:
+
+```bash
+pip install -r requirements.txt
+python -m pytest tests/unit -v
+```
+
+A local Postgres instance populated with embeddings/keypoints is required for
+full integration testing; unit tests rely on mocks for database and broker
+interactions.

@@ -4,6 +4,7 @@ export { InlineBadge } from './InlineBadge';
 export { PanelSection } from './PanelSection';
 export { ListDivider } from './ListDivider';
 export { LinkExternalIcon } from './LinkExternalIcon';
+export { JobItemRow } from './JobItemRow';
 
 export {
   ProductsPanel,

@@ -16,7 +16,7 @@ class YoutubeCrawler(BaseVideoCrawler):
     """YouTube video crawler using yt-dlp for search and download"""
 
     def __init__(self):
-        super().__init__(platform_name="youtube", logger=logger)
+        super().__init__(platform_name="youtube", logger=logger, enable_title_deduplication=True)
         self.searcher = YoutubeSearcher(self.platform_name)
         self.downloader = YoutubeDownloader()
         self._dedupe_key = "video_id"

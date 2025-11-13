@@ -6,7 +6,7 @@ from unittest.mock import AsyncMock, patch
 
 import pytest
 
-from collectors.ebay_product_collector import EbayProductCollector
+from collectors.ebay.ebay_product_collector import EbayProductCollector
 
 pytestmark = pytest.mark.unit
 
@@ -22,6 +22,7 @@ def mock_redis():
     redis.setex = AsyncMock()
     redis.set = AsyncMock()
     redis.delete = AsyncMock()
+    redis.ping = AsyncMock(return_value="PONG")  # Add ping method
     return redis
 
 
@@ -36,7 +37,6 @@ def mock_auth_service(mock_redis):
             "_store_token",
             "_retrieve_token",
             "_is_token_valid",
-            "_enforce_rate_limit",
             "redis",
             "api_client",
         ]
@@ -50,9 +50,8 @@ def mock_auth_service(mock_redis):
         return_value={"access_token": "test_token_123", "expires_at": 9999999999}
     )
     auth._is_token_valid = AsyncMock(return_value=True)
-    auth._enforce_rate_limit = AsyncMock()
 
-    # Rate limiting and Redis integration
+    # Redis integration
     auth.redis = mock_redis
     auth.api_client = AsyncMock()
     return auth
@@ -63,7 +62,7 @@ def ebay_collector(mock_auth_service, mock_redis):
     """Create eBay collector with mocked auth service"""
     with patch("config_loader.config.EBAY_MARKETPLACES", "EBAY_US,EBAY_UK,EBAY_DE"):
         with patch(
-            "collectors.ebay_product_collector.EbayBrowseApiClient"
+            "collectors.ebay.ebay_product_collector.EbayBrowseApiClient"
         ) as mock_browse_client_class:
             # Create mock browse client instance
             mock_browse_instance = AsyncMock()
@@ -140,7 +139,7 @@ class TestEbayProductCollector:
         # Create collector without auth service
         with patch("config_loader.config.EBAY_MARKETPLACES", "EBAY_US"):
             with patch(
-                "collectors.ebay_product_collector.EbayBrowseApiClient"
+                "collectors.ebay.ebay_product_collector.EbayBrowseApiClient"
             ) as mock_browse_client_class:
                 mock_browse_instance = AsyncMock()
                 mock_browse_client_class.return_value = mock_browse_instance
@@ -154,9 +153,7 @@ class TestEbayProductCollector:
                             "title": "No Auth Product",
                             "seller": {"username": "no_auth_seller"},
                             "itemWebUrl": "https://ebay.com/noauth",
-                            "imageUrls": [
-                                {"imageUrl": "https://example.com/noauth.jpg"}
-                            ],
+                            "image": {"imageUrl": "https://example.com/noauth.jpg"},
                         }
                     ]
                 }

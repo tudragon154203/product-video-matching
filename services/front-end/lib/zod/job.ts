@@ -36,8 +36,8 @@ export const StartJobResponse = z.object({
 
 export const StartJobRequest = z.object({
   query: z.string(),
-  top_amz: z.number().int().min(1).max(100),
-  top_ebay: z.number().int().min(1).max(100), 
+  top_amz: z.number().int().min(0).max(100),
+  top_ebay: z.number().int().min(0).max(100),
   platforms: z.array(z.enum(["youtube", "douyin", "tiktok", "bilibili"])),
   recency_days: z.number().int().min(1).max(365),
 });

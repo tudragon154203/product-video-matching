@@ -60,9 +60,42 @@ class LengthAdaptiveKeyframeExtractor(AbstractKeyframeExtractor):
 
         cap = None
         try:
-            cap = cv2.VideoCapture(video_path)
-            if not cap.isOpened():
-                raise ValueError(f"Could not open video file: {video_path}")
+            # Set environment variables to force software AV1 decoding
+            import os
+            old_env = {}
+            av1_env_vars = {
+                'FFMPEG_HWACCEL': 'none',
+                'AV1_FORCE_SOFTWARE_DECODER': '1',
+                'OPENCV_FFMPEG_CAPTURE_OPTIONS': 'avioflags;direct'
+            }
+
+            for key, value in av1_env_vars.items():
+                old_env[key] = os.environ.get(key)
+                os.environ[key] = value
+
+            try:
+                # Try to open video with FFMPEG backend
+                cap = cv2.VideoCapture(video_path, cv2.CAP_FFMPEG)
+
+                if not cap.isOpened():
+                    # Fallback: try opening without specific backend
+                    logger.warning(
+                        "FFMPEG backend failed, trying default backend",
+                        video_id=video_id,
+                        video_path=video_path
+                    )
+                    cap = cv2.VideoCapture(video_path)
+
+                if not cap.isOpened():
+                    raise ValueError(f"Could not open video file: {video_path}")
+
+            finally:
+                # Restore original environment variables
+                for key, old_value in old_env.items():
+                    if old_value is None:
+                        os.environ.pop(key, None)
+                    else:
+                        os.environ[key] = old_value
 
             video_props = self._get_video_properties(cap, video_id)
             if video_props.duration <= 0:

@@ -54,8 +54,8 @@ class TestKeypointAssetProcessor:
         self.mock_extractor.extract_keypoints.assert_called_once_with("/path/to/image.jpg", "asset_456")
         self.mock_db.execute.assert_called_once()
         self.mock_broker.publish_event.assert_called_once_with(
-            "image.keypoint.ready",
-            {
+            topic="image.keypoint.ready",
+            event_data={
                 "job_id": "job_123",
                 "asset_id": "asset_456",
                 "event_id": "test-uuid-123",
@@ -293,6 +293,10 @@ class TestKeypointAssetProcessor:
             event_type="test_event"
         )
 
-        # Assertions - initialize_with_high_expected should be called for zero-asset job when tracking doesn't exist
-        self.mock_progress_manager.initialize_with_high_expected.assert_called_once_with("zero_job", "image", 0)
+        # Assertions - initialize_with_high_expected should be called
+        # for zero-asset job when tracking doesn't exist
+        self.mock_progress_manager.initialize_with_high_expected \
+            .assert_called_once_with(
+                "zero_job", "image", 0, event_type_prefix="keypoints"
+            )
         self.mock_progress_manager.update_job_progress.assert_called_once()

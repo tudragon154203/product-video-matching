@@ -5,16 +5,17 @@ from pathlib import Path
 from typing import Any, Dict, Iterable, List
 
 from platform_crawler.interface import PlatformCrawlerInterface
-from .utils import deduplicate_by_key
+from .utils import deduplicate_by_key, deduplicate_videos_by_id_and_title
 
 
 class BaseVideoCrawler(PlatformCrawlerInterface, ABC):
     """Shared implementation for platform crawlers."""
 
-    def __init__(self, platform_name: str, logger) -> None:
+    def __init__(self, platform_name: str, logger, enable_title_deduplication: bool = True) -> None:
         self.platform_name = platform_name
         self.logger = logger
         self._dedupe_key: str | callable = "video_id"
+        self._enable_title_deduplication = enable_title_deduplication
 
     async def search_and_download_videos(
         self,
@@ -80,7 +81,17 @@ class BaseVideoCrawler(PlatformCrawlerInterface, ABC):
         self,
         videos: Iterable[Dict[str, Any]],
     ) -> Dict[Any, Dict[str, Any]]:
-        return deduplicate_by_key(videos, self._dedupe_key)
+        if self._enable_title_deduplication:
+            # Use new title-based deduplication
+            deduped_videos = deduplicate_videos_by_id_and_title(
+                videos,
+                id_keys=self._dedupe_key
+            )
+            # Convert to dict format for compatibility with existing code
+            return {f"video_{i}": video for i, video in enumerate(deduped_videos)}
+        else:
+            # Use existing ID-only deduplication
+            return deduplicate_by_key(videos, self._dedupe_key)
 
     async def _download_unique_videos(
         self,

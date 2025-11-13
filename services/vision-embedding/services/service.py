@@ -238,7 +238,8 @@ class VisionEmbeddingService:
         asset_type: str,
     ) -> None:
         """Update progress for per-asset-first processing patterns."""
-        if job_id not in self.progress_manager.job_tracking:
+        key = f"{job_id}:{asset_type}:embeddings"
+        if key not in self.progress_manager.job_tracking:
             logger.info(
                 "Initializing job tracking with high expected count "
                 "(per-asset first)",
@@ -360,7 +361,7 @@ class VisionEmbeddingService:
             local_path = event_data["local_path"]
             job_id = event_data.get("job_id")
 
-            success = await self._handle_single_asset_processing(
+            await self._handle_single_asset_processing(
                 job_id,
                 image_id,
                 "image",
@@ -369,11 +370,11 @@ class VisionEmbeddingService:
                 self.extractor.extract_embeddings,
             )
 
-            if success:
-                await self._update_and_check_completion_per_asset_first(
-                    job_id,
-                    "image",
-                )
+            # Always update progress, whether success or failure
+            await self._update_and_check_completion_per_asset_first(
+                job_id,
+                "image",
+            )
 
         except Exception as e:
             logger.error(

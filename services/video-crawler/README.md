@@ -11,7 +11,7 @@ This microservice is responsible for processing video content, including searchi
 
 ## Supported Platforms
 - YouTube: Search and download videos using yt-dlp
-- TikTok: Search videos using TikTok Search API and download videos using yt-dlp with anti-bot protection
+- TikTok: Search videos using TikTok Search API and download videos using configurable strategies (yt-dlp or Scrapling API)
 
 ## TikTok Platform Integration
 The TikTok crawler connects to an external TikTok Search API to search for videos and retrieve metadata. The crawler features:
@@ -26,26 +26,68 @@ The TikTok crawler connects to an external TikTok Search API to search for video
 - Request format: `{"query": "...", "numVideos": 10, "force_headful": false}`
 
 ## TikTok Video Download
-The TikTok downloader provides robust video download capabilities with advanced error handling:
+The TikTok downloader provides robust video download capabilities with configurable strategies:
 
-### Features
+### Download Strategies
+
+#### 1. Scrapling API Strategy (Default)
+- **API-Based Downloads**: Delegates video downloading to external `/tiktok/download` API
+- **Automatic Retries**: Built-in headful retry logic for failed downloads
+- **Streaming Downloads**: Efficient file streaming to minimize memory usage
+- **Metadata Extraction**: Automatic extraction of video metadata from API response
+
+#### 2. yt-dlp Strategy
 - **Anti-bot Protection**: Automatic detection and handling of TikTok anti-bot measures
 - **Exponential Backoff**: Intelligent retry mechanism with increasing delays (1s, 2s, 4s, etc.)
+- **Format Flexibility**: Multiple video format fallbacks for compatibility
+- **Direct Download**: Downloads videos directly from TikTok using yt-dlp
+
+#### 3. TikWM Strategy
+- **Direct Media Access**: Downloads directly from TikWM's public media endpoint
+- **Lightweight**: Minimal dependencies, no external API services required
+- **Fast Redirect Resolution**: Uses HEAD requests to resolve final download URLs
+- **Retry Logic**: Small retry envelope for transient HTTP failures with backoff
+
+### Common Features
 - **File Size Validation**: Enforces 500MB limit and removes oversized files
 - **Comprehensive Error Handling**: Handles network timeouts, connection errors, and permission issues
 - **Keyframe Extraction**: Automatic extraction of keyframes after successful download
+- **Structured Logging**: Detailed logging with strategy identification and metrics
 
 ### Download Configuration
+- **Download Strategy**: `TIKTOK_DOWNLOAD_STRATEGY` (default: `scrapling-api`, options: `yt-dlp`, `scrapling-api`, `tikwm`)
+- **API Host**: `TIKTOK_CRAWL_HOST` (default: `localhost`)
+- **API Port**: `TIKTOK_CRAWL_HOST_PORT` (default: `5680`)
+- **Download Timeout**: `TIKTOK_DOWNLOAD_TIMEOUT` (default: `180` seconds)
 - **Storage Path**: `TIKTOK_VIDEO_STORAGE_PATH` (default: `/tmp/videos/tiktok`)
 - **Keyframe Path**: `TIKTOK_KEYFRAME_STORAGE_PATH` (default: `/tmp/keyframes/tiktok`)
 - **Retry Attempts**: Configurable number of download retries (default: 3)
 - **Timeout**: Download timeout in seconds (default: 30)
 
 ### Error Handling
-- **TikTokAntiBotError**: Custom exception for anti-bot detection
-- **Automatic Retries**: Failed downloads automatically retry with exponential backoff
+- **TikTokAntiBotError**: Custom exception for anti-bot detection (yt-dlp strategy)
+- **Strategy-Specific Errors**: Detailed error codes for API failures (scrapling-api strategy)
+- **Automatic Retries**: Failed downloads automatically retry with appropriate strategy
 - **Graceful Degradation**: Database errors don't fail the entire download process
 - **Comprehensive Logging**: Detailed logging for debugging and monitoring
+
+### Observability and Metrics
+- **Structured Logging**: Strategy identification in all log messages
+- **Performance Metrics**: Execution time tracking for both overall and API-specific operations
+- **Success Rate Monitoring**: Strategy-specific success/failure tracking
+- **Error Classification**: Detailed error code reporting for troubleshooting
+
+### Strategy Selection
+```bash
+# Use Scrapling API strategy (default)
+TIKTOK_DOWNLOAD_STRATEGY=scrapling-api
+
+# Use yt-dlp strategy
+TIKTOK_DOWNLOAD_STRATEGY=yt-dlp
+
+# Use TikWM strategy
+TIKTOK_DOWNLOAD_STRATEGY=tikwm
+```
 
 ### Usage Example
 ```python

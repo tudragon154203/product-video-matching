@@ -3,7 +3,7 @@
 import uuid
 from typing import Any, Dict, List
 
-from common_py.crud import MatchCRUD
+from common_py.crud import EventCRUD, MatchCRUD
 from common_py.database import DatabaseManager
 from common_py.logging_config import configure_logging
 from common_py.messaging import MessageBroker
@@ -26,6 +26,7 @@ class MatcherService:
     ) -> None:
         self.db = db
         self.broker = broker
+        self.event_crud = EventCRUD(db)
         self.match_crud = MatchCRUD(db)
         self.matching_engine = MatchingEngine(db, data_root, **params)
 
@@ -46,9 +47,14 @@ class MatcherService:
             job_id = event_data["job_id"]
             event_id = event_data["event_id"]
 
-            # TODO: Implement idempotency guard using event_id
-            # For example, check if this event_id has already been processed and recorded.
-            # If so, log and return early.
+            # Check idempotency - if this event has been processed, return early
+            if await self.event_crud.is_event_processed(event_id):
+                logger.info(
+                    "Match request already processed, skipping due to idempotency",
+                    job_id=job_id,
+                    event_id=event_id,
+                )
+                return
 
             logger.info(
                 "Processing match request",
@@ -129,6 +135,15 @@ class MatcherService:
                 },
                 correlation_id=job_id,
             )
+
+            # Update job phase to evidence after matching completes
+            await self.db.execute(
+                "UPDATE jobs SET phase = 'evidence' WHERE job_id = $1",
+                job_id
+            )
+
+            # Record this event_id as processed to ensure idempotency
+            await self.event_crud.record_event(event_id, "match.request")
 
             logger.info(
                 "Completed matching",

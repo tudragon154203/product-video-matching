@@ -13,5 +13,5 @@ class VideoCrawlHandler:
 
     @handle_errors
     @validate_event("videos_search_request")
-    async def handle_videos_search_request(self, event_data):
-        await self.service.handle_videos_search_request(event_data)
+    async def handle_videos_search_request(self, event_data, correlation_id):
+        await self.service.handle_videos_search_request(event_data, correlation_id)

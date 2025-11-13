@@ -1,0 +1,34 @@
+# Root pytest configuration consolidated for unit and integration tests
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+addopts = "--strict-markers -n 1 --import-mode=prepend"
+testpaths = ["tests/integration"]
+norecursedirs = [
+  ".git",
+  ".github",
+  ".pytest_cache",
+  ".tox",
+  "venv",
+  "*.egg",
+  "dist",
+  "build",
+  "model_cache",
+  "data",
+]
+markers = [
+  "unit: Mark a test as a unit test.",
+  "integration: Mark a test as an integration test.",
+  "contract: Mark a test as a contract test.",
+  "collection_phase: Mark a test as a collection phase integration test.",
+  "observability: Mark a test as an observability validation test.",
+  "performance: Mark a test as a performance benchmark test.",
+  "slow: Mark a test as a slow-running test.",
+  "ci: Mark a test that should run in CI environment.",
+  "local: Mark a test that should run locally only.",
+  "idempotency: Mark a test that validates idempotency behavior.",
+  "matching: Mark a test as a matching phase integration test.",
+]
+timeout = 1200
+timeout_method = "thread"
+env_override_existing_values = 1
+env_files = ["infra/pvm/.env", "tests/.env.test"]

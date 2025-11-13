@@ -112,7 +112,7 @@ class TestVideoCrawlerIntegration:
         video_crawler_service.db.execute = AsyncMock()
 
         # Call the method
-        await video_crawler_service.handle_videos_search_request(event_data)
+        await video_crawler_service.handle_videos_search_request(event_data, correlation_id="test-correlation-123")
 
         # Verify that the event emitter was called (indicating the flow completed)
         assert video_crawler_service.event_emitter.broker.publish_event.called

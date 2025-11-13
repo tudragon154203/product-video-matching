@@ -35,5 +35,5 @@ class MatcherHandler:
 
     @handle_errors
     @validate_event("match_request")
-    async def handle_match_request(self, event_data: Dict[str, Any]) -> None:
+    async def handle_match_request(self, event_data: Dict[str, Any], correlation_id: str) -> None:
         await self.service.handle_match_request(event_data)

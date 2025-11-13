@@ -6,6 +6,7 @@ import inspect
 from pathlib import Path
 from typing import Any, Dict, Optional
 from contextvars import ContextVar, copy_context
+from datetime import datetime, timezone, timedelta
 
 
 # Define a ContextVar for correlation_id
@@ -13,6 +14,36 @@ correlation_id_var: ContextVar[Optional[str]] = ContextVar("correlation_id", def
 
 
 class JsonFormatter(logging.Formatter):
+    def formatTime(self, record: logging.LogRecord, datefmt: Optional[str] = None) -> str:
+        """
+        Override formatTime to ensure consistent timezone handling.
+
+        Uses GMT+7 timezone for consistency across all environments.
+        Can be configured to use local timezone by setting LOG_TIMEZONE=local
+        environment variable.
+        """
+        # Get timezone preference from environment
+        tz_setting = os.getenv("LOG_TIMEZONE", "gmt+7").lower()
+
+        # Convert record timestamp to datetime
+        ct = datetime.fromtimestamp(record.created)
+
+        if tz_setting == "local":
+            # Use system's local timezone
+            tz = datetime.now().astimezone().tzinfo
+        else:
+            # Default to GMT+7 for all environments
+            tz = timezone(timedelta(hours=7))
+
+        # Apply timezone
+        ct = ct.astimezone(tz)
+
+        if datefmt:
+            return ct.strftime(datefmt)
+        else:
+            # ISO 8601 format with timezone indicator
+            return ct.isoformat()
+
     def format(self, record: logging.LogRecord) -> str:
         log_record = {
             "timestamp": self.formatTime(record, self.datefmt),
@@ -140,6 +171,35 @@ def _standardize_logger_name(name: str) -> str:
         return name
 
 
+class TimezoneFormatter(logging.Formatter):
+    """Custom formatter that handles timezone consistently"""
+
+    def formatTime(self, record: logging.LogRecord, datefmt: Optional[str] = None) -> str:
+        """
+        Override formatTime to ensure consistent timezone handling.
+        """
+        # Get timezone preference from environment
+        tz_setting = os.getenv("LOG_TIMEZONE", "gmt+7").lower()
+
+        # Convert record timestamp to datetime
+        ct = datetime.fromtimestamp(record.created)
+
+        if tz_setting == "local":
+            # Use system's local timezone
+            tz = datetime.now().astimezone().tzinfo
+        else:
+            # Default to GMT+7 for all environments
+            tz = timezone(timedelta(hours=7))
+
+        # Apply timezone
+        ct = ct.astimezone(tz)
+
+        if datefmt:
+            return ct.strftime(datefmt)
+        else:
+            # Default format similar to logging.Formatter but with timezone
+            return ct.strftime("%Y-%m-%d %H:%M:%S")
+
 def configure_logging(
     service_name: str,
     log_level: str = "INFO",
@@ -157,7 +217,7 @@ def configure_logging(
     if log_format == "json":
         formatter = JsonFormatter()
     else:
-        formatter = logging.Formatter(
+        formatter = TimezoneFormatter(
             log_format or "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
         )
 

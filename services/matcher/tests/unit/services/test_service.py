@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch, create_autospec
 
 import pytest
 
@@ -18,9 +18,10 @@ pytestmark = pytest.mark.unit
 def mock_db() -> MagicMock:
     """Create a mock database manager."""
 
-    db = MagicMock(spec=DatabaseManager)
-    db.fetch_all = AsyncMock()
-    db.execute = AsyncMock()
+    db = create_autospec(DatabaseManager, instance=True)
+    db.fetch_all = AsyncMock(spec=DatabaseManager.fetch_all)
+    db.execute = AsyncMock(spec=DatabaseManager.execute)
+    db.fetch_val = AsyncMock(spec=DatabaseManager.fetch_val, return_value=None)
     return db
 
 

@@ -30,7 +30,7 @@ async def service_context():
         logger.info("Redis connection established")
 
         # Update handler with Redis client
-        handler.redis = redis_client
+        handler.update_redis_client(redis_client)
 
         yield handler
 

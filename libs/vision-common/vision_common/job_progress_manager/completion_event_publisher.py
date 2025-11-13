@@ -50,15 +50,27 @@ class CompletionEventPublisher:
         }
 
     def _determine_event_type(self, asset_type: str, event_type_prefix: str) -> str:
-        """Determine the event type based on asset type and prefix"""
+        """Determine the event type based on asset type and prefix
+        Correct topics:
+        - products images segmentation batch → products.images.masked.batch
+        - video keyframes segmentation batch → video.keyframes.masked.batch
+        - embeddings/keypoints completion → image|video.<prefix>.completed
+        """
         if event_type_prefix == "segmentation":
-            return f"{asset_type}.masked.batch" if asset_type in ["products", "video"] else f"{asset_type}.{event_type_prefix}.completed"
+            if asset_type == "image" or asset_type == "products":
+                return "products.images.masked.batch"
+            elif asset_type == "video":
+                return "video.keyframes.masked.batch"
+            else:
+                # Fallback to completed naming if unknown asset_type
+                return f"{asset_type}.segmentation.completed"
+        # Non-segmentation completion events
         return f"image.{event_type_prefix}.completed" if asset_type == "image" else f"video.{event_type_prefix}.completed"
 
     async def _publish_event(self, event_type: str, event_data: Dict[str, Any], 
                            completion_key: str, message: str) -> None:
         """Publish event with standardized logging and error handling"""
-        await self.broker.publish_event(event_type, event_data)
+        await self.broker.publish_event(topic=event_type, event_data=event_data)
         logger.info(message, job_id=event_data["job_id"], event_id=event_data["event_id"],
                    total=event_data["total_assets"], done=event_data["processed_assets"])
 
@@ -70,20 +82,46 @@ class CompletionEventPublisher:
 
     async def publish_completion_event(self, job_id: str, is_timeout: bool = False, event_type_prefix: str = "embeddings"):
         """Publish completion event with progress data"""
-        if job_id not in self.base_manager.job_tracking:
-            logger.warning("Job not found in tracking", job_id=job_id)
+        # Find tracking entry by (job_id, *, event_type_prefix)
+        job_key = None
+        for key in self.base_manager.job_tracking.keys():
+            if key.startswith(f"{job_id}:") and key.endswith(f":{event_type_prefix}"):
+                job_key = key
+                break
+        if not job_key:
+            logger.warning("Job not found in tracking for completion publish", job_id=job_id, event_type_prefix=event_type_prefix)
             return
-            
-        job_data = self.base_manager.job_tracking[job_id]
-        asset_type = job_data["asset_type"]
+        job_data = self.base_manager.job_tracking[job_key]
+        # key format: job_id:asset_type:event_type_prefix
+        try:
+            _, asset_type, _ = job_key.split(":", 2)
+        except Exception:
+            asset_type = job_data.get("asset_type", "image")
         expected = job_data["expected"]
         done = job_data["done"]
         
-        # Handle zero assets scenario
+        # Handle zero assets scenario - but only if this is a legitimate zero-asset job
+        # (not per-asset-first initialization where expected hasn't been set yet)
         if expected == 0:
-            done = 0
-            logger.info("Immediate completion for zero-asset job", job_id=job_id)
-            has_partial = False  # For zero assets, there's no partial completion
+            # Check if this is a legitimate zero-asset job by seeing if batch was initialized
+            # If batch was initialized and total is 0, it's a real zero-asset job
+            is_legitimate_zero = False
+            if asset_type == "image" and job_id in self.base_manager.job_image_counts:
+                if self.base_manager.job_image_counts[job_id].get("total", 0) == 0:
+                    is_legitimate_zero = True
+            elif asset_type == "video" and job_id in self.base_manager.job_frame_counts:
+                if self.base_manager.job_frame_counts[job_id].get("total", 0) == 0:
+                    is_legitimate_zero = True
+
+            if is_legitimate_zero:
+                done = 0
+                logger.info("Immediate completion for legitimate zero-asset job", job_id=job_id)
+                has_partial = False  # For zero assets, there's no partial completion
+            else:
+                # This is likely per-asset-first initialization, don't complete yet
+                logger.debug("Skipping completion - zero expected but not a legitimate zero-asset job",
+                           job_id=job_id, asset_type=asset_type)
+                return
         else:
             # Calculate partial completion flag
             has_partial = (done < expected)
@@ -120,13 +158,12 @@ class CompletionEventPublisher:
         logger.debug("Marked completion event as sent", job_id=job_id, asset_type=asset_type,
                      completion_key=completion_key, total_set_size=len(self._completion_events_sent))
         
-        await self.broker.publish_event(event_type, event_data)
+        await self.broker.publish_event(topic=event_type, event_data=event_data)
         logger.info(f"Emitted {asset_type} {event_type_prefix} completed event",
                    job_id=job_id, event_id=event_id,
                    total=expected, done=done, is_timeout=is_timeout)
         
-        # Cleanup job tracking
-        self.base_manager._cleanup_job_tracking(job_id)
+        # Cleanup handled by JobProgressManager to also cancel timers; do not cleanup here
 
     async def publish_completion_event_with_count(self, job_id: str, asset_type: str, expected: int, done: int, event_type_prefix: str = "embeddings"):
         """Publish completion event with specific counts"""
@@ -158,8 +195,9 @@ class CompletionEventPublisher:
         logger.debug("Checking for existing completion event", job_id=job_id, asset_type=asset_type,
                      completion_key_in_set=completion_key in self._completion_events_sent)
         if completion_key in self._completion_events_sent:
-            logger.info("Completion event already sent for this job and asset type, skipping duplicate",
-                       job_id=job_id, asset_type=asset_type)
+            logger.warning("DUPLICATE COMPLETION EVENT DETECTED - skipping",
+                          job_id=job_id, asset_type=asset_type, event_type_prefix=event_type_prefix,
+                          completion_key=completion_key, current_set_size=len(self._completion_events_sent))
             return
             
         # Mark this job and asset_type as having sent completion event
@@ -167,13 +205,12 @@ class CompletionEventPublisher:
         logger.debug("Added completion key to set", job_id=job_id, asset_type=asset_type,
                      current_set_size=len(self._completion_events_sent))
         
-        await self.broker.publish_event(event_type, event_data)
+        await self.broker.publish_event(topic=event_type, event_data=event_data)
         logger.info(f"Emitted {asset_type} {event_type_prefix} completed event",
                    job_id=job_id, event_id=event_id,
                    total=expected, done=done, is_timeout=False)
         
-        # Cleanup job tracking
-        self.base_manager._cleanup_job_tracking(job_id)
+        # Cleanup handled by JobProgressManager to also cancel timers; do not cleanup here
         
         # For segmentation completion, emit masked batch events if this is a segmentation job
         if event_type_prefix == "segmentation":
@@ -183,7 +220,7 @@ class CompletionEventPublisher:
         """Emit masked batch events when segmentation completes"""
         if asset_type == "image":
             await self.publish_products_images_masked_batch(job_id, done)
-        elif asset_type == "frame":
+        elif asset_type == "video":
             await self.publish_videos_keyframes_masked_batch(job_id, done)
 
     async def publish_products_images_masked_batch(self, job_id: str, total_images: int) -> None:
@@ -210,7 +247,7 @@ class CompletionEventPublisher:
         # Mark this job as having sent the completion event
         self._completion_events_sent.add(completion_key)
         
-        await self.broker.publish_event("products.images.masked.batch", event_data)
+        await self.broker.publish_event(topic="products.images.masked.batch", event_data=event_data)
         logger.info(f"Emitted products images masked batch event",
                    job_id=job_id, event_id=event_id, total_images=total_images)
 
@@ -238,7 +275,7 @@ class CompletionEventPublisher:
         # Mark this job as having sent the completion event
         self._completion_events_sent.add(completion_key)
         
-        await self.broker.publish_event("video.keyframes.masked.batch", event_data)
+        await self.broker.publish_event(topic="video.keyframes.masked.batch", event_data=event_data)
         logger.info(f"Emitted videos keyframes masked batch event",
                    job_id=job_id, event_id=event_id, total_keyframes=total_keyframes)
 
@@ -266,6 +303,6 @@ class CompletionEventPublisher:
         # Mark this job as having sent the completion event
         self._completion_events_sent.add(completion_key)
         
-        await self.broker.publish_event("videos.keyframes.ready.batch", event_data)
+        await self.broker.publish_event(topic="videos.keyframes.ready.batch", event_data=event_data)
         logger.info(f"Emitted videos keyframes ready batch event",
                    job_id=job_id, event_id=event_id, total_keyframes=total_keyframes)

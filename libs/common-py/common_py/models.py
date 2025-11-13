@@ -11,6 +11,7 @@ class Product(BaseModel):
     brand: Optional[str] = None
     url: Optional[str] = None
     marketplace: str  # 'us', 'de', 'au'
+    job_id: Optional[str] = None
     created_at: Optional[datetime] = None
 
 
@@ -63,4 +64,5 @@ class Match(BaseModel):
     ts: Optional[float] = None
     score: float
     evidence_path: Optional[str] = None
+    status: Optional[str] = "accepted"
     created_at: Optional[datetime] = None

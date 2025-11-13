@@ -1,11 +1,12 @@
 """TikTok video crawler implementation."""
 
 import asyncio
-from typing import Any, Dict, List
+from typing import Any, Dict, Iterable, List
 
 from common_py.logging_config import configure_logging
 from config_loader import config
 from platform_crawler.common.base_crawler import BaseVideoCrawler
+from platform_crawler.common.utils import deduplicate_by_key, deduplicate_videos_by_id_and_title
 from platform_crawler.tiktok.tiktok_downloader import TikTokDownloader
 from platform_crawler.tiktok.tiktok_searcher import TikTokSearcher
 
@@ -16,11 +17,15 @@ class TikTokCrawler(BaseVideoCrawler):
     """TikTok video crawler implementation."""
 
     def __init__(self):
-        super().__init__(platform_name="tiktok", logger=logger)
+        super().__init__(platform_name="tiktok", logger=logger, enable_title_deduplication=True)
         self.searcher = TikTokSearcher(self.platform_name)
         self.downloader_config = {
             "TIKTOK_VIDEO_STORAGE_PATH": config.TIKTOK_VIDEO_STORAGE_PATH,
             "TIKTOK_KEYFRAME_STORAGE_PATH": config.TIKTOK_KEYFRAME_STORAGE_PATH,
+            "TIKTOK_CRAWL_HOST": config.TIKTOK_CRAWL_HOST,
+            "TIKTOK_CRAWL_HOST_PORT": config.TIKTOK_CRAWL_HOST_PORT,
+            "TIKTOK_DOWNLOAD_STRATEGY": config.TIKTOK_DOWNLOAD_STRATEGY,
+            "TIKTOK_DOWNLOAD_TIMEOUT": config.TIKTOK_DOWNLOAD_TIMEOUT,
             "retries": 3,
             "timeout": 30,
             "platform_name": self.platform_name,
@@ -87,3 +92,20 @@ class TikTokCrawler(BaseVideoCrawler):
             download_dir,
             self.max_parallel_downloads,
         )
+
+    def _deduplicate_videos(
+        self,
+        videos: Iterable[Dict[str, Any]],
+    ) -> Dict[Any, Dict[str, Any]]:
+        if self._enable_title_deduplication:
+            # Use new title-based deduplication with caption mapping for TikTok
+            deduped_videos = deduplicate_videos_by_id_and_title(
+                videos,
+                id_keys=self._dedupe_key,
+                title_key="caption"  # TikTok uses "caption" field
+            )
+            # Convert to dict format for compatibility with existing code
+            return {f"video_{i}": video for i, video in enumerate(deduped_videos)}
+        else:
+            # Use existing ID-only deduplication
+            return deduplicate_by_key(videos, self._dedupe_key)

@@ -21,7 +21,7 @@ export const phaseInfo: Record<Phase, PhaseInfo> = {
     effect: 'none'
   },
   collection: {
-    label: 'Collecting products and videos…',
+    label: '',
     color: 'bg-blue-500',
     description: 'Collecting candidate products and videos.',
     effect: 'animated-dots'

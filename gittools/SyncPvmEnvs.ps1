@@ -57,6 +57,7 @@ function Copy-EnvFile {
 $mapping = [ordered]@{
   'services\main-api'              = 'main-api.env'
   'infra\pvm'                      = 'infra-pvm.env'
+  'tests'                          = 'infra-pvm.env'
   'services\video-crawler'         = 'video-crawler.env'
   'services\dropship-product-finder' = 'dropship-product-finder.env'
   'services\product-segmentor'     = 'product-segmentor.env'

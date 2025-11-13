@@ -113,6 +113,15 @@ class ImageMaskingProcessor:
         final_mask = foreground_mask
         if people_mask is not None:
             logger.info("Foreground mask shape: {foreground_mask_shape}", foreground_mask_shape=foreground_mask.shape)
+            logger.info("People mask shape: {people_mask_shape}", people_mask_shape=people_mask.shape)
+
+            # Ensure both masks have the same dimensionality
+            # Foreground mask is already squeezed to 2D in _generate_and_load_foreground_mask
+            # People mask might be 3D with shape (H, W, 1), so we need to squeeze it too
+            if people_mask.ndim == 3 and people_mask.shape[2] == 1:
+                people_mask = people_mask.squeeze(axis=2)
+                logger.debug("Squeezed people mask to 2D", new_shape=people_mask.shape)
+
             if foreground_mask.shape == people_mask.shape:
                 try:
                     final_mask = cv2.bitwise_and(foreground_mask, cv2.bitwise_not(people_mask))

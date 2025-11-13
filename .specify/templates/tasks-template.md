@@ -50,54 +50,57 @@
 
 ## Phase 3.2: Quality and Tests Setup ⚠️ MUST COMPLETE BEFORE 3.3
 **CRITICAL: Quality gates MUST be configured and tests MUST FAIL before ANY implementation**
-- [ ] T004 [P] Install flake8 with E, W, F rulesets in service/requirements.txt
+- [ ] T004 [P] Install autopep8 and flake8 with E, W, F rulesets in service/requirements.txt
 - [ ] T005 [P] Configure pytest for strict markers and unit/integration separation
-- [ ] T006 [P] Configure pre-commit hooks for flake8 and unit test validation
+- [ ] T006 [P] Configure pre-commit hooks for autopep8, flake8 and unit test validation
 - [ ] T007 [P] Contract test POST /api/users in tests/contract/test_users_post.py
 - [ ] T008 [P] Contract test GET /api/users/{id} in tests/contract/test_users_get.py
 - [ ] T009 [P] Integration test user registration in tests/integration/api/test_registration.py
 - [ ] T010 [P] Integration test auth flow in tests/integration/auth/test_auth.py
-- [ ] T011 Validate flake8 passes with microservice codebase
-- [ ] T012 Validate `python -m pytest -m unit` passes (all green state)
+- [ ] T011 Validate autopep8 formatting passes with `autopep8 --in-place --recursive .` from microservice directory
+- [ ] T012 Validate flake8 passes with microservice codebase
+- [ ] T013 Validate `python -m pytest -m unit` passes (all green state)
+- [ ] T014 [P] Configure coverage.py with >90% threshold in service/pyproject.toml
+- [ ] T015 Validate coverage >90% across all modules
 
 ## Phase 3.3: Core Implementation (ONLY after tests are failing)
-- [ ] T008 [P] User model in src/models/user.py
-- [ ] T009 [P] UserService CRUD in src/services/user_service.py
-- [ ] T010 [P] CLI --create-user in src/cli/user_commands.py
-- [ ] T011 POST /api/users endpoint
-- [ ] T012 GET /api/users/{id} endpoint
-- [ ] T013 Input validation
-- [ ] T014 Error handling and logging
+- [ ] T016 [P] User model in src/models/user.py
+- [ ] T017 [P] UserService CRUD in src/services/user_service.py
+- [ ] T018 [P] CLI --create-user in src/cli/user_commands.py
+- [ ] T019 POST /api/users endpoint
+- [ ] T020 GET /api/users/{id} endpoint
+- [ ] T021 Input validation
+- [ ] T022 Error handling and logging
 
 ## Phase 3.4: Integration
-- [ ] T015 Connect UserService to DB
-- [ ] T016 Auth middleware
-- [ ] T017 Request/response logging
-- [ ] T018 CORS and security headers
+- [ ] T023 Connect UserService to DB
+- [ ] T024 Auth middleware
+- [ ] T025 Request/response logging
+- [ ] T026 CORS and security headers
 
 ## Phase 3.5: Polish
-- [ ] T019 [P] Unit tests for validation in tests/unit/test_validation.py
-- [ ] T020 Performance tests (<200ms)
-- [ ] T021 [P] Update docs/api.md
-- [ ] T022 Remove duplication
-- [ ] T023 Run manual-testing.md
+- [ ] T027 [P] Unit tests for validation in tests/unit/test_validation.py
+- [ ] T028 Performance tests (<200ms)
+- [ ] T029 [P] Update docs/api.md
+- [ ] T030 Remove duplication
+- [ ] T031 Run manual-testing.md
 
 ## Dependencies
 - Quality setup (T004-T006) before any tests (T007-T010)
-- Quality validation (T011-T012) after tests but before implementation
-- Tests (T007-T010) before implementation (T013-T019)
-- T013 blocks T014, T020
-- T017 blocks T019
-- T008 blocks T014, T020
-- T019 blocks T022
-- Implementation before polish (T022-T027)
+- Quality validation (T011-T015) after tests but before implementation
+- Tests (T007-T010) before implementation (T016-T022)
+- T021 blocks T022, T028
+- T025 blocks T027
+- T016 blocks T022, T028
+- T027 blocks T030
+- Implementation before polish (T027-T031)
 
 ## Parallel Example
 ```
 # Launch T004-T006 together for quality setup:
-Task: "Install flake8 with E, W, F rulesets in service/requirements.txt"
+Task: "Install autopep8 and flake8 with E, W, F rulesets in service/requirements.txt"
 Task: "Configure pytest for strict markers and unit/integration separation"
-Task: "Configure pre-commit hooks for flake8 and unit test validation"
+Task: "Configure pre-commit hooks for autopep8, flake8 and unit test validation"
 
 # Launch T007-T010 together for contract and integration tests:
 Task: "Contract test POST /api/users in tests/contract/test_users_post.py"
@@ -137,6 +140,8 @@ Task: "Integration test auth in tests/integration/auth/test_auth.py"
 - [ ] All contracts have corresponding tests
 - [ ] All entities have model tasks
 - [ ] All tests come before implementation
+- [ ] Coverage tasks (T014-T015) included and sequenced properly
 - [ ] Parallel tasks truly independent
 - [ ] Each task specifies exact file path
 - [ ] No task modifies same file as another [P] task
+- [ ] >90% coverage threshold enforced in tasks

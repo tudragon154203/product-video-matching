@@ -1,9 +1,9 @@
 import pytest
 import asyncio
 from services.product_collection_manager import ProductCollectionManager
+pytestmark = pytest.mark.integration
 
 
-@pytest.mark.integration
 @pytest.mark.asyncio
 async def test_parallel_execution_with_real_components():
     """Integration test to verify parallel execution with mocked but realistic components."""
@@ -43,7 +43,7 @@ async def test_parallel_execution_with_real_components():
             self.stored_products = []
             self.storage_delay = 0.01  # Simulate storage I/O delay
 
-        async def store_product(self, product: dict, job_id: str, platform: str):
+        async def store_product(self, product: dict, job_id: str, platform: str, correlation_id: str):
             await asyncio.sleep(self.storage_delay)  # Simulate storage operation
             self.stored_products.append(
                 {"product": product, "job_id": job_id, "platform": platform}
@@ -68,7 +68,7 @@ async def test_parallel_execution_with_real_components():
     start_time = time.time()
 
     amazon_count, ebay_count = await manager.collect_and_store_products(
-        "integration_test_job", queries, top_amz, top_ebay
+        "integration_test_job", queries, top_amz, top_ebay, "test_correlation_id"
     )
 
     end_time = time.time()
@@ -106,7 +106,6 @@ async def test_parallel_execution_with_real_components():
         assert "currency" in stored["product"]
 
 
-@pytest.mark.integration
 @pytest.mark.asyncio
 async def test_error_resilience_integration():
     """Integration test to verify error handling works end-to-end."""
@@ -139,7 +138,7 @@ async def test_error_resilience_integration():
         def __init__(self):
             self.stored_products = []
 
-        async def store_product(self, product: dict, job_id: str, platform: str):
+        async def store_product(self, product: dict, job_id: str, platform: str, correlation_id: str):
             self.stored_products.append(
                 {"product": product, "job_id": job_id, "platform": platform}
             )
@@ -161,7 +160,7 @@ async def test_error_resilience_integration():
     top_ebay = 1
 
     amazon_count, ebay_count = await manager.collect_and_store_products(
-        "error_test_job", queries, top_amz, top_ebay
+        "error_test_job", queries, top_amz, top_ebay, "test_correlation_id"
     )
 
     # Amazon should have 2 successful products (electronics failed, fashion succeeded, home succeeded)

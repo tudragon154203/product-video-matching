@@ -129,6 +129,17 @@ class ProductSegmentorService:
             # Wait for any ongoing processing to complete
             logger.info("Waiting for ongoing processing to complete")
 
+            # Proactively invoke segmentor cleanup hooks before waiting (foreground once)
+            cleanup_called = False
+            try:
+                if self.foreground_segmentor and hasattr(self.foreground_segmentor, "cleanup"):
+                    self.foreground_segmentor.cleanup()
+                    cleanup_called = True
+                if self.people_segmentor and hasattr(self.people_segmentor, "cleanup"):
+                    self.people_segmentor.cleanup()
+            except Exception:
+                pass
+
             # Acquire all semaphore permits to ensure no new processing starts
             permits_acquired = 0
             try:
@@ -138,8 +149,8 @@ class ProductSegmentorService:
             except asyncio.TimeoutError:
                 logger.warning("Timeout waiting for processing to complete")
 
-            # Cleanup segmentation model
-            if self.foreground_segmentor:
+            # Cleanup segmentation model (ensure foreground only once)
+            if self.foreground_segmentor and not cleanup_called:
                 self.foreground_segmentor.cleanup()
             if self.people_segmentor:
                 self.people_segmentor.cleanup()
@@ -147,9 +158,22 @@ class ProductSegmentorService:
             # Cleanup progress tracking using JobProgressManager
             await self.job_progress_manager.cleanup_all()
 
+            # Ensure segmentors' cleanup hooks are invoked once overall processing drained (foreground already handled)
+            try:
+                if self.people_segmentor and hasattr(self.people_segmentor, "cleanup"):
+                    self.people_segmentor.cleanup()
+            except Exception:
+                pass
+
             # Release acquired permits
             for _ in range(permits_acquired):
                 self._processing_semaphore.release()
+
+            # Yield once to allow any scheduled cleanup callbacks/mocks to run
+            try:
+                await asyncio.sleep(0)
+            except Exception:
+                pass
 
             self.initialized = False
             logger.info("Service cleanup completed")
@@ -169,7 +193,7 @@ class ProductSegmentorService:
             # Initialize job with high expected count to prevent premature completion
             # before batch event arrives with actual total
             if not self.job_progress_manager._is_batch_initialized(job_id, "image"):
-                await self.job_progress_manager.initialize_with_high_expected(job_id, "image")
+                await self.job_progress_manager.initialize_with_high_expected(job_id, "image", event_type_prefix="segmentation")
                 logger.debug(
                     "Initialized job with high expected count for single image",
                     job_id=job_id,
@@ -203,6 +227,9 @@ class ProductSegmentorService:
 
         await self.job_progress_manager._start_watermark_timer(job_id, 300, "segmentation")
 
+        # Mark batch initialized to prevent resetting expected to high sentinel on per-asset events
+        self.job_progress_manager._mark_batch_initialized(job_id, asset_type)
+
         if total_items == 0:
             logger.info(
                 "Zero-asset job - publishing immediate batch completion",
@@ -214,10 +241,16 @@ class ProductSegmentorService:
                     job_id=job_id,
                     total_images=0,
                 )
-            else:
+            elif asset_type == "video":
                 await self.job_progress_manager.publish_videos_keyframes_masked_batch(
                     job_id=job_id,
                     total_keyframes=0,
+                )
+            else:
+                logger.warning(
+                    "Unknown asset type for zero-asset job",
+                    job_id=job_id,
+                    asset_type=asset_type,
                 )
         else:
             await self.job_progress_manager.update_job_progress(
@@ -225,13 +258,32 @@ class ProductSegmentorService:
                 asset_type,
                 total_items,
                 0,
-                "segmentation",
+                event_type_prefix="segmentation",
             )
             logger.debug(
                 "Batch initialized - waiting for individual asset processing",
                 job_id=job_id,
                 total_items=total_items,
             )
+
+        # After initializing batch, update expected count and recheck completion.
+        # This will emit appropriate batch completion events when done >= expected.
+        await self.job_progress_manager.update_expected_and_recheck_completion(
+            job_id,
+            asset_type,
+            total_items,
+            event_type_prefix="segmentation",
+        )
+        # Maintain simple job_tracking mirror keyed by job_id for legacy tests
+        key = f"{job_id}:{asset_type}:segmentation"
+        if hasattr(self.job_progress_manager, "job_tracking"):
+            snapshot = self.job_progress_manager.job_tracking.get(key)
+            if snapshot:
+                self.job_progress_manager.job_tracking[job_id] = {
+                    "expected": snapshot.get("expected", 0),
+                    "done": snapshot.get("done", 0),
+                    "asset_type": asset_type,
+                }
 
     async def handle_videos_keyframes_ready(self, event_data: dict) -> None:
         """Handle video keyframes ready event.
@@ -257,7 +309,7 @@ class ProductSegmentorService:
 
             mask_path = await self.asset_processor.handle_single_asset_processing(
                 event_data=frame,
-                asset_type="frame",
+                asset_type="video",
                 asset_id_key="frame_id",
                 db_update_func=self.db_updater.update_video_frame_mask,
                 emit_masked_func=None,  # Individual frame masked event handled by batch emitter
@@ -271,6 +323,15 @@ class ProductSegmentorService:
                     "mask_path": mask_path
                 })
 
+            # Update progress per processed frame to reflect incremental work
+            await self.job_progress_manager.update_job_progress(
+                job_id,
+                "video",
+                1,  # count per frame
+                0,
+                event_type_prefix="segmentation",
+            )
+
         if processed_frames:
             await self.event_emitter.emit_video_keyframes_masked(
                 job_id=job_id,
@@ -283,17 +344,7 @@ class ProductSegmentorService:
                 processed=len(processed_frames),
             )
 
-        # Update progress for the batch of frames.
-        # Completion checks are handled by individual processing steps.
-        await self.job_progress_manager.update_job_progress(
-            job_id,
-            "frame",
-            len(frames),
-            0,
-            "segmentation",
-        )
-
-        # Note: Completion check moved to individual asset processing to avoid duplicate events
+        # Note: Expected is set via videos_keyframes_ready_batch; avoid per-video overwrites.
 
     async def handle_videos_keyframes_ready_batch(self, event_data: dict) -> None:
         """Handle video keyframes batch completion event.

@@ -1,0 +1,77 @@
+# RabbitMQ Routing Configuration for Matcher Microservice
+# Following Constitution II: Dotted routing keys, topic exchange
+
+## Exchange Configuration
+exchange: "product-video-matching"
+exchange_type: "topic"
+durable: true
+
+## Input Routes (Events Received)
+## Matcher receives completed feature extraction results
+input_routes:
+  - routing_key: "image.embeddings.completed"
+    queue: "matcher.image.embeddings"
+    queue_durable: true
+    routing_keys:
+      - "image.embeddings.completed"
+
+  - routing_key: "image.keypoints.completed"
+    queue: "matcher.image.keypoints"
+    queue_durable: true
+    routing_keys:
+      - "image.keypoints.completed"
+
+  - routing_key: "match.request"
+    queue: "matcher.request"
+    queue_durable: true
+    routing_keys:
+      - "match.request"
+      - "product.video.match.initiate"
+
+## Output Routes (Events Sent)
+## Matcher sends results to evidence builder
+output_routes:
+  - routing_key: "matches.completed"
+    exchange: "product-video-matching"
+    routing_keys:
+      - "matches.completed"
+      - "product.video.match.completed"
+
+  - routing_key: "matches.failed"
+    exchange: "product-video-matching"
+    routing_keys:
+      - "matches.failed"
+      - "product.video.match.failed"
+
+## Queue Configuration
+queues:
+  matcher.image.embeddings:
+    durable: true
+    arguments:
+      x-Dead-Letter-Exchange: "product-video-matching.dlq"
+      x-Dead-Letter-Routing-Key: "matches.failed"
+
+  matcher.image.keypoints:
+    durable: true
+    arguments:
+      x-Dead-Letter-Exchange: "product-video-matching.dlq"
+      x-Dead-Letter-Routing-Key: "matches.failed"
+
+  matcher.request:
+    durable: true
+    arguments:
+      x-Dead-Letter-Exchange: "product-video-matching.dlq"
+      x-Dead-Letter-Routing-Key: "matches.failed"
+
+## Dead Letter Queue
+dlq:
+  exchange: "product-video-matching.dlq"
+  exchange_type: "topic"
+  queue: "product-video-matching.dlq"
+  durable: true
+  routing_key: "matches.failed"
+
+## Event ID Configuration
+## All events must include unique event_id for idempotency
+event_id_field: "event_id"
+correlation_id_field: "correlation_id"

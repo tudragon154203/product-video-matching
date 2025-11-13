@@ -1,9 +1,8 @@
 """Unit tests for platform-specific query extraction logic."""
 
-from services.service import VideoCrawlerService
+from services.platform_query_processor import PlatformQueryProcessor
 from pathlib import Path
 import sys
-from unittest.mock import patch
 
 import pytest
 
@@ -15,19 +14,10 @@ if str(REPO_ROOT) not in sys.path:
 pytestmark = pytest.mark.unit
 
 
-@pytest.fixture
-def query_service(tiktok_env_mock):
-    """Create a VideoCrawlerService instance without touching global crawler state."""
-    with patch.object(VideoCrawlerService, "_initialize_platform_crawlers", return_value={}):
-        service = VideoCrawlerService(None, None, tiktok_env_mock)
-    service.initialize_keyframe_extractor(keyframe_dir=tiktok_env_mock)
-    return service
-
-
 class TestPlatformQueryExtraction:
     """Tests for platform-specific query extraction functionality."""
 
-    def test_extract_platform_queries_tiktok_vietnamese(self, query_service):
+    def test_extract_platform_queries_tiktok_vietnamese(self):
         """Test that TikTok platform extracts Vietnamese queries."""
         queries = {
             "vi": ["gối ergonomic", "pillow thoải mái"],
@@ -35,12 +25,12 @@ class TestPlatformQueryExtraction:
         }
         platforms = ["tiktok"]
 
-        extracted = query_service._extract_platform_queries(queries, platforms)
+        extracted = PlatformQueryProcessor.extract_platform_queries(queries, platforms)
 
         assert isinstance(extracted, list)
         assert extracted == ["gối ergonomic", "pillow thoải mái"]
 
-    def test_extract_platform_queries_multiple_platforms(self, query_service):
+    def test_extract_platform_queries_multiple_platforms(self):
         """Test query extraction with multiple platforms including TikTok."""
         queries = {
             "vi": ["query vi 1", "query vi 2"],
@@ -48,12 +38,12 @@ class TestPlatformQueryExtraction:
         }
         platforms = ["youtube", "tiktok", "bilibili"]
 
-        extracted = query_service._extract_platform_queries(queries, platforms)
+        extracted = PlatformQueryProcessor.extract_platform_queries(queries, platforms)
 
         assert isinstance(extracted, list)
         assert extracted == ["query vi 1", "query vi 2"]
 
-    def test_extract_platform_queries_tiktok_only(self, query_service):
+    def test_extract_platform_queries_tiktok_only(self):
         """Test query extraction for TikTok platform only."""
         queries = {
             "vi": ["đánh giá tai nghe không dây", "unbox iphone 15"],
@@ -61,7 +51,7 @@ class TestPlatformQueryExtraction:
         }
         platforms = ["tiktok"]
 
-        extracted = query_service._extract_platform_queries(queries, platforms)
+        extracted = PlatformQueryProcessor.extract_platform_queries(queries, platforms)
 
         assert isinstance(extracted, list)
         assert len(extracted) == 2
@@ -69,7 +59,7 @@ class TestPlatformQueryExtraction:
         assert "unbox iphone 15" in extracted
         assert "wireless earbuds review 2024" not in extracted
 
-    def test_extract_platform_queries_youtube_without_vietnamese(self, query_service):
+    def test_extract_platform_queries_youtube_without_vietnamese(self):
         """When Vietnamese queries are absent, YouTube should not fall back to other languages."""
         queries = {
             "zh": ["产品评测"],
@@ -77,28 +67,28 @@ class TestPlatformQueryExtraction:
         }
         platforms = ["youtube"]
 
-        extracted = query_service._extract_platform_queries(queries, platforms)
+        extracted = PlatformQueryProcessor.extract_platform_queries(queries, platforms)
 
         assert extracted == []
 
-    def test_extract_platform_queries_invalid_input(self, query_service):
+    def test_extract_platform_queries_invalid_input(self):
         """Test query extraction with invalid input formats."""
-        extracted = query_service._extract_platform_queries(["query1", "query2"], ["tiktok"])
+        extracted = PlatformQueryProcessor.extract_platform_queries(["query1", "query2"], ["tiktok"])
         assert isinstance(extracted, list)
 
-        extracted = query_service._extract_platform_queries({"vi": ["query1"]}, [])
+        extracted = PlatformQueryProcessor.extract_platform_queries({"vi": ["query1"]}, [])
         assert extracted == []
 
-        extracted = query_service._extract_platform_queries(None, ["tiktok"])
+        extracted = PlatformQueryProcessor.extract_platform_queries(None, ["tiktok"])
         assert extracted == []
 
-    def test_extract_platform_queries_edge_cases(self, query_service):
+    def test_extract_platform_queries_edge_cases(self):
         """Test edge cases for query extraction."""
-        extracted = query_service._extract_platform_queries({"vi": [], "zh": []}, ["tiktok"])
+        extracted = PlatformQueryProcessor.extract_platform_queries({"vi": [], "zh": []}, ["tiktok"])
         assert extracted == []
 
-        extracted = query_service._extract_platform_queries({}, ["tiktok"])
+        extracted = PlatformQueryProcessor.extract_platform_queries({}, ["tiktok"])
         assert extracted == []
 
-        extracted = query_service._extract_platform_queries({"vi": "single query"}, ["tiktok"])
+        extracted = PlatformQueryProcessor.extract_platform_queries({"vi": "single query"}, ["tiktok"])
         assert extracted == ["single query"]

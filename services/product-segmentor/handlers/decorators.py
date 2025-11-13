@@ -11,8 +11,14 @@ def validate_event(schema_name):
         @functools.wraps(func)
         async def wrapper(*args, **kwargs):
             try:
-                # Extract event_data from args (position 1) or kwargs
-                event_data = args[1] if len(args) > 1 else kwargs.get('event_data')
+                # Extract event_data from args (position 1 for method calls) or kwargs
+                # Handler methods are called with: self, event_data, correlation_id
+                if len(args) > 1:
+                    # For bound method calls, args[0] is self, args[1] is event_data
+                    event_data = args[1]
+                else:
+                    event_data = kwargs.get('event_data')
+
                 if not event_data:
                     raise ValueError("Event data not found in arguments")
 

@@ -9,6 +9,7 @@ from datetime import datetime
 from alembic import command, config
 from alembic.runtime.migration import MigrationContext
 from alembic.runtime.environment import EnvironmentContext
+from alembic.script import ScriptDirectory
 import json
 
 from .migration_config import MigrationConfig
@@ -58,7 +59,41 @@ class MigrationExecutor:
             return None
     
     def _get_target_revision(self) -> str:
-        """Get target revision (head for latest)"""
+        """Get target revision (true Alembic head for latest)
+
+        Prefer concrete revision ID over literal 'head'. If ScriptDirectory cannot
+        resolve the head, derive it from available migration filenames (e.g. '007_*').
+        Finally, fall back to 'head' only when necessary.
+        """
+        # First try Alembic script directory
+        try:
+            script = ScriptDirectory.from_config(self.alembic_cfg)
+            expected_head = script.get_current_head()
+            if expected_head:
+                logger.info(f"Resolved Alembic head: {expected_head}")
+                return expected_head
+            else:
+                logger.warning("Alembic ScriptDirectory returned no current head")
+        except Exception as e:
+            logger.warning(f"Could not resolve Alembic head via ScriptDirectory: {e}")
+
+        # Fallback: derive from filenames
+        try:
+            migrations = self._list_available_migrations()
+            numeric_ids = []
+            for m in migrations:
+                prefix = m.split("_", 1)[0]
+                if prefix.isdigit():
+                    numeric_ids.append(int(prefix))
+            if numeric_ids:
+                latest = f"{max(numeric_ids):03d}"
+                logger.info(f"Derived latest migration id from filenames: {latest}")
+                return latest
+        except Exception as e:
+            logger.warning(f"Failed to derive head from filenames: {e}")
+
+        # Final fallback
+        logger.warning("Falling back to literal 'head' as target revision")
         return "head"
     
     def _log_migration_start(self, current_rev: Optional[str], target_rev: str) -> None:
@@ -174,24 +209,25 @@ class MigrationExecutor:
             raise
     
     def check_migration_status(self) -> Dict[str, Any]:
-        """Check current migration status"""
+        """Check current migration status against true Alembic head"""
         try:
             current_rev = self._get_current_revision()
-            target_rev = self._get_target_revision()
+            expected_head = self._get_target_revision()
             available_migrations = self._list_available_migrations()
-            
+
             status = {
                 "database_url": self.config.database_url,
                 "current_revision": current_rev,
-                "target_revision": target_rev,
+                "target_revision": expected_head,
                 "available_migrations": available_migrations,
-                "migration_needed": current_rev != target_rev,
+                "migration_needed": current_rev != expected_head,
                 "dry_run": self.config.dry_run,
                 "timestamp": datetime.now().isoformat()
             }
-            
+
+            logger.info(f"Migration status: current_revision={current_rev}, expected_head={expected_head}")
             return status
-            
+
         except Exception as e:
             logger.error(f"Failed to check migration status: {str(e)}")
             raise
@@ -219,22 +255,54 @@ class MigrationExecutor:
             
             # Execute upgrade
             logger.info(f"Upgrading from {current_rev or 'base'} to {target_rev}")
-            
-            result = self._execute_migration_command("upgrade", target_rev)
-            
+
+            # When target_rev is a concrete revision (e.g., '007'), prefer that over 'head'
+            upgrade_arg = target_rev
+
+            result = self._execute_migration_command("upgrade", upgrade_arg)
+
             if result is None:
                 logger.info("Dry run completed successfully")
             else:
                 logger.info("Migration upgrade completed")
-            
-            # Verify success
+
+            # Verify success against true Alembic head when available
             final_rev = self._get_current_revision()
-            if final_rev != target_rev:
-                logger.error(f"Migration verification failed. Expected: {target_rev}, Got: {final_rev}")
-                return False
-            
+
+            expected_head = None
+            try:
+                script = ScriptDirectory.from_config(self.alembic_cfg)
+                expected_head = script.get_current_head()
+            except Exception as e:
+                logger.warning(f"Could not fetch expected head from ScriptDirectory during verification: {e}")
+
+            if not expected_head:
+                # Fallback: derive from filenames
+                try:
+                    migrations = self._list_available_migrations()
+                    numeric_ids = []
+                    for m in migrations:
+                        prefix = m.split("_", 1)[0]
+                        if prefix.isdigit():
+                            numeric_ids.append(int(prefix))
+                    if numeric_ids:
+                        expected_head = f"{max(numeric_ids):03d}"
+                        logger.info(f"Derived expected head from filenames for verification: {expected_head}")
+                except Exception as e:
+                    logger.warning(f"Failed to derive expected head from filenames: {e}")
+
+            # If we have an expected head, compare to that; otherwise accept upgrade if final_rev changed
+            if expected_head:
+                if final_rev != expected_head:
+                    logger.error(f"Migration verification failed. Expected head: {expected_head}, Got: {final_rev}")
+                    return False
+            else:
+                if final_rev == current_rev or final_rev is None:
+                    logger.error(f"Migration verification inconclusive. Final rev equals current or None: final={final_rev}, current={current_rev}")
+                    return False
+
             # Log success
-            self._log_migration_success(final_rev, target_rev)
+            self._log_migration_success(final_rev, expected_head or upgrade_arg)
             return True
             
         except Exception as e:
@@ -280,6 +348,43 @@ class MigrationExecutor:
             self._log_migration_failure(e)
             raise
     
+    def downgrade_to_revision(self, revision: str) -> bool:
+        """Downgrade database to a specific revision"""
+        try:
+            # Validate prerequisites
+            if not self._validate_migration_prerequisites():
+                logger.error("Migration prerequisites not met")
+                return False
+
+            # Get current and target revisions
+            current_rev = self._get_current_revision()
+            target_rev = revision
+
+            # Log start
+            self._log_migration_start(current_rev, target_rev)
+
+            # Execute downgrade
+            logger.info(f"Downgrading from {current_rev or 'base'} to {target_rev}")
+            result = self._execute_migration_command("downgrade", target_rev)
+
+            if result is None:
+                logger.info("Dry run completed successfully")
+            else:
+                logger.info("Migration downgrade completed")
+
+            # Verify success
+            final_rev = self._get_current_revision()
+            if final_rev != target_rev and final_rev is not None:
+                logger.error(f"Migration verification failed. Expected: {target_rev}, Got: {final_rev}")
+                return False
+
+            # Log success
+            self._log_migration_success(final_rev, target_rev)
+            return True
+
+        except Exception as e:
+            self._log_migration_failure(e)
+            raise
     def generate_revision(self, message: str, autogenerate: bool = True) -> bool:
         """Generate new migration revision"""
         try:

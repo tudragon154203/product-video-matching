@@ -28,7 +28,6 @@ class ProductSegmentorConfig:
     FOREGROUND_SEG_MODEL_NAME: str = os.getenv("FOREGROUND_SEG_MODEL_NAME", "briaai/RMBG-1.4")
     PEOPLE_SEG_MODEL_NAME: str = os.getenv("PEOPLE_SEG_MODEL_NAME", "yolo11l-seg")
     HF_TOKEN = os.getenv("HF_TOKEN")
-    PEOPLE_SEG_MODEL_CACHE: str = os.getenv("PEOPLE_SEG_MODEL_CACHE", "./model_cache")
 
     # Processing configuration
     MAX_CONCURRENT_IMAGES: int = int(os.getenv("MAX_CONCURRENT_IMAGES", "4"))
@@ -49,7 +48,7 @@ class ProductSegmentorConfig:
     BUS_BROKER: str = global_config.BUS_BROKER
 
     # Data root (from global config)
-    FOREGROUND_SEG_MODEL_CACHE: str = global_config.MODEL_CACHE
+    MODEL_CACHE: str = global_config.MODEL_CACHE
 
     # Logging
     LOG_LEVEL: str = os.getenv("LOG_LEVEL", global_config.LOG_LEVEL)

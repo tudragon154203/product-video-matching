@@ -4,11 +4,14 @@ Script to synchronize docker-compose.dev.yml with:
 - docker-compose.mac.remote.yml (Windows path mapping for remote Mac)
 - docker-compose.dev.minimal.yml (subset of services)
 - docker-compose.mac.native.yml (Mac native, CPU-only)
+- docker-compose.dev.cpu.yml (Dev environment, CPU-only)
 
 Notes:
 - mac.remote converts relative host paths to absolute Windows drive paths.
 - mac.native keeps relative paths but strips GPU-related deploy blocks so it
   runs CPU-only on Mac (which lacks NVIDIA support in Docker Desktop).
+- dev.cpu keeps relative paths but strips GPU-related deploy blocks so it
+  runs CPU-only in the development environment.
 """
 
 import os
@@ -333,24 +336,49 @@ def sync_mac_native_compose(dev_file, native_file):
         return False
 
 
+def sync_dev_cpu_compose(dev_file, cpu_file):
+    """
+    Produce a development compose that runs CPU-only by removing GPU deploy blocks.
+
+    Args:
+        dev_file (str): Path to the development docker-compose file
+        cpu_file (str): Path to the dev CPU docker-compose file to write
+    """
+    try:
+        with open(dev_file, 'r') as f:
+            lines = f.readlines()
+
+        processed_lines = remove_gpu_deploy_blocks(lines)
+
+        with open(cpu_file, 'w') as f:
+            f.writelines(processed_lines)
+
+        print(f"Successfully synchronized {cpu_file} from {dev_file} (CPU-only)")
+        return True
+    except Exception as e:
+        print(f"Error synchronizing dev CPU compose file: {e}")
+        return False
+
+
 def main():
     """Main function to synchronize docker-compose files."""
     # Define the base path for Windows
     base_path = "O:/product-video-matching"
-    
+
     # Define file paths
     dev_file = os.path.join(os.path.dirname(__file__), 'docker-compose.dev.yml')
     mac_file = os.path.join(os.path.dirname(__file__), 'docker-compose.mac.remote.yml')
     mac_native_file = os.path.join(os.path.dirname(__file__), 'docker-compose.mac.native.yml')
+    dev_cpu_file = os.path.join(os.path.dirname(__file__), 'docker-compose.dev.cpu.yml')
     minimal_file = os.path.join(os.path.dirname(__file__), 'docker-compose.dev.minimal.yml')
-    
+
     # Check if dev file exists
     if not os.path.exists(dev_file):
         print(f"Error: Development compose file not found: {dev_file}")
         return False
-    
+
     success = True
-    
+
     # Synchronize the full files (dev => mac)
     print("Synchronizing docker-compose.dev.yml => docker-compose.mac.remote.yml...")
     mac_success = sync_compose_files(dev_file, mac_file, base_path)
@@ -359,7 +387,7 @@ def main():
     else:
         print("[ERROR] Mac synchronization failed.")
         success = False
-    
+
     # Synchronize the minimal file (dev => main-api.front-end with dependencies)
     print("\nSynchronizing docker-compose.dev.yml => docker-compose.dev.minimal.yml...")
     # Include required infrastructure services as dependencies
@@ -370,7 +398,7 @@ def main():
     else:
         print("[ERROR] Main-API + Front-end + dependencies synchronization failed.")
         success = False
-    
+
     # Synchronize the mac native (CPU-only) file (dev => mac.native)
     print("\nSynchronizing docker-compose.dev.yml => docker-compose.mac.native.yml (CPU-only)...")
     mac_native_success = sync_mac_native_compose(dev_file, mac_native_file)
@@ -378,6 +406,15 @@ def main():
         print("[OK] Mac native (CPU-only) synchronization completed successfully.")
     else:
         print("[ERROR] Mac native (CPU-only) synchronization failed.")
+        success = False
+
+    # Synchronize the dev CPU (CPU-only) file (dev => dev.cpu)
+    print("\nSynchronizing docker-compose.dev.yml => docker-compose.dev.cpu.yml (CPU-only)...")
+    dev_cpu_success = sync_dev_cpu_compose(dev_file, dev_cpu_file)
+    if dev_cpu_success:
+        print("[OK] Dev CPU (CPU-only) synchronization completed successfully.")
+    else:
+        print("[ERROR] Dev CPU (CPU-only) synchronization failed.")
         success = False
 
     if success:

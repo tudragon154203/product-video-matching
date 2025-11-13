@@ -6,7 +6,7 @@ from unittest.mock import AsyncMock, Mock, patch
 
 import pytest
 
-from collectors.ebay_product_collector import EbayProductCollector
+from collectors.ebay.ebay_product_collector import EbayProductCollector
 from services.ebay_browse_api_client import EbayBrowseApiClient
 
 pytestmark = pytest.mark.unit
@@ -27,7 +27,6 @@ def mock_auth_service():
         return_value={"access_token": "test_token_123", "expires_at": 9999999999}
     )
     auth._is_token_valid = AsyncMock(return_value=True)
-    auth._enforce_rate_limit = AsyncMock()
 
     # Reset the mock to avoid state sharing between tests
     def reset_mock():
@@ -38,7 +37,6 @@ def mock_auth_service():
         auth._store_token.reset_mock()
         auth._retrieve_token.reset_mock()
         auth._is_token_valid.reset_mock()
-        auth._enforce_rate_limit.reset_mock()
 
     auth.reset_mock = reset_mock
     return auth
@@ -57,7 +55,6 @@ def mock_ebay_auth_service():
         return_value={"access_token": "test_token_123", "expires_at": 9999999999}
     )
     auth._is_token_valid = AsyncMock(return_value=True)
-    auth._enforce_rate_limit = AsyncMock()
     return auth
 
 
@@ -238,16 +235,16 @@ class TestEbayProductCollector:
         assert len(products) == 2
 
     @pytest.mark.asyncio
-    async def test_deduplication_by_epid(
+    async def test_deduplication_by_variant_item_id(
         self, ebay_product_collector, mock_ebay_auth_service
     ):
-        """Test deduplication by EPID with lowest price selection"""
-        # Mock eBay browse API client with duplicate EPID
+        """Test deduplication by variant item ID with lowest price selection"""
+        # Mock eBay browse API client with duplicate product variants
         mock_browse_client = AsyncMock()
         mock_browse_client.search.return_value = {
             "itemSummaries": [
                 {
-                    "itemId": "12345",
+                    "itemId": "v1|364926706252|634516979679",
                     "epid": "epid_001",
                     "title": "Higher Price Product",
                     "price": {"value": 35.99, "currency": "USD"},
@@ -255,8 +252,8 @@ class TestEbayProductCollector:
                     "shippingOptions": [{"shippingType": "FREE"}],
                 },
                 {
-                    "itemId": "67890",
-                    "epid": "epid_001",  # Same EPID
+                    "itemId": "v1|364926706252|634516979680",
+                    "epid": "epid_001",  # Same product, different variant
                     "title": "Lower Price Product",
                     "price": {"value": 25.99, "currency": "USD"},
                     "image": {"imageUrl": "https://example.com/image2.jpg"},
@@ -274,12 +271,12 @@ class TestEbayProductCollector:
         # Collect products
         products = await ebay_product_collector.collect_products("test query", 2)
 
-        # Verify only one product (cheaper one) is returned
+        # Verify only one product (cheaper variant) is returned
         assert len(products) == 1
         assert products[0]["epid"] == "epid_001"
         assert products[0]["title"] == "Lower Price Product"
         assert products[0]["totalPrice"] == 25.99
-        assert products[0]["itemId"] == "67890"
+        assert products[0]["itemId"] == "v1|364926706252|634516979680"
 
     @pytest.mark.asyncio
     async def test_deduplication_by_item_id(
@@ -454,11 +451,66 @@ class TestEbayProductCollector:
         # Collect products
         products = await ebay_product_collector.collect_products("test query", 1)
 
-        # Verify image handling. Only primary image is present because
-        # additionalImages does not exist in the search response.
+        # Verify image handling. We should keep the primary image and the first
+        # five additional images (limit of six total).
         assert len(products) == 1
-        assert len(products[0]["images"]) == 1  # Only primary image available
+        assert len(products[0]["images"]) == 6
         assert products[0]["images"][0] == "https://example.com/primary.jpg"
+        assert products[0]["images"][-1] == "https://example.com/additional5.jpg"
+
+    @pytest.mark.asyncio
+    async def test_primary_image_field_handling(
+        self, ebay_product_collector, mock_ebay_auth_service
+    ):
+        """Ensure we capture images when eBay uses primaryImage/additionalImages fields"""
+        mock_browse_client = AsyncMock()
+        mock_browse_client.search.return_value = {
+            "itemSummaries": [
+                {
+                    "itemId": "12345",
+                    "title": "Product with Primary Field",
+                    "price": {"value": 25.99, "currency": "USD"},
+                    "primaryImage": {
+                        "imageUrl": "https://example.com/primary-primaryImage.jpg"
+                    },
+                    "additionalImages": [
+                        {"imageUrl": "https://example.com/extra1.jpg"},
+                        {"imageUrl": "https://example.com/extra2.jpg"},
+                    ],
+                    "shippingOptions": [{"shippingType": "FREE"}],
+                }
+            ]
+        }
+
+        mock_browse_client.get_item.return_value = {
+            "item": {
+                "itemId": "12345",
+                "title": "Product with Primary Field",
+                "price": {"value": 25.99, "currency": "USD"},
+                "primaryImage": {
+                    "imageUrl": "https://example.com/primary-primaryImage.jpg"
+                },
+                "additionalImages": [
+                    {"imageUrl": "https://example.com/extra1.jpg"},
+                    {"imageUrl": "https://example.com/extra2.jpg"},
+                ],
+                "shippingOptions": [{"shippingType": "FREE"}],
+            }
+        }
+
+        ebay_product_collector.browse_clients = {
+            "EBAY_US": mock_browse_client,
+            "EBAY_UK": mock_browse_client,
+        }
+
+        products = await ebay_product_collector.collect_products("primary field", 1)
+
+        assert len(products) == 1
+        assert products[0]["images"] == [
+            "https://example.com/primary-primaryImage.jpg",
+            "https://example.com/extra1.jpg",
+            "https://example.com/extra2.jpg",
+        ]
 
     @pytest.mark.asyncio
     async def test_brand_fallback_to_manufacturer(

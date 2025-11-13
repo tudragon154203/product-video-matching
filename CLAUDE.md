@@ -23,7 +23,7 @@ RabbitMQ (message broker)
     ↓
 Dropship Product Finder → Product Segmentation → Vision Embedding/Keypoint
     ↓                                   ↓
-Video Crawler → Keyframe Extraction → Matcher → Evidence Builder → Results API
+Video Crawler → Keyframe Extraction → Matcher → Evidence Builder → [Results API Deprecated]
 ```
 
 ## Development Commands
@@ -62,8 +62,7 @@ docker compose -f infra/pvm/docker-compose.dev.yml build --no-cache <service-nam
 docker compose -f infra/pvm/docker-compose.dev.yml logs -f main-api
 
 # Check health endpoints
-curl http://localhost:8000/health  # Main API
-curl http://localhost:8080/health  # Results API
+curl http://localhost:8888/health  # Main API
 ```
 
 ### Testing
@@ -218,7 +217,7 @@ cd services\dropship-product-finder && python -m pytest
 ```
 ├── services/               # Microservices
 │   ├── main-api/         # FastAPI job orchestration
-│   ├── results-api/      # REST API for results
+│   ├── results-api/      # REST API for results (deprecated)
 │   ├── dropship-product-finder/  # Amazon/eBay scraping
 │   ├── video-crawler/     # YouTube video processing
 │   ├── vision-embedding/  # CLIP embeddings
@@ -274,7 +273,7 @@ Events are defined in `libs/contracts/contracts/schemas/` with:
 3. **Feature Extraction**: Embeddings (CLIP) + keypoints (AKAZE/SIFT)
 4. **Matching**: Vector search + geometric verification
 5. **Evidence**: Visual proof generation
-6. **Results**: REST API for querying matches
+6. **Results**: REST API for querying matches (deprecated)
 
 ## Environment Configuration
 
@@ -292,7 +291,7 @@ RABBITMQ_DEFAULT_USER=guest
 RABBITMQ_DEFAULT_PASS=guest
 
 # Ports
-PORT_MAIN=8000
+PORT_MAIN=8888
 PORT_RESULTS=8080
 PORT_POSTGRES_UI=8081
 PORT_REDIS=6379
@@ -312,6 +311,10 @@ Hugging Face models are cached in `model_cache/` to avoid repeated downloads:
 - YOLO for segmentation
 
 ## Development Tips
+
+### Python Module Organization
+
+- `__init__.py` files should be empty to avoid namespace pollution and import issues
 
 ### Adding New Services
 
@@ -339,7 +342,7 @@ Hugging Face models are cached in `model_cache/` to avoid repeated downloads:
 
 ```bash
 # Start matching job
-curl -X POST http://localhost:8000/start-job \
+curl -X POST http://localhost:8888/start-job \
   -H "Content-Type: application/json" \
   -d '{
     "industry": "ergonomic pillows",
@@ -349,8 +352,8 @@ curl -X POST http://localhost:8000/start-job \
     "recency_days": 365
   }'
 
-# Get results
-curl http://localhost:8080/results?min_score=0.8
+# Get results (deprecated - use main API endpoints instead)
+# curl http://localhost:8080/results?min_score=0.8
 ```
 
 ## Important Notes

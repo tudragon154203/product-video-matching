@@ -6,7 +6,7 @@ End-to-end test for eBay OAuth 2.0 authentication and product collection
 from common_py.logging_config import configure_logging
 import redis.asyncio as redis
 from services.auth import eBayAuthService
-from collectors.ebay_product_collector import EbayProductCollector
+from collectors.ebay.ebay_product_collector import EbayProductCollector
 from config_loader import config
 import asyncio
 import pytest
@@ -22,8 +22,9 @@ sys.path.insert(0, str(Path(__file__).parent))
 
 logger = configure_logging("dropship-product-finder:test_e2e_auth")
 
+pytestmark = pytest.mark.integration
 
-@pytest.mark.integration
+
 async def test_e2e_flow():
     """Test complete end-to-end flow"""
     print("=== eBay OAuth 2.0 End-to-End Test ===")

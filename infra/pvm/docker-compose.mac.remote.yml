@@ -191,7 +191,7 @@ services:
       rabbitmq:
         condition: service_healthy
     restart: unless-stopped
-    command: ["python", "app/main.py"]
+    command: ["/bin/bash", "-c", "/app/update_yt_dlp.sh && python app/main.py"]
 
   product-segmentor:
     build:
@@ -207,7 +207,8 @@ services:
       - O:/product-video-matching/libs:/app/libs:ro
       - O:/product-video-matching/${DATA_ROOT_HOST}:${DATA_ROOT_CONTAINER}
       - O:/product-video-matching/services/product-segmentor:/app/app
-      - O:/product-video-matching/${MODEL_CACHE}:/root/.cache/huggingface
+      - O:/product-video-matching/${MODEL_CACHE}:/app/model_cache
+      - O:/product-video-matching/${MODEL_CACHE}:/root/.ultralytics
     depends_on:
       postgres:
         condition: service_healthy

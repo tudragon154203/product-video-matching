@@ -116,6 +116,40 @@ class TestVideoCleanupManager(unittest.TestCase):
         for recent_file in self.recent_files:
             self.assertNotIn(recent_file, old_file_paths, f"Recent file {recent_file} should NOT be found")
 
+    def test_find_old_files_flat_structure(self):
+        """Test finding old video files in a flat directory structure."""
+        # Create a temporary directory for the flat test
+        with tempfile.TemporaryDirectory() as flat_test_dir:
+            flat_test_path = Path(flat_test_dir)
+            now = datetime.now()
+
+            # Create an old file directly in the root
+            old_time = now - timedelta(days=10)
+            old_file_flat = flat_test_path / "old_video_flat.mp4"
+            with open(old_file_flat, 'w') as f:
+                f.write('old content')
+            os.utime(old_file_flat, (old_time.timestamp(), old_time.timestamp()))
+
+            # Create a recent file directly in the root
+            recent_time = now - timedelta(days=3)
+            recent_file_flat = flat_test_path / "recent_video_flat.mp4"
+            with open(recent_file_flat, 'w') as f:
+                f.write('recent content')
+            os.utime(recent_file_flat, (recent_time.timestamp(), recent_time.timestamp()))
+
+            old_files = self.cleanup_manager.find_old_files(flat_test_dir)
+
+            # Should find exactly the old file
+            self.assertEqual(len(old_files), 1, "Should find 1 old file in flat structure")
+
+            # Check file path and uploader name (should be the directory name)
+            self.assertEqual(old_files[0]['path'], str(old_file_flat.absolute()))
+            self.assertEqual(old_files[0]['uploader'], flat_test_path.name)
+
+            # Check that the recent file is not found
+            old_file_paths = [f['path'] for f in old_files]
+            self.assertNotIn(str(recent_file_flat.absolute()), old_file_paths, "Recent file should NOT be found")
+
     def test_get_file_info(self):
         """Test file info extraction"""
         uploader_name = "uploader1"

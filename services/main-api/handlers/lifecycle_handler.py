@@ -1,6 +1,9 @@
 from common_py.database import DatabaseManager
 from common_py.logging_config import configure_logging
 from services.job.job_service import JobService
+from services.phase.phase_event_service import PhaseEventService
+from handlers.database_handler import DatabaseHandler
+from handlers.broker_handler import BrokerHandler
 
 logger = configure_logging("main-api:lifecycle_handler")
 
@@ -10,6 +13,14 @@ class LifecycleHandler:
         self.db = db
         self.broker = broker
         self.job_service = job_service
+
+        # Initialize phase event service if broker is available
+        if self.broker:
+            db_handler = DatabaseHandler(db)
+            broker_handler = BrokerHandler(broker)
+            self.phase_event_service = PhaseEventService(db_handler, broker_handler)
+        else:
+            self.phase_event_service = None
 
     async def startup(self):
         """Initialize connections on startup"""
@@ -24,6 +35,10 @@ class LifecycleHandler:
         if self.broker:
             try:
                 await self.broker.connect()
+
+                # Subscribe to phase completion events
+                await self.subscribe_to_phase_events()
+
             except Exception as e:
                 logger.warning(
                     f"Failed to connect to message broker: {e}. "
@@ -37,4 +52,134 @@ class LifecycleHandler:
         await self.db.disconnect()
         logger.info("Main API service stopped")
 
-    # Removed subscribe_to_phase_events method since it depends on broker which is no longer used
+    async def subscribe_to_phase_events(self):
+        """Subscribe to phase completion events"""
+        if not self.broker or not self.phase_event_service:
+            logger.warning("Cannot subscribe to events: broker or phase_event_service not available")
+            return
+
+        try:
+            # Subscribe to product collection completion events
+            await self.broker.subscribe_to_topic(
+                "products.collections.completed",
+                self.handle_products_collections_completed,
+            )
+
+            # Subscribe to video collection completion events
+            await self.broker.subscribe_to_topic(
+                "videos.collections.completed",
+                self.handle_videos_collections_completed,
+            )
+
+            # Subscribe to feature extraction completion events
+            await self.broker.subscribe_to_topic(
+                "image.embeddings.completed",
+                self.handle_image_embeddings_completed,
+            )
+            await self.broker.subscribe_to_topic(
+                "video.embeddings.completed",
+                self.handle_video_embeddings_completed,
+            )
+            await self.broker.subscribe_to_topic(
+                "image.keypoints.completed",
+                self.handle_image_keypoints_completed,
+            )
+            await self.broker.subscribe_to_topic(
+                "video.keypoints.completed",
+                self.handle_video_keypoints_completed,
+            )
+
+            logger.info("Subscribed to phase completion events")
+        except Exception as e:
+            logger.error(f"Failed to subscribe to phase events: {e}")
+            raise
+
+    async def handle_products_collections_completed(self, event_data, correlation_id):
+        """Handle products collections completed event"""
+        try:
+            logger.info(
+                "Handling products collections completed",
+                job_id=event_data.get("job_id"),
+                correlation_id=correlation_id,
+            )
+            await self.phase_event_service.handle_phase_event(
+                "products.collections.completed", event_data
+            )
+            logger.info(f"Processed products collections completed event for job {event_data.get('job_id')}")
+        except Exception as e:
+            logger.error(f"Failed to handle products collections completed event: {e}")
+
+    async def handle_videos_collections_completed(self, event_data, correlation_id):
+        """Handle videos collections completed event"""
+        try:
+            logger.info(
+                "Handling videos collections completed",
+                job_id=event_data.get("job_id"),
+                correlation_id=correlation_id,
+            )
+            await self.phase_event_service.handle_phase_event(
+                "videos.collections.completed", event_data
+            )
+            logger.info(f"Processed videos collections completed event for job {event_data.get('job_id')}")
+        except Exception as e:
+            logger.error(f"Failed to handle videos collections completed event: {e}")
+
+    async def handle_image_embeddings_completed(self, event_data, correlation_id):
+        """Handle image embeddings completed event"""
+        try:
+            logger.info(
+                "Handling image embeddings completed",
+                job_id=event_data.get("job_id"),
+                correlation_id=correlation_id,
+            )
+            await self.phase_event_service.handle_phase_event(
+                "image.embeddings.completed", event_data
+            )
+            logger.info(f"Processed image embeddings completed event for job {event_data.get('job_id')}")
+        except Exception as e:
+            logger.error(f"Failed to handle image embeddings completed event: {e}")
+
+    async def handle_video_embeddings_completed(self, event_data, correlation_id):
+        """Handle video embeddings completed event"""
+        try:
+            logger.info(
+                "Handling video embeddings completed",
+                job_id=event_data.get("job_id"),
+                correlation_id=correlation_id,
+            )
+            await self.phase_event_service.handle_phase_event(
+                "video.embeddings.completed", event_data
+            )
+            logger.info(f"Processed video embeddings completed event for job {event_data.get('job_id')}")
+        except Exception as e:
+            logger.error(f"Failed to handle video embeddings completed event: {e}")
+
+    async def handle_image_keypoints_completed(self, event_data, correlation_id):
+        """Handle image keypoints completed event"""
+        try:
+            logger.info(
+                "Handling image keypoints completed",
+                job_id=event_data.get("job_id"),
+                correlation_id=correlation_id,
+            )
+            await self.phase_event_service.handle_phase_event(
+                "image.keypoints.completed", event_data
+            )
+            logger.info(f"Processed image keypoints completed event for job {event_data.get('job_id')}")
+        except Exception as e:
+            logger.error(f"Failed to handle image keypoints completed event: {e}")
+
+    async def handle_video_keypoints_completed(self, event_data, correlation_id):
+        """Handle video keypoints completed event"""
+        try:
+            logger.info(
+                "Handling video keypoints completed",
+                job_id=event_data.get("job_id"),
+                correlation_id=correlation_id,
+            )
+            await self.phase_event_service.handle_phase_event(
+                "video.keypoints.completed", event_data
+            )
+            logger.info(f"Processed video keypoints completed event for job {event_data.get('job_id')}")
+        except Exception as e:
+            logger.error(f"Failed to handle video keypoints completed event: {e}")

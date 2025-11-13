@@ -191,3 +191,30 @@ class TestFileManager:
         products_dir = Path(temp_dir) / "products"
         files = list(products_dir.glob("error_test*"))
         assert len(files) == 0
+
+    @pytest.mark.asyncio
+    @pytest.mark.unit
+    async def test_save_mask_creates_missing_directory(self, file_manager):
+        """Test that _save_mask creates directory if it doesn't exist."""
+        from pathlib import Path
+        import tempfile
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            test_dir = Path(temp_dir) / "missing" / "directory"
+            assert not test_dir.exists()
+
+            # Create test mask
+            mask = np.ones((50, 50), dtype=np.uint8) * 255
+
+            # Mock the atomic save to focus on directory creation
+            with patch.object(file_manager, "_save_mask_atomic") as mock_save:
+                mock_save.return_value = None
+
+                await file_manager._save_mask(test_dir, "test_id", mask)
+
+                # Directory should have been created
+                assert test_dir.exists()
+
+                # Atomic save should have been called with correct path
+                expected_path = test_dir / "test_id.png"
+                mock_save.assert_called_once_with(mask, expected_path)

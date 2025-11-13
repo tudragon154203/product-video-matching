@@ -3,12 +3,14 @@
 from __future__ import annotations
 
 from typing import Any, Dict, List
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch, create_autospec
 
 import numpy as np
 import pytest
 
+from common_py.database import DatabaseManager
 from matching import MatchingEngine
+from matching_components.match_aggregator import MatchAggregator
 
 pytestmark = pytest.mark.unit
 
@@ -17,9 +19,9 @@ pytestmark = pytest.mark.unit
 def mock_db() -> MagicMock:
     """Create a mock database manager."""
 
-    db = MagicMock()
-    db.fetch_all = AsyncMock()
-    db.execute = AsyncMock()
+    db = create_autospec(DatabaseManager, instance=True)
+    db.fetch_all = AsyncMock(spec=DatabaseManager.fetch_all)
+    db.execute = AsyncMock(spec=DatabaseManager.execute)
     return db
 
 
@@ -67,6 +69,18 @@ def matching_engine(mock_db: MagicMock) -> MatchingEngine:
     return MatchingEngine(mock_db, "/data", retrieval_topk=10)
 
 
+@pytest.fixture
+def match_aggregator() -> MatchAggregator:
+    """Provide a MatchAggregator instance with known thresholds."""
+
+    # match_best_min=0.85, match_cons_min=3, match_accept=0.88
+    return MatchAggregator(
+        match_best_min=0.85,
+        match_cons_min=3,
+        match_accept=0.88,
+    )
+
+
 class TestMatchingEngine:
     """Behavioural checks for the matching engine."""
 
@@ -107,7 +121,7 @@ class TestMatchingEngine:
         query = args[0]
         assert "product_images" in query
         assert "WHERE product_id = $1" in query
-        assert "emb_rgb IS NOT NULL" in query
+        assert "(emb_rgb IS NOT NULL OR emb_gray IS NOT NULL)" in query
         assert args[1] == "product_001"
         assert len(images) == 2
 
@@ -139,7 +153,7 @@ class TestMatchingEngine:
         query = args[0]
         assert "video_frames" in query
         assert "WHERE video_id = $1" in query
-        assert "emb_rgb IS NOT NULL" in query
+        assert "(emb_rgb IS NOT NULL OR emb_gray IS NOT NULL)" in query
         assert "ORDER BY ts" in query
         assert args[1] == "video_001"
         assert len(frames) == 2
@@ -267,13 +281,63 @@ class TestMatchingEngine:
     ) -> None:
         sample_image["emb_rgb"] = None
         sample_video_frames[0]["emb_rgb"] = None
+        sample_image["emb_gray"] = None
+        sample_video_frames[0]["emb_gray"] = None
 
         similarity = await matching_engine.pair_score_calculator.calculate_embedding_similarity(
             sample_image,
             sample_video_frames[0],
         )
 
-        assert 0.7 <= similarity <= 0.9
+        assert similarity == 0.8
+
+    @pytest.mark.asyncio
+    async def test_calculate_embedding_similarity_only_gray_embeddings(
+        self,
+        matching_engine: MatchingEngine,
+        sample_image: Dict[str, Any],
+        sample_video_frames: List[Dict[str, Any]],
+    ) -> None:
+        sample_image["emb_rgb"] = None
+        sample_video_frames[0]["emb_rgb"] = None
+        sample_image["emb_gray"] = [0.1, 0.1, 0.1, 0.1, 0.1]
+        sample_video_frames[0]["emb_gray"] = [0.1, 0.1, 0.1, 0.1, 0.1]
+
+        with patch.object(
+            matching_engine.pair_score_calculator.embedding_similarity,
+            "calculate_similarity",
+            new_callable=AsyncMock,
+            return_value=0.9,
+        ) as mock_calc:
+            similarity = await matching_engine.pair_score_calculator.calculate_embedding_similarity(
+                sample_image,
+                sample_video_frames[0],
+            )
+
+            mock_calc.assert_called_once()
+            assert similarity == 0.9
+
+    @pytest.mark.asyncio
+    async def test_calculate_embedding_similarity_rgb_and_gray_embeddings(
+        self,
+        matching_engine: MatchingEngine,
+        sample_image: Dict[str, Any],
+        sample_video_frames: List[Dict[str, Any]],
+    ) -> None:
+        # Both RGB and Gray are present, should use weighted average
+        with patch.object(
+            matching_engine.pair_score_calculator.embedding_similarity,
+            "calculate_similarity",
+            new_callable=AsyncMock,
+            return_value=0.95,
+        ) as mock_calc:
+            similarity = await matching_engine.pair_score_calculator.calculate_embedding_similarity(
+                sample_image,
+                sample_video_frames[0],
+            )
+
+            mock_calc.assert_called_once()
+            assert similarity == 0.95
 
     @pytest.mark.asyncio
     async def test_calculate_keypoint_similarity(
@@ -287,7 +351,8 @@ class TestMatchingEngine:
             sample_video_frames[0],
         )
 
-        assert 0.0 <= similarity <= 1.0
+        # Assert the mock behavior: keypoints exist, so it should return the mock perfect score (1.0)
+        assert similarity == 1.0
 
     @pytest.mark.asyncio
     async def test_calculate_keypoint_similarity_no_keypoints(
@@ -304,7 +369,7 @@ class TestMatchingEngine:
             sample_video_frames[0],
         )
 
-        assert 0.3 <= similarity <= 0.7
+        assert similarity == 0.5
 
     @pytest.mark.asyncio
     async def test_calculate_pair_score(
@@ -330,3 +395,61 @@ class TestMatchingEngine:
             mock_emb.assert_called_once()
             mock_kp.assert_called_once()
             assert 0.0 <= score <= 1.0
+
+
+class TestMatchAggregator:
+    """Unit tests for the MatchAggregator acceptance heuristics."""
+
+    @pytest.mark.parametrize(
+        "best_score, consistency, expected",
+        [
+            # Pass by best_min (0.85) and cons_min (3)
+            (0.85, 3, True),
+            (0.90, 5, True),
+            # Pass by high best_score (0.92)
+            (0.92, 0, True),
+            (0.95, 1, True),
+            # Fail
+            (0.84, 3, False),  # Fails best_min
+            (0.85, 2, False),  # Fails cons_min
+            (0.91, 0, False),  # Fails both
+        ],
+    )
+    def test_apply_acceptance_rules(
+        self,
+        match_aggregator: MatchAggregator,
+        best_score: float,
+        consistency: int,
+        expected: bool,
+    ) -> None:
+        result = match_aggregator._apply_acceptance_rules(
+            best_score,
+            consistency,
+            "prod_id",
+            "vid_id",
+        )
+        assert result == expected
+
+    @pytest.mark.parametrize(
+        "final_score, expected",
+        [
+            # Pass (match_accept is 0.88)
+            (0.88, True),
+            (0.95, True),
+            # Fail
+            (0.879, False),
+            (0.5, False),
+        ],
+    )
+    def test_check_final_acceptance_threshold(
+        self,
+        match_aggregator: MatchAggregator,
+        final_score: float,
+        expected: bool,
+    ) -> None:
+        result = match_aggregator._check_final_acceptance_threshold(
+            final_score,
+            "prod_id",
+            "vid_id",
+        )
+        assert result == expected

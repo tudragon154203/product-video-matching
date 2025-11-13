@@ -17,6 +17,27 @@ class VideoCRUD:
             query, video.video_id, video.platform, video.url,
             video.title, video.duration_s, video.published_at
         )
+
+    async def upsert_video(self, video: Video) -> str:
+        """Idempotently insert or update a video, returning video_id.
+
+        Uses ON CONFLICT (video_id) DO UPDATE to ensure idempotency.
+        """
+        query = """
+        INSERT INTO videos (video_id, platform, url, title, duration_s, published_at)
+        VALUES ($1, $2, $3, $4, $5, $6)
+        ON CONFLICT (video_id) DO UPDATE SET
+            platform = EXCLUDED.platform,
+            url = EXCLUDED.url,
+            title = COALESCE(EXCLUDED.title, videos.title),
+            duration_s = COALESCE(EXCLUDED.duration_s, videos.duration_s),
+            published_at = COALESCE(EXCLUDED.published_at, videos.published_at)
+        RETURNING video_id
+        """
+        return await self.db.fetch_val(
+            query, video.video_id, video.platform, video.url,
+            video.title, video.duration_s, video.published_at
+        )
     
     async def get_video(self, video_id: str) -> Optional[Video]:
         """Get a video by ID"""
@@ -78,7 +99,7 @@ class VideoCRUD:
         # Custom platform sorting with priority: youtube, tiktok, douyin, others
         if sort_by == "platform":
             case_statement = """
-            CASE 
+            CASE
                 WHEN lower(platform) = 'youtube' THEN 0
                 WHEN lower(platform) = 'tiktok' THEN 1
                 WHEN lower(platform) = 'douyin' THEN 2

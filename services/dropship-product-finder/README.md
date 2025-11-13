@@ -26,6 +26,42 @@ This microservice is responsible for collecting product data from various e-comm
 - Implement robust error handling and retry mechanisms.
 - Optimize data collection performance.
 
+## Configuration
+
+### Environment Variables
+
+The service requires several environment variables to be configured. Copy `.env.example` to `.env` and update the values:
+
+```bash
+cp .env.example .env
+```
+
+### eBay API Configuration
+
+When using real eBay APIs (set `USE_MOCK_FINDERS=false`), you need to configure eBay credentials:
+
+#### Sandbox Credentials (Recommended for Development)
+- `EBAY_SANDBOX_CLIENT_ID`: Your eBay sandbox application ID
+- `EBAY_SANDBOX_CLIENT_SECRET`: Your eBay sandbox application secret
+
+#### Production Credentials
+- `EBAY_PRODUCTION_CLIENT_ID`: Your eBay production application ID
+- `EBAY_PRODUCTION_CLIENT_SECRET`: Your eBay production application secret
+
+#### Other eBay Configuration
+- `EBAY_ENVIRONMENT`: Set to "sandbox" or "production" (default: "sandbox")
+- `EBAY_MARKETPLACES`: Comma-separated list of marketplaces (default: "EBAY_US,EBAY_DE,EBAY_AU")
+- `EBAY_SCOPES`: OAuth scopes for eBay API access (default: "https://api.ebay.com/oauth/api_scope")
+
+### Getting eBay API Credentials
+
+1. Go to the [eBay Developer Program](https://developer.ebay.com/)
+2. Create a developer account and register a new application
+3. For sandbox testing, use the eBay Sandbox environment
+4. For production, use the eBay Production environment
+5. Note down your Client ID and Client Secret
+6. Add these to your `.env` file
+
 ## Testing
 
 The dropship product finder service includes comprehensive unit and integration tests organized by category:

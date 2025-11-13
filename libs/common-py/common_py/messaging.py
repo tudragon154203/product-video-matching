@@ -21,10 +21,13 @@ class MessageBroker:
         self.exchange = None
         self.message_handler_instance = None # New instance
     
-    async def connect(self):
+    async def connect(self, timeout: float = 30.0):
         """Establish connection to RabbitMQ"""
         try:
-            self.connection = await aio_pika.connect_robust(self.broker_url)
+            self.connection = await asyncio.wait_for(
+                aio_pika.connect_robust(self.broker_url),
+                timeout=timeout
+            )
             self.channel = await self.connection.channel()
             
             # Declare main exchange
@@ -105,14 +108,35 @@ class MessageBroker:
         dlq_name = f"{queue_name}.dlq"
         dlq = await self.channel.declare_queue(dlq_name, durable=True)
         
-        # Initialize MessageHandler here, after exchange is available
-        self.message_handler_instance = MessageHandler(self.exchange, dlq_name)
+        # Create a dedicated MessageHandler for this subscription to ensure correct DLQ routing
+        message_handler = MessageHandler(self.exchange, dlq_name)
 
-        # Start consuming, passing the handler and topic to the new MessageHandler
-        await queue.consume(lambda message: self.message_handler_instance.handle_message(message, handler, topic))
+        # Start consuming with a handler bound to this subscription's DLQ
+        await queue.consume(lambda message: message_handler.handle_message(message, handler, topic))
         
         logger.info(
             "Subscribed to topic",
             topic=topic,
             queue=queue_name
         )
+
+    async def get_queue_message_count(self, queue_name: str) -> int:
+        """
+        Get the number of messages in a queue
+
+        Args:
+            queue_name: Name of the queue to check
+
+        Returns:
+            Number of messages in the queue
+        """
+        if not self.channel:
+            raise RuntimeError("Not connected to RabbitMQ")
+
+        try:
+            # Declare queue to ensure it exists (passive=True means just check)
+            queue = await self.channel.declare_queue(queue_name, durable=True, passive=True)
+            return queue.declaration_result.message_count
+        except Exception as e:
+            logger.error("Failed to get queue message count", queue_name=queue_name, error=str(e))
+            raise

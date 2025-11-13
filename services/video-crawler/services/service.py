@@ -1,64 +1,90 @@
 import os
-import uuid
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-from common_py.crud import VideoCRUD, VideoFrameCRUD
 from common_py.database import DatabaseManager
 from common_py.logging_config import configure_logging
 from common_py.messaging import MessageBroker
-from common_py.models import Video, VideoFrame
 from config_loader import config
 from fetcher.video_fetcher import VideoFetcher
 from handlers.event_emitter import EventEmitter
-from keyframe_extractor.length_adaptive_extractor import LengthAdaptiveKeyframeExtractor
 from platform_crawler.interface import PlatformCrawlerInterface
 from platform_crawler.mock_crawler import MockPlatformCrawler
 from platform_crawler.tiktok.tiktok_crawler import TikTokCrawler
-from platform_crawler.tiktok.tiktok_downloader import TikTokDownloader
 from platform_crawler.youtube.youtube_crawler import YoutubeCrawler
-from services.cleanup_service import cleanup_service
+from services.platform_query_processor import PlatformQueryProcessor
+from services.video_cleanup_service import VideoCleanupService
+from services.video_processor import VideoProcessor
+from services.exceptions import (
+    VideoCrawlerError,
+    PlatformCrawlerError,
+    CleanupOperationError
+)
 from vision_common import JobProgressManager
 
 logger = configure_logging("video-crawler:service")
 
 
 class VideoCrawlerService:
-    """Main service class for mvideo crawl"""
+    """Main service class for video crawl with refactored architecture."""
 
-    def __init__(self, db: DatabaseManager, broker: MessageBroker, video_dir_override: Optional[str] = None):
+    def __init__(
+        self,
+        db: DatabaseManager,
+        broker: MessageBroker,
+        video_dir_override: Optional[str] = None
+    ):
         self.db = db
         self.broker = broker
         self._video_dir_override = os.fspath(video_dir_override) if video_dir_override else None
 
-        self.video_crud = VideoCRUD(db) if db else None
-        self.frame_crud = VideoFrameCRUD(db) if db else None
+        # Initialize components
         self.platform_crawlers = self._initialize_platform_crawlers()
         self.video_fetcher = VideoFetcher(platform_crawlers=self.platform_crawlers)
-        self.keyframe_extractor = LengthAdaptiveKeyframeExtractor(create_dirs=False)
         self.event_emitter = EventEmitter(broker) if broker else None
         self.job_progress_manager = JobProgressManager(broker) if broker else None
 
+        # Initialize specialized services
+        self.video_processor = VideoProcessor(
+            db=db,
+            event_emitter=self.event_emitter,
+            job_progress_manager=self.job_progress_manager,
+            video_dir_override=self._video_dir_override
+        )
+        self.cleanup_service = VideoCleanupService(video_dir_override=self._video_dir_override)
+
+        self._log_cleanup_status()
+
+    def _log_cleanup_status(self) -> None:
+        """Log cleanup configuration status."""
         if config.CLEANUP_OLD_VIDEOS:
-            logger.info("Video cleanup enabled with retention period of {} days".format(config.VIDEO_RETENTION_DAYS))
+            logger.info(
+                "Video cleanup enabled with retention period of {} days".format(
+                    config.VIDEO_RETENTION_DAYS
+                )
+            )
         else:
             logger.info("Video cleanup is disabled")
 
-    def initialize_keyframe_extractor(self, keyframe_dir: Optional[str] = None):
+    def initialize_keyframe_extractor(self, keyframe_dir: Optional[str] = None) -> None:
         """
         Initialize the keyframe extractor with a specific directory.
 
         Args:
             keyframe_dir: Optional keyframe directory path. If None, creates directories using config.
         """
-        if self.keyframe_extractor:
-            self.keyframe_extractor = LengthAdaptiveKeyframeExtractor(
-                keyframe_root_dir=keyframe_dir,
-                create_dirs=True
-            )
+        self.video_processor.initialize_keyframe_extractor(keyframe_dir)
 
-    async def handle_videos_search_request(self, event_data: Dict[str, Any]):
-        """Handle video search request with cross-platform parallelism"""
+    async def handle_videos_search_request(self, event_data: Dict[str, Any], correlation_id: str) -> None:
+        """Handle video search request with cross-platform parallelism.
+
+        Args:
+            event_data: Event data containing job parameters
+
+        Raises:
+            VideoCrawlerError: If video search processing fails
+            PlatformCrawlerError: If platform crawler encounters errors
+        """
         try:
             job_id = event_data["job_id"]
             industry = event_data["industry"]
@@ -66,25 +92,106 @@ class VideoCrawlerService:
             platforms = event_data["platforms"]
             recency_days = event_data["recency_days"]
 
-            logger.info("Processing video search request",
-                        job_id=job_id, industry=industry, platforms=platforms)
+            logger.info(
+                "Processing video search request",
+                job_id=job_id,
+                industry=industry,
+                platforms=platforms
+            )
 
-            platform_queries = self._extract_platform_queries(queries, platforms)
+            # Extract platform-specific queries
+            platform_queries = PlatformQueryProcessor.extract_platform_queries(queries, platforms)
 
-            base_video_dir = self._get_video_dir()
-            platform_download_dirs: Dict[str, str] = {}
-            for platform in platforms:
-                if platform == "youtube":
-                    target_dir = os.path.join(base_video_dir, "youtube")
-                elif platform == "tiktok":
-                    target_dir = os.path.join(base_video_dir, "tiktok")
-                else:
-                    target_dir = os.path.join(base_video_dir, platform)
+            # Prepare download directories
+            platform_download_dirs = self._prepare_platform_download_dirs(platforms)
 
-                platform_download_dirs[platform] = target_dir
-                Path(target_dir).mkdir(parents=True, exist_ok=True)
+            # Search and download videos
+            all_videos = await self._search_platforms_parallel(
+                platforms=platforms,
+                platform_queries=platform_queries,
+                recency_days=recency_days,
+                platform_download_dirs=platform_download_dirs,
+                job_id=job_id
+            )
 
-            all_videos = await self.video_fetcher.search_all_platforms_videos_parallel(
+            # Integration workload throttling: apply env-driven slice
+            try:
+                enforce_real = os.getenv("INTEGRATION_TESTS_ENFORCE_REAL_SERVICES", "").lower() == "true"
+                max_videos_env = os.getenv("PVM_MAX_VIDEOS_FOR_IT")
+                if enforce_real and max_videos_env:
+                    max_videos = int(max_videos_env)
+                    if max_videos > 0 and isinstance(all_videos, list):
+                        if len(all_videos) > max_videos:
+                            all_videos = all_videos[:max_videos]
+                        logger.info(f"Integration max videos applied: {max_videos} for job_id {job_id}")
+            except Exception as e:
+                logger.warning(f"Failed to apply integration workload limit: {e}", job_id=job_id)
+
+            if not all_videos:
+                await self._handle_zero_videos_case(job_id, correlation_id)
+                return
+
+            # Update job progress
+            await self._update_job_progress(job_id, len(all_videos))
+
+            # Process videos and emit events
+            await self._process_and_emit_videos(all_videos, job_id, correlation_id)
+
+            logger.info(
+                "Completed video search",
+                job_id=job_id,
+                total_videos=len(all_videos)
+            )
+
+        except Exception as e:
+            error_msg = f"Failed to process video search request: {str(e)}"
+            logger.error(error_msg)
+            raise VideoCrawlerError(error_msg, job_id=event_data.get("job_id"))
+
+    def _prepare_platform_download_dirs(self, platforms: List[str]) -> Dict[str, str]:
+        """Prepare download directories for each platform.
+
+        Args:
+            platforms: List of platform names
+
+        Returns:
+            Dictionary mapping platform names to download directories
+        """
+        base_video_dir = self._get_video_dir()
+        platform_download_dirs: Dict[str, str] = {}
+
+        for platform in platforms:
+            target_dir = os.path.join(base_video_dir, platform)
+            platform_download_dirs[platform] = target_dir
+            Path(target_dir).mkdir(parents=True, exist_ok=True)
+
+        return platform_download_dirs
+
+    async def _search_platforms_parallel(
+        self,
+        platforms: List[str],
+        platform_queries: List[str],
+        recency_days: int,
+        platform_download_dirs: Dict[str, str],
+        job_id: str
+    ) -> List[Dict[str, Any]]:
+        """Search all platforms in parallel for videos.
+
+        Args:
+            platforms: List of platforms to search
+            platform_queries: Queries for each platform
+            recency_days: Video recency filter in days
+            platform_download_dirs: Download directories per platform
+            job_id: Job identifier
+
+        Returns:
+            List of video data from all platforms
+
+        Raises:
+            PlatformCrawlerError: If platform search fails
+        """
+        try:
+            return await self.video_fetcher.search_all_platforms_videos_parallel(
                 platforms=platforms,
                 queries=platform_queries,
                 recency_days=recency_days,
@@ -93,298 +200,135 @@ class VideoCrawlerService:
                 job_id=job_id,
                 max_concurrent_platforms=config.MAX_CONCURRENT_PLATFORMS
             )
-
-            if not all_videos:
-                await self._handle_zero_videos_case(job_id)
-                return
-
-            if self.job_progress_manager:
-                await self.job_progress_manager.update_job_progress(
-                    job_id, "video", len(all_videos), 0, "crawling"
-                )
-
-            await self._process_and_emit_videos(all_videos, job_id)
-
-            logger.info("Completed video search",
-                        job_id=job_id,
-                        total_videos=len(all_videos))
-
         except Exception as e:
-            logger.error(f"Failed to process video search request: {str(e)}")
-            raise
+            raise PlatformCrawlerError(
+                f"Parallel platform search failed: {str(e)}",
+                platform=",".join(platforms)
+            )
 
-    def _extract_platform_queries(self, queries: Any, platforms: List[str]) -> List[str]:
-        if not platforms:
-            return []
+    async def _update_job_progress(self, job_id: str, total_videos: int) -> None:
+        """Update job progress for video crawling phase.
 
-        def _normalize(value: Any) -> List[str]:
-            if value is None:
-                return []
-            if isinstance(value, str):
-                return [value]
-            if isinstance(value, (list, tuple, set)):
-                return [item for item in value if item]
-            return []
+        Args:
+            job_id: Job identifier
+            total_videos: Total number of videos to process
+        """
+        if self.job_progress_manager:
+            await self.job_progress_manager.update_job_progress(
+                job_id, "video", total_videos, 0, "crawling"
+            )
 
-        def _dedupe_preserve_order(items: List[str]) -> List[str]:
-            seen = set()
-            result = []
-            for item in items:
-                if not item:
-                    continue
-                if item not in seen:
-                    seen.add(item)
-                    result.append(item)
-            return result
+    async def _handle_zero_videos_case(self, job_id: str, correlation_id: str) -> None:
+        """Handle case where no videos are found.
 
-        if isinstance(queries, dict):
-            platforms_lower = {platform.lower() for platform in platforms}
-
-            if {"tiktok", "youtube"} & platforms_lower:
-                prioritized = _normalize(queries.get("vi"))
-                if prioritized:
-                    return prioritized
-                return []
-
-            aggregated: List[str] = []
-            for value in queries.values():
-                aggregated.extend(_normalize(value))
-            return _dedupe_preserve_order(aggregated)
-
-        if isinstance(queries, str):
-            return [queries]
-
-        if isinstance(queries, (list, tuple, set)):
-            return [item for item in queries if item]
-
-        return []
-
-    async def _handle_zero_videos_case(self, job_id: str):
-        logger.info("No videos found for job {job_id}", job_id=job_id)
+        Args:
+            job_id: Job identifier
+        """
+        logger.info(f"No videos found for job {job_id}")
         if self.event_emitter:
-            await self.event_emitter.publish_videos_collections_completed(job_id)
-        logger.info("Completed video search with zero videos",
-                    job_id=job_id,
-                    total_videos=0)
+            await self.event_emitter.publish_videos_collections_completed(job_id, correlation_id)
+        logger.info(
+            "Completed video search with zero videos",
+            job_id=job_id,
+            total_videos=0
+        )
 
-    async def _process_and_emit_videos(self, all_videos: List[Dict[str, Any]], job_id: str):
+    async def _process_and_emit_videos(self, all_videos: List[Dict[str, Any]], job_id: str, correlation_id: str) -> None:
+        """Process all videos and emit completion events.
+
+        Args:
+            all_videos: List of video data to process
+            job_id: Job identifier
+        """
         batch_payload: List[Dict[str, Any]] = []
+
         for video_data in all_videos:
-            result = await self.process_video(video_data, job_id)
+            result = await self.video_processor.process_video(video_data, job_id)
             if result.get("video_id"):
                 batch_payload.append(result)
 
         # Run automatic cleanup after video processing if enabled
-        if config.CLEANUP_OLD_VIDEOS:
-            await self._run_auto_cleanup(job_id)
+        await self.cleanup_service.run_auto_cleanup(job_id)
 
+        # Emit batch completion events
         if self.event_emitter and batch_payload:
-            await self.event_emitter.publish_videos_keyframes_ready_batch(job_id, batch_payload)
+            await self.event_emitter.publish_videos_keyframes_ready_batch(job_id, batch_payload, correlation_id)
 
         if self.event_emitter:
-            await self.event_emitter.publish_videos_collections_completed(job_id)
-
-    async def process_video(self, video_data: Dict[str, Any], job_id: str) -> Dict[str, Any]:
-        """Process a single video and extract keyframes"""
-        try:
-            video = await self._create_and_save_video_record(video_data, job_id)
-
-            # Use TikTokDownloader for TikTok videos
-            if video.platform == "tiktok":
-                local_path = video_data.get("local_path")
-
-                if local_path:
-                    video.local_path = local_path
-                    video.has_download = True
-                    # Skip keyframe extraction here - it's already done by orchestrate_download_and_extract()
-                    keyframes_data = []  # Return empty to prevent duplicate extraction
-                else:
-                    tiktok_config = {
-                        "TIKTOK_VIDEO_STORAGE_PATH": config.TIKTOK_VIDEO_STORAGE_PATH,
-                        "TIKTOK_KEYFRAME_STORAGE_PATH": config.TIKTOK_KEYFRAME_STORAGE_PATH,
-                        "retries": 3,
-                        "timeout": 30
-                    }
-                    downloader = TikTokDownloader(tiktok_config)
-
-                    success = await downloader.orchestrate_download_and_extract(
-                        url=video_data["url"],
-                        video_id=video.video_id,
-                        video=video,
-                        db=self.db
-                    )
-
-                    if not success:
-                        logger.error(f"TikTok download and extraction failed for video {video.video_id}")
-                        return {
-                            "video_id": None,
-                            "platform": video.platform,
-                            "frames": []
-                        }
-
-                    # Skip keyframe extraction here - it's already done by orchestrate_download_and_extract()
-                    video_data["local_path"] = video.local_path
-                    keyframes_data = []  # Return empty to prevent duplicate extraction
-            else:
-                keyframes_data = await self._extract_and_save_keyframes(video, video_data)
-
-            await self._emit_keyframes_ready_event(video, keyframes_data, job_id)
-
-            # Increment processed count for the video
-            if self.job_progress_manager:
-                await self.job_progress_manager.update_job_progress(job_id, "video", 0, 1, "crawling")
-
-            logger.info("Processed video", video_id=video.video_id,
-                        frame_count=len(keyframes_data))
-            return {
-                "video_id": video.video_id,
-                "platform": video.platform,
-                "frames": keyframes_data
-            }
-
-        except Exception as e:
-            logger.error(f"Failed to process video: {str(e)}", extra={"video_data": video_data})
-            return {
-                "video_id": None,
-                "platform": video_data.get("platform"),
-                "frames": []
-            }
-
-    async def _create_and_save_video_record(self, video_data: Dict[str, Any], job_id: str) -> Video:
-        video = Video(
-            video_id=str(uuid.uuid4()),
-            platform=video_data["platform"],
-            url=video_data["url"],
-            title=video_data["title"],
-            duration_s=video_data.get("duration_s")
-        )
-        await self.db.execute(
-            "INSERT INTO videos (video_id, platform, url, title, duration_s, job_id) VALUES ($1, $2, $3, $4, $5, $6)",
-            video.video_id, video.platform, video.url,
-            video.title, video.duration_s, job_id
-        )
-        return video
-
-    async def _extract_and_save_keyframes(self, video: Video, video_data: Dict[str, Any]) -> List[Dict[str, Any]]:
-        # Get the local path from video_data if available
-        local_path = video_data.get("local_path")
-
-        # Extract keyframes from downloaded video or create dummy frames
-        keyframes = await self.keyframe_extractor.extract_keyframes(
-            video_data.get("url", ""), video.video_id, local_path
-        )
-
-        frame_data = []
-        for i, (timestamp, frame_path) in enumerate(keyframes):
-            frame_id = f"{video.video_id}_frame_{i}"
-            frame = VideoFrame(
-                frame_id=frame_id,
-                video_id=video.video_id,
-                ts=timestamp,
-                local_path=frame_path
-            )
-            await self.frame_crud.create_video_frame(frame)
-            frame_data.append({
-                "frame_id": frame_id,
-                "ts": timestamp,
-                "local_path": frame_path
-            })
-        return frame_data
-
-    async def _extract_keyframes_from_downloader(self, downloader: TikTokDownloader, video_id: str) -> List[Dict[str, Any]]:
-        """Extract keyframes data from TikTokDownloader for response formatting"""
-        try:
-            # Get the list of extracted keyframes from the downloader
-            from keyframe_extractor.length_adaptive_extractor import LengthAdaptiveKeyframeExtractor
-            extractor = LengthAdaptiveKeyframeExtractor(keyframe_root_dir=downloader.keyframe_storage_path)
-            keyframes = await extractor.extract_keyframes(
-                video_url="",  # Not needed for local file processing
-                video_id=video_id,
-                local_path=None  # Will be determined by the extractor
-            )
-
-            frame_data = []
-            for i, (timestamp, frame_path) in enumerate(keyframes):
-                frame_id = f"{video_id}_frame_{i}"
-                frame_data.append({
-                    "frame_id": frame_id,
-                    "ts": timestamp,
-                    "local_path": frame_path
-                })
-            return frame_data
-        except Exception as e:
-            logger.error(f"Failed to extract keyframes data from downloader for video {video_id}: {str(e)}")
-            return []
+            await self.event_emitter.publish_videos_collections_completed(job_id, correlation_id)
 
     def _get_video_dir(self) -> str:
+        """Get the video directory path.
+
+        Returns:
+            Path to video storage directory
+        """
         return self._video_dir_override or config.VIDEO_DIR
 
-    async def _emit_keyframes_ready_event(self, video: Video, keyframes_data: List[Dict[str, Any]], job_id: str):
-        if keyframes_data and self.event_emitter:
-            await self.event_emitter.publish_videos_keyframes_ready(
-                video.video_id, keyframes_data, job_id
-            )
-
     def _initialize_platform_crawlers(self) -> Dict[str, PlatformCrawlerInterface]:
-        """Initialize platform crawlers for each supported platform"""
-        crawlers = {}
+        """Initialize platform crawlers for each supported platform.
 
-        # Use real YouTube crawler
-        crawlers["youtube"] = YoutubeCrawler()
+        Enforcement: When INTEGRATION_TESTS_ENFORCE_REAL_SERVICES=true, do not allow mock mode.
+        Respect VIDEO_CRAWLER_MODE but default to 'live' in enforced integration runs.
 
-        # Use real TikTok crawler
-        crawlers["tiktok"] = TikTokCrawler()
+        Returns:
+            Dictionary mapping platform names to crawler instances
+        """
+        crawlers: Dict[str, PlatformCrawlerInterface] = {}
 
-        # Use mock crawlers for other platforms (not implemented yet)
-        crawlers["bilibili"] = MockPlatformCrawler("bilibili")
-        crawlers["douyin"] = MockPlatformCrawler("douyin")
+        # Read environment flags
+        enforce_real = os.getenv("INTEGRATION_TESTS_ENFORCE_REAL_SERVICES", "").lower() == "true"
+        pvm_test_mode = os.getenv("PVM_TEST_MODE", "false").lower() == "true"
+        crawler_mode = os.getenv("VIDEO_CRAWLER_MODE", "live").lower()
+
+        if enforce_real:
+            # Force LIVE mode under integration enforcement; ignore test-mode mock override
+            crawler_mode = os.getenv("VIDEO_CRAWLER_MODE", "live").lower()
+            if pvm_test_mode:
+                logger.info("LIVE mode enforced by integration tests; overriding PVM_TEST_MODE mock setting")
+        else:
+            # Only allow mock override when not enforcing real services
+            if pvm_test_mode:
+                crawler_mode = "mock"
+
+        if crawler_mode == "mock":
+            # Use mock crawlers for deterministic test behavior
+            crawlers["youtube"] = MockPlatformCrawler("youtube")
+            crawlers["tiktok"] = MockPlatformCrawler("tiktok")
+            crawlers["bilibili"] = MockPlatformCrawler("bilibili")
+            crawlers["douyin"] = MockPlatformCrawler("douyin")
+            logger.info("VideoCrawlerService initialized in MOCK mode (test-friendly crawlers)")
+        else:
+            # Use real platform crawlers
+            crawlers["youtube"] = YoutubeCrawler()
+            crawlers["tiktok"] = TikTokCrawler()
+            # Use mock crawlers for other platforms (not implemented yet)
+            crawlers["bilibili"] = MockPlatformCrawler("bilibili")
+            crawlers["douyin"] = MockPlatformCrawler("douyin")
+            if enforce_real:
+                # Explicit banner after mode resolution
+                logger.info("LIVE mode enforced by integration tests", resolved_mode=crawler_mode)
+            else:
+                logger.info("VideoCrawlerService initialized in LIVE mode (real crawlers)")
 
         return crawlers
 
-    async def _run_auto_cleanup(self, job_id: str):
-        """Run automatic video cleanup after processing"""
-        try:
-            logger.info(f"[AUTO-CLEANUP] Starting cleanup for job {job_id}")
-
-            # Create directory structure for cleanup based on config
-            video_dir = self._get_video_dir()
-
-            # Perform cleanup (dry run is False for actual cleanup)
-            cleanup_results = await cleanup_service.perform_cleanup(video_dir, dry_run=False)
-
-            if cleanup_results['files_removed']:
-                logger.info(f"[AUTO-CLEANUP] Successfully cleaned up {len(cleanup_results['files_removed'])} files for job {job_id}")
-            else:
-                logger.info(f"[AUTO-CLEANUP] No files to cleanup for job {job_id}")
-
-        except Exception as e:
-            logger.error(f"[AUTO-CLEANUP-ERROR] Failed to run cleanup for job {job_id}: {str(e)}")
-
     async def run_manual_cleanup(self, dry_run: bool = False) -> Dict[str, Any]:
-        """Run manual cleanup for debugging/testing purposes
+        """Run manual cleanup for debugging/testing purposes.
 
         Args:
             dry_run: If True, only list files without removing them
 
         Returns:
             Dictionary with cleanup results
+
+        Raises:
+            CleanupOperationError: If cleanup operation fails
         """
         try:
-            logger.info(f"[MANUAL-CLEANUP] Starting cleanup (dry_run={dry_run})")
-
-            # Get cleanup information first
-            base_dir = self._get_video_dir()
-            cleanup_info = await cleanup_service.get_cleanup_info(base_dir)
-
-            # Perform cleanup
-            cleanup_results = await cleanup_service.perform_cleanup(base_dir, dry_run)
-
-            return {
-                'cleanup_info': cleanup_info,
-                'cleanup_results': cleanup_results,
-                'config': cleanup_service.get_status()
-            }
-
+            return await self.cleanup_service.run_manual_cleanup(dry_run)
         except Exception as e:
-            logger.error(f"[MANUAL-CLEANUP-ERROR] Failed to run manual cleanup: {str(e)}")
-            raise
+            raise CleanupOperationError(
+                f"Manual cleanup failed: {str(e)}",
+                directory=self._get_video_dir()
+            )

@@ -30,3 +30,7 @@ RUN pip install --no-cache-dir -e /app/libs/common-py && \
 # (Optional) Environment hygiene
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PIP_DISABLE_PIP_VERSION_CHECK=1
+
+# Update yt-dlp to latest version on container startup
+COPY services/video-crawler/update_yt_dlp.sh /app/update_yt_dlp.sh
+RUN chmod +x /app/update_yt_dlp.sh && ln -sf /app/update_yt_dlp.sh /update_yt_dlp.sh
