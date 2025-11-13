@@ -71,11 +71,13 @@ class TestEdgeCases:
             # Verify immediate completion event
             mock_broker.publish_event.assert_called_once()
             call_args = mock_broker.publish_event.call_args
-            assert call_args[0][0] == "products.images.masked.batch"
-            assert call_args[0][1]["job_id"] == "empty_job"
-            assert call_args[0][1]["total_images"] == 0
-            assert "event_id" in call_args[0][1]
-            assert isinstance(call_args[0][1]["event_id"], str)
+            # Implementation passes kwargs via completion event publisher
+            assert call_args.kwargs.get("topic") == "products.images.masked.batch"
+            payload = call_args.kwargs.get("event_data") or call_args.kwargs.get("payload")
+            assert payload["job_id"] == "empty_job"
+            assert payload["total_images"] == 0
+            assert "event_id" in payload
+            assert isinstance(payload["event_id"], str)
 
             mock_broker.reset_mock()
 
@@ -87,11 +89,12 @@ class TestEdgeCases:
 
             # Verify immediate completion event
             call_args = mock_broker.publish_event.call_args
-            assert call_args[0][0] == "video.keyframes.masked.batch"
-            assert call_args[0][1]["job_id"] == "empty_video_job"
-            assert call_args[0][1]["total_keyframes"] == 0
-            assert "event_id" in call_args[0][1]
-            assert isinstance(call_args[0][1]["event_id"], str)
+            assert call_args.kwargs.get("topic") == "video.keyframes.masked.batch"
+            payload = call_args.kwargs.get("event_data") or call_args.kwargs.get("payload")
+            assert payload["job_id"] == "empty_video_job"
+            assert payload["total_keyframes"] == 0
+            assert "event_id" in payload
+            assert isinstance(payload["event_id"], str)
 
         finally:
             # Restore original config

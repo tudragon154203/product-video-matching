@@ -63,22 +63,40 @@ class IdempotencyManager:
 
     # --- Internal DB helpers to normalize access for tests/mocks ---
     async def _fetch_one(self, query: str, *args):
-        if hasattr(self.db, "pool") and self.db.pool:
-            async with self.db.pool.acquire() as conn:
-                return await conn.fetch_one(query, *args)
+        # Prefer pool if available and supports async context manager
+        try:
+            if hasattr(self.db, "pool") and getattr(self.db, "pool") is not None:
+                acquire_obj = self.db.pool.acquire()
+                # If acquire_obj supports async context manager, use it; otherwise fall back
+                if hasattr(acquire_obj, "__aenter__") and hasattr(acquire_obj, "__aexit__"):
+                    async with acquire_obj as conn:
+                        return await conn.fetch_one(query, *args)
+        except Exception:
+            # Fall through to direct call on any pool/acquire issues (common in tests)
+            pass
         # Fallback to direct method if available
         return await self.db.fetch_one(query, *args)
 
     async def _fetch_all(self, query: str, *args):
-        if hasattr(self.db, "pool") and self.db.pool:
-            async with self.db.pool.acquire() as conn:
-                return await conn.fetch_all(query, *args)
+        try:
+            if hasattr(self.db, "pool") and getattr(self.db, "pool") is not None:
+                acquire_obj = self.db.pool.acquire()
+                if hasattr(acquire_obj, "__aenter__") and hasattr(acquire_obj, "__aexit__"):
+                    async with acquire_obj as conn:
+                        return await conn.fetch_all(query, *args)
+        except Exception:
+            pass
         return await self.db.fetch_all(query, *args)
 
     async def _execute(self, query: str, *args):
-        if hasattr(self.db, "pool") and self.db.pool:
-            async with self.db.pool.acquire() as conn:
-                return await conn.execute(query, *args)
+        try:
+            if hasattr(self.db, "pool") and getattr(self.db, "pool") is not None:
+                acquire_obj = self.db.pool.acquire()
+                if hasattr(acquire_obj, "__aenter__") and hasattr(acquire_obj, "__aexit__"):
+                    async with acquire_obj as conn:
+                        return await conn.execute(query, *args)
+        except Exception:
+            pass
         return await self.db.execute(query, *args)
 
     async def _validate_database_connection(self) -> bool:

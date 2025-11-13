@@ -249,8 +249,10 @@ class TestConcurrentProcessing:
         # Verify that batch completion event was emitted immediately
         service.broker.publish_event.assert_called_once()
         call_args = service.broker.publish_event.call_args
-        assert call_args[0][0] == "products.images.masked.batch"
-        assert call_args[0][1]["job_id"] == "empty_job"
-        assert call_args[0][1]["total_images"] == 0
-        assert "event_id" in call_args[0][1]
-        assert isinstance(call_args[0][1]["event_id"], str)
+        # Implementation uses keyword args, so read from kwargs
+        assert call_args.kwargs.get("topic") == "products.images.masked.batch"
+        payload = call_args.kwargs.get("event_data") or call_args.kwargs.get("payload")
+        assert payload["job_id"] == "empty_job"
+        assert payload["total_images"] == 0
+        assert "event_id" in payload
+        assert isinstance(payload["event_id"], str)

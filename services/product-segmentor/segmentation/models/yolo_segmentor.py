@@ -22,8 +22,13 @@ class YOLOSegmentor(BaseSegmentation):
         model_filename = model_name if model_name.endswith('.pt') else f"{model_name}.pt"
 
         # Determine the correct model cache path
-        # Always use configured MODEL_CACHE for consistency in tests and local dev
-        model_cache_dir = config.MODEL_CACHE
+        # Resolve model cache: prefer explicit config; else docker path if available
+        configured_cache = getattr(config, "MODEL_CACHE", None) or "model_cache"
+        docker_cache = "/app/model_cache"
+        if configured_cache and configured_cache != "model_cache":
+            model_cache_dir = configured_cache
+        else:
+            model_cache_dir = docker_cache if os.path.exists(docker_cache) else configured_cache
 
         self._model_path = os.path.join(model_cache_dir, model_filename)
         self._model_cache_dir = model_cache_dir
