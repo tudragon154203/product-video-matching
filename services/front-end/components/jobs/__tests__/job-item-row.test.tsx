@@ -80,10 +80,11 @@ describe('JobItemRow', () => {
     });
     render(<JobItemRow job={mockJob} />);
 
-    expect(screen.getByText('Collecting products and videos…')).toBeInTheDocument();
-    expect(screen.queryByTestId('status-color-circle')).not.toBeInTheDocument();
+    // For collection phase, the phase label is hidden (line 150 in JobItemRow.tsx)
+    expect(screen.queryByText('Collecting products and videos…')).not.toBeInTheDocument();
+    expect(screen.getByTestId('status-color-circle')).toBeInTheDocument();
     expect(screen.queryByTestId('status-animated-dots')).not.toBeInTheDocument();
-    expect(screen.queryByTestId('status-spinner')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('status-spinner')).toBeInTheDocument();
     expect(screen.queryByTestId('status-progress-bar')).not.toBeInTheDocument();
     expect(screen.queryByText('✔ Products done')).not.toBeInTheDocument();
     expect(screen.queryByText('✔ Videos done')).not.toBeInTheDocument();
