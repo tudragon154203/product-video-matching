@@ -9,6 +9,7 @@ import { VideosPanel } from '@/components/jobs/VideosPanel';
 import { JobStatusHeader } from '@/components/jobs/JobStatusHeader';
 import { FeatureExtractionBanner } from '@/components/jobs/FeatureExtractionBanner';
 import { FeatureExtractionPanel } from '@/components/jobs/FeatureExtractionPanel';
+import { CollectionSummary } from '@/components/jobs/CollectionSummary';
 import { jobApiService } from '@/lib/api/services/job.api';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useFeaturesSummary } from '@/lib/api/hooks';
@@ -96,26 +97,54 @@ export default function JobDetailsPage({ params }: JobDetailsPageProps) {
               />
             )}
             
-            <JobSplitView
-              left={
-                <ProductsPanel
-                  jobId={jobId}
-                  isCollecting={isCollecting}
-                  productsDone={!!collection?.products_done}
-                  featurePhase={phase === 'feature_extraction'}
-                  featureSummary={featureSummary?.product_images}
+            {/* Show panels normally during collection, or inside accordion during feature extraction */}
+            {phase === 'collection' ? (
+              <JobSplitView
+                left={
+                  <ProductsPanel
+                    jobId={jobId}
+                    isCollecting={isCollecting}
+                    productsDone={!!collection?.products_done}
+                    featurePhase={false}
+                  />
+                }
+                right={
+                  <VideosPanel
+                    jobId={jobId}
+                    isCollecting={isCollecting}
+                    videosDone={!!collection?.videos_done}
+                    featurePhase={false}
+                  />
+                }
+              />
+            ) : (
+              <CollectionSummary
+                phase={phase || 'unknown'}
+                collection={collection}
+                counts={counts}
+              >
+                <JobSplitView
+                  left={
+                    <ProductsPanel
+                      jobId={jobId}
+                      isCollecting={false}
+                      productsDone={!!collection?.products_done}
+                      featurePhase={phase === 'feature_extraction'}
+                      featureSummary={featureSummary?.product_images}
+                    />
+                  }
+                  right={
+                    <VideosPanel
+                      jobId={jobId}
+                      isCollecting={false}
+                      videosDone={!!collection?.videos_done}
+                      featurePhase={phase === 'feature_extraction'}
+                      featureSummary={featureSummary?.video_frames}
+                    />
+                  }
                 />
-              }
-              right={
-                <VideosPanel
-                  jobId={jobId}
-                  isCollecting={isCollecting}
-                  videosDone={!!collection?.videos_done}
-                  featurePhase={phase === 'feature_extraction'}
-                  featureSummary={featureSummary?.video_frames}
-                />
-              }
-            />
+              </CollectionSummary>
+            )}
           </div>
         </Suspense>
       </div>
