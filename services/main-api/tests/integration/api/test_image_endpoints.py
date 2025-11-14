@@ -1,11 +1,12 @@
 from api import dependency
 from common_py.database import DatabaseManager
 from main import app     # Import app directly
-from httpx import AsyncClient  # Use AsyncClient for async tests
+from httpx import AsyncClient, ASGITransport  # Use AsyncClient for async tests
 import pytz
 from datetime import datetime, timedelta, timezone
 from unittest.mock import AsyncMock, MagicMock
 import pytest
+from handlers.lifecycle_handler import LifecycleHandler
 
 # Import dependencies that will be mocked
 from services.job.job_service import JobService
@@ -41,7 +42,15 @@ class MockProductImage:
 def to_gmt7(dt: datetime) -> datetime:
     if dt.tzinfo is None:
         dt = dt.replace(tzinfo=timezone.utc)
-    return dt.astimezone(pytz.timezone('Asia/Saigon'))
+    return dt.astimezone(pytz.timezone('Asia/Ho_Chi_Minh'))
+
+
+# httpx helper for ASGITransport usage (avoids deprecated `app` kwarg)
+def make_test_client():
+    return AsyncClient(
+        transport=ASGITransport(app=app),
+        base_url="http://localhost:8888"
+    )
 
 
 # Global mock instances (will be set by setup_mocks fixture)
@@ -98,12 +107,18 @@ def setup_mocks(monkeypatch):  # Add monkeypatch as an argument
     # Set job_service_mock's job_management_service attribute to the mock
     job_service_mock.job_management_service = job_management_service_mock
 
+    # Helper to wrap overrides so FastAPI never executes them in AnyIO's threadpool
+    def make_async_override(value):
+        async def _override():
+            return value
+        return _override
+
     # Override dependencies in the FastAPI app by replacing the dependency functions
-    app.dependency_overrides[dependency.get_db] = lambda: db_mock
-    app.dependency_overrides[dependency.get_broker] = lambda: broker_mock
-    app.dependency_overrides[dependency.get_job_service] = lambda: job_service_mock
-    app.dependency_overrides[dependency.get_product_image_crud] = lambda: product_image_crud_mock
-    app.dependency_overrides[dependency.get_product_crud] = lambda: product_crud_mock
+    app.dependency_overrides[dependency.get_db] = make_async_override(db_mock)
+    app.dependency_overrides[dependency.get_broker] = make_async_override(broker_mock)
+    app.dependency_overrides[dependency.get_job_service] = make_async_override(job_service_mock)
+    app.dependency_overrides[dependency.get_product_image_crud] = make_async_override(product_image_crud_mock)
+    app.dependency_overrides[dependency.get_product_crud] = make_async_override(product_crud_mock)
 
     # Configure mock job service and job management service
     # Create mock job status return value
@@ -128,6 +143,10 @@ def setup_mocks(monkeypatch):  # Add monkeypatch as an argument
     ]
     product_image_crud_mock.count_product_images_by_job.return_value = 2
 
+    # Prevent FastAPI lifespan hooks from touching real resources
+    monkeypatch.setattr(LifecycleHandler, "startup", AsyncMock())
+    monkeypatch.setattr(LifecycleHandler, "shutdown", AsyncMock())
+
     yield  # Run the test
 
     # Clear overrides after the test
@@ -137,7 +156,7 @@ def setup_mocks(monkeypatch):  # Add monkeypatch as an argument
 @pytest.mark.asyncio
 async def test_get_job_images_success():
     """Test GET /jobs/{job_id}/images with success."""
-    async with AsyncClient(app=app, base_url="http://localhost:8888") as ac:
+    async with make_test_client() as ac:
         response = await ac.get(f"/jobs/{MOCK_JOB_ID}/images")
 
     if response.status_code != 200:
@@ -148,7 +167,7 @@ async def test_get_job_images_success():
     assert len(data["items"]) == 2
     assert data["items"][0]["img_id"] == MOCK_IMAGE_ID_1
     assert "updated_at" in data["items"][0]
-    # Check if updated_at is in GMT+7 (Asia/Saigon)
+    # Check if updated_at is in GMT+7 (Asia/Ho_Chi_Minh)
     assert data["items"][0]["updated_at"].endswith("+07:00")
     print("✓ test_get_job_images_success passed")
 
@@ -166,7 +185,7 @@ async def test_get_job_images_not_found():
         updated_at=None
     )
     job_service_mock.get_job_status.return_value = mock_job_status  # noqa: F821
-    async with AsyncClient(app=app, base_url="http://localhost:8888") as ac:
+    async with make_test_client() as ac:
         response = await ac.get(f"/jobs/{nonexistent_job}/images")
 
     if response.status_code != 404:
@@ -188,7 +207,7 @@ async def test_get_job_images_with_product_id_filter():
     params = {
         "product_id": MOCK_PRODUCT_ID_1
     }
-    async with AsyncClient(app=app, base_url="http://localhost:8888") as ac:
+    async with make_test_client() as ac:
         response = await ac.get(f"/jobs/{MOCK_JOB_ID}/images", params=params)
 
     if response.status_code != 200:
@@ -212,7 +231,7 @@ async def test_get_job_images_with_search_query():
     params = {
         "q": "Specific"
     }
-    async with AsyncClient(app=app, base_url="http://localhost:8888") as ac:
+    async with make_test_client() as ac:
         response = await ac.get(f"/jobs/{MOCK_JOB_ID}/images", params=params)
 
     if response.status_code != 200:
@@ -237,7 +256,7 @@ async def test_get_job_images_with_pagination():
         "limit": 1,
         "offset": 0
     }
-    async with AsyncClient(app=app, base_url="http://localhost:8888") as ac:
+    async with make_test_client() as ac:
         response = await ac.get(f"/jobs/{MOCK_JOB_ID}/images", params=params)
 
     if response.status_code != 200:
@@ -263,7 +282,7 @@ async def test_get_job_images_with_sorting():
         "sort_by": "img_id",
         "order": "ASC"
     }
-    async with AsyncClient(app=app, base_url="http://localhost:8888") as ac:
+    async with make_test_client() as ac:
         response = await ac.get(f"/jobs/{MOCK_JOB_ID}/images", params=params)
 
     if response.status_code != 200:
@@ -281,7 +300,7 @@ async def test_get_job_images_invalid_sort_by():
         "sort_by": "invalid_field",
         "order": "ASC"
     }
-    async with AsyncClient(app=app, base_url="http://localhost:8888") as ac:
+    async with make_test_client() as ac:
         response = await ac.get(f"/jobs/{MOCK_JOB_ID}/images", params=params)
 
     # Should return 422 due to validation error
@@ -296,7 +315,7 @@ async def test_get_job_images_invalid_order():
         "sort_by": "img_id",
         "order": "INVALID"
     }
-    async with AsyncClient(app=app, base_url="http://localhost:8888") as ac:
+    async with make_test_client() as ac:
         response = await ac.get(f"/jobs/{MOCK_JOB_ID}/images", params=params)
 
     # Should return 422 due to validation error

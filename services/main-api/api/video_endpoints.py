@@ -41,7 +41,7 @@ def get_gmt7_time(dt: Optional[datetime]) -> Optional[datetime]:
         return None
     if dt.tzinfo is None:
         dt = dt.replace(tzinfo=timezone.utc)
-    return dt.astimezone(pytz.timezone('Asia/Saigon'))
+    return dt.astimezone(pytz.timezone('Asia/Ho_Chi_Minh'))
 
 
 @router.get("/jobs/{job_id}/videos", response_model=VideoListResponse)

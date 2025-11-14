@@ -127,6 +127,41 @@
       "title": "Feature extraction complete",
       "description": "All visual features have been extracted successfully."
     },
+    "maskGallery": {
+      "viewSamples": "View segmentation samples",
+      "samplesReady": "{count} ready",
+      "title": "Segmentation Samples",
+      "description": "Review original assets alongside generated masks to verify segmentation quality.",
+      "close": "Close mask gallery",
+      "assetTabs": {
+        "products": "Product images",
+        "videos": "Video frames"
+      },
+      "loading": "Loading mask samples…",
+      "error": "Unable to load mask samples right now.",
+      "empty": "No {type} masks available yet.",
+      "countLabel": "Showing {start}-{end} of {total}",
+      "keyboardHint": "Use Esc to close or arrow keys to change pages.",
+      "originalLabel": "Original",
+      "maskLabel": "Mask",
+      "metadata": {
+        "imageId": "Image ID",
+        "productId": "Product",
+        "frameId": "Frame ID",
+        "videoId": "Video",
+        "timestamp": "Timestamp"
+      },
+      "missingMask": "Mask not yet available",
+      "missingOriginal": "Original image unavailable",
+      "originalAlt": {
+        "product": "Original image {id}",
+        "video": "Video frame {id}"
+      },
+      "maskAlt": {
+        "product": "Segmentation mask for image {id}",
+        "video": "Segmentation mask for frame {id}"
+      }
+    },
     "errors": {
       "summaryFailed": "Failed to load feature summary",
       "retry": "Retry",

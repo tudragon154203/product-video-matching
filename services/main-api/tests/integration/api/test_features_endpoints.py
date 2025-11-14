@@ -12,7 +12,8 @@ from common_py.crud.product_crud import ProductCRUD
 from common_py.crud.video_frame_crud import VideoFrameCRUD
 from common_py.crud.product_image_crud import ProductImageCRUD
 from main import app
-from httpx import AsyncClient
+from httpx import AsyncClient, ASGITransport
+from handlers.lifecycle_handler import LifecycleHandler
 import pytest
 pytestmark = pytest.mark.integration
 
@@ -27,6 +28,13 @@ job_management_service_mock: JobManagementService  # noqa: F821
 db_mock: DatabaseManager  # noqa: F821
 broker_mock: MessageBroker  # noqa: F821
 
+# Helper to build AsyncClient instances compatible with modern httpx
+def make_test_client():
+    return AsyncClient(
+        transport=ASGITransport(app=app),
+        base_url="http://localhost:8888"
+    )
+
 # Helper to convert datetime to GMT+7
 
 
@@ -36,7 +44,7 @@ def get_gmt7_time(dt: Optional[datetime]) -> Optional[datetime]:
         return None
     if dt.tzinfo is None:
         dt = dt.replace(tzinfo=timezone.utc)
-    return dt.astimezone(pytz.timezone('Asia/Saigon'))
+    return dt.astimezone(pytz.timezone('Asia/Ho_Chi_Minh'))
 
 
 @pytest.fixture(autouse=True)
@@ -104,14 +112,21 @@ def setup_mocks(monkeypatch):  # Add monkeypatch as an argument
     # Import dependency functions from the endpoint modules
     from api import dependency
 
+    # Helper to wrap mock instances in async overrides so dependency resolution
+    # stays entirely in the event loop (threadpool dispatch in AnyIO hangs under ASGITransport)
+    def make_async_override(value):
+        async def _override():
+            return value
+        return _override
+
     # Override dependencies in the FastAPI app by replacing the dependency functions
-    app.dependency_overrides[dependency.get_db] = lambda: db_mock
-    app.dependency_overrides[dependency.get_broker] = lambda: broker_mock
-    app.dependency_overrides[dependency.get_job_service] = lambda: job_service_mock
-    app.dependency_overrides[dependency.get_product_image_crud] = lambda: product_image_crud_mock
-    app.dependency_overrides[dependency.get_video_frame_crud] = lambda: video_frame_crud_mock
-    app.dependency_overrides[dependency.get_product_crud] = lambda: product_crud_mock
-    app.dependency_overrides[dependency.get_video_crud] = lambda: video_crud_mock
+    app.dependency_overrides[dependency.get_db] = make_async_override(db_mock)
+    app.dependency_overrides[dependency.get_broker] = make_async_override(broker_mock)
+    app.dependency_overrides[dependency.get_job_service] = make_async_override(job_service_mock)
+    app.dependency_overrides[dependency.get_product_image_crud] = make_async_override(product_image_crud_mock)
+    app.dependency_overrides[dependency.get_video_frame_crud] = make_async_override(video_frame_crud_mock)
+    app.dependency_overrides[dependency.get_product_crud] = make_async_override(product_crud_mock)
+    app.dependency_overrides[dependency.get_video_crud] = make_async_override(video_crud_mock)
 
     # Configure mock job service and job management service
     # Create mock job status return value
@@ -131,25 +146,35 @@ def setup_mocks(monkeypatch):  # Add monkeypatch as an argument
     db_mock.fetch_one = AsyncMock(
         return_value={"updated_at": datetime.now(timezone.utc)})
 
+    # Prevent FastAPI lifespan hooks from touching real resources
+    monkeypatch.setattr(LifecycleHandler, "startup", AsyncMock())
+    monkeypatch.setattr(LifecycleHandler, "shutdown", AsyncMock())
+
     # The get_job_or_404 function checks if job_status.phase == "unknown" for job not found
     # This matches the job management service logic which returns phase="unknown" when job is not found
     product_image_crud_mock.count_product_images_by_job.side_effect = [
         10, 5, 3, 2]  # For summary test
     product_image_crud_mock.list_product_images_by_job_with_features.return_value = [
         MagicMock(
-            img_id="img1", product_id="prod1",
-            masked_local_path="/path/to/segment.png",
-            emb_rgb=b"some_embedding", emb_gray=None,
-            kp_blob_path="/path/to/keypoints.json",
+            img_id="img1",
+            product_id="prod1",
+            masked_local_path="/app/data/masks_product/product_images/img1.png",
+            emb_rgb=b"some_embedding",
+            emb_gray=None,
+            kp_blob_path="/app/data/keypoints/img1.json",
+            local_path="/app/data/images/img1.png",
             updated_at=datetime.now(timezone.utc),
             created_at=datetime.now(timezone.utc)
         )
     ]  # noqa: F821
     product_image_crud_mock.get_product_image.return_value = MagicMock(  # noqa: F821
-        img_id="test_img_id", product_id="prod1",
-        masked_local_path="/path/to/segment.png",
-        emb_rgb=b"some_embedding", emb_gray=None,
-        kp_blob_path="/path/to/keypoints.json",
+        img_id="test_img_id",
+        product_id="prod1",
+        masked_local_path="/app/data/masks_product/product_images/test_img_id.png",
+        emb_rgb=b"some_embedding",
+        emb_gray=None,
+        kp_blob_path="/app/data/keypoints/test_img_id.json",
+        local_path="/app/data/images/test_img_id.png",
         updated_at=datetime.now(timezone.utc),
         created_at=datetime.now(timezone.utc))
 
@@ -157,17 +182,29 @@ def setup_mocks(monkeypatch):  # Add monkeypatch as an argument
     video_frame_crud_mock.count_video_frames_by_job.side_effect = [
         20, 10, 6, 4]  # For summary test
     video_frame_crud_mock.list_video_frames_by_job_with_features.return_value = [
-        MagicMock(frame_id="frame1", video_id="video1", ts=1.23,
-                  masked_local_path="/path/to/frame_segment.png",
-                  emb_rgb=b"some_embedding", emb_gray=None,
-                  kp_blob_path="/path/to/frame_keypoints.json",
-                  updated_at=datetime.now(timezone.utc), created_at=datetime.now(timezone.utc))]
+        MagicMock(
+            frame_id="frame1",
+            video_id="video1",
+            ts=1.23,
+            masked_local_path="/app/data/masks_product/video_frames/frame1.png",
+            emb_rgb=b"some_embedding",
+            emb_gray=None,
+            kp_blob_path="/app/data/keypoints/frame1.json",
+            local_path="/app/data/frames/frame1.jpg",
+            updated_at=datetime.now(timezone.utc),
+            created_at=datetime.now(timezone.utc)
+        )]
     video_frame_crud_mock.get_video_frame.return_value = MagicMock(
-        frame_id="test_frame_id", video_id="video1", ts=1.23,
-        masked_local_path="/path/to/frame_segment.png",
-        emb_rgb=b"some_embedding", emb_gray=None,
-        kp_blob_path="/path/to/frame_keypoints.json",
-        updated_at=datetime.now(timezone.utc), created_at=datetime.now(timezone.utc))
+        frame_id="test_frame_id",
+        video_id="video1",
+        ts=1.23,
+        masked_local_path="/app/data/masks_product/video_frames/test_frame_id.png",
+        emb_rgb=b"some_embedding",
+        emb_gray=None,
+        kp_blob_path="/app/data/keypoints/test_frame_id.json",
+        local_path="/app/data/frames/test_frame_id.jpg",
+        updated_at=datetime.now(timezone.utc),
+        created_at=datetime.now(timezone.utc))
 
     yield  # Run the test
 
@@ -198,7 +235,7 @@ async def test_get_features_summary_success():
         20, 10, 6, 4]
     db_mock.fetch_one.return_value = {"updated_at": mock_updated_at}  # noqa: F821
 
-    async with AsyncClient(app=app, base_url="http://localhost:8888") as ac:
+    async with make_test_client() as ac:
         response = await ac.get(f"/jobs/{job_id}/features/summary")
 
     assert response.status_code == 200
@@ -234,7 +271,7 @@ async def test_get_features_summary_job_not_found():
     )
     job_service_mock.get_job_status.return_value = mock_job_status  # noqa: F821
 
-    async with AsyncClient(app=app, base_url="http://localhost:8888") as ac:
+    async with make_test_client() as ac:
         response = await ac.get(f"/jobs/{job_id}/features/summary")
 
     assert response.status_code == 404
@@ -249,10 +286,11 @@ async def test_get_job_product_images_features_success():
     mock_image = MagicMock()
     mock_image.img_id = "img1"
     mock_image.product_id = "prod1"
-    mock_image.masked_local_path = "/path/to/segment.png"
+    mock_image.masked_local_path = "/app/data/masks_product/product_images/img1.png"
     mock_image.emb_rgb = b"some_embedding"
     mock_image.emb_gray = None
-    mock_image.kp_blob_path = "/path/to/keypoints.json"
+    mock_image.kp_blob_path = "/app/data/keypoints/img1.json"
+    mock_image.local_path = "/app/data/images/img1.png"
     mock_image.updated_at = datetime.now(timezone.utc)
     mock_image.created_at = datetime.now(timezone.utc)
 
@@ -271,7 +309,7 @@ async def test_get_job_product_images_features_success():
     product_image_crud_mock.count_product_images_by_job = AsyncMock(  # noqa: F821
         return_value=1)
 
-    async with AsyncClient(app=app, base_url="http://localhost:8888") as ac:
+    async with make_test_client() as ac:
         response = await ac.get(f"/jobs/{job_id}/features/product-images")
 
     assert response.status_code == 200
@@ -283,9 +321,10 @@ async def test_get_job_product_images_features_success():
     assert item["has_segment"] is True
     assert item["has_embedding"] is True
     assert item["has_keypoints"] is True
-    assert item["paths"]["segment"] == "/path/to/segment.png"
+    assert item["original_url"] == "http://localhost:8888/files/images/img1.png"
+    assert item["paths"]["segment"] == "http://localhost:8888/files/masks_product/product_images/img1.png"
     assert item["paths"]["embedding"] is None
-    assert item["paths"]["keypoints"] == "/path/to/keypoints.json"
+    assert item["paths"]["keypoints"] == "http://localhost:8888/files/keypoints/img1.json"
     assert item["updated_at"] == get_gmt7_time(
         mock_image.updated_at).isoformat().replace("+07:00", "+07:00")
 
@@ -303,7 +342,7 @@ async def test_get_job_product_images_features_job_not_found():
     )
     job_service_mock.get_job_status.return_value = mock_job_status  # noqa: F821
 
-    async with AsyncClient(app=app, base_url="http://localhost:8888") as ac:
+    async with make_test_client() as ac:
         response = await ac.get(f"/jobs/{job_id}/features/product-images")
 
     assert response.status_code == 404
@@ -319,10 +358,11 @@ async def test_get_job_video_frames_features_success():
     mock_frame.frame_id = "frame1"
     mock_frame.video_id = "video1"
     mock_frame.ts = 1.23
-    mock_frame.masked_local_path = "/path/to/frame_segment.png"
+    mock_frame.masked_local_path = "/app/data/masks_product/video_frames/frame1.png"
     mock_frame.emb_rgb = b"some_embedding"
     mock_frame.emb_gray = None
-    mock_frame.kp_blob_path = "/path/to/keypoints.json"
+    mock_frame.kp_blob_path = "/app/data/keypoints/frame1.json"
+    mock_frame.local_path = "/app/data/frames/frame1.jpg"
     mock_frame.updated_at = datetime.now(timezone.utc)
     mock_frame.created_at = datetime.now(timezone.utc)
 
@@ -339,7 +379,7 @@ async def test_get_job_video_frames_features_success():
         mock_frame]
     video_frame_crud_mock.count_video_frames_by_job = AsyncMock(return_value=1)  # noqa: F821
 
-    async with AsyncClient(app=app, base_url="http://localhost:8888") as ac:
+    async with make_test_client() as ac:
         response = await ac.get(f"/jobs/{job_id}/features/video-frames")
 
     assert response.status_code == 200
@@ -352,9 +392,10 @@ async def test_get_job_video_frames_features_success():
     assert item["has_segment"] is True
     assert item["has_embedding"] is True
     assert item["has_keypoints"] is True
-    assert item["paths"]["segment"] == "/path/to/frame_segment.png"
+    assert item["original_url"] == "http://localhost:8888/files/frames/frame1.jpg"
+    assert item["paths"]["segment"] == "http://localhost:8888/files/masks_product/video_frames/frame1.png"
     assert item["paths"]["embedding"] is None
-    assert item["paths"]["keypoints"] == "/path/to/keypoints.json"
+    assert item["paths"]["keypoints"] == "http://localhost:8888/files/keypoints/frame1.json"
     assert item["updated_at"] == get_gmt7_time(
         mock_frame.updated_at).isoformat().replace("+07:00", "+07:00")
 
@@ -372,7 +413,7 @@ async def test_get_job_video_frames_features_job_not_found():
     )
     job_service_mock.get_job_status.return_value = mock_job_status  # noqa: F821
 
-    async with AsyncClient(app=app, base_url="http://localhost:8888") as ac:
+    async with make_test_client() as ac:
         response = await ac.get(f"/jobs/{job_id}/features/video-frames")
 
     assert response.status_code == 404
@@ -387,17 +428,18 @@ async def test_get_product_image_feature_success():
     mock_image = MagicMock()
     mock_image.img_id = img_id
     mock_image.product_id = "prod1"
-    mock_image.masked_local_path = "/path/to/segment.png"
+    mock_image.masked_local_path = "/app/data/masks_product/product_images/test_img_id.png"
     mock_image.emb_rgb = b"some_embedding"
     mock_image.emb_gray = None
-    mock_image.kp_blob_path = "/path/to/keypoints.json"
+    mock_image.kp_blob_path = "/app/data/keypoints/test_img_id.json"
+    mock_image.local_path = "/app/data/images/test_img_id.png"
     mock_image.updated_at = datetime.now(timezone.utc)
     mock_image.created_at = datetime.now(timezone.utc)
 
     product_image_crud_mock.get_product_image = AsyncMock(  # noqa: F821
         return_value=mock_image)
 
-    async with AsyncClient(app=app, base_url="http://localhost:8888") as ac:
+    async with make_test_client() as ac:
         response = await ac.get(f"/features/product-images/{img_id}")
 
     assert response.status_code == 200
@@ -407,9 +449,10 @@ async def test_get_product_image_feature_success():
     assert data["has_segment"] is True
     assert data["has_embedding"] is True
     assert data["has_keypoints"] is True
-    assert data["paths"]["segment"] == "/path/to/segment.png"
+    assert data["original_url"] == "http://localhost:8888/files/images/test_img_id.png"
+    assert data["paths"]["segment"] == "http://localhost:8888/files/masks_product/product_images/test_img_id.png"
     assert data["paths"]["embedding"] is None
-    assert data["paths"]["keypoints"] == "/path/to/keypoints.json"
+    assert data["paths"]["keypoints"] == "http://localhost:8888/files/keypoints/test_img_id.json"
     assert data["updated_at"] == get_gmt7_time(
         mock_image.updated_at).isoformat().replace("+07:00", "+07:00")
 
@@ -419,7 +462,7 @@ async def test_get_product_image_feature_not_found():
     img_id = "non_existent_img"
     product_image_crud_mock.get_product_image = AsyncMock(return_value=None)  # noqa: F821
 
-    async with AsyncClient(app=app, base_url="http://localhost:8888") as ac:
+    async with make_test_client() as ac:
         response = await ac.get(f"/features/product-images/{img_id}")
 
     assert response.status_code == 404
@@ -435,16 +478,17 @@ async def test_get_video_frame_feature_success():
     mock_frame.frame_id = frame_id
     mock_frame.video_id = "video1"
     mock_frame.ts = 1.23
-    mock_frame.masked_local_path = "/path/to/frame_segment.png"
+    mock_frame.masked_local_path = "/app/data/masks_product/video_frames/test_frame_id.png"
     mock_frame.emb_rgb = b"some_embedding"
     mock_frame.emb_gray = None
-    mock_frame.kp_blob_path = "/path/to/frame_keypoints.json"
+    mock_frame.kp_blob_path = "/app/data/keypoints/test_frame_id.json"
+    mock_frame.local_path = "/app/data/frames/test_frame_id.jpg"
     mock_frame.updated_at = datetime.now(timezone.utc)
     mock_frame.created_at = datetime.now(timezone.utc)
 
     video_frame_crud_mock.get_video_frame = AsyncMock(return_value=mock_frame)  # noqa: F821
 
-    async with AsyncClient(app=app, base_url="http://localhost:8888") as ac:
+    async with make_test_client() as ac:
         response = await ac.get(f"/features/video-frames/{frame_id}")
 
     assert response.status_code == 200
@@ -455,9 +499,10 @@ async def test_get_video_frame_feature_success():
     assert data["has_segment"] is True
     assert data["has_embedding"] is True
     assert data["has_keypoints"] is True
-    assert data["paths"]["segment"] == "/path/to/frame_segment.png"
+    assert data["original_url"] == "http://localhost:8888/files/frames/test_frame_id.jpg"
+    assert data["paths"]["segment"] == "http://localhost:8888/files/masks_product/video_frames/test_frame_id.png"
     assert data["paths"]["embedding"] is None
-    assert data["paths"]["keypoints"] == "/path/to/frame_keypoints.json"
+    assert data["paths"]["keypoints"] == "http://localhost:8888/files/keypoints/test_frame_id.json"
     assert data["updated_at"] == get_gmt7_time(
         mock_frame.updated_at).isoformat().replace("+07:00", "+07:00")
 
@@ -467,7 +512,7 @@ async def test_get_video_frame_feature_not_found():
     frame_id = "non_existent_frame"
     video_frame_crud_mock.get_video_frame = AsyncMock(return_value=None)  # noqa: F821
 
-    async with AsyncClient(app=app, base_url="http://localhost:8888") as ac:
+    async with make_test_client() as ac:
         response = await ac.get(f"/features/video-frames/{frame_id}")
 
     assert response.status_code == 404

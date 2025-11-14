@@ -38,6 +38,7 @@ class FeaturePaths(BaseModel):
 class ProductImageFeatureItem(BaseModel):
     img_id: str
     product_id: str
+    original_url: Optional[str] = None
     has_segment: bool
     has_embedding: bool
     has_keypoints: bool
@@ -56,6 +57,7 @@ class VideoFrameFeatureItem(BaseModel):
     frame_id: str
     video_id: str
     ts: float
+    original_url: Optional[str] = None
     has_segment: bool
     has_embedding: bool
     has_keypoints: bool

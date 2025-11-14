@@ -22,7 +22,7 @@ class ProductService:
             return None
         if dt.tzinfo is None:
             dt = dt.replace(tzinfo=timezone.utc)
-        return dt.astimezone(pytz.timezone('Asia/Saigon'))
+        return dt.astimezone(pytz.timezone('Asia/Ho_Chi_Minh'))
 
     async def get_job_products(
         self,

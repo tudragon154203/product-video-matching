@@ -6,9 +6,12 @@ import { Sparkles, Layers, Brain, Pointer, AlertCircle, CheckCircle2, ChevronDow
 import { FeatureStepProgress } from './FeatureStepProgress';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { MaskGalleryModal } from './MaskGalleryModal';
 import type { FeaturesSummaryResponse } from '@/lib/zod/features';
 
 interface FeatureExtractionPanelProps {
+  jobId: string;
   summary?: FeaturesSummaryResponse;
   isLoading?: boolean;
   isError?: boolean;
@@ -17,6 +20,7 @@ interface FeatureExtractionPanelProps {
 }
 
 export function FeatureExtractionPanel({ 
+  jobId,
   summary, 
   isLoading = false, 
   isError = false,
@@ -38,11 +42,34 @@ export function FeatureExtractionPanel({
     }
   }, [isExpanded]);
 
+  const [isMaskModalOpen, setIsMaskModalOpen] = React.useState(false);
+
+  const productSegments = summary?.product_images.segment.done ?? 0;
+  const videoSegments = summary?.video_frames.segment.done ?? 0;
+  const totalSegments = productSegments + videoSegments;
+  const canShowMaskSamples = Boolean(summary && totalSegments > 0);
+
+  const maskButton = canShowMaskSamples ? (
+    <Button
+      variant="outline"
+      size="sm"
+      onClick={() => setIsMaskModalOpen(true)}
+      className="gap-2"
+    >
+      <Sparkles className="h-4 w-4 text-amber-500" />
+      {t('maskGallery.viewSamples')}
+      <span className="ml-1 rounded-full bg-amber-100 px-2 py-0.5 text-xs font-semibold text-amber-800">
+        {t('maskGallery.samplesReady', { count: totalSegments })}
+      </span>
+    </Button>
+  ) : null;
+
   // If not active (phase has moved past feature_extraction), show collapsible summary
   if (!isActive && summary) {
     const { product_images, video_frames } = summary;
 
     return (
+      <>
       <div className="border rounded-lg overflow-hidden">
         {/* Accordion Header */}
         <button
@@ -163,9 +190,25 @@ export function FeatureExtractionPanel({
                 </div>
               </div>
             </div>
+
+            {/* View Samples Button - Centered below panels in expanded view */}
+            {maskButton && (
+              <div className="flex justify-center mt-6">
+                {maskButton}
+              </div>
+            )}
           </div>
         )}
       </div>
+      <MaskGalleryModal
+        jobId={jobId}
+        open={isMaskModalOpen}
+        onOpenChange={setIsMaskModalOpen}
+        productSegmentCount={productSegments}
+        videoSegmentCount={videoSegments}
+        initialType={productSegments > 0 ? 'products' : 'videos'}
+      />
+      </>
     );
   }
 
@@ -244,50 +287,51 @@ export function FeatureExtractionPanel({
   }
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-      {/* Product Images Card */}
-      <div className="border rounded-lg p-4 space-y-4">
-        <div>
-          <h3 className="font-semibold text-lg">{t('productImages.title')}</h3>
-          <p className="text-sm text-muted-foreground">
-            {t('productImages.total', { count: product_images.total })}
-          </p>
+    <>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {/* Product Images Card */}
+        <div className="border rounded-lg p-4 space-y-4">
+          <div>
+            <h3 className="font-semibold text-lg">{t('productImages.title')}</h3>
+            <p className="text-sm text-muted-foreground">
+              {t('productImages.total', { count: product_images.total })}
+            </p>
+          </div>
+
+          {product_images.total === 0 ? (
+            <Alert>
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>{t('productImages.noAssets')}</AlertDescription>
+            </Alert>
+          ) : (
+            <div className="space-y-4">
+              <FeatureStepProgress
+                label={t('steps.segment')}
+                done={product_images.segment.done}
+                total={product_images.total}
+                color="sky"
+                icon={<Layers className="h-4 w-4" />}
+              />
+              <FeatureStepProgress
+                label={t('steps.embedding')}
+                done={product_images.embedding.done}
+                total={product_images.total}
+                color="indigo"
+                icon={<Brain className="h-4 w-4" />}
+              />
+              <FeatureStepProgress
+                label={t('steps.keypoints')}
+                done={product_images.keypoints.done}
+                total={product_images.total}
+                color="pink"
+                icon={<Pointer className="h-4 w-4" />}
+              />
+            </div>
+          )}
         </div>
 
-        {product_images.total === 0 ? (
-          <Alert>
-            <AlertCircle className="h-4 w-4" />
-            <AlertDescription>{t('productImages.noAssets')}</AlertDescription>
-          </Alert>
-        ) : (
-          <div className="space-y-4">
-            <FeatureStepProgress
-              label={t('steps.segment')}
-              done={product_images.segment.done}
-              total={product_images.total}
-              color="sky"
-              icon={<Layers className="h-4 w-4" />}
-            />
-            <FeatureStepProgress
-              label={t('steps.embedding')}
-              done={product_images.embedding.done}
-              total={product_images.total}
-              color="indigo"
-              icon={<Brain className="h-4 w-4" />}
-            />
-            <FeatureStepProgress
-              label={t('steps.keypoints')}
-              done={product_images.keypoints.done}
-              total={product_images.total}
-              color="pink"
-              icon={<Pointer className="h-4 w-4" />}
-            />
-          </div>
-        )}
-      </div>
-
-      {/* Video Frames Card */}
-      <div className="border rounded-lg p-4 space-y-4">
+        {/* Video Frames Card */}
+        <div className="border rounded-lg p-4 space-y-4">
         <div>
           <h3 className="font-semibold text-lg">{t('videoFrames.title')}</h3>
           <p className="text-sm text-muted-foreground">
@@ -326,6 +370,25 @@ export function FeatureExtractionPanel({
           </div>
         )}
       </div>
-    </div>
+      </div>
+
+      {/* View Samples Button - Centered below panels */}
+      {maskButton && (
+        <div className="flex justify-center mt-6">
+          {maskButton}
+        </div>
+      )}
+
+      {summary && (
+        <MaskGalleryModal
+          jobId={jobId}
+          open={isMaskModalOpen}
+          onOpenChange={setIsMaskModalOpen}
+          productSegmentCount={productSegments}
+          videoSegmentCount={videoSegments}
+          initialType={productSegments > 0 ? 'products' : 'videos'}
+        />
+      )}
+    </>
   );
 }

@@ -127,6 +127,41 @@
       "title": "Trích xuất đặc trưng hoàn tất",
       "description": "Tất cả các đặc trưng hình ảnh đã được trích xuất thành công."
     },
+    "maskGallery": {
+      "viewSamples": "Xem mẫu phân đoạn",
+      "samplesReady": "{count} sẵn sàng",
+      "title": "Mẫu Phân đoạn",
+      "description": "Xem lại tài sản gốc cùng với mặt nạ được tạo để xác minh chất lượng phân đoạn.",
+      "close": "Đóng thư viện mặt nạ",
+      "assetTabs": {
+        "products": "Hình ảnh sản phẩm",
+        "videos": "Khung hình video"
+      },
+      "loading": "Đang tải mẫu mặt nạ…",
+      "error": "Không thể tải mẫu mặt nạ ngay bây giờ.",
+      "empty": "Chưa có mặt nạ {type} nào.",
+      "countLabel": "Hiển thị {start}-{end} trong tổng {total}",
+      "keyboardHint": "Nhấn Esc để đóng hoặc phím mũi tên để chuyển trang.",
+      "originalLabel": "Gốc",
+      "maskLabel": "Mặt nạ",
+      "metadata": {
+        "imageId": "ID Hình ảnh",
+        "productId": "Sản phẩm",
+        "frameId": "ID Khung hình",
+        "videoId": "Video",
+        "timestamp": "Thời gian"
+      },
+      "missingMask": "Mặt nạ chưa có sẵn",
+      "missingOriginal": "Hình ảnh gốc không có sẵn",
+      "originalAlt": {
+        "product": "Hình ảnh gốc {id}",
+        "video": "Khung hình video {id}"
+      },
+      "maskAlt": {
+        "product": "Mặt nạ phân đoạn cho hình ảnh {id}",
+        "video": "Mặt nạ phân đoạn cho khung hình {id}"
+      }
+    },
     "errors": {
       "summaryFailed": "Không thể tải tóm tắt đặc trưng",
       "retry": "Thử lại",

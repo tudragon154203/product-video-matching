@@ -53,6 +53,7 @@ export const FeaturePaths = z.object({
 export const ProductImageFeatureItem = z.object({
   img_id: z.string(),
   product_id: z.string(),
+  original_url: z.string().nullable(),
   has_segment: z.boolean(),
   has_embedding: z.boolean(),
   has_keypoints: z.boolean(),
@@ -77,6 +78,7 @@ export const VideoFrameFeatureItem = z.object({
   frame_id: z.string(),
   video_id: z.string(),
   ts: z.number(),
+  original_url: z.string().nullable(),
   has_segment: z.boolean(),
   has_embedding: z.boolean(),
   has_keypoints: z.boolean(),

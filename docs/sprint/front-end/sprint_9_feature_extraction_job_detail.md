@@ -431,14 +431,14 @@ Response: {
   product_id: "prod_123",
   original_url: "http://localhost:8000/files/images/img_123.jpg",  ← NEW!
   paths: {
-    segment: "/app/data/masks_product/product_images/img_123.png",
-    segment_url: "http://localhost:8000/files/masks_product/product_images/img_123.png"  ← NEW!
+    segment: "http://localhost:8000/files/masks_product/product_images/img_123.png",  ← UPDATED!
+    keypoints: "http://localhost:8000/files/keypoints/img_123.json"  ← UPDATED!
   }
 }
          ↓
 Frontend: 
   <img src={item.original_url} />  ← Original image
-  <img src={item.paths.segment_url} />  ← Mask overlay
+  <img src={item.paths.segment} />  ← Mask overlay
 ```
 
 ### 15.4 Implementation Approach
@@ -668,13 +668,7 @@ const handlePrev = () => {
 // Render samples with pagination
 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
   {data?.items.map(item => (
-    <MaskSampleCard
-      key={item.img_id}
-      originalUrl={item.original_url}
-      maskUrl={item.paths.segment_url}
-      productId={item.product_id}
-      imgId={item.img_id}
-    />
+    <MaskSampleCard key={item.img_id} item={item} />
   ))}
 </div>
 
@@ -723,7 +717,7 @@ const { data: features } = useQuery({
 
 const imageUrl = viewMode === 'original' 
   ? product.primary_image_url 
-  : features?.items[0]?.paths.segment_url;
+  : features?.items[0]?.paths.segment;
 ```
 
 **Overlay Mode**:
@@ -800,14 +794,14 @@ interface MaskQuality {
 **Backend Changes**:
 1. Update `api/features_endpoints.py`:
    - Add `original_url` field to responses (convert `local_path` to URL)
-   - Add `segment_url` to `paths` dict (convert `masked_local_path` to URL)
-   - Add `keypoints_url` to `paths` dict (convert `kp_blob_path` to URL)
+   - Convert `paths.segment` to return public mask URLs (instead of absolute paths)
+   - Convert `paths.keypoints` to return public keypoint URLs (instead of absolute paths)
    - Reuse existing `to_public_url()` utility from `utils/image_utils.py`
 
 2. Update `models/features_schemas.py`:
    - Add `original_url: Optional[str]` to `ProductImageFeatureItem`
    - Add `original_url: Optional[str]` to `VideoFrameFeatureItem`
-   - Update `paths` dict type hints to include `*_url` fields
+   - Update `FeaturePaths.segment` / `FeaturePaths.keypoints` to document that they now contain URLs
 
 3. Add tests:
    - Unit tests for URL generation in feature endpoints
@@ -835,10 +829,9 @@ for image in images:
         keypoints_url = f"{config.MAIN_API_URL}{keypoints_url}"
     
     paths = {
-        "segment": image.masked_local_path,
-        "segment_url": segment_url,  # NEW
-        "keypoints": image.kp_blob_path,
-        "keypoints_url": keypoints_url  # NEW
+        "segment": segment_url,  # UPDATED: Only expose URLs
+        "embedding": None,
+        "keypoints": keypoints_url  # UPDATED: Only expose URLs
     }
     
     image_item = ProductImageFeatureItem(
@@ -855,8 +848,8 @@ for image in images:
 
 **Acceptance Criteria**:
 - ✅ Feature API returns `original_url` for all items
-- ✅ Feature API returns `paths.segment_url` when mask exists
-- ✅ Feature API returns `paths.keypoints_url` when keypoints exist
+- ✅ Feature API returns `paths.segment` as a public URL when mask exists
+- ✅ Feature API returns `paths.keypoints` as a public URL when keypoints exist
 - ✅ URLs are valid and accessible via `/api/files/{path}`
 - ✅ Backward compatible (keeps existing `paths.segment` field)
 
@@ -867,7 +860,7 @@ for image in images:
 **Frontend Changes**:
 1. Update TypeScript types:
    - Add `original_url` to `ProductImageFeatureItem` type
-   - Add `segment_url`, `keypoints_url` to `paths` type
+   - Treat `paths.segment` / `paths.keypoints` as URL strings instead of raw paths
 
 2. Create `MaskGalleryModal` component:
    - Grid layout with original + mask side-by-side
@@ -1022,7 +1015,7 @@ MaskGalleryModal
 
 1. ✅ Backend exposes mask file paths via features API (already done)
 2. ✅ Static file endpoint serves mask images securely (already done)
-3. ⬜ Frontend can construct valid mask URLs from database paths
+3. ⬜ Frontend consumes provided mask/keypoint URLs without additional path munging
 4. ⬜ "View Samples" button in Feature Progress Board opens mask gallery
 5. ⬜ Gallery shows 6-12 random mask samples with original images
 6. ⬜ Mask images load with proper error handling and loading states
@@ -1032,8 +1025,7 @@ MaskGalleryModal
 
 ### 15.9 Open Questions
 
-1. **Path Format**: Should backend add `segment_url` field or should frontend handle path conversion?
-   - **Recommendation**: Backend should add URL fields (Option B) for cleaner separation
+1. **Path Format** *(Resolved)*: Backend now returns public URLs directly via `paths.segment` / `paths.keypoints`, so the frontend no longer performs path conversion.
 
 2. **Thumbnail Generation**: Should backend pre-generate thumbnails for performance?
    - **Recommendation**: Start without thumbnails, add if performance issues arise
@@ -1090,7 +1082,7 @@ Response: {
 }
 ```
 
-#### Get Product Images with Features (Current - Missing URLs)
+#### Get Product Images with Features (Legacy - Missing URLs)
 ```
 GET /api/jobs/{job_id}/features/product-images
 Query params: has, limit, offset, sort_by, order
@@ -1098,16 +1090,14 @@ Response: {
   items: [{
     img_id: string,
     product_id: string,
-    // ❌ MISSING: original_url field
+    // Legacy: original_url was absent
     has_segment: boolean,
     has_embedding: boolean,
     has_keypoints: boolean,
     paths: {
-      segment: string | null,  // ❌ Absolute path: "/app/data/masks_product/product_images/img_123.png"
-      // ❌ MISSING: segment_url field
+      segment: string | null,  // Legacy absolute path: "/app/data/masks_product/product_images/img_123.png"
       embedding: null,
-      keypoints: string | null,
-      // ❌ MISSING: keypoints_url field
+      keypoints: string | null,  // Legacy absolute path: "/app/data/keypoints/img_123.json"
     },
     updated_at: datetime
   }],
@@ -1117,7 +1107,7 @@ Response: {
 }
 ```
 
-#### Get Video Frames with Features (Current - Missing URLs)
+#### Get Video Frames with Features (Legacy - Missing URLs)
 ```
 GET /api/jobs/{job_id}/features/video-frames
 Query params: video_id, has, limit, offset, sort_by, order
@@ -1126,16 +1116,14 @@ Response: {
     frame_id: string,
     video_id: string,
     ts: number,
-    // ❌ MISSING: original_url field
+    // Legacy: original_url was absent
     has_segment: boolean,
     has_embedding: boolean,
     has_keypoints: boolean,
     paths: {
-      segment: string | null,  // ❌ Absolute path: "/app/data/masks_product/video_frames/frame_456.png"
-      // ❌ MISSING: segment_url field
+      segment: string | null,  // Legacy absolute path: "/app/data/masks_product/video_frames/frame_456.png"
       embedding: null,
-      keypoints: string | null,
-      // ❌ MISSING: keypoints_url field
+      keypoints: string | null,  // Legacy absolute path: "/app/data/keypoints/frame_456.json"
     },
     updated_at: datetime
   }],
@@ -1297,17 +1285,13 @@ Add URL fields to feature responses to avoid frontend path manipulation:
 ```python
 # services/main-api/api/features_endpoints.py
 
-from services.static_file_service import StaticFileService
+segment_url = to_public_url(image.masked_local_path, config.DATA_ROOT_CONTAINER)
+keypoints_url = to_public_url(image.kp_blob_path, config.DATA_ROOT_CONTAINER)
 
-static_service = StaticFileService()
-
-# In feature endpoint handlers:
 paths = {
-    "segment": image.masked_local_path,
-    "segment_url": static_service.build_url_from_local_path(image.masked_local_path),
+    "segment": segment_url,
     "embedding": None,
-    "keypoints": image.kp_blob_path,
-    "keypoints_url": static_service.build_url_from_local_path(image.kp_blob_path)
+    "keypoints": keypoints_url
 }
 ```
 
@@ -1325,21 +1309,20 @@ paths = {
 
 ### What's Needed for Mask Visualization
 
-**Problem**: Feature API returns absolute file paths, not URLs. Frontend cannot display masks without path manipulation.
+**Problem (Pre-Sprint 9)**: Feature API returned absolute file paths, so the frontend couldn't display masks without reimplementing storage logic.
 
-**Solution**: Add URL fields to feature API responses (following existing pattern from `/jobs/{job_id}/images`).
+**Solution (Implemented)**: Feature endpoints now emit `original_url` plus URL-valued `paths.segment` / `paths.keypoints`, mirroring `/jobs/{job_id}/images`.
 
-**Backend Changes Required**:
-1. Add `original_url` field (convert `local_path` to URL)
-2. Add `paths.segment_url` field (convert `masked_local_path` to URL)
-3. Add `paths.keypoints_url` field (convert `kp_blob_path` to URL)
-4. Reuse existing `to_public_url()` utility from `utils/image_utils.py`
+**Backend Changes Completed**:
+1. Added `original_url` field (converts `local_path` to URL).
+2. Updated `paths.segment` and `paths.keypoints` to expose URLs instead of absolute paths.
+3. Reused `to_public_url()` utility to keep transformations centralized.
 
-**Frontend Changes Required**:
-1. Update TypeScript types to include new URL fields
-2. Create `MaskGalleryModal` component
-3. Add "View Samples" button to Feature Progress Board
-4. Display original + mask side-by-side in gallery
+**Frontend Changes Completed**:
+1. Updated Zod types to reflect the new URL fields.
+2. Built `MaskGalleryModal` + `MaskSampleCard` to show original/mask pairs.
+3. Added the “View Samples” entry point in `FeatureExtractionPanel`.
+4. Simplified rendering logic to read URLs directly from the API response.
 
 **Key Files to Modify**:
 - Backend: `services/main-api/api/features_endpoints.py`

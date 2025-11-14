@@ -90,6 +90,7 @@ export default function JobDetailsPage({ params }: JobDetailsPageProps) {
             {/* Feature Extraction Progress Board - stays visible after phase advances */}
             {(phase === 'feature_extraction' || phase === 'matching' || phase === 'evidence') && (
               <FeatureExtractionPanel
+                jobId={jobId}
                 summary={featureSummary}
                 isLoading={isSummaryLoading}
                 isError={isSummaryError}

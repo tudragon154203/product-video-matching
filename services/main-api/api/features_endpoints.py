@@ -15,11 +15,21 @@ from common_py.crud.product_image_crud import ProductImageCRUD
 from common_py.crud.video_frame_crud import VideoFrameCRUD
 from common_py.database import DatabaseManager  # Import DatabaseManager
 from api.dependency import get_db, get_job_service, get_product_image_crud, get_video_frame_crud
+from config_loader import config
+from utils.image_utils import to_public_url
 
 
 router = APIRouter()
 
 # Dependency functions use the centralized dependency module
+
+
+def build_public_url(local_path: Optional[str]) -> Optional[str]:
+    """Convert a local filesystem path into a fully-qualified public URL."""
+    public_url = to_public_url(local_path, config.DATA_ROOT_CONTAINER)
+    if public_url:
+        return f"{config.MAIN_API_URL}{public_url}"
+    return None
 
 
 def get_gmt7_time(dt: Optional[datetime]) -> Optional[datetime]:
@@ -28,7 +38,7 @@ def get_gmt7_time(dt: Optional[datetime]) -> Optional[datetime]:
         return None
     if dt.tzinfo is None:
         dt = dt.replace(tzinfo=timezone.utc)
-    return dt.astimezone(pytz.timezone('Asia/Saigon'))
+    return dt.astimezone(pytz.timezone('Asia/Ho_Chi_Minh'))
 
 
 async def get_job_or_404(
@@ -185,16 +195,21 @@ async def get_job_product_images_features(
             has_embedding = image.emb_rgb is not None or image.emb_gray is not None
             has_keypoints = image.kp_blob_path is not None
 
-            # Create paths object
+            original_url = build_public_url(getattr(image, "local_path", None))
+            segment_url = build_public_url(image.masked_local_path)
+            keypoints_url = build_public_url(image.kp_blob_path)
+
+            # Create paths object with publicly accessible URLs only
             paths = {
-                "segment": image.masked_local_path,
+                "segment": segment_url,
                 "embedding": None,  # We don't expose embedding paths directly
-                "keypoints": image.kp_blob_path
+                "keypoints": keypoints_url
             }
 
             image_item = ProductImageFeatureItem(
                 img_id=image.img_id,
                 product_id=image.product_id,
+                original_url=original_url,
                 has_segment=has_segment,
                 has_embedding=has_embedding,
                 has_keypoints=has_keypoints,
@@ -277,17 +292,22 @@ async def get_job_video_frames_features(
             has_embedding = frame.emb_rgb is not None or frame.emb_gray is not None
             has_keypoints = frame.kp_blob_path is not None
 
-            # Create paths object
+            original_url = build_public_url(getattr(frame, "local_path", None))
+            segment_url = build_public_url(frame.masked_local_path)
+            keypoints_url = build_public_url(frame.kp_blob_path)
+
+            # Create paths object with public URLs only
             paths = {
-                "segment": frame.masked_local_path,
+                "segment": segment_url,
                 "embedding": None,  # We don't expose embedding paths directly
-                "keypoints": frame.kp_blob_path
+                "keypoints": keypoints_url
             }
 
             frame_item = VideoFrameFeatureItem(
                 frame_id=frame.frame_id,
                 video_id=frame.video_id,
                 ts=frame.ts,
+                original_url=original_url,
                 has_segment=has_segment,
                 has_embedding=has_embedding,
                 has_keypoints=has_keypoints,
@@ -333,16 +353,21 @@ async def get_product_image_feature(
         has_embedding = image.emb_rgb is not None or image.emb_gray is not None
         has_keypoints = image.kp_blob_path is not None
 
-        # Create paths object
+        original_url = build_public_url(getattr(image, "local_path", None))
+        segment_url = build_public_url(image.masked_local_path)
+        keypoints_url = build_public_url(image.kp_blob_path)
+
+        # Create paths object with public URLs only
         paths = {
-            "segment": image.masked_local_path,
+            "segment": segment_url,
             "embedding": None,  # We don't expose embedding paths directly
-            "keypoints": image.kp_blob_path
+            "keypoints": keypoints_url
         }
 
         return ProductImageFeatureItem(
             img_id=image.img_id,
             product_id=image.product_id,
+            original_url=original_url,
             has_segment=has_segment,
             has_embedding=has_embedding,
             has_keypoints=has_keypoints,
@@ -380,17 +405,22 @@ async def get_video_frame_feature(
         has_embedding = frame.emb_rgb is not None or frame.emb_gray is not None
         has_keypoints = frame.kp_blob_path is not None
 
-        # Create paths object
+        original_url = build_public_url(getattr(frame, "local_path", None))
+        segment_url = build_public_url(frame.masked_local_path)
+        keypoints_url = build_public_url(frame.kp_blob_path)
+
+        # Create paths object with public URLs only
         paths = {
-            "segment": frame.masked_local_path,
+            "segment": segment_url,
             "embedding": None,  # We don't expose embedding paths directly
-            "keypoints": frame.kp_blob_path
+            "keypoints": keypoints_url
         }
 
         return VideoFrameFeatureItem(
             frame_id=frame.frame_id,
             video_id=frame.video_id,
             ts=frame.ts,
+            original_url=original_url,
             has_segment=has_segment,
             has_embedding=has_embedding,
             has_keypoints=has_keypoints,
