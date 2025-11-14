@@ -92,5 +92,45 @@
   "errors": {
     "loadFailed": "Failed to load data.",
     "retry": "Retry"
+  },
+  "jobFeatureExtraction": {
+    "banner": {
+      "title": "Feature extraction in progress",
+      "description": "Extracting visual features from product images and video frames for matching.",
+      "products": "{count} products",
+      "videos": "{count} videos",
+      "images": "{count} images",
+      "frames": "{count} frames"
+    },
+    "productImages": {
+      "title": "Product Images",
+      "total": "{count} total images",
+      "noAssets": "No product images queued for this job"
+    },
+    "videoFrames": {
+      "title": "Video Frames",
+      "total": "{count} total frames",
+      "noAssets": "No video frames queued for this job"
+    },
+    "steps": {
+      "segment": "Segmentation",
+      "embedding": "Embedding",
+      "keypoints": "Keypoints"
+    },
+    "status": {
+      "active": "Active",
+      "done": "Done",
+      "pending": "Pending",
+      "blocked": "Blocked"
+    },
+    "complete": {
+      "title": "Feature extraction complete",
+      "description": "All visual features have been extracted successfully."
+    },
+    "errors": {
+      "summaryFailed": "Failed to load feature summary",
+      "retry": "Retry",
+      "noAssets": "No assets queued for this job"
+    }
   }
 }

@@ -7,8 +7,11 @@ import { JobSplitView } from '@/components/jobs/JobSplitView';
 import { ProductsPanel } from '@/components/jobs/ProductsPanel';
 import { VideosPanel } from '@/components/jobs/VideosPanel';
 import { JobStatusHeader } from '@/components/jobs/JobStatusHeader';
+import { FeatureExtractionBanner } from '@/components/jobs/FeatureExtractionBanner';
+import { FeatureExtractionPanel } from '@/components/jobs/FeatureExtractionPanel';
 import { jobApiService } from '@/lib/api/services/job.api';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useFeaturesSummary } from '@/lib/api/hooks';
 
 
 interface JobDetailsPageProps {
@@ -28,7 +31,20 @@ export default function JobDetailsPage({ params }: JobDetailsPageProps) {
   });
   
   // Use job status polling to auto-refresh while collecting
-  const { isCollecting, collection } = useJobStatusPolling(jobId, { enabled: true });
+  const { phase, percent, isCollecting, collection, counts } = useJobStatusPolling(jobId, { enabled: true });
+  
+  // Fetch feature summary when in feature extraction or matching phase
+  const isFeaturePhase = phase === 'feature_extraction' || phase === 'matching';
+  const { 
+    data: featureSummary, 
+    isLoading: isSummaryLoading,
+    isError: isSummaryError,
+    refetch: refetchSummary
+  } = useFeaturesSummary(
+    jobId, 
+    isFeaturePhase,
+    phase === 'feature_extraction' ? 5000 : false
+  );
   
   // Invalidate jobs list when job detail page loads to ensure sidebar is up-to-date
   useEffect(() => {
@@ -60,13 +76,34 @@ export default function JobDetailsPage({ params }: JobDetailsPageProps) {
           </div>
         }>
           <div className="space-y-6">
+            {/* Feature Extraction Banner */}
+            {phase === 'feature_extraction' && (
+              <FeatureExtractionBanner 
+                percent={percent} 
+                counts={counts}
+              />
+            )}
+            
             <JobStatusHeader jobId={jobId} isCollecting={isCollecting} />
+            
+            {/* Feature Extraction Progress Board */}
+            {phase === 'feature_extraction' && (
+              <FeatureExtractionPanel
+                summary={featureSummary}
+                isLoading={isSummaryLoading}
+                isError={isSummaryError}
+                onRetry={refetchSummary}
+              />
+            )}
+            
             <JobSplitView
               left={
                 <ProductsPanel
                   jobId={jobId}
                   isCollecting={isCollecting}
                   productsDone={!!collection?.products_done}
+                  featurePhase={phase === 'feature_extraction'}
+                  featureSummary={featureSummary?.product_images}
                 />
               }
               right={
@@ -74,6 +111,8 @@ export default function JobDetailsPage({ params }: JobDetailsPageProps) {
                   jobId={jobId}
                   isCollecting={isCollecting}
                   videosDone={!!collection?.videos_done}
+                  featurePhase={phase === 'feature_extraction'}
+                  featureSummary={featureSummary?.video_frames}
                 />
               }
             />

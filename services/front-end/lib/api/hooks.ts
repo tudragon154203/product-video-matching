@@ -166,11 +166,13 @@ export const useJobImages = (
 };
 
 // Feature hooks
-export const useFeaturesSummary = (jobId: string, enabled = true) => {
+export const useFeaturesSummary = (jobId: string, enabled = true, refetchInterval?: number | false) => {
   return useQuery({
     queryKey: queryKeys.features.summary(jobId),
     queryFn: () => featureApiService.getFeatureSummary(jobId),
     enabled: enabled && !!jobId,
+    refetchInterval: refetchInterval !== undefined ? refetchInterval : false,
+    staleTime: 0,
   });
 };
 

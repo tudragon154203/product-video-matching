@@ -17,13 +17,24 @@ import { VideosEmpty } from './VideosEmpty';
 import { VideosError } from './VideosError';
 import { Badge } from '@/components/ui/badge';
 
+import type { VideoFramesFeatures } from '@/lib/zod/features';
+import { Layers, Brain, Pointer } from 'lucide-react';
+
 interface VideosPanelProps {
   jobId: string;
   isCollecting?: boolean;
   videosDone?: boolean;
+  featurePhase?: boolean;
+  featureSummary?: VideoFramesFeatures;
 }
 
-export function VideosPanel({ jobId, isCollecting = false, videosDone = false }: VideosPanelProps) {
+export function VideosPanel({ 
+  jobId, 
+  isCollecting = false, 
+  videosDone = false,
+  featurePhase = false,
+  featureSummary
+}: VideosPanelProps) {
   const t = useTranslations('jobResults');
 
   // Animation hook for smooth list transitions
@@ -69,6 +80,34 @@ export function VideosPanel({ jobId, isCollecting = false, videosDone = false }:
     handleRetry();
   };
 
+  // Render feature phase toolbar
+  const renderFeatureToolbar = () => {
+    if (!featurePhase || !featureSummary) return null;
+
+    const calcPercent = (done: number, total: number) => 
+      total === 0 ? 0 : Math.round((done / total) * 100);
+
+    return (
+      <div className="flex items-center gap-3 px-4 py-2 bg-slate-50 border-t">
+        <div className="flex items-center gap-1 text-xs">
+          <Layers className="h-3 w-3 text-sky-600" />
+          <span className="text-muted-foreground">Segment:</span>
+          <span className="font-medium">{calcPercent(featureSummary.segment.done, featureSummary.total)}%</span>
+        </div>
+        <div className="flex items-center gap-1 text-xs">
+          <Brain className="h-3 w-3 text-indigo-600" />
+          <span className="text-muted-foreground">Embed:</span>
+          <span className="font-medium">{calcPercent(featureSummary.embedding.done, featureSummary.total)}%</span>
+        </div>
+        <div className="flex items-center gap-1 text-xs">
+          <Pointer className="h-3 w-3 text-pink-600" />
+          <span className="text-muted-foreground">Keypoints:</span>
+          <span className="font-medium">{calcPercent(featureSummary.keypoints.done, featureSummary.total)}%</span>
+        </div>
+      </div>
+    );
+  };
+
   return (
     <CommonPanelLayout
       title={t('videos.panelTitle')}
@@ -80,6 +119,7 @@ export function VideosPanel({ jobId, isCollecting = false, videosDone = false }:
           </div>
         ) : null
       }
+      footerChildren={renderFeatureToolbar()}
       isPlaceholderData={isPlaceholderData}
       isNavigationLoading={isNavigationLoading}
       isLoading={isLoading}

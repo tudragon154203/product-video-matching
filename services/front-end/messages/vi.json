@@ -92,5 +92,45 @@
   "errors": {
     "loadFailed": "Không thể tải dữ liệu.",
     "retry": "Thử lại"
+  },
+  "jobFeatureExtraction": {
+    "banner": {
+      "title": "Đang trích xuất đặc trưng",
+      "description": "Đang trích xuất các đặc trưng hình ảnh từ hình ảnh sản phẩm và khung hình video để so khớp.",
+      "products": "{count} sản phẩm",
+      "videos": "{count} video",
+      "images": "{count} hình ảnh",
+      "frames": "{count} khung hình"
+    },
+    "productImages": {
+      "title": "Hình ảnh Sản phẩm",
+      "total": "{count} tổng số hình ảnh",
+      "noAssets": "Không có hình ảnh sản phẩm nào trong hàng đợi cho công việc này"
+    },
+    "videoFrames": {
+      "title": "Khung hình Video",
+      "total": "{count} tổng số khung hình",
+      "noAssets": "Không có khung hình video nào trong hàng đợi cho công việc này"
+    },
+    "steps": {
+      "segment": "Phân đoạn",
+      "embedding": "Nhúng",
+      "keypoints": "Điểm chính"
+    },
+    "status": {
+      "active": "Đang hoạt động",
+      "done": "Hoàn thành",
+      "pending": "Đang chờ",
+      "blocked": "Bị chặn"
+    },
+    "complete": {
+      "title": "Trích xuất đặc trưng hoàn tất",
+      "description": "Tất cả các đặc trưng hình ảnh đã được trích xuất thành công."
+    },
+    "errors": {
+      "summaryFailed": "Không thể tải tóm tắt đặc trưng",
+      "retry": "Thử lại",
+      "noAssets": "Không có tài sản nào trong hàng đợi cho công việc này"
+    }
   }
 }

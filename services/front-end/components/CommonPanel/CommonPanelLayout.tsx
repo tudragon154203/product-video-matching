@@ -9,6 +9,7 @@ interface CommonPanelLayoutProps {
   title: string;
   count: number;
   headerChildren?: React.ReactNode;
+  footerChildren?: React.ReactNode;
   isPlaceholderData?: boolean;
   isNavigationLoading?: boolean;
   isLoading?: boolean;
@@ -29,6 +30,7 @@ export function CommonPanelLayout({
   title,
   count,
   headerChildren,
+  footerChildren,
   isPlaceholderData = false,
   isNavigationLoading = false,
   isLoading = false,
@@ -109,6 +111,9 @@ export function CommonPanelLayout({
           children
         )}
       </div>
+      
+      {/* Footer children (e.g., feature phase toolbar) */}
+      {footerChildren}
     </PanelSection>
   );
 }

@@ -21,6 +21,7 @@
 3. **Panel Overlays** – Products/Videos panels gain a slim toolbar that mirrors the progress rows and exposes a “Show assets missing features” filter.
 4. **Collection Archive Panel** – the previous collection phase module collapses into an accordion that is pushed beneath the feature board but remains expandable so ops can review both phases in one place.
 5. **Completion Snapshot** – after feature extraction finishes (phase advances), the board collapses into a compact “Feature extraction complete” summary that can still be expanded for audit.
+6. **Matching Transition** – once the job enters `matching`, the collapsed feature extraction panel is pushed beneath the matching UI stack, stays collapsed by default, but remains mounted in the DOM so ops can re-open it without losing context.
 
 ## 5) Layout & Component Specs
 
@@ -50,6 +51,7 @@
   - Micro copy under the rows explaining what each step does (tooltips on desktop).
 - Include an inline alert if `total === 0` or summary missing (e.g., “No assets queued for this job”).
 - When percent hits 100% for all steps in both cards, show a compact success state (check icon + timestamp) but leave data accessible via accordion in the same component.
+- After the phase advances to `matching`, render this success state below any matching-phase modules, keep it collapsed automatically, and do not unmount the component so previously fetched data persists.
 
 ### 5.3 Panel Integration (ProductsPanel & VideosPanel)
 - Panels accept new props:
@@ -135,6 +137,7 @@
 - Feature Progress Board reflects `/features/summary` data within one poll cycle and handles loading/error gracefully.
 - Products/Videos panels display step pills + filter controls while in feature extraction; filter cycles update visible rows (or show disabled tooltip if metadata absent).
 - When phase advances past feature extraction, banner collapses and board shows “Feature extraction completed” summary (no polling).
+- When the phase reaches `matching`, the FeatureExtractionPanel reflows beneath the matching UI, remains collapsed, and stays mounted in the DOM for later expansion.
 - Reduced-motion users see static updates (no animations).
 - Analytics event fires on filter toggle, and no console errors appear.
 - Collection summary auto-collapses beneath the board in feature extraction but can be expanded on demand and remembers user preference per session.
