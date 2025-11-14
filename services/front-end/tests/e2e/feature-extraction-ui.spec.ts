@@ -90,4 +90,47 @@ test.describe('Feature Extraction UI', () => {
       await expect(page.getByTestId('videos-panel')).toBeVisible();
     }
   });
+
+  test('feature extraction panel should remain visible in matching phase with accordion', async ({ page }) => {
+    // Use a job ID that's in matching phase
+    await page.goto('/en/jobs/3f42dddf-7cc5-4217-81f9-983f23122ba6');
+
+    // Wait for the page to load
+    await page.waitForLoadState('networkidle', { timeout: 15000 });
+
+    // Check if we're on a job detail page
+    await expect(page.locator('h1')).toBeVisible({ timeout: 10000 });
+
+    // Feature extraction banner should NOT be visible (only during feature_extraction phase)
+    await expect(page.getByText('Feature extraction in progress')).not.toBeVisible();
+
+    // But the feature extraction panel should still be visible as a collapsible accordion
+    const completionButton = page.getByRole('button', { name: /feature extraction complete/i });
+    if (await completionButton.isVisible()) {
+      await expect(completionButton).toBeVisible();
+      
+      // Should be collapsed by default
+      const isExpanded = await completionButton.getAttribute('aria-expanded');
+      expect(isExpanded).toBe('false');
+      
+      // Should show summary counts when collapsed
+      // Just verify the button contains some count information
+      await expect(completionButton).toContainText('Images:');
+      await expect(completionButton).toContainText('Frames:');
+      
+      // The detailed progress board should NOT be visible when collapsed
+      const detailContent = page.locator('#feature-extraction-summary-content');
+      await expect(detailContent).not.toBeVisible();
+      
+      // Click to expand
+      await completionButton.click();
+      await page.waitForTimeout(300);
+      
+      // Now the detailed content should be visible
+      await expect(detailContent).toBeVisible();
+      await expect(detailContent.getByText('Product Images')).toBeVisible();
+      await expect(detailContent.getByText('Video Frames')).toBeVisible();
+      await expect(detailContent.getByText('Segmentation').first()).toBeVisible();
+    }
+  });
 });

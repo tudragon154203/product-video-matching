@@ -87,13 +87,14 @@ export default function JobDetailsPage({ params }: JobDetailsPageProps) {
             
             <JobStatusHeader jobId={jobId} isCollecting={isCollecting} />
             
-            {/* Feature Extraction Progress Board */}
-            {phase === 'feature_extraction' && (
+            {/* Feature Extraction Progress Board - stays visible after phase advances */}
+            {(phase === 'feature_extraction' || phase === 'matching' || phase === 'evidence') && (
               <FeatureExtractionPanel
                 summary={featureSummary}
                 isLoading={isSummaryLoading}
                 isError={isSummaryError}
                 onRetry={refetchSummary}
+                isActive={phase === 'feature_extraction'}
               />
             )}
             

@@ -2,9 +2,10 @@
 
 import React from 'react';
 import { useTranslations } from 'next-intl';
-import { Sparkles, Layers, Brain, Pointer, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { Sparkles, Layers, Brain, Pointer, AlertCircle, CheckCircle2, ChevronDown, ChevronUp, Video } from 'lucide-react';
 import { FeatureStepProgress } from './FeatureStepProgress';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Badge } from '@/components/ui/badge';
 import type { FeaturesSummaryResponse } from '@/lib/zod/features';
 
 interface FeatureExtractionPanelProps {
@@ -12,15 +13,161 @@ interface FeatureExtractionPanelProps {
   isLoading?: boolean;
   isError?: boolean;
   onRetry?: () => void;
+  isActive?: boolean; // True when phase is feature_extraction, false when in later phases
 }
 
 export function FeatureExtractionPanel({ 
   summary, 
   isLoading = false, 
   isError = false,
-  onRetry 
+  onRetry,
+  isActive = true 
 }: FeatureExtractionPanelProps) {
   const t = useTranslations('jobFeatureExtraction');
+
+  // State for accordion - must be at top level (hooks rule)
+  const [isExpanded, setIsExpanded] = React.useState(() => {
+    if (typeof window === 'undefined') return false;
+    const stored = sessionStorage.getItem('featureExtractionPanelExpanded');
+    return stored !== null ? stored === 'true' : false;
+  });
+
+  React.useEffect(() => {
+    if (typeof window !== 'undefined') {
+      sessionStorage.setItem('featureExtractionPanelExpanded', String(isExpanded));
+    }
+  }, [isExpanded]);
+
+  // If not active (phase has moved past feature_extraction), show collapsible summary
+  if (!isActive && summary) {
+    const { product_images, video_frames } = summary;
+
+    return (
+      <div className="border rounded-lg overflow-hidden">
+        {/* Accordion Header */}
+        <button
+          onClick={() => setIsExpanded(!isExpanded)}
+          className="w-full px-4 py-3 bg-slate-50 hover:bg-slate-100 transition-colors"
+          aria-expanded={isExpanded}
+          aria-controls="feature-extraction-summary-content"
+        >
+          <div className="flex items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2">
+                {isExpanded ? (
+                  <ChevronUp className="h-4 w-4 text-slate-600" />
+                ) : (
+                  <ChevronDown className="h-4 w-4 text-slate-600" />
+                )}
+                <h3 className="font-semibold text-sm">{t('complete.title')}</h3>
+              </div>
+              
+              {/* Show completion badge when collapsed */}
+              {!isExpanded && (
+                <Badge variant="outline" className="text-xs bg-emerald-50 text-emerald-700 border-emerald-200">
+                  <CheckCircle2 className="h-3 w-3 mr-1" />
+                  Complete
+                </Badge>
+              )}
+            </div>
+
+            {/* Show summary counts when collapsed */}
+            {!isExpanded && (
+              <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                <div className="flex items-center gap-1">
+                  <Layers className="h-3 w-3" />
+                  <span>Images: {product_images.keypoints.done}/{product_images.total}</span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <Video className="h-3 w-3" />
+                  <span>Frames: {video_frames.keypoints.done}/{video_frames.total}</span>
+                </div>
+              </div>
+            )}
+          </div>
+        </button>
+
+        {/* Accordion Content - shows full progress board when expanded */}
+        {isExpanded && (
+          <div 
+            id="feature-extraction-summary-content"
+            className="bg-white p-4"
+          >
+            {/* Render the full progress board */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Product Images Card */}
+              <div className="border rounded-lg p-4 space-y-4">
+                <div>
+                  <h3 className="font-semibold text-lg">{t('productImages.title')}</h3>
+                  <p className="text-sm text-muted-foreground">
+                    {t('productImages.total', { count: product_images.total })}
+                  </p>
+                </div>
+
+                <div className="space-y-4">
+                  <FeatureStepProgress
+                    label={t('steps.segment')}
+                    done={product_images.segment.done}
+                    total={product_images.total}
+                    color="sky"
+                    icon={<Layers className="h-4 w-4" />}
+                  />
+                  <FeatureStepProgress
+                    label={t('steps.embedding')}
+                    done={product_images.embedding.done}
+                    total={product_images.total}
+                    color="indigo"
+                    icon={<Brain className="h-4 w-4" />}
+                  />
+                  <FeatureStepProgress
+                    label={t('steps.keypoints')}
+                    done={product_images.keypoints.done}
+                    total={product_images.total}
+                    color="pink"
+                    icon={<Pointer className="h-4 w-4" />}
+                  />
+                </div>
+              </div>
+
+              {/* Video Frames Card */}
+              <div className="border rounded-lg p-4 space-y-4">
+                <div>
+                  <h3 className="font-semibold text-lg">{t('videoFrames.title')}</h3>
+                  <p className="text-sm text-muted-foreground">
+                    {t('videoFrames.total', { count: video_frames.total })}
+                  </p>
+                </div>
+
+                <div className="space-y-4">
+                  <FeatureStepProgress
+                    label={t('steps.segment')}
+                    done={video_frames.segment.done}
+                    total={video_frames.total}
+                    color="sky"
+                    icon={<Layers className="h-4 w-4" />}
+                  />
+                  <FeatureStepProgress
+                    label={t('steps.embedding')}
+                    done={video_frames.embedding.done}
+                    total={video_frames.total}
+                    color="indigo"
+                    icon={<Brain className="h-4 w-4" />}
+                  />
+                  <FeatureStepProgress
+                    label={t('steps.keypoints')}
+                    done={video_frames.keypoints.done}
+                    total={video_frames.total}
+                    color="pink"
+                    icon={<Pointer className="h-4 w-4" />}
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  }
 
   if (isLoading) {
     return (
