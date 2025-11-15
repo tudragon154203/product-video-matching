@@ -6,6 +6,7 @@ import numpy as np
 from PIL import Image
 import cv2
 
+from segmentation.models.rmbg14_segmentor import RMBG14Segmentor
 from segmentation.models.rmbg20_segmentor import RMBG20Segmentor
 from segmentation.models.yolo_segmentor import YOLOSegmentor
 
@@ -14,7 +15,11 @@ pytestmark = pytest.mark.integration
 
 
 @pytest.mark.asyncio
-async def test_generate_all_masks_for_debugging():
+@pytest.mark.parametrize("model_version,segmentor_class,model_name", [
+    ("14", RMBG14Segmentor, "RMBG-1.4"),
+    ("20", RMBG20Segmentor, "RMBG-2.0"),
+])
+async def test_generate_all_masks_for_debugging(model_version, segmentor_class, model_name):
     """
     Generate and save all three mask types for visual debugging:
     1. Foreground mask (from RMBG)
@@ -33,20 +38,21 @@ async def test_generate_all_masks_for_debugging():
     output_dir = os.path.dirname(test_image_path)
     
     print(f"\n{'='*70}")
-    print(f"🔍 MASK GENERATION DEBUG TEST")
+    print(f"🔍 MASK GENERATION DEBUG TEST - {model_name}")
     print(f"{'='*70}")
     print(f"📷 Test image: {test_image_path}")
-    print(f"💾 Output directory: {output_dir}\n")
+    print(f"💾 Output directory: {output_dir}")
+    print(f"🤖 Model version: {model_name}\n")
     
     # Initialize segmentors
-    foreground_segmentor = RMBG20Segmentor()
+    foreground_segmentor = segmentor_class()
     people_segmentor = YOLOSegmentor('yolo11l-seg')
     
     try:
         # Initialize models
-        print("🔧 Initializing RMBG-2.0 (foreground segmentor)...")
+        print(f"🔧 Initializing {model_name} (foreground segmentor)...")
         await foreground_segmentor.initialize()
-        print("✓ RMBG-2.0 initialized")
+        print(f"✓ {model_name} initialized")
         
         print("🔧 Initializing YOLO11l-seg (people segmentor)...")
         await people_segmentor.initialize()
@@ -54,7 +60,7 @@ async def test_generate_all_masks_for_debugging():
         
         # ===== STEP 1: Generate Foreground Mask =====
         print(f"{'─'*70}")
-        print("STEP 1: Generating Foreground Mask (RMBG)")
+        print(f"STEP 1: Generating Foreground Mask ({model_name})")
         print(f"{'─'*70}")
         
         foreground_mask = await foreground_segmentor.segment_image(test_image_path)
@@ -75,8 +81,8 @@ async def test_generate_all_masks_for_debugging():
         print(f"  White pixels (255): {fg_white:,} ({fg_ratio:.2%})")
         print(f"  Black pixels (0): {fg_black:,} ({(1-fg_ratio):.2%})")
         
-        # Save foreground mask
-        fg_output = os.path.join(output_dir, "test_image_mask_1_foreground.png")
+        # Save foreground mask with version suffix
+        fg_output = os.path.join(output_dir, f"test_image_mask_rmbg{model_version}_1_foreground.png")
         Image.fromarray(foreground_mask, mode='L').save(fg_output)
         print(f"  💾 Saved: {os.path.basename(fg_output)}\n")
         
@@ -104,8 +110,8 @@ async def test_generate_all_masks_for_debugging():
             print(f"  White pixels (255): {ppl_white:,} ({ppl_ratio:.2%})")
             print(f"  Black pixels (0): {ppl_black:,} ({(1-ppl_ratio):.2%})")
             
-            # Save people mask
-            ppl_output = os.path.join(output_dir, "test_image_mask_2_people.png")
+            # Save people mask with version suffix
+            ppl_output = os.path.join(output_dir, f"test_image_mask_rmbg{model_version}_2_people.png")
             Image.fromarray(people_mask, mode='L').save(ppl_output)
             print(f"  💾 Saved: {os.path.basename(ppl_output)}\n")
         else:
@@ -113,7 +119,7 @@ async def test_generate_all_masks_for_debugging():
             print("  People mask is None (expected for product-only images)\n")
             # Create empty people mask for final calculation
             people_mask = np.zeros_like(foreground_mask)
-            ppl_output = os.path.join(output_dir, "test_image_mask_2_people.png")
+            ppl_output = os.path.join(output_dir, f"test_image_mask_rmbg{model_version}_2_people.png")
             Image.fromarray(people_mask, mode='L').save(ppl_output)
             print(f"  💾 Saved empty mask: {os.path.basename(ppl_output)}\n")
         
@@ -148,14 +154,14 @@ async def test_generate_all_masks_for_debugging():
         print(f"  White pixels (255): {final_white:,} ({final_ratio:.2%})")
         print(f"  Black pixels (0): {final_black:,} ({(1-final_ratio):.2%})")
         
-        # Save final mask
-        final_output = os.path.join(output_dir, "test_image_mask_3_final.png")
+        # Save final mask with version suffix
+        final_output = os.path.join(output_dir, f"test_image_mask_rmbg{model_version}_3_final.png")
         Image.fromarray(final_mask, mode='L').save(final_output)
         print(f"  💾 Saved: {os.path.basename(final_output)}\n")
         
         # ===== Summary =====
         print(f"{'='*70}")
-        print("📊 SUMMARY")
+        print(f"📊 SUMMARY - {model_name}")
         print(f"{'='*70}")
         print(f"Original image:    {os.path.basename(test_image_path)}")
         print(f"Foreground mask:   {os.path.basename(fg_output)} ({fg_ratio:.2%} white)")
@@ -164,7 +170,7 @@ async def test_generate_all_masks_for_debugging():
         print(f"\n💡 Interpretation:")
         print(f"  - White (255) = Foreground/Product to keep")
         print(f"  - Black (0) = Background to remove")
-        print(f"\n✓ All masks saved to: {output_dir}")
+        print(f"\n✓ All {model_name} masks saved to: {output_dir}")
         print(f"{'='*70}\n")
         
         # Assertions to verify masks are valid
