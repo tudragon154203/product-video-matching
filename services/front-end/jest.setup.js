@@ -42,6 +42,7 @@ jest.mock('next-intl', () => ({
             'jobResults.loading': 'Loading',
             'jobResults.videos.loading': 'Loading',
             'jobResults.products.loading': 'Loading',
+            'jobResults.loadingNewData': '🔄 Loading new data...',
             'jobResults.meta.video': 'video',
             'jobResults.meta.videos': 'videos',
         };

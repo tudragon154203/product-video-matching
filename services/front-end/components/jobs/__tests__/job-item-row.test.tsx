@@ -49,14 +49,14 @@ describe('JobItemRow', () => {
     // Default mock for getPhaseInfo
     mockGetPhaseInfo.mockImplementation((phase) => {
       switch (phase) {
-        case 'unknown': return { label: 'Status unknown.', color: 'gray', effect: 'none' };
-        case 'collection': return { label: 'Collecting products and videos…', color: 'blue', effect: 'animated-dots' };
-        case 'feature_extraction': return { label: 'Extracting features (images / video frames)…', color: 'yellow', effect: 'progress-bar' };
-        case 'matching': return { label: 'Matching products with videos…', color: 'purple', effect: 'spinner' };
-        case 'evidence': return { label: 'Generating visual evidence…', color: 'orange', effect: 'progress-bar' };
-        case 'completed': return { label: '✅ Completed!', color: 'green', effect: 'none' };
-        case 'failed': return { label: '❌ Job failed.', color: 'red', effect: 'none' };
-        default: return { label: '', color: '', effect: 'none' };
+        case 'unknown': return { getLabel: () => 'Status unknown.', color: 'gray', effect: 'none' };
+        case 'collection': return { getLabel: () => 'Collecting products and videos…', color: 'blue', effect: 'animated-dots' };
+        case 'feature_extraction': return { getLabel: () => 'Extracting features (images / video frames)…', color: 'yellow', effect: 'progress-bar' };
+        case 'matching': return { getLabel: () => 'Matching products with videos…', color: 'purple', effect: 'spinner' };
+        case 'evidence': return { getLabel: () => 'Generating visual evidence…', color: 'orange', effect: 'progress-bar' };
+        case 'completed': return { getLabel: () => '✅ Completed!', color: 'green', effect: 'none' };
+        case 'failed': return { getLabel: () => '❌ Job failed.', color: 'red', effect: 'none' };
+        default: return { getLabel: () => '', color: '', effect: 'none' };
       }
     });
 

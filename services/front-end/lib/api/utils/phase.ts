@@ -39,21 +39,21 @@ export const phaseInfo: Record<Phase, PhaseInfo> = {
     effect: 'spinner'
   },
   evidence: {
-    label: 'Generating visual evidence…',
+    getLabel: (t) => t('phases.evidence.label') || 'Generating visual evidence…',
     color: 'bg-orange-500',
-    description: 'Building visual evidence packets for matched products and videos.',
+    getDescription: (t) => t('phases.evidence.description') || 'Building visual evidence packets for matched products and videos.',
     effect: 'progress-bar'
   },
   completed: {
-    label: '✅ Completed!',
+    getLabel: (t) => t('jobStatus.completed') || '✅ Completed!',
     color: 'bg-green-500',
-    description: 'Job completed successfully.',
+    getDescription: (t) => t('jobStatus.completedDescription') || 'Job completed successfully.',
     effect: 'none'
   },
   failed: {
-    label: '❌ Job failed.',
+    getLabel: (t) => t('jobStatus.failed') || '❌ Job failed.',
     color: 'bg-red-500',
-    description: 'Job failed during processing.',
+    getDescription: (t) => t('jobStatus.failedDescription') || 'Job failed during processing.',
     effect: 'none'
   },
 } as const;
