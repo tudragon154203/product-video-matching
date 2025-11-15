@@ -195,20 +195,45 @@ class IdempotencyManager:
         existing = await self.get_existing_video(video_id, platform)
         if existing:
             logger.info(f"Video already exists, skipping creation: {video_id} ({platform})")
+            await self.link_job_video(job_id, video_id, platform)
             return False, video_id
 
         # Create new video record
         await self._execute(
             """
-            INSERT INTO videos (video_id, platform, url, title, duration_s, job_id, created_at)
-            VALUES ($1, $2, $3, $4, $5, $6, NOW())
+            INSERT INTO videos (video_id, platform, url, title, duration_s, created_at)
+            VALUES ($1, $2, $3, $4, $5, NOW())
             ON CONFLICT (video_id, platform) DO NOTHING
             """,
-            video_id, platform, url, title, duration_s, job_id
+            video_id, platform, url, title, duration_s
         )
 
         logger.info(f"Created new video record: {video_id} ({platform})")
+        await self.link_job_video(job_id, video_id, platform)
         return True, video_id
+
+    async def link_job_video(self, job_id: Optional[str], video_id: str, platform: str) -> None:
+        """Associate an existing video with a job without duplicating the video record."""
+        if not job_id:
+            return
+        try:
+            await self._execute(
+                """
+                INSERT INTO job_videos (job_id, video_id, platform)
+                VALUES ($1, $2, $3)
+                ON CONFLICT (job_id, video_id) DO NOTHING
+                """,
+                job_id, video_id, platform
+            )
+        except Exception as e:
+            logger.error(
+                "Failed to link video to job",
+                job_id=job_id,
+                video_id=video_id,
+                platform=platform,
+                error=str(e)
+            )
+            raise
 
     async def create_frame_with_idempotency(
         self,

@@ -50,7 +50,7 @@ class DatabaseHandler:
             ) or 0
 
             video_count = await self.db.fetch_val(
-                "SELECT COUNT(*) FROM videos WHERE job_id = $1", job_id
+                "SELECT COUNT(*) FROM job_videos WHERE job_id = $1", job_id
             ) or 0
 
             match_count = await self.db.fetch_val(
@@ -83,7 +83,7 @@ class DatabaseHandler:
             ) or 0
 
             video_count = await self.db.fetch_val(
-                "SELECT COUNT(*) FROM videos WHERE job_id = $1", job_id
+                "SELECT COUNT(*) FROM job_videos WHERE job_id = $1", job_id
             ) or 0
 
             # Count images (product_images)
@@ -94,7 +94,7 @@ class DatabaseHandler:
 
             # Count frames (video_frames)
             frame_count = await self.db.fetch_val(
-                "SELECT COUNT(*) FROM video_frames WHERE video_id IN (SELECT video_id FROM videos WHERE job_id = $1)",
+                "SELECT COUNT(*) FROM video_frames WHERE video_id IN (SELECT video_id FROM job_videos WHERE job_id = $1)",
                 job_id
             ) or 0
 
@@ -173,9 +173,10 @@ class DatabaseHandler:
 
             # Count videos with features
             videos_with_features = await self.db.fetch_val(
-                "SELECT COUNT(DISTINCT video_id) FROM video_frames WHERE "
-                "video_id IN (SELECT video_id FROM videos WHERE job_id = $1) "
-                "AND (emb_rgb IS NOT NULL OR kp_blob_path IS NOT NULL)",
+                "SELECT COUNT(DISTINCT vf.video_id) FROM video_frames vf "
+                "JOIN job_videos jv ON vf.video_id = jv.video_id "
+                "WHERE jv.job_id = $1 "
+                "AND (vf.emb_rgb IS NOT NULL OR vf.kp_blob_path IS NOT NULL)",
                 job_id
             ) or 0
 

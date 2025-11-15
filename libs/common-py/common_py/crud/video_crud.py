@@ -56,20 +56,20 @@ class VideoCRUD:
                                 min_frames: Optional[int] = None, sort_by: str = "created_at",
                                 order: str = "DESC") -> List[Video]:
         """List videos by job ID with filtering and pagination"""
-        conditions = ["job_id = $1"]
+        conditions = ["jv.job_id = $1"]
         params = [job_id]
         param_count = 1
-        
+
         if search_query:
             param_count += 1
-            conditions.append(f"title ILIKE ${param_count}")
+            conditions.append(f"v.title ILIKE ${param_count}")
             params.append(f"%{search_query}%")
-        
+
         if platform:
             param_count += 1
-            conditions.append(f"platform = ${param_count}")
+            conditions.append(f"v.platform = ${param_count}")
             params.append(platform)
-        
+
         if min_frames is not None:
             param_count += 1
             # Reference the outer query alias 'v' to avoid FROM-clause issues
@@ -80,29 +80,29 @@ class VideoCRUD:
                 f"GROUP BY vf.video_id HAVING COUNT(*) >= ${param_count})"
             )
             params.append(min_frames)
-        
+
         where_clause = "WHERE " + " AND ".join(conditions)
-        
+
         # Validate sort_by field (frames_count removed)
         valid_sort_fields = ["created_at", "duration_s", "title", "platform"]
         if sort_by not in valid_sort_fields:
             sort_by = "created_at"
-        
+
         # Validate order
         order = order.upper() if order.upper() in ["ASC", "DESC"] else "DESC"
-        
+
         param_count += 1
         params.append(limit)
         param_count += 1
         params.append(offset)
-        
+
         # Custom platform sorting with priority: youtube, tiktok, douyin, others
         if sort_by == "platform":
             case_statement = """
             CASE
-                WHEN lower(platform) = 'youtube' THEN 0
-                WHEN lower(platform) = 'tiktok' THEN 1
-                WHEN lower(platform) = 'douyin' THEN 2
+                WHEN lower(v.platform) = 'youtube' THEN 0
+                WHEN lower(v.platform) = 'tiktok' THEN 1
+                WHEN lower(v.platform) = 'douyin' THEN 2
                 ELSE 3
             END
             """
@@ -111,6 +111,7 @@ class VideoCRUD:
             # Keep secondary sort by created_at DESC regardless of platform group order.
             query = f"""
             SELECT v.* FROM videos v
+            JOIN job_videos jv ON jv.video_id = v.video_id
             {where_clause}
             ORDER BY {case_statement} {order}, v.created_at DESC
             LIMIT ${param_count-1} OFFSET ${param_count}
@@ -118,41 +119,47 @@ class VideoCRUD:
         else:
             query = f"""
             SELECT v.* FROM videos v
+            JOIN job_videos jv ON jv.video_id = v.video_id
             {where_clause}
             ORDER BY v.{sort_by} {order}
             LIMIT ${param_count-1} OFFSET ${param_count}
             """
-        
+
         rows = await self.db.fetch_all(query, *params)
         return [Video(**row) for row in rows]
-    
+
     async def count_videos_by_job(self, job_id: str, search_query: Optional[str] = None,
                                  platform: Optional[str] = None, min_frames: Optional[int] = None) -> int:
         """Count videos by job ID with filtering"""
-        conditions = ["job_id = $1"]
+        conditions = ["jv.job_id = $1"]
         params = [job_id]
         param_count = 1
-        
+
         if search_query:
             param_count += 1
-            conditions.append(f"title ILIKE ${param_count}")
+            conditions.append(f"v.title ILIKE ${param_count}")
             params.append(f"%{search_query}%")
-        
+
         if platform:
             param_count += 1
-            conditions.append(f"platform = ${param_count}")
+            conditions.append(f"v.platform = ${param_count}")
             params.append(platform)
-        
+
         if min_frames is not None:
             param_count += 1
-            conditions.append(f"EXISTS (SELECT 1 FROM video_frames vf WHERE vf.video_id = videos.video_id AND vf.created_at >= NOW() - INTERVAL '1 day' GROUP BY vf.video_id HAVING COUNT(*) >= ${param_count})")
+            conditions.append(
+                f"EXISTS (SELECT 1 FROM video_frames vf WHERE vf.video_id = v.video_id "
+                f"AND vf.created_at >= NOW() - INTERVAL '1 day' "
+                f"GROUP BY vf.video_id HAVING COUNT(*) >= ${param_count})"
+            )
             params.append(min_frames)
-        
+
         where_clause = "WHERE " + " AND ".join(conditions)
-        
+
         query = f"""
-        SELECT COUNT(*) FROM videos
+        SELECT COUNT(*) FROM videos v
+        JOIN job_videos jv ON jv.video_id = v.video_id
         {where_clause}
         """
-        
+
         return await self.db.fetch_val(query, *params)

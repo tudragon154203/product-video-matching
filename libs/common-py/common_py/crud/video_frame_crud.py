@@ -96,8 +96,8 @@ class VideoFrameCRUD:
         query = """
             SELECT COUNT(*)
             FROM video_frames vf
-            JOIN videos v ON vf.video_id = v.video_id
-            WHERE v.job_id = $1
+            JOIN job_videos jv ON vf.video_id = jv.video_id
+            WHERE jv.job_id = $1
         """
         params = [job_id]
         param_index = 2
@@ -146,8 +146,8 @@ class VideoFrameCRUD:
         query = """
             SELECT vf.*
             FROM video_frames vf
-            JOIN videos v ON vf.video_id = v.video_id
-            WHERE v.job_id = $1
+            JOIN job_videos jv ON vf.video_id = jv.video_id
+            WHERE jv.job_id = $1
         """
         params = [job_id]
         param_index = 2

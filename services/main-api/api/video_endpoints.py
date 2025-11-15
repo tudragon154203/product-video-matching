@@ -230,9 +230,15 @@ async def get_video_frames(
                 status_code=404, detail=f"Video {video_id} not found"
             )
 
-        if video.job_id != job_id:
+        # Ensure the video is associated with this job via job_videos
+        job_video_exists = await video_crud.db.fetch_val(  # type: ignore[attr-defined]
+            "SELECT 1 FROM job_videos WHERE job_id = $1 AND video_id = $2",
+            job_id, video_id
+        )
+        if not job_video_exists:
             raise HTTPException(
-                status_code=404, detail=f"Video {video_id} does not belong to job {job_id}"
+                status_code=404,
+                detail=f"Video {video_id} does not belong to job {job_id}"
             )
 
         # Get frames with pagination and sorting

@@ -240,7 +240,6 @@ class TestCollectionPhaseHappyPath:
 
         # Validate video fields
         for video in videos:
-            assert video.job_id == job_id
             assert video.platform == "tiktok"  # TikTok only
             assert video.title is not None and len(video.title) > 0
             assert video.url is not None and len(video.url) > 0
@@ -576,7 +575,6 @@ class TestCollectionPhaseHappyPath:
 
         # Validate video fields comprehensively
         for video in videos:
-            assert video.job_id == job_id
             assert video.platform == "tiktok"  # TikTok only
             assert video.title is not None and len(video.title.strip()) > 0
             assert video.url is not None and len(video.url.strip()) > 0

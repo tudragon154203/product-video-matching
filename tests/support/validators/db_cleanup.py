@@ -23,6 +23,7 @@ class CollectionPhaseCleanup:
         self._cleanup_order = [
             # Child tables first (to avoid foreign key constraints)
             "video_frames",
+            "job_videos",
             "product_images",
             "matches",
 
@@ -39,6 +40,7 @@ class CollectionPhaseCleanup:
             "video_frames": "video_id",
             "product_images": "product_id",
             "matches": "job_id",
+            "job_videos": "job_id",
             "videos": "job_id",
             "products": "job_id",
             "jobs": "job_id",
@@ -86,6 +88,27 @@ class CollectionPhaseCleanup:
         raw_constraint = self._table_constraints.get(table_name)
         constraint_column = raw_constraint[0] if isinstance(raw_constraint, list) else raw_constraint
 
+        if table_name == "videos":
+            # Remove dependent frames first
+            await self._cleanup_table("video_frames", job_id_pattern)
+            await self.db_manager.execute(
+                """
+                DELETE FROM videos
+                WHERE video_id IN (
+                    SELECT video_id FROM job_videos WHERE job_id LIKE $1
+                )
+                AND NOT EXISTS (
+                    SELECT 1 FROM job_videos jv_other
+                    WHERE jv_other.video_id = videos.video_id
+                      AND jv_other.job_id NOT LIKE $1
+                )
+                """,
+                job_id_pattern
+            )
+            await self._cleanup_table("job_videos", job_id_pattern)
+            logger.debug("Cleaned videos table", pattern=job_id_pattern)
+            return
+
         if not constraint_column:
             logger.warning("Unknown table for cleanup", table=table_name)
             return
@@ -97,8 +120,6 @@ class CollectionPhaseCleanup:
             # Pre-clean children for known parent tables to avoid FK violations
             if table_name == "products":
                 await self._cleanup_table("product_images", job_id_pattern)
-            elif table_name == "videos":
-                await self._cleanup_table("video_frames", job_id_pattern)
 
             # Retry loop to handle concurrent inserts causing FK violations
             retries = 3
@@ -123,7 +144,7 @@ class CollectionPhaseCleanup:
                 query = f"""
                     DELETE FROM {table_name}
                     WHERE {constraint_column} IN (
-                        SELECT {constraint_column} FROM videos
+                        SELECT video_id FROM job_videos
                         WHERE job_id LIKE $1
                     )
                 """
@@ -369,7 +390,7 @@ class DatabaseStateValidator:
 
     async def assert_videos_collected(self, job_id: str, min_count: int = 1):
         """Assert that videos were collected for a job"""
-        query = "SELECT COUNT(*) FROM videos WHERE job_id = $1"
+        query = "SELECT COUNT(*) FROM job_videos WHERE job_id = $1"
         count = await self.db_manager.fetch_val(query, job_id)
 
         if count < min_count:
@@ -381,8 +402,8 @@ class DatabaseStateValidator:
         """Assert that video frames were processed for a job"""
         query = """
             SELECT COUNT(*) FROM video_frames vf
-            JOIN videos v ON vf.video_id = v.video_id
-            WHERE v.job_id = $1
+            JOIN job_videos jv ON vf.video_id = jv.video_id
+            WHERE jv.job_id = $1
         """
         count = await self.db_manager.fetch_val(query, job_id)
 
@@ -430,15 +451,15 @@ class DatabaseStateValidator:
 
         # Videos count
         summary["videos"] = await self.db_manager.fetch_val(
-            "SELECT COUNT(*) FROM videos WHERE job_id = $1", job_id
+            "SELECT COUNT(*) FROM job_videos WHERE job_id = $1", job_id
         )
 
         # Video frames count
         summary["video_frames"] = await self.db_manager.fetch_val(
             """
                 SELECT COUNT(*) FROM video_frames vf
-                JOIN videos v ON vf.video_id = v.video_id
-                WHERE v.job_id = $1
+                JOIN job_videos jv ON vf.video_id = jv.video_id
+                WHERE jv.job_id = $1
             """, job_id
         )
 
@@ -493,7 +514,7 @@ class FeatureExtractionCleanup:
             UPDATE video_frames
             SET kp_blob_path = NULL
             WHERE video_id IN (
-                SELECT video_id FROM videos WHERE job_id LIKE 'test_%'
+                SELECT video_id FROM job_videos WHERE job_id LIKE 'test_%'
             )
             """
         )
@@ -517,7 +538,7 @@ class FeatureExtractionCleanup:
             SET masked_local_path = NULL
             WHERE masked_local_path IS NOT NULL
               AND video_id IN (
-                  SELECT video_id FROM videos WHERE job_id LIKE 'test_%'
+                  SELECT video_id FROM job_videos WHERE job_id LIKE 'test_%'
               )
             """
         )
@@ -529,7 +550,7 @@ class FeatureExtractionCleanup:
             """
             DELETE FROM video_frames
             WHERE video_id IN (
-                SELECT video_id FROM videos WHERE job_id LIKE 'test_%'
+                SELECT video_id FROM job_videos WHERE job_id LIKE 'test_%'
             )
             """
         )
@@ -546,9 +567,20 @@ class FeatureExtractionCleanup:
 
     async def _cleanup_products_and_videos(self):
         """Clean up products and videos"""
-        # Clean up videos
-        await self.db_manager.execute("DELETE FROM videos WHERE job_id LIKE 'test_%'")
-
+        await self.db_manager.execute(
+            """
+            DELETE FROM videos
+            WHERE video_id IN (
+                SELECT video_id FROM job_videos WHERE job_id LIKE 'test_%'
+            )
+            AND NOT EXISTS (
+                SELECT 1 FROM job_videos jv_other
+                WHERE jv_other.video_id = videos.video_id
+                  AND jv_other.job_id NOT LIKE 'test_%'
+            )
+            """
+        )
+        await self.db_manager.execute("DELETE FROM job_videos WHERE job_id LIKE 'test_%'")
         # Clean up products
         await self.db_manager.execute("DELETE FROM products WHERE job_id LIKE 'test_%'")
 
@@ -583,7 +615,7 @@ class FeatureExtractionStateValidator:
 
         # Count videos
         videos_count = await self.db_manager.fetch_one(
-            "SELECT COUNT(*) as count FROM videos WHERE job_id = $1",
+            "SELECT COUNT(*) as count FROM job_videos WHERE job_id = $1",
             job_id
         )
 
@@ -591,8 +623,8 @@ class FeatureExtractionStateValidator:
         frames_count = await self.db_manager.fetch_one(
             """
             SELECT COUNT(*) as count FROM video_frames vf
-            JOIN videos v ON vf.video_id = v.video_id
-            WHERE v.job_id = $1
+            JOIN job_videos jv ON vf.video_id = jv.video_id
+            WHERE jv.job_id = $1
             """,
             job_id
         )
@@ -649,8 +681,8 @@ class FeatureExtractionStateValidator:
         masked_frames_count = await self.db_manager.fetch_one(
             """
             SELECT COUNT(*) as count FROM video_frames vf
-            JOIN videos v ON vf.video_id = v.video_id
-            WHERE v.job_id = $1
+            JOIN job_videos jv ON vf.video_id = jv.video_id
+            WHERE jv.job_id = $1
             """,
             job_id
         )
@@ -686,8 +718,8 @@ class FeatureExtractionStateValidator:
         video_keypoints_count = await self.db_manager.fetch_one(
             """
             SELECT COUNT(*) as count FROM video_frames vf
-            JOIN videos v ON vf.video_id = v.video_id
-            WHERE v.job_id = $1 AND vf.kp_blob_path IS NOT NULL
+            JOIN job_videos jv ON vf.video_id = jv.video_id
+            WHERE jv.job_id = $1 AND vf.kp_blob_path IS NOT NULL
             """,
             job_id
         )

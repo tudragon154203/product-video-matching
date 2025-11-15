@@ -244,6 +244,7 @@ class VideoProcessor:
         # Use video_id from data if available, otherwise generate new one
         video_id = video_data.get("video_id", str(uuid.uuid4()))
 
+        manual_link_required = False
         # Create video record with idempotency
         try:
             # If tests stubbed the idempotency method, ensure insert still happens for assertion
@@ -255,13 +256,14 @@ class VideoProcessor:
                 # Perform minimal insert via helper to hit conn.execute in pool-based mocks
                 await self.idempotency_manager._execute(
                     """
-                    INSERT INTO videos (video_id, platform, url, title, duration_s, job_id, created_at)
-                    VALUES ($1, $2, $3, $4, $5, $6, NOW())
+                    INSERT INTO videos (video_id, platform, url, title, duration_s, created_at)
+                    VALUES ($1, $2, $3, $4, $5, NOW())
                     ON CONFLICT (video_id, platform) DO NOTHING
                     """,
-                    video_id, video_data["platform"], video_data["url"], video_data.get("title"), video_data.get("duration_s"), job_id
+                    video_id, video_data["platform"], video_data["url"], video_data.get("title"), video_data.get("duration_s")
                 )
                 created_new, actual_video_id = True, video_id
+                manual_link_required = True
             else:
                 created_new, actual_video_id = await self.idempotency_manager.create_video_with_idempotency(
                     video_id=video_id,
@@ -282,6 +284,13 @@ class VideoProcessor:
             title=video_data.get("title"),
             duration_s=video_data.get("duration_s")
         )
+
+        if manual_link_required:
+            await self.idempotency_manager.link_job_video(
+                job_id=job_id,
+                video_id=actual_video_id,
+                platform=video_data["platform"]
+            )
 
         return video, created_new
 

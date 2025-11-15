@@ -269,11 +269,13 @@ class ParallelVideoService:
             # Add job-specific statistics from database
             try:
                 video_count = await self.db.fetch_one(
-                    "SELECT COUNT(*) as count FROM videos WHERE job_id = $1",
+                    "SELECT COUNT(*) as count FROM job_videos WHERE job_id = $1",
                     job_id
                 )
                 frame_count = await self.db.fetch_one(
-                    "SELECT COUNT(*) as count FROM video_frames vf JOIN videos v ON vf.video_id = v.video_id WHERE v.job_id = $1",
+                    "SELECT COUNT(*) as count FROM video_frames vf "
+                    "JOIN job_videos jv ON vf.video_id = jv.video_id "
+                    "WHERE jv.job_id = $1",
                     job_id
                 )
 

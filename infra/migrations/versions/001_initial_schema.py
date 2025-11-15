@@ -85,7 +85,6 @@ def upgrade() -> None:
           title             TEXT,
           duration_s        INTEGER,
           published_at      TIMESTAMP,
-          job_id            VARCHAR(255),
           created_at        TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         );
         """
@@ -151,7 +150,6 @@ def upgrade() -> None:
     # Indexes
     op.execute("CREATE INDEX IF NOT EXISTS idx_products_job_id               ON products(job_id);")
     op.execute("CREATE INDEX IF NOT EXISTS idx_product_images_product_id     ON product_images(product_id);")
-    op.execute("CREATE INDEX IF NOT EXISTS idx_videos_job_id                 ON videos(job_id);")
     op.execute("CREATE INDEX IF NOT EXISTS idx_video_frames_video_id         ON video_frames(video_id);")
     op.execute("CREATE INDEX IF NOT EXISTS idx_matches_job_id                ON matches(job_id);")
     op.execute("CREATE INDEX IF NOT EXISTS idx_matches_score                 ON matches(score);")
@@ -172,7 +170,6 @@ def downgrade() -> None:
     # Drop secondary indexes
     op.execute("DROP INDEX IF EXISTS idx_products_job_id;")
     op.execute("DROP INDEX IF EXISTS idx_product_images_product_id;")
-    op.execute("DROP INDEX IF EXISTS idx_videos_job_id;")
     op.execute("DROP INDEX IF EXISTS idx_video_frames_video_id;")
     op.execute("DROP INDEX IF EXISTS idx_matches_job_id;")
     op.execute("DROP INDEX IF EXISTS idx_matches_score;")

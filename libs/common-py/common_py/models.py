@@ -34,7 +34,6 @@ class Video(BaseModel):
     title: Optional[str] = None
     duration_s: Optional[int] = None
     published_at: Optional[datetime] = None
-    job_id: Optional[str] = None
     created_at: Optional[datetime] = None
     download_url: Optional[str] = None
     local_path: Optional[str] = None

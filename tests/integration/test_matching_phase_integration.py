@@ -106,8 +106,15 @@ class TestMatchingPhaseIntegration:
 
         # Verify data was actually inserted
         products_count = await db_manager.fetch_one("SELECT COUNT(*) as count FROM products WHERE job_id = $1", job_id)
-        videos_count = await db_manager.fetch_one("SELECT COUNT(*) as count FROM videos WHERE job_id = $1", job_id)
-        frames_count = await db_manager.fetch_one("SELECT COUNT(*) as count FROM video_frames WHERE video_id LIKE $1", f"{job_id}%")
+        videos_count = await db_manager.fetch_one("SELECT COUNT(*) as count FROM job_videos WHERE job_id = $1", job_id)
+        frames_count = await db_manager.fetch_one(
+            """
+            SELECT COUNT(*) as count FROM video_frames vf
+            JOIN job_videos jv ON vf.video_id = jv.video_id
+            WHERE jv.job_id = $1
+            """,
+            job_id
+        )
 
         # Only proceed if data is set up correctly
         assert products_count['count'] > 0, f"No products found for job_id {job_id}"

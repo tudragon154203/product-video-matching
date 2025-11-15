@@ -167,6 +167,7 @@ async def clean_database(db_manager):
     tables_to_clean = [
         ("matches", "job_id"),
         ("video_frames", "video_id"),
+        ("job_videos", "job_id"),
         ("product_images", "product_id"),
         ("videos", "job_id"),
         ("products", "job_id"),
@@ -179,7 +180,7 @@ async def clean_database(db_manager):
         try:
             if table == "video_frames":
                 await db_manager.execute(
-                    f"DELETE FROM {table} WHERE video_id IN (SELECT video_id FROM videos WHERE job_id LIKE 'test_%')"
+                    f"DELETE FROM {table} WHERE video_id IN (SELECT video_id FROM job_videos WHERE job_id LIKE 'test_%')"
                 )
             elif table == "product_images":
                 await db_manager.execute(
@@ -202,7 +203,7 @@ async def clean_database(db_manager):
         try:
             if table == "video_frames":
                 await db_manager.execute(
-                    f"DELETE FROM {table} WHERE video_id IN (SELECT video_id FROM videos WHERE job_id LIKE 'test_%')"
+                    f"DELETE FROM {table} WHERE video_id IN (SELECT video_id FROM job_videos WHERE job_id LIKE 'test_%')"
                 )
             elif table == "product_images":
                 await db_manager.execute(

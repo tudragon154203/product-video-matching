@@ -24,10 +24,16 @@ async def setup_comprehensive_matching_database_state(
     video_record = dataset["video_record"]
     print(f"DEBUG: Inserting video record: {video_record}")
     await db_manager.execute(
-        """INSERT INTO videos (video_id, platform, url, job_id, created_at)
-           VALUES ($1, $2, $3, $4, NOW())
+        """INSERT INTO videos (video_id, platform, url, created_at)
+           VALUES ($1, $2, $3, NOW())
            ON CONFLICT (video_id) DO NOTHING;""",
-        video_record["video_id"], video_record["platform"], video_record["url"], job_id
+        video_record["video_id"], video_record["platform"], video_record["url"]
+    )
+    await db_manager.execute(
+        """INSERT INTO job_videos (job_id, video_id, platform)
+           VALUES ($1, $2, $3)
+           ON CONFLICT (job_id, video_id) DO NOTHING;""",
+        job_id, video_record["video_id"], video_record["platform"]
     )
     print("DEBUG: Video record inserted")
 
@@ -109,10 +115,16 @@ async def setup_partial_asset_matching_database_state(
     # Insert video record
     video_record = dataset["video_record"]
     await db_manager.execute(
-        """INSERT INTO videos (video_id, platform, url, job_id, created_at)
-           VALUES ($1, $2, $3, $4, NOW())
+        """INSERT INTO videos (video_id, platform, url, created_at)
+           VALUES ($1, $2, $3, NOW())
            ON CONFLICT (video_id) DO NOTHING;""",
-        video_record["video_id"], video_record["platform"], video_record["url"], job_id
+        video_record["video_id"], video_record["platform"], video_record["url"]
+    )
+    await db_manager.execute(
+        """INSERT INTO job_videos (job_id, video_id, platform)
+           VALUES ($1, $2, $3)
+           ON CONFLICT (job_id, video_id) DO NOTHING;""",
+        job_id, video_record["video_id"], video_record["platform"]
     )
 
     # Insert product records with partial assets (some missing keypoints)

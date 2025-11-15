@@ -170,6 +170,7 @@ class MatcherService:
         query = """
         SELECT DISTINCT v.video_id, v.title
         FROM videos v
-        WHERE v.job_id = $1
+        JOIN job_videos jv ON jv.video_id = v.video_id
+        WHERE jv.job_id = $1
         """
         return await self.db.fetch_all(query, job_id)

@@ -49,8 +49,15 @@ CREATE TABLE IF NOT EXISTS videos (
   title             TEXT,
   duration_s        INTEGER,
   published_at      TIMESTAMP,
-  job_id            VARCHAR(255),
   created_at        TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS job_videos (
+  job_id            VARCHAR(255) NOT NULL,
+  video_id          VARCHAR(255) NOT NULL REFERENCES videos(video_id) ON DELETE CASCADE,
+  platform          VARCHAR(50) NOT NULL,
+  assigned_at       TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (job_id, video_id)
 );
 
 CREATE TABLE IF NOT EXISTS video_frames (
@@ -97,10 +104,11 @@ CREATE TABLE IF NOT EXISTS phase_events (
 -- Indexes
 CREATE INDEX IF NOT EXISTS idx_products_job_id               ON products(job_id);
 CREATE INDEX IF NOT EXISTS idx_product_images_product_id     ON product_images(product_id);
-CREATE INDEX IF NOT EXISTS idx_videos_job_id                 ON videos(job_id);
 CREATE INDEX IF NOT EXISTS idx_video_frames_video_id         ON video_frames(video_id);
 CREATE INDEX IF NOT EXISTS idx_matches_job_id                ON matches(job_id);
 CREATE INDEX IF NOT EXISTS idx_matches_score                 ON matches(score);
+CREATE INDEX IF NOT EXISTS idx_job_videos_video_id           ON job_videos(video_id);
+CREATE INDEX IF NOT EXISTS idx_job_videos_job_platform       ON job_videos(job_id, platform);
 CREATE INDEX IF NOT EXISTS idx_jobs_created_at               ON jobs (created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_phase_events_job_id           ON phase_events(job_id);
 CREATE INDEX IF NOT EXISTS idx_phase_events_name             ON phase_events(name);

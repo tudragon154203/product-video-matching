@@ -46,12 +46,24 @@ def upgrade() -> None:
     )
 
     # Add indexes for performance
-    op.execute("CREATE INDEX IF NOT EXISTS idx_videos_platform_job_id ON videos(platform, job_id);")
+    op.execute(
+        """
+        DO $$
+        BEGIN
+            IF EXISTS (
+                SELECT 1 FROM information_schema.columns
+                WHERE table_name = 'videos' AND column_name = 'job_id'
+            ) THEN
+                CREATE INDEX IF NOT EXISTS idx_videos_platform_job_id ON videos(platform, job_id);
+                CREATE INDEX IF NOT EXISTS idx_videos_job_platform ON videos(job_id, platform);
+            END IF;
+        END$$;
+        """
+    )
     op.execute("CREATE INDEX IF NOT EXISTS idx_video_frames_video_id ON video_frames(video_id);")
     op.execute("CREATE INDEX IF NOT EXISTS idx_processed_file_hashes_processed_at ON processed_file_hashes(processed_at);")
 
     # Add helpful composite indexes for common query patterns
-    op.execute("CREATE INDEX IF NOT EXISTS idx_videos_job_platform ON videos(job_id, platform);")
     op.execute("CREATE INDEX IF NOT EXISTS idx_frames_video_ts ON video_frames(video_id, ts);")
 
 

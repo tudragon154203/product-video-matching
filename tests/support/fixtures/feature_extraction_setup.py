@@ -52,14 +52,23 @@ async def setup_comprehensive_database_state(
     video = video_dataset["video"]
     await db_manager.execute(
         """
-        INSERT INTO videos (video_id, job_id, platform, url, created_at)
-        VALUES ($1, $2, $3, $4, NOW())
+        INSERT INTO videos (video_id, platform, url, created_at)
+        VALUES ($1, $2, $3, NOW())
         ON CONFLICT (video_id) DO NOTHING;
         """,
         video["video_id"],
-        job_id,
         video["platform"],
         video["url"],
+    )
+    await db_manager.execute(
+        """
+        INSERT INTO job_videos (job_id, video_id, platform)
+        VALUES ($1, $2, $3)
+        ON CONFLICT (job_id, video_id) DO NOTHING;
+        """,
+        job_id,
+        video["video_id"],
+        video["platform"],
     )
 
     for frame in video_dataset["frames"]:

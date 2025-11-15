@@ -413,9 +413,14 @@ If automatic cleanup fails, manual cleanup may be required:
 ```sql
 -- Clean up test jobs
 DELETE FROM matches WHERE job_id LIKE 'test_%';
-DELETE FROM video_frames WHERE video_id IN (SELECT video_id FROM videos WHERE job_id LIKE 'test_%');
+DELETE FROM video_frames WHERE video_id IN (SELECT video_id FROM job_videos WHERE job_id LIKE 'test_%');
 DELETE FROM product_images WHERE product_id IN (SELECT product_id FROM products WHERE job_id LIKE 'test_%');
-DELETE FROM videos WHERE job_id LIKE 'test_%';
+DELETE FROM videos WHERE video_id IN (
+    SELECT video_id FROM job_videos WHERE job_id LIKE 'test_%'
+) AND NOT EXISTS (
+    SELECT 1 FROM job_videos jv WHERE jv.video_id = videos.video_id AND jv.job_id NOT LIKE 'test_%'
+);
+DELETE FROM job_videos WHERE job_id LIKE 'test_%';
 DELETE FROM products WHERE job_id LIKE 'test_%';
 DELETE FROM jobs WHERE job_id LIKE 'test_%';
 ```

@@ -114,7 +114,7 @@ class TestMatcherService:
         args, _ = mock_db.fetch_all.call_args
         query = args[0]
         assert "videos" in query
-        assert "WHERE v.job_id = $1" in query
+        assert "WHERE jv.job_id = $1" in query
         assert args[1] == "job_001"
         assert len(videos) == 2
 

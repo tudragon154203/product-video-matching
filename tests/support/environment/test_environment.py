@@ -267,7 +267,7 @@ class CollectionPhaseTestEnvironment:
 
         # Count videos
         videos_count = await self.db_manager.fetch_val(
-            "SELECT COUNT(*) FROM videos WHERE job_id = $1",
+            "SELECT COUNT(*) FROM job_videos WHERE job_id = $1",
             self.test_job_id
         )
 
