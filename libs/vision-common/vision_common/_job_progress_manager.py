@@ -36,7 +36,7 @@ class JobProgressManager:
         await self.watermark_timer_manager.cleanup_all()
         self.completion_publisher._completion_events_sent.clear()
 
-    async def _start_watermark_timer(self, job_id: str, ttl: int = 300, event_type_prefix: str = "embeddings"):
+    async def _start_watermark_timer(self, job_id: str, ttl: int = 900, event_type_prefix: str = "embeddings"):
         await self.watermark_timer_manager.start_watermark_timer(job_id, ttl, event_type_prefix)
 
     async def _publish_completion_event(self, job_id: str, is_timeout: bool = False, event_type_prefix: str = "embeddings"):

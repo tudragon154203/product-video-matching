@@ -10,7 +10,7 @@ class WatermarkTimerManager:
         self.completion_publisher = completion_publisher
         self.base_manager = base_manager
 
-    async def start_watermark_timer(self, job_id: str, ttl: int = 300, event_type_prefix: str = "embeddings"):
+    async def start_watermark_timer(self, job_id: str, ttl: int = 900, event_type_prefix: str = "embeddings"):
         """Start a watermark timer for a job"""
         if job_id in self.watermark_timers:
             self.watermark_timers[job_id].cancel()

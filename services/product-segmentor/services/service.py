@@ -84,6 +84,7 @@ class ProductSegmentorService:
 
         # Initialize new modules
         self.job_progress_manager = JobProgressManager(broker)
+        self.batch_timeout_seconds = config.BATCH_TIMEOUT_SECONDS
 
         self.image_masking_processor = ImageMaskingProcessor(
             self.foreground_segmentor,
@@ -247,7 +248,11 @@ class ProductSegmentorService:
             event_id=event_id,
         )
 
-        await self.job_progress_manager._start_watermark_timer(job_id, 300, "segmentation")
+        await self.job_progress_manager._start_watermark_timer(
+            job_id,
+            self.batch_timeout_seconds,
+            "segmentation",
+        )
 
         # Mark batch initialized to prevent resetting expected to high sentinel on per-asset events
         self.job_progress_manager._mark_batch_initialized(job_id, asset_type)

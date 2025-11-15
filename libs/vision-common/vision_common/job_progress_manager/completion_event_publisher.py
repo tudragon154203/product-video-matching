@@ -8,7 +8,7 @@ logger = configure_logging("vision-common:completion_event_publisher")
 
 class CompletionEventPublisher:
     # Constants
-    DEFAULT_WATERMARK_TTL = 300
+    DEFAULT_WATERMARK_TTL = 900
     FAILED_ASSETS_PLACEHOLDER = 0
     
     def __init__(self, broker: MessageBroker, base_manager):
@@ -135,7 +135,7 @@ class CompletionEventPublisher:
             "processed_assets": done,
             "failed_assets": 0,  # Placeholder - actual failure tracking would be added separately
             "has_partial_completion": has_partial or is_timeout,
-            "watermark_ttl": 300,
+            "watermark_ttl": self.DEFAULT_WATERMARK_TTL,
             "idempotent": True  # Flag to prevent duplicate completions
         }
         
@@ -162,6 +162,9 @@ class CompletionEventPublisher:
         logger.info(f"Emitted {asset_type} {event_type_prefix} completed event",
                    job_id=job_id, event_id=event_id,
                    total=expected, done=done, is_timeout=is_timeout)
+
+        if event_type_prefix == "segmentation":
+            await self.emit_segmentation_masked_batch_events(job_id, asset_type, expected, done)
         
         # Cleanup handled by JobProgressManager to also cancel timers; do not cleanup here
 
@@ -183,7 +186,7 @@ class CompletionEventPublisher:
             "processed_assets": done,
             "failed_assets": 0,  # Placeholder - actual failure tracking would be added separately
             "has_partial_completion": has_partial,
-            "watermark_ttl": 300,
+            "watermark_ttl": self.DEFAULT_WATERMARK_TTL,
             "idempotent": True  # Flag to prevent duplicate completions
         }
         
