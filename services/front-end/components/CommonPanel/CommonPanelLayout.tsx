@@ -64,7 +64,7 @@ export function CommonPanelLayout({
         placeholderDataComponent
       ) : isPlaceholderData ? (
         <div className="bg-blue-50 border border-blue-200 rounded-lg p-2 mb-4 text-sm text-blue-800">
-          🔄 Loading new data...
+          {t('loadingNewData')}
         </div>
       ) : null}
       
@@ -92,12 +92,12 @@ export function CommonPanelLayout({
           errorComponent
         ) : isError ? (
           <div className="text-center py-8">
-            <div className="text-red-500 mb-2">⚠️ Error loading data</div>
+            <div className="text-red-500 mb-2">{t('errorLoadingData')}</div>
             <button
               onClick={onRetry}
               className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors"
             >
-              Retry
+              {t('retry')}
             </button>
             {error && <div className="text-sm text-muted-foreground mt-2">{error.message}</div>}
           </div>
@@ -105,7 +105,7 @@ export function CommonPanelLayout({
           emptyComponent
         ) : isEmpty ? (
           <div className="text-center py-8 text-muted-foreground">
-            No items found
+            {t('noItemsFound')}
           </div>
         ) : (
           children

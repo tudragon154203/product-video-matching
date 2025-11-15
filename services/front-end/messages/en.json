@@ -8,7 +8,9 @@
     "error": "⚠️ Error loading data",
     "empty": "No items found",
     "retry": "Retry",
-    "loadingNewData": "🔄 Loading new data..."
+    "loadingNewData": "🔄 Loading new data...",
+    "errorLoadingData": "⚠️ Error loading data",
+    "noItemsFound": "No items found"
   },
   "jobs": {
     "title": "Product Video Matching",
@@ -184,6 +186,10 @@
     }
   },
   "jobStatus": {
+    "unknown": "Status unknown",
+    "unknownDescription": "Job status is unknown or not initialized",
+    "collection": "Collecting",
+    "collectionDescription": "Collecting candidate products and videos",
     "productsDone": "✔ Products done",
     "videosDone": "✔ Videos done",
     "collectionFinished": "Collection finished"
@@ -191,5 +197,30 @@
   "languages": {
     "english": "English",
     "vietnamese": "Tiếng Việt"
+  },
+  "collection": {
+    "summary": {
+      "title": "Collection Summary",
+      "productsBadge": "Products",
+      "videosBadge": "Videos",
+      "productsCount": "Products",
+      "imagesCount": "Images",
+      "videosCount": "Videos",
+      "framesCount": "Frames"
+    }
+  },
+  "phases": {
+    "featureExtraction": {
+      "label": "Extracting features (images / video frames)…",
+      "description": "Extracting visual features from product images and video frames."
+    },
+    "matching": {
+      "label": "Matching products with videos…",
+      "description": "Matching collected products with candidate videos."
+    }
+  },
+  "app": {
+    "title": "Product Video Matching",
+    "description": "Monitor and manage product video matching jobs"
   }
 }

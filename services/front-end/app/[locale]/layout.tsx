@@ -9,9 +9,13 @@ import { notFound } from 'next/navigation'
 import './globals.css'
 import '@/public/fonts/inter.css'
 
-export const metadata: Metadata = {
-  title: 'Product Video Matching',
-  description: 'Monitor and manage product video matching jobs',
+export async function generateMetadata({ params: { locale } }): Promise<Metadata> {
+  const t = await getTranslations({ locale })
+
+  return {
+    title: t('app.title'),
+    description: t('app.description'),
+  }
 }
 
 const locales = ['vi', 'en']
@@ -25,6 +29,7 @@ export default async function LocaleLayout({
 }) {
   if (!locales.includes(locale as any)) notFound()
 
+  const metadata = await generateMetadata({ params: { locale } })
   const messages = await getMessages({ locale })
 
  return (

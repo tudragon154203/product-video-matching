@@ -149,7 +149,7 @@ export function JobItemRow({ job }: JobItemRowProps) {
                 className={`h-2 w-2 rounded-full ${colorClass}`}
               />
             )}
-            {resolvedPhase === 'collection' ? null : <span className="text-xs text-muted-foreground">{phaseInfo.label}</span>}
+            {resolvedPhase === 'collection' ? null : <span className="text-xs text-muted-foreground">{phaseInfo.getLabel(t)}</span>}
             {renderPhaseEffect()}
           </div>
         </div>

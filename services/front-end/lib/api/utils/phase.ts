@@ -4,9 +4,9 @@ import { type Phase } from '@/lib/zod/job';
  * Phase information with UI display properties
  */
 export interface PhaseInfo {
-  label: string;
+  getLabel: (t?: any) => string;
   color: string;
-  description?: string;
+  getDescription?: (t?: any) => string;
   effect?: 'spinner' | 'progress-bar' | 'animated-dots' | 'none';
 }
 
@@ -15,27 +15,27 @@ export interface PhaseInfo {
  */
 export const phaseInfo: Record<Phase, PhaseInfo> = {
   unknown: {
-    label: 'Status unknown.',
+    getLabel: (t) => t('jobStatus.unknown') || 'Status unknown.',
     color: 'bg-gray-500',
-    description: 'Job status is unknown or not initialized.',
+    getDescription: (t) => t('jobStatus.unknownDescription') || 'Job status is unknown or not initialized.',
     effect: 'none'
   },
   collection: {
-    label: '',
+    getLabel: (t) => t('jobStatus.collection') || '',
     color: 'bg-blue-500',
-    description: 'Collecting candidate products and videos.',
+    getDescription: (t) => t('jobStatus.collectionDescription') || 'Collecting candidate products and videos.',
     effect: 'animated-dots'
   },
   feature_extraction: {
-    label: 'Extracting features (images / video frames)…',
+    getLabel: (t) => t('phases.featureExtraction.label') || 'Extracting features (images / video frames)…',
     color: 'bg-yellow-500',
-    description: 'Extracting visual features from product images and video frames.',
+    getDescription: (t) => t('phases.featureExtraction.description') || 'Extracting visual features from product images and video frames.',
     effect: 'progress-bar'
   },
   matching: {
-    label: 'Matching products with videos…',
+    getLabel: (t) => t('phases.matching.label') || 'Matching products with videos…',
     color: 'bg-purple-500',
-    description: 'Matching collected products with candidate videos.',
+    getDescription: (t) => t('phases.matching.description') || 'Matching collected products with candidate videos.',
     effect: 'spinner'
   },
   evidence: {

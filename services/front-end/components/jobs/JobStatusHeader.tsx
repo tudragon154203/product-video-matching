@@ -64,7 +64,7 @@ export function JobStatusHeader({ jobId, isCollecting = false }: JobStatusHeader
           data-testid="status-color-circle" className={`h-4 w-4 rounded-full ${colorClass}`}
         />
         <Badge variant="secondary" className="text-xs">
-          {phaseInfo.label}
+          {phaseInfo.getLabel(t)}
         </Badge>
       </div>
 

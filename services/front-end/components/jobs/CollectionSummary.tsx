@@ -90,7 +90,7 @@ export function CollectionSummary({
               ) : (
                 <ChevronDown className="h-4 w-4 text-slate-600" />
               )}
-              <h3 className="font-semibold text-sm">Collection Summary</h3>
+              <h3 className="font-semibold text-sm">{t('collection.summary.title')}</h3>
             </div>
             
             {/* Show badges when collapsed */}
@@ -99,13 +99,13 @@ export function CollectionSummary({
                 {collection.products_done && (
                   <Badge variant="outline" className="text-xs bg-emerald-50 text-emerald-700 border-emerald-200">
                     <CheckCircle2 className="h-3 w-3 mr-1" />
-                    Products
+                    {t('collection.summary.productsBadge')}
                   </Badge>
                 )}
                 {collection.videos_done && (
                   <Badge variant="outline" className="text-xs bg-emerald-50 text-emerald-700 border-emerald-200">
                     <CheckCircle2 className="h-3 w-3 mr-1" />
-                    Videos
+                    {t('collection.summary.videosBadge')}
                   </Badge>
                 )}
               </div>
@@ -117,17 +117,17 @@ export function CollectionSummary({
             <div className="flex items-center gap-4 text-sm text-muted-foreground">
               <div className="flex items-center gap-1">
                 <Package className="h-3 w-3" />
-                <span>Products: {counts.products}</span>
+                <span>{t('collection.summary.productsCount')}: {counts.products}</span>
               </div>
               <div className="flex items-center gap-1">
-                <span>Images: {counts.images}</span>
+                <span>{t('collection.summary.imagesCount')}: {counts.images}</span>
               </div>
               <div className="flex items-center gap-1">
                 <Video className="h-3 w-3" />
-                <span>Videos: {counts.videos}</span>
+                <span>{t('collection.summary.videosCount')}: {counts.videos}</span>
               </div>
               <div className="flex items-center gap-1">
-                <span>Frames: {counts.frames}</span>
+                <span>{t('collection.summary.framesCount')}: {counts.frames}</span>
               </div>
             </div>
           )}

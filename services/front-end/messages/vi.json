@@ -8,7 +8,9 @@
     "error": "⚠️ Lỗi khi tải dữ liệu",
     "empty": "Không tìm thấy mục nào",
     "retry": "Thử lại",
-    "loadingNewData": "🔄 Đang tải dữ liệu mới..."
+    "loadingNewData": "🔄 Đang tải dữ liệu mới...",
+    "errorLoadingData": "⚠️ Lỗi khi tải dữ liệu",
+    "noItemsFound": "Không tìm thấy mục nào"
   },
   "jobs": {
     "title": "Phù hợp Video Sản Phẩm",
@@ -184,6 +186,10 @@
     }
   },
   "jobStatus": {
+    "unknown": "Trạng thái không xác định",
+    "unknownDescription": "Trạng thái công việc không xác định hoặc chưa được khởi tạo",
+    "collection": "Đang thu thập",
+    "collectionDescription": "Đang thu thập các sản phẩm và video ứng viên",
     "productsDone": "✔ Sản phẩm hoàn thành",
     "videosDone": "✔ Video hoàn thành",
     "collectionFinished": "Thu thập hoàn tất"
@@ -191,5 +197,30 @@
   "languages": {
     "english": "English",
     "vietnamese": "Tiếng Việt"
+  },
+  "collection": {
+    "summary": {
+      "title": "Tóm tắt Thu thập",
+      "productsBadge": "Sản phẩm",
+      "videosBadge": "Video",
+      "productsCount": "Sản phẩm",
+      "imagesCount": "Hình ảnh",
+      "videosCount": "Video",
+      "framesCount": "Khung hình"
+    }
+  },
+  "phases": {
+    "featureExtraction": {
+      "label": "Đang trích xuất đặc trưng (hình ảnh / khung hình video)…",
+      "description": "Đang trích xuất các đặc trưng hình ảnh từ hình ảnh sản phẩm và khung hình video."
+    },
+    "matching": {
+      "label": "Đang so khớp sản phẩm với video…",
+      "description": "Đang so khớp các sản phẩm đã thu thập với các video ứng viên."
+    }
+  },
+  "app": {
+    "title": "Phù hợp Video Sản Phẩm",
+    "description": "Theo dõi và quản lý các công việc phù hợp video sản phẩm"
   }
 }
