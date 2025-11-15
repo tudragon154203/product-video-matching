@@ -25,7 +25,15 @@ def prepare_image(image_path: str, transform: transforms.Compose, device: torch.
 
 
 def normalize_and_resize_mask(preds: torch.Tensor, original_size: tuple) -> np.ndarray:
-    """Process model output to binary mask."""
+    """Process model output to binary mask.
+    
+    Args:
+        preds: Model predictions (typically sigmoid output in range 0-1)
+        original_size: Target size (width, height) for the mask
+        
+    Returns:
+        Binary mask as numpy array with values 0 or 255
+    """
     try:
         if isinstance(preds, (list, tuple)):
             pred = preds[0]
@@ -43,6 +51,10 @@ def normalize_and_resize_mask(preds: torch.Tensor, original_size: tuple) -> np.n
 
         if mask_np.dtype != np.uint8:
             mask_np = (mask_np * 255).astype(np.uint8)
+
+        # Binarize the mask: values >= 128 become 255, values < 128 become 0
+        # This ensures we have a clean binary mask (0 or 255 only)
+        mask_np = np.where(mask_np >= 128, 255, 0).astype(np.uint8)
 
         return mask_np
     except Exception as e:

@@ -84,7 +84,7 @@ class RMBG14Segmentor(BaseSegmentation):
             image_path: Path to input image
 
         Returns:
-            Binary mask as numpy array or None if segmentation fails
+            Binary mask as numpy array (0=background, 255=foreground) or None if segmentation fails
         """
         if not self._initialized:
             logger.error("Model not initialized")
@@ -110,6 +110,13 @@ class RMBG14Segmentor(BaseSegmentation):
                 preds,
                 image.size
             )
+            
+            # IMPORTANT: RMBG models appear to output inverted masks in practice
+            # where low values represent foreground. Invert to match our convention
+            # (255=foreground, 0=background)
+            mask = 255 - mask
+            logger.debug("Inverted RMBG mask to match foreground convention", path=image_path)
+            
             return mask
 
         except Exception as e:

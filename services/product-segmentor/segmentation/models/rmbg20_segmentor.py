@@ -113,7 +113,13 @@ class RMBG20Segmentor(BaseSegmentation):
                 image.size
             )
 
+            # IMPORTANT: RMBG models appear to output inverted masks in practice
+            # where low values represent foreground. Invert to match our convention
+            # (255=foreground, 0=background)
+            mask = 255 - mask
+            logger.debug("Inverted RMBG mask to match foreground convention", path=image_path)
             logger.debug("Image segmentation completed", path=image_path)
+            
             return mask
 
         except Exception as e:
