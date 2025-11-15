@@ -47,3 +47,182 @@
 ## Architecture Overview
 - Event‑driven pipeline over RabbitMQ. Postgres + pgvector for storage/search. `main-api` orchestrates jobs; workers emit artifacts consumed by `matcher` and served by `results-api`.
 
+### Job Workflow
+
+#### Starting a New Job
+1. **API Request**: POST `/start-job` with request body:
+   ```json
+   {
+     "query": "ergonomic pillows",
+     "top_amz": 10,
+     "top_ebay": 5,
+     "platforms": ["youtube"],
+     "recency_days": 365
+   }
+   ```
+
+2. **Job Initialization** (`main-api` → `JobInitializer`):
+   - Generates UUID for `job_id`
+   - Uses LLM to classify industry and generate search queries
+   - Stores job in database with phase "collection"
+   - Publishes two events:
+     - `products.collect.request`: For Amazon/eBay product collection
+     - `videos.search.request`: For YouTube/Bilibili video search
+
+#### Event-Driven Pipeline
+3. **Collection Phase**:
+   - `dropship-product-finder` processes `products.collect.request` → scrapes products
+   - `video-crawler` processes `videos.search.request` → searches videos, extracts keyframes
+   - Services publish completion events:
+     - `products.collections.completed`
+     - `videos.collections.completed`
+
+4. **Feature Extraction Phase**:
+   - `product-segmentor` masks product backgrounds → `products.images.masked.batch`
+   - `vision-embedding` generates CLIP embeddings:
+     - `image.embeddings.completed` (for products)
+     - `video.embeddings.completed` (for video keyframes)
+   - `vision-keypoint` extracts AKAZE/SIFT features:
+     - `image.keypoints.completed`
+     - `video.keypoints.completed`
+
+5. **Matching Phase**:
+   - `matcher` receives `match.request` after feature extraction completes
+   - Performs product-video matching using vector similarity + geometric verification
+   - Publishes `match.result` events for each match
+   - Completes with `matchings.process.completed`
+
+6. **Evidence Phase**:
+   - `evidence-builder` creates visual proof of matches
+   - Completes with `evidences.generation.completed`
+
+7. **Job Completion**:
+   - Main API updates job phase to "completed"
+   - Final status available via GET `/status/{job_id}`
+
+### Event Schemas
+
+All events follow JSON schemas in `libs/contracts/contracts/schemas/` with validation via `EventValidator`.
+
+#### Key Request Events
+- `products_collect_request`: Initiates product collection
+  ```json
+  {
+    "job_id": "uuid",
+    "top_amz": 10,
+    "top_ebay": 5,
+    "queries": {"en": ["ergonomic pillows", "cushion support"]}
+  }
+  ```
+
+- `videos_search_request`: Initiates video search
+  ```json
+  {
+    "job_id": "uuid",
+    "industry": "furniture",
+    "queries": {"vi": ["gối"], "zh": ["枕头"]},
+    "platforms": ["youtube"],
+    "recency_days": 365
+  }
+  ```
+
+- `match_request`: Triggers matching process
+  ```json
+  {
+    "job_id": "uuid",
+    "event_id": "uuid"
+  }
+  ```
+
+#### Key Completion Events
+- `products_collections_completed`: Product collection finished
+- `videos_collections_completed`: Video collection finished
+- `image_embeddings_completed`: Product embeddings ready
+- `video_embeddings_completed`: Video embeddings ready
+- `matchings_process_completed`: Matching finished
+- `evidences_generation_completed`: Evidence generation finished
+- `job_completed`: Final job completion
+- `job_failed`: Job failure notification
+
+#### Batch Processing Events
+- `products_images_masked_batch`: Background removal for multiple product images
+- `products_images_ready_batch`: Product images processed
+- `video_keyframes_ready_batch`: Video keyframes extracted
+- `video_keyframes_masked_batch`: Background removal for keyframes
+
+#### Individual Asset Events
+- `image_embedding_ready`, `image_keypoint_ready`: Individual product assets
+- `video_embedding_ready`, `video_keypoint_ready`: Individual video assets
+- `match_result`: Individual product-video match
+
+All events include:
+- `job_id`: Links to the main job
+- `event_id`: UUIDv4 for idempotency (required for most events)
+- Additional fields specific to each event type
+
+### Microservice Relationships
+
+#### Core Orchestration
+- `main-api`: Entry point, job state machine, REST API
+  - Receives HTTP requests → converts to events
+  - Tracks job phases via database updates
+  - Provides status endpoints for monitoring
+
+#### Collection Services
+- `dropship-product-finder`: Product scraping
+  - Consumes: `products.collect.request`
+  - Publishes: `products.collections.completed`
+  - Stores: Products, product images in database
+
+- `video-crawler`: Video search and keyframe extraction
+  - Consumes: `videos.search.request`
+  - Publishes: `videos.collections.completed`, `videos.keyframes.ready`
+  - Stores: Videos, video frames in database
+
+#### Processing Services
+- `product-segmentor`: Background removal for products
+  - Consumes: `products.collections.completed`
+  - Publishes: `products.images.masked.batch`
+  - Processes: Product images → masked versions
+
+- `vision-embedding`: CLIP-based embedding generation
+  - Consumes: `products.images.masked.batch`, `video.keyframes.ready`
+  - Publishes: `image.embeddings.completed`, `video.embeddings.completed`
+  - Stores: Embeddings in pgvector
+
+- `vision-keypoint`: Traditional CV feature extraction
+  - Consumes: `products.images.masked.batch`, `video.keyframes.ready`
+  - Publishes: `image.keypoints.completed`, `video.keypoints.completed`
+  - Stores: Keypoints and descriptors
+
+#### Matching & Evidence
+- `matcher`: Core matching engine
+  - Consumes: `match.request` (triggered after feature extraction)
+  - Publishes: `match.result`, `matchings.process.completed`
+  - Logic: Vector similarity search + RANSAC geometric verification
+  - Stores: Match results in database
+
+- `evidence-builder`: Visual proof generation
+  - Consumes: `matchings.process.completed`
+  - Publishes: `evidences.generation.completed`
+  - Creates: Composite images showing matched products in video frames
+
+#### Data Flow Summary
+```
+HTTP Request → main-api → (products + videos) → Collection Services
+    ↓
+Feature Extraction (segmentation → embeddings + keypoints)
+    ↓
+Matcher (vector search + geometric verification)
+    ↓
+Evidence Builder (visual proof)
+    ↓
+Job Completion → Results available via API
+```
+
+### State Management
+- Jobs progress through phases: `collection` → `feature_extraction` → `matching` → `evidence` → `completed`/`failed`
+- Phase transitions tracked via database and phase events
+- Idempotency ensured via `event_id` UUIDs
+- Progress percentages: collection (20%), feature_extraction (50%), matching (80%), evidence (90%), completed (100%)
+

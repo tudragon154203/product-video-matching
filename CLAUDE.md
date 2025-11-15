@@ -52,6 +52,73 @@ python tests/manual_smoke_test.py
 ./restart.ps1             # Restart services
 ```
 
+## Job Initiation and Workflow
+
+### Starting a New Job
+
+The system supports two main job types:
+1. **Product-Only Jobs**: Query Amazon/eBay for products only
+2. **Video-Only Jobs**: Search video platforms for content only
+3. **Mixed Jobs**: Both product collection and video search
+
+#### API Endpoint
+```bash
+curl -X POST http://localhost:8888/start-job \
+  -H "Content-Type: application/json" \
+  -d '{
+    "query": "ergonomic pillows",
+    "industry": "furniture",
+    "top_amz": 10,
+    "top_ebay": 5,
+    "platforms": ["youtube"],
+    "recency_days": 365
+  }'
+```
+
+#### Job Status Monitoring
+```bash
+# Check job status
+curl http://localhost:8888/status/{job_id}
+
+# List all jobs
+curl http://localhost:8888/jobs
+
+# Get job videos (after completion)
+curl http://localhost:8888/jobs/{job_id}/videos
+
+# Get video frames
+curl http://localhost:8888/jobs/{job_id}/videos/{video_id}/frames
+```
+
+### Job Phases and Progress
+
+Jobs progress through these phases:
+1. **Collection** (20%): Product scraping and video search
+2. **Feature Extraction** (50%): Background removal, embeddings, keypoint extraction
+3. **Matching** (80%): Product-video similarity matching
+4. **Evidence** (90%): Visual proof generation
+5. **Completed** (100%): Job finished with results
+
+#### Response Format
+```json
+{
+  "job_id": "uuid",
+  "phase": "matching",
+  "percent": 80.0,
+  "counts": {
+    "products": 15,
+    "videos": 25,
+    "images": 45,
+    "frames": 1250
+  },
+  "collection": {
+    "products_done": true,
+    "videos_done": true
+  },
+  "updated_at": "2025-01-15T10:30:00Z"
+}
+```
+
 ### Individual Commands
 
 ```bash
@@ -188,29 +255,92 @@ cd services\dropship-product-finder && python -m pytest
 - A test writing task can only be marked as completed when all tests pass
 - Use `python -m pytest` to run tests with appropriate flags in microservice's directory
 
+## Event-Driven Architecture
+
+### Event Communication
+
+All services communicate via RabbitMQ topic exchange using structured events:
+
+#### Event Schema Location
+- All JSON schemas defined in `libs/contracts/contracts/schemas/`
+- Validation enforced by `EventValidator` class
+- Supports both underscore (`image_embeddings_completed`) and dot notation (`image.embeddings.completed`)
+
+#### Event Routing Key Patterns
+- `products.*.*`: Product-related events
+- `videos.*.*`: Video-related events
+- `image.*.*`: Image processing events
+- `video.*.*`: Video processing events
+- `match*.*.*`: Matching events
+- `job.*`: Job lifecycle events
+
+#### Idempotency
+- All events include `event_id` (UUIDv4) for exactly-once processing
+- Services track processed events to prevent duplicate operations
+- Critical for reliability in distributed system
+
+### Service Interactions
+
+```
+┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
+│   main-api      │    │ RabbitMQ Broker │    │  PostgreSQL     │
+│   (REST API)   │◄──►│   (Topic Exchange)│◄──►│ + pgvector     │
+└─────────────────┘    └─────────────────┘    └─────────────────┘
+         │                       │                       │
+         ▼                       ▼                       ▼
+┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
+│ Product Finder  │    │ Video Crawler   │    │ Product         │
+│ (Scraping)     │    │ (Keyframes)     │    │ Segmentator     │
+└─────────────────┘    └─────────────────┘    └─────────────────┘
+                                                        │
+                                                        ▼
+┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
+│ Vision          │    │ Vision          │    │ Matcher         │
+│ Embedding       │    │ Keypoint       │    │ (Similarity +   │
+│ (CLIP)         │    │ (AKAZE/SIFT)   │    │  RANSAC)        │
+└─────────────────┘    └─────────────────┘    └─────────────────┘
+                                                        │
+                                                        ▼
+┌─────────────────┐
+│ Evidence        │
+│ Builder        │
+│ (Visual Proof) │
+└─────────────────┘
+```
+
 ## Key Technologies & Libraries
 
 ### Shared Libraries
 
 - `libs/common-py/`: Common utilities for logging, monitoring, CRUD operations
-- `libs/contracts/`: Event schemas and validation
-- `libs/vision-common/`: Vision processing utilities
+- `libs/contracts/`: Event schemas and validation with JSON Schema
+- `libs/vision-common/`: Vision processing utilities and shared CV functions
 
 ### Vision Processing
 
-- **Embeddings**: CLIP (OpenAI), GPU/CPU support
-- **Segmentation**: RMBG (Remove Background) and YOLO models
-- **Keypoints**: AKAZE, SIFT, ORB feature extraction
-- **Matching**: Cosine similarity + RANSAC geometric verification
+- **Embeddings**: CLIP (OpenAI), GPU/CPU support with pgvector storage
+- **Segmentation**: RMBG (Remove Background) and YOLO models for product masking
+- **Keypoints**: AKAZE, SIFT, ORB feature extraction with descriptor storage
+- **Matching**: Cosine similarity search + RANSAC geometric verification
+- **Dual Approach**: Deep learning embeddings + traditional CV for robustness
 
 ### Infrastructure
 
-- **Database**: PostgreSQL with pgvector extension
-- **Message Broker**: RabbitMQ with topic exchange
-- **Caching**: Redis for job progress tracking
-- **Model Cache**: Hugging Face models in `model_cache/`
-- **Web UI**: pgAdmin (port 8081), RedisInsight (port 5540)
+- **Database**: PostgreSQL with pgvector extension for vector similarity search
+- **Message Broker**: RabbitMQ with topic exchange for event routing
+- **Caching**: Redis for job progress tracking and temporary state
+- **Model Cache**: Hugging Face models cached in `model_cache/` directory
+- **Web UI**: pgAdmin (port 8081), RedisInsight (port 5540), RabbitMQ UI (port 15672)
 - **Development Scripting**: PowerShell scripts for common operations
+
+### Data Storage
+
+- **Products Table**: Product metadata, ASIN/item IDs, titles, brands
+- **Videos Table**: Video metadata, platform info, duration, keyframe counts
+- **Images Table**: Product image paths, masking status, embedding vectors
+- **Video Frames Table**: Frame timestamps, local paths, embedding vectors
+- **Matches Table**: Product-video match results with scores and evidence
+- **Jobs Table**: Job lifecycle tracking with phases and timestamps
 
 ## Project Structure
 
