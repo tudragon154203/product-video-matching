@@ -1,5 +1,6 @@
 'use client'
 
+import { useTranslations } from 'next-intl'
 import { getPhaseInfo } from '@/lib/api/utils/phase'
 import type { Phase } from '@/lib/zod/job'
 import { Badge } from '@/components/ui/badge'
@@ -12,6 +13,7 @@ interface JobStatusHeaderProps {
 }
 
 export function JobStatusHeader({ jobId, isCollecting = false }: JobStatusHeaderProps) {
+  const t = useTranslations()
   const { phase: currentPhase, percent } = useJobStatusPolling(jobId);
   const phaseInfo = getPhaseInfo(currentPhase as Phase);
   const colorClass = phaseInfo.color.startsWith('bg-')
@@ -68,7 +70,7 @@ export function JobStatusHeader({ jobId, isCollecting = false }: JobStatusHeader
 
       {percent !== undefined && (
         <div className="flex items-center space-x-1 text-sm text-muted-foreground">
-          <span>Progress:</span>
+          <span>{t('jobResults.progress')}</span>
           <span className="font-medium">{percent}%</span>
         </div>
       )}

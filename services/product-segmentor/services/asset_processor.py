@@ -70,6 +70,9 @@ class AssetProcessor:
                         asset_type=asset_type)
             return mask_path
         else:
+            # Increment progress even for failed items so job can complete
+            await self.job_progress_manager.update_job_progress(job_id, asset_type, 0, 1, event_type_prefix="segmentation")
+            
             logger.error("Item processing failed",
                          job_id=job_id,
                          asset_id=asset_id,

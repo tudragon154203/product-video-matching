@@ -184,7 +184,7 @@ export function AdvancedOptions({ register, errors, setValue, watch }: AdvancedO
                   onChange={(e) => handleSelectAllChange(e.target.checked)}
                   className="rounded border-gray-300"
                 />
-                <span className="font-medium">All</span>
+                <span className="font-medium">{t('selectAllPlatforms')}</span>
               </label>
             </div>
             

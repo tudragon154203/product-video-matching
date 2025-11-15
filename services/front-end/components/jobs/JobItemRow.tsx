@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import { useTranslations } from 'next-intl'
 
 import { Badge } from '@/components/ui/badge'
 import { getPhaseInfo, phaseInfo as phaseInfoMap } from '@/lib/api/utils/phase'
@@ -29,6 +30,7 @@ const resolveColorClass = (color: string) =>
   color.startsWith('bg-') ? color : `bg-${color}-500`
 
 export function JobItemRow({ job }: JobItemRowProps) {
+  const t = useTranslations()
   const {
     phase: livePhase,
     percent,
@@ -105,15 +107,15 @@ export function JobItemRow({ job }: JobItemRowProps) {
     const messages: string[] = []
 
     if (collection.products_done) {
-      messages.push('✔ Products done')
+      messages.push(t('jobStatus.productsDone'))
     }
 
     if (collection.videos_done) {
-      messages.push('✔ Videos done')
+      messages.push(t('jobStatus.videosDone'))
     }
 
     if (collection.products_done && collection.videos_done) {
-      messages.push('Collection finished')
+      messages.push(t('jobStatus.collectionFinished'))
     }
 
     if (messages.length === 0) {
@@ -157,16 +159,16 @@ export function JobItemRow({ job }: JobItemRowProps) {
         </div>
         {resolvedPhase !== 'collection' && percent !== undefined && !Number.isNaN(percent) && (
           <div className="flex items-center space-x-1 text-xs text-muted-foreground" aria-live="polite">
-            <span>Progress:</span>
+            <span>{t('jobResults.progress')}</span>
             <span className="font-medium">{clampPercent(percent)}%</span>
           </div>
         )}
         {resolvedPhase !== 'collection' && counts && (
           <div className="flex flex-wrap gap-2 text-[10px] uppercase tracking-wide text-muted-foreground" aria-hidden="true">
-            <span>Products: {counts.products}</span>
-            <span>Videos: {counts.videos}</span>
-            <span>Images: {counts.images}</span>
-            <span>Frames: {counts.frames}</span>
+            <span>{t('jobResults.counts.products')}: {counts.products}</span>
+            <span>{t('jobResults.counts.videos')}: {counts.videos}</span>
+            <span>{t('jobResults.counts.images')}: {counts.images}</span>
+            <span>{t('jobResults.counts.frames')}: {counts.frames}</span>
           </div>
         )}
         {!isCollecting && renderCollectionSummary()}

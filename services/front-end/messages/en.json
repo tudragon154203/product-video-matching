@@ -23,6 +23,7 @@
     "topEbayProducts": "Top eBay Products",
     "videoPlatforms": "Video Platforms",
     "recencyDays": "Recency Days",
+    "selectAllPlatforms": "All",
     "startSearch": "Search",
     "startingJob": "Starting Job...",
     "loadingJobs": "Loading jobs...",
@@ -49,6 +50,13 @@
     "unknownError": "Unknown error"
   },
   "jobResults": {
+    "progress": "Progress:",
+    "counts": {
+      "products": "Products",
+      "videos": "Videos",
+      "images": "Images",
+      "frames": "Frames"
+    },
     "products": {
       "panelTitle": "Products",
       "empty": "No products collected.",
@@ -82,12 +90,19 @@
   "products": {
     "empty": "No products collected.",
     "collecting": "Collecting products...",
-    "loading": "Loading..."
+    "loading": "Loading...",
+    "fallbackImage": "Product image",
+    "fallbackTitle": "Untitled Product",
+    "image": "image",
+    "images": "images"
   },
   "videos": {
     "empty": "No videos collected.",
     "collecting": "Collecting videos...",
-    "loading": "Loading..."
+    "loading": "Loading...",
+    "fallbackThumbnail": "Video thumbnail",
+    "frame": "frame",
+    "frames": "frames"
   },
   "errors": {
     "loadFailed": "Failed to load data.",
@@ -167,5 +182,14 @@
       "retry": "Retry",
       "noAssets": "No assets queued for this job"
     }
+  },
+  "jobStatus": {
+    "productsDone": "✔ Products done",
+    "videosDone": "✔ Videos done",
+    "collectionFinished": "Collection finished"
+  },
+  "languages": {
+    "english": "English",
+    "vietnamese": "Tiếng Việt"
   }
 }

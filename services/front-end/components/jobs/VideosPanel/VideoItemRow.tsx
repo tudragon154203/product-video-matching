@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { useTranslations } from 'next-intl';
 import { VideoItem } from '@/lib/zod/video';
 import { formatGMT7 } from '@/lib/utils/formatGMT7';
 import { formatDuration } from '@/lib/utils/formatDuration';
@@ -14,6 +15,7 @@ interface VideoItemRowProps {
 }
 
 export function VideoItemRow({ video, jobId, isCollecting = false }: VideoItemRowProps) {
+  const t = useTranslations()
   const [thumbnailSrc, setThumbnailSrc] = useState<string | null>(
     video.first_keyframe_url || video.preview_frame?.url || null,
   );
@@ -76,7 +78,7 @@ export function VideoItemRow({ video, jobId, isCollecting = false }: VideoItemRo
       >
         <ThumbnailImage
           src={thumbnailSrc ?? undefined}
-          alt={video.title || 'Video thumbnail'}
+          alt={video.title || t('videos.fallbackThumbnail')}
           data-testid="video-thumbnail"
         />
       </Link>
@@ -97,7 +99,7 @@ export function VideoItemRow({ video, jobId, isCollecting = false }: VideoItemRo
           <span>•</span>
           <span>{formatGMT7(video.updated_at)}</span>
           <span>•</span>
-          <span>{video.frames_count} {video.frames_count === 1 ? 'frame' : 'frames'}</span>
+          <span>{video.frames_count} {video.frames_count === 1 ? t('videos.frame') : t('videos.frames')}</span>
         </div>
       </div>
 

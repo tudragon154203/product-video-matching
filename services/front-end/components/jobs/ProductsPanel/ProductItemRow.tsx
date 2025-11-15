@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { useTranslations } from 'next-intl';
 import { ProductItem } from '@/lib/zod/product';
 import { formatGMT7 } from '@/lib/utils/formatGMT7';
 import { LinkExternalIcon } from '@/components/jobs/LinkExternalIcon';
@@ -13,6 +14,7 @@ interface ProductItemRowProps {
 }
 
 export function ProductItemRow({ product, jobId, isCollecting = false }: ProductItemRowProps) {
+  const t = useTranslations()
   const [thumbnailSrc, setThumbnailSrc] = useState<string | null>(product.primary_image_url ?? null);
 
   useEffect(() => {
@@ -72,7 +74,7 @@ export function ProductItemRow({ product, jobId, isCollecting = false }: Product
       >
         <ThumbnailImage
           src={thumbnailSrc ?? undefined}
-          alt={product.title || 'Product image'}
+          alt={product.title || t('products.fallbackImage')}
           data-testid="product-thumbnail"
         />
       </Link>
@@ -84,13 +86,13 @@ export function ProductItemRow({ product, jobId, isCollecting = false }: Product
             target="_blank"
             rel="noopener noreferrer"
             className="text-sm font-medium text-primary hover:text-primary/80 hover:underline truncate block transition-colors"
-            title={product.title || 'Untitled Product'}
+            title={product.title || t('products.fallbackTitle')}
           >
-            {product.title || 'Untitled Product'}
+            {product.title || t('products.fallbackTitle')}
           </Link>
         ) : (
-          <div className="text-sm font-medium truncate" title={product.title || 'Untitled Product'}>
-            {product.title || 'Untitled Product'}
+          <div className="text-sm font-medium truncate" title={product.title || t('products.fallbackTitle')}>
+            {product.title || t('products.fallbackTitle')}
           </div>
         )}
 
@@ -105,7 +107,7 @@ export function ProductItemRow({ product, jobId, isCollecting = false }: Product
             <span>| {formatGMT7(product.created_at)}</span>
           )}
           {product.image_count > 0 && (
-            <span>| {product.image_count} {product.image_count === 1 ? 'image' : 'images'}</span>
+            <span>| {product.image_count} {product.image_count === 1 ? t('products.image') : t('products.images')}</span>
           )}
         </div>
       </div>

@@ -23,6 +23,7 @@
     "topEbayProducts": "Sản phẩm eBay hàng đầu",
     "videoPlatforms": "Nền tảng Video",
     "recencyDays": "Số ngày gần đây",
+    "selectAllPlatforms": "Tất cả",
     "startSearch": "Tìm kiếm",
     "startingJob": "Đang bắt đầu công việc...",
     "loadingJobs": "Đang tải công việc...",
@@ -49,6 +50,13 @@
     "unknownError": "Lỗi không xác định"
   },
   "jobResults": {
+    "progress": "Tiến độ:",
+    "counts": {
+      "products": "Sản phẩm",
+      "videos": "Video",
+      "images": "Hình ảnh",
+      "frames": "Khung hình"
+    },
     "products": {
       "panelTitle": "Sản phẩm",
       "empty": "Không có sản phẩm nào được thu thập.",
@@ -82,12 +90,19 @@
   "products": {
     "empty": "Không có sản phẩm nào được thu thập.",
     "collecting": "Đang thu thập sản phẩm...",
-    "loading": "Đang tải..."
+    "loading": "Đang tải...",
+    "fallbackImage": "Hình ảnh sản phẩm",
+    "fallbackTitle": "Sản phẩm không có tiêu đề",
+    "image": "hình ảnh",
+    "images": "hình ảnh"
   },
   "videos": {
     "empty": "Không có video nào được thu thập.",
     "collecting": "Đang thu thập video...",
-    "loading": "Đang tải..."
+    "loading": "Đang tải...",
+    "fallbackThumbnail": "Hình thu nhỏ video",
+    "frame": "khung hình",
+    "frames": "khung hình"
   },
   "errors": {
     "loadFailed": "Không thể tải dữ liệu.",
@@ -167,5 +182,14 @@
       "retry": "Thử lại",
       "noAssets": "Không có tài sản nào trong hàng đợi cho công việc này"
     }
+  },
+  "jobStatus": {
+    "productsDone": "✔ Sản phẩm hoàn thành",
+    "videosDone": "✔ Video hoàn thành",
+    "collectionFinished": "Thu thập hoàn tất"
+  },
+  "languages": {
+    "english": "English",
+    "vietnamese": "Tiếng Việt"
   }
 }

@@ -199,7 +199,7 @@ class ProductSegmentorService:
                     job_id=job_id,
                 )
 
-            await self.asset_processor.handle_single_asset_processing(
+            result = await self.asset_processor.handle_single_asset_processing(
                 event_data=event_data,
                 asset_type="image",
                 asset_id_key="image_id",
@@ -207,6 +207,19 @@ class ProductSegmentorService:
                 emit_masked_func=self.event_emitter.emit_product_image_masked,
                 job_id=job_id
             )
+            
+            # Log current progress after processing
+            key = f"{job_id}:image:segmentation"
+            if hasattr(self.job_progress_manager, "job_tracking"):
+                job_data = self.job_progress_manager.job_tracking.get(key)
+                if job_data:
+                    logger.debug(
+                        "Image processed - progress updated",
+                        job_id=job_id,
+                        image_id=event_data.get("image_id"),
+                        current_done=job_data.get("done", 0),
+                        expected=job_data.get("expected", 0),
+                    )
 
     async def _handle_batch_event(
         self,
@@ -216,11 +229,20 @@ class ProductSegmentorService:
         event_type: str,
         event_id: str | None = None,
     ) -> None:
+        # Get current progress before updating
+        key = f"{job_id}:{asset_type}:segmentation"
+        current_done = 0
+        if hasattr(self.job_progress_manager, "job_tracking"):
+            job_data = self.job_progress_manager.job_tracking.get(key)
+            if job_data:
+                current_done = job_data.get("done", 0)
+
         logger.info(
-            "Batch event received",
+            "Processing batch event",
             job_id=job_id,
             asset_type=asset_type,
             total_items=total_items,
+            current_done=current_done,
             event_type=event_type,
             event_id=event_id,
         )
@@ -268,17 +290,27 @@ class ProductSegmentorService:
 
         # After initializing batch, update expected count and recheck completion.
         # This will emit appropriate batch completion events when done >= expected.
-        await self.job_progress_manager.update_expected_and_recheck_completion(
+        completion_triggered = await self.job_progress_manager.update_expected_and_recheck_completion(
             job_id,
             asset_type,
             total_items,
             event_type_prefix="segmentation",
         )
-        # Maintain simple job_tracking mirror keyed by job_id for legacy tests
+        
+        # Log final state after batch processing
         key = f"{job_id}:{asset_type}:segmentation"
         if hasattr(self.job_progress_manager, "job_tracking"):
             snapshot = self.job_progress_manager.job_tracking.get(key)
             if snapshot:
+                logger.info(
+                    "Batch event processed",
+                    job_id=job_id,
+                    asset_type=asset_type,
+                    final_done=snapshot.get("done", 0),
+                    final_expected=snapshot.get("expected", 0),
+                    completion_triggered=completion_triggered,
+                )
+                # Maintain simple job_tracking mirror keyed by job_id for legacy tests
                 self.job_progress_manager.job_tracking[job_id] = {
                     "expected": snapshot.get("expected", 0),
                     "done": snapshot.get("done", 0),
@@ -404,15 +436,6 @@ class ProductSegmentorService:
             job_id = event_data["job_id"]
             total_images = event_data.get("total_images", 0)
             event_id = event_id or str(uuid.uuid4())
-
-            logger.info(
-                "Batch event received",
-                job_id=job_id,
-                asset_type="image",
-                total_items=total_images,
-                event_type="products_images_ready_batch",
-                event_id=event_id,
-            )
 
             await self._handle_batch_event(
                 job_id,

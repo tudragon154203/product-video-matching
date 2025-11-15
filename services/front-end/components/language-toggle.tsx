@@ -1,24 +1,25 @@
 'use client'
 
-import { useLocale } from 'next-intl'
+import { useLocale, useTranslations } from 'next-intl'
 import { useRouter } from 'next/navigation'
 import { usePathname } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { useState, useEffect } from 'react'
 import { useAutoAnimateList } from '@/lib/hooks/useAutoAnimateList'
 
-const languages = [
-  { code: 'vi', name: 'Tiếng Việt', flag: '🇻🇳' },
-  { code: 'en', name: 'English', flag: '🇺🇸' }
-]
-
 export function LanguageToggle() {
+  const t = useTranslations()
   const locale = useLocale()
   const router = useRouter()
   const pathname = usePathname()
   const [isOpen, setIsOpen] = useState(false)
   const [currentLocale, setCurrentLocale] = useState(locale)
   const { parentRef: menuRef } = useAutoAnimateList<HTMLDivElement>({ duration: 180 })
+
+  const languages = [
+    { code: 'vi', name: t('languages.vietnamese'), flag: '🇻🇳' },
+    { code: 'en', name: t('languages.english'), flag: '🇺🇸' }
+  ]
 
   // Update current locale when URL changes
   useEffect(() => {
