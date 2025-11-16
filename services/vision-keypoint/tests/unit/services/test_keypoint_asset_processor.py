@@ -4,7 +4,11 @@ from services.keypoint_asset_processor import KeypointAssetProcessor
 
 
 class TestKeypointAssetProcessor:
-    """Unit tests for KeypointAssetProcessor class"""
+    """Unit tests for KeypointAssetProcessor class.
+
+    Includes verification that keypoint extraction and progress tracking only run
+    for successfully segmented assets (i.e. when a valid mask_path is present).
+    """
 
     def setup_method(self):
         """Setup for each test"""
@@ -99,7 +103,11 @@ class TestKeypointAssetProcessor:
     @pytest.mark.unit
     @patch('services.keypoint_asset_processor.uuid.uuid4')
     async def test_process_single_asset_success_masked_video(self, mock_uuid):
-        """Test successful processing of a single masked video asset"""
+        """Test successful processing of a single masked video asset.
+
+        Verifies that a valid mask_path leads to keypoint extraction, DB update,
+        and event emission for video frames.
+        """
         # Setup
         mock_uuid.return_value = "test-uuid-789"
         self.mock_extractor.extract_keypoints_with_mask = AsyncMock(return_value="/path/to/keypoints.npz")
@@ -129,6 +137,93 @@ class TestKeypointAssetProcessor:
         )
         self.mock_db.execute.assert_called_once()
         self.mock_broker.publish_event.assert_called_once()
+
+    @pytest.mark.unit
+    async def test_process_single_asset_no_mask_path_indicates_segmentation_failure(self):
+        """Test that None mask_path indicates segmentation failure and is not processed.
+
+        When mask_path is None for a video frame, it indicates segmentation failed
+        upstream, so keypoint extraction, DB updates, and events must be skipped.
+        """
+        # Setup - mask_path=None indicates segmentation failed
+        self.mock_progress_manager.processed_assets = set()
+
+        # Call method
+        result = await self.processor.process_single_asset(
+            job_id="job_seg_fail",
+            asset_id="frame_failed",
+            asset_type="video",
+            local_path=None,
+            is_masked=False,  # Not masked because segmentation failed
+            mask_path=None    # This indicates segmentation failure
+        )
+
+        # Assertions
+        assert result is False  # Should return False for failed segmentation
+        # Extractor should not be called if segmentation failed
+        self.mock_extractor.extract_keypoints.assert_not_called()
+        self.mock_extractor.extract_keypoints_with_mask.assert_not_called()
+        # DB and broker should not be called
+        self.mock_db.execute.assert_not_called()
+        self.mock_broker.publish_event.assert_not_called()
+
+    @pytest.mark.unit
+    async def test_mixed_video_frame_scenario_successful_only_counts(self):
+        """Test scenario with mixed success/failure segmentation for video frames.
+
+        Only successfully segmented frames should have keypoint extraction,
+        DB updates, and broker events.
+        """
+        # Setup scenario: 3 frames, 2 successful segmentation, 1 failed
+        successful_masks = ["/mask1.png", "/mask3.png"]  # frames 1 and 3 succeed
+        failed_frame_idx = 1  # frame 2 fails
+
+        # Mock successful keypoint extraction for successfully segmented frames
+        self.mock_extractor.extract_keypoints_with_mask = AsyncMock(return_value="/path/to/keypoints.npz")
+        self.mock_db.fetch_one = AsyncMock(return_value={"local_path": "/original/frame.jpg"})
+        self.mock_db.execute = AsyncMock()
+        self.mock_broker.publish_event = AsyncMock()
+
+        results = []
+        # Process 3 frames with different segmentation outcomes
+        for i in range(3):
+            frame_id = f"frame_{i+1}"
+
+            if i == failed_frame_idx:
+                # Failed segmentation - no mask_path
+                result = await self.processor.process_single_asset(
+                    job_id="mixed_video_job",
+                    asset_id=frame_id,
+                    asset_type="video",
+                    local_path=None,
+                    is_masked=False,
+                    mask_path=None  # Failed segmentation
+                )
+            else:
+                # Successful segmentation - has mask_path
+                result = await self.processor.process_single_asset(
+                    job_id="mixed_video_job",
+                    asset_id=frame_id,
+                    asset_type="video",
+                    local_path=None,
+                    is_masked=True,
+                    mask_path=successful_masks[len(results)]
+                )
+
+            results.append(result)
+
+        # Assertions
+        # 2 successful, 1 failed
+        assert results[0] is True  # Success
+        assert results[1] is False # Failure
+        assert results[2] is True  # Success
+
+        # Only successful frames should have keypoint extraction
+        assert self.mock_extractor.extract_keypoints_with_mask.call_count == 2
+
+        # Only successful frames should have DB updates and broker events
+        assert self.mock_db.execute.call_count == 2
+        assert self.mock_broker.publish_event.call_count == 2
 
     @pytest.mark.unit
     async def test_process_single_asset_duplicate(self):

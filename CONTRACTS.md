@@ -26,10 +26,12 @@ After comprehensive analysis of service implementations, **all events serve esse
 #### 2. Batch Events (Critical for Progress Tracking)
 - `products.images.ready.batch`: Provides total image count with `total_images`
 - `videos.keyframes.ready.batch`: Provides total keyframe count with `total_keyframes`
-- `products.images.masked.batch`: Provides total masked image count with `total_images`
-- `video.keyframes.masked.batch`: Provides total masked keyframe count with `total_keyframes`
+- `products.images.masked.batch`: Provides total **successfully masked** image count with `total_images`
+- `video.keyframes.masked.batch`: Provides total **successfully masked** keyframe count with `total_keyframes`
 
 **Purpose**: Vision services use these totals to initialize progress tracking and determine when to emit "completed" events.
+
+**Behavioral note (segmentation)**: As of this change, the masked batch events (`products.images.masked.batch` and `video.keyframes.masked.batch`) count only assets where segmentation succeeded and masks were persisted. Failed segmentation attempts do not increment these batch counts. Existing schemas are unchanged; this is a semantic tightening of how the count fields are computed.
 
 #### 3. Completion Events (Enable Job Orchestration)
 - `image.embeddings.completed`: Main API barrier for phase transition with asset counts
