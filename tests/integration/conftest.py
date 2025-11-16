@@ -8,9 +8,6 @@ Integration tests bootstrap:
 - Import root tests/conftest fixtures into this collection root
 """
 
-from support.utils.media_manager import ensure_test_media_available
-from support.utils.service_enforcement import enforce_real_service_usage
-from support.environment.infra_bootstrap import ensure_infra_running
 import importlib.util
 from pathlib import Path
 import sys
@@ -68,6 +65,9 @@ merged = os.pathsep.join([p for p in paths + pythonpath.split(os.pathsep) if p])
 os.environ["PYTHONPATH"] = merged
 
 # Now import support modules after path setup is complete
+from support.utils.media_manager import ensure_test_media_available
+from support.utils.service_enforcement import enforce_real_service_usage
+from support.environment.infra_bootstrap import ensure_infra_running
 
 # Enforce real services via environment overrides (no mocks allowed in integration tests)
 # Note: These override main tests/conftest.py which loads Docker-specific configs
