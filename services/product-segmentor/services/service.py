@@ -360,15 +360,6 @@ class ProductSegmentorService:
                     "mask_path": mask_path
                 })
 
-            # Update progress per processed frame to reflect incremental work
-            await self.job_progress_manager.update_job_progress(
-                job_id,
-                "video",
-                1,  # count per frame
-                0,
-                event_type_prefix="segmentation",
-            )
-
         if processed_frames:
             await self.event_emitter.emit_video_keyframes_masked(
                 job_id=job_id,

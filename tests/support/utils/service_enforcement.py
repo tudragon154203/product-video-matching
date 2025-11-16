@@ -38,10 +38,11 @@ def enforce_real_service_usage() -> None:
 
     # Check enforcement flag
     enforce_flag = os.environ.get("INTEGRATION_TESTS_ENFORCE_REAL_SERVICES", "").lower()
-    if enforce_flag != "true":
+    # Accept common truthy values: 'true', '1', 'yes'
+    if enforce_flag not in {"true", "1", "yes"}:
         raise AssertionError(
-            "INTEGRATION_TESTS_ENFORCE_REAL_SERVICES must be set to 'true' for integration tests. "
-            "This ensures real services are used instead of mocks."
+            "INTEGRATION_TESTS_ENFORCE_REAL_SERVICES must be set to a truthy value ('true', '1', or 'yes') "
+            "for integration tests. This ensures real services are used instead of mocks."
         )
 
     # Validate service URLs are real, not localhost mocks (unless intentionally testing local services)

@@ -70,12 +70,14 @@ os.environ["PYTHONPATH"] = merged
 # Now import support modules after path setup is complete
 
 # Enforce real services via environment overrides (no mocks allowed in integration tests)
+# Note: These override main tests/conftest.py which loads Docker-specific configs
 os.environ.update({
     "POSTGRES_HOST": "localhost",
     "POSTGRES_PORT": "5444",
     "POSTGRES_DB": "product_video_matching",
     "POSTGRES_USER": "postgres",
     "POSTGRES_PASSWORD": "dev",
+    "BUS_BROKER": "amqp://guest:guest@localhost:5672/",  # Override Docker rabbitmq:5672 from main conftest
     "VIDEO_CRAWLER_MODE": "live",
     "DROPSHIP_PRODUCT_FINDER_MODE": "live"
 })
