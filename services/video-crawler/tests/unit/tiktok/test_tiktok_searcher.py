@@ -111,14 +111,14 @@ class TestTikTokSearcher:
 
         with patch.object(tiktok_searcher.client, 'post', return_value=rate_limit_response) as mock_post:
             with patch('platform_crawler.tiktok.tiktok_searcher.asyncio.sleep', new_callable=AsyncMock) as mock_sleep:
-                # Should raise an exception after max retries (3)
-                with pytest.raises(Exception, match="TikTok API rate limited after 3 attempts"):
+                # Should raise an exception after max retries (2)
+                with pytest.raises(Exception, match="TikTok API rate limited after 2 attempts"):
                     await tiktok_searcher.search_tiktok("fail test", 5)
 
-                # Should have been called 3 times (max attempts)
-                assert mock_post.call_count == 3
-                # Should have slept 2 times (between attempts)
-                assert mock_sleep.call_count == 2
+                # Should have been called 2 times (max attempts)
+                assert mock_post.call_count == 2
+                # Should have slept 1 time (between attempts)
+                assert mock_sleep.call_count == 1
 
     @pytest.mark.asyncio
     async def test_search_tiktok_non_retryable_error(self, tiktok_searcher):
@@ -180,3 +180,166 @@ class TestTikTokSearcher:
 
                 # Should have been called once, then failed
                 assert mock_post.call_count == 1
+
+    @pytest.mark.asyncio
+    async def test_force_headful_on_second_attempt(self, tiktok_searcher):
+        """Test that force_headful is set to true on the second attempt."""
+        # Mock response data
+        mock_response_data = {
+            "results": [
+                {
+                    "id": "123",
+                    "caption": "Test",
+                    "authorHandle": "@test",
+                    "likeCount": 100,
+                    "uploadTime": "2024-01-01T12:00:00Z",
+                    "webViewUrl": "https://www.tiktok.com/@test/video/123"
+                }
+            ],
+            "totalResults": 1,
+            "query": "test",
+            "search_metadata": {}
+        }
+
+        # First attempt fails, second succeeds
+        error_response = httpx.Response(status_code=500, json={"error": "server error"})
+        success_response = httpx.Response(status_code=200, json=mock_response_data)
+
+        with patch.object(tiktok_searcher.client, 'post', side_effect=[
+            error_response,
+            success_response
+        ]) as mock_post:
+            with patch('platform_crawler.tiktok.tiktok_searcher.asyncio.sleep', new_callable=AsyncMock):
+                result = await tiktok_searcher.search_tiktok("test", 5)
+
+                # Verify both calls were made
+                assert mock_post.call_count == 2
+
+                # First call should have force_headful=False
+                first_call_json = mock_post.call_args_list[0][1]["json"]
+                assert first_call_json["force_headful"] is False
+
+                # Second call should have force_headful=True
+                second_call_json = mock_post.call_args_list[1][1]["json"]
+                assert second_call_json["force_headful"] is True
+
+                # Result should be successful
+                assert isinstance(result, TikTokSearchResponse)
+
+    @pytest.mark.asyncio
+    async def test_force_headful_remembered_after_success(self, tiktok_searcher):
+        """Test that force_headful is remembered and used for subsequent searches."""
+        # Mock response data
+        mock_response_data = {
+            "results": [
+                {
+                    "id": "123",
+                    "caption": "Test",
+                    "authorHandle": "@test",
+                    "likeCount": 100,
+                    "uploadTime": "2024-01-01T12:00:00Z",
+                    "webViewUrl": "https://www.tiktok.com/@test/video/123"
+                }
+            ],
+            "totalResults": 1,
+            "query": "test",
+            "search_metadata": {}
+        }
+
+        # First search: fail on first attempt, succeed on second with force_headful
+        error_response = httpx.Response(status_code=500, json={"error": "server error"})
+        success_response = httpx.Response(status_code=200, json=mock_response_data)
+
+        with patch.object(tiktok_searcher.client, 'post', side_effect=[
+            error_response,      # First search, first attempt fails
+            success_response,    # First search, second attempt succeeds with force_headful
+            success_response,    # Second search, first attempt with force_headful
+        ]) as mock_post:
+            with patch('platform_crawler.tiktok.tiktok_searcher.asyncio.sleep', new_callable=AsyncMock):
+                # First search - should try twice
+                result1 = await tiktok_searcher.search_tiktok("test1", 5)
+                assert isinstance(result1, TikTokSearchResponse)
+                assert mock_post.call_count == 2
+
+                # Verify force_headful flag is now set
+                assert tiktok_searcher._use_force_headful is True
+
+                # Second search - should use force_headful immediately
+                result2 = await tiktok_searcher.search_tiktok("test2", 5)
+                assert isinstance(result2, TikTokSearchResponse)
+                assert mock_post.call_count == 3
+
+                # Verify the third call (second search) used force_headful=True immediately
+                third_call_json = mock_post.call_args_list[2][1]["json"]
+                assert third_call_json["force_headful"] is True
+                assert third_call_json["query"] == "test2"
+
+    @pytest.mark.asyncio
+    async def test_force_headful_not_set_on_first_attempt_success(self, tiktok_searcher):
+        """Test that force_headful flag is not set if first attempt succeeds."""
+        # Mock response data
+        mock_response_data = {
+            "results": [
+                {
+                    "id": "123",
+                    "caption": "Test",
+                    "authorHandle": "@test",
+                    "likeCount": 100,
+                    "uploadTime": "2024-01-01T12:00:00Z",
+                    "webViewUrl": "https://www.tiktok.com/@test/video/123"
+                }
+            ],
+            "totalResults": 1,
+            "query": "test",
+            "search_metadata": {}
+        }
+
+        success_response = httpx.Response(status_code=200, json=mock_response_data)
+
+        with patch.object(tiktok_searcher.client, 'post', return_value=success_response) as mock_post:
+            # First search succeeds on first attempt
+            result = await tiktok_searcher.search_tiktok("test", 5)
+            assert isinstance(result, TikTokSearchResponse)
+            assert mock_post.call_count == 1
+
+            # Verify force_headful flag is NOT set
+            assert tiktok_searcher._use_force_headful is False
+
+            # First call should have force_headful=False
+            first_call_json = mock_post.call_args_list[0][1]["json"]
+            assert first_call_json["force_headful"] is False
+
+    @pytest.mark.asyncio
+    async def test_force_headful_used_immediately_when_already_set(self, tiktok_searcher):
+        """Test that force_headful is used immediately if already learned."""
+        # Manually set the flag as if it was learned from a previous search
+        tiktok_searcher._use_force_headful = True
+
+        # Mock response data
+        mock_response_data = {
+            "results": [
+                {
+                    "id": "123",
+                    "caption": "Test",
+                    "authorHandle": "@test",
+                    "likeCount": 100,
+                    "uploadTime": "2024-01-01T12:00:00Z",
+                    "webViewUrl": "https://www.tiktok.com/@test/video/123"
+                }
+            ],
+            "totalResults": 1,
+            "query": "test",
+            "search_metadata": {}
+        }
+
+        success_response = httpx.Response(status_code=200, json=mock_response_data)
+
+        with patch.object(tiktok_searcher.client, 'post', return_value=success_response) as mock_post:
+            # Search should succeed on first attempt with force_headful=True
+            result = await tiktok_searcher.search_tiktok("test", 5)
+            assert isinstance(result, TikTokSearchResponse)
+            assert mock_post.call_count == 1
+
+            # Verify the call used force_headful=True
+            call_json = mock_post.call_args_list[0][1]["json"]
+            assert call_json["force_headful"] is True

@@ -22,6 +22,8 @@ class TikTokSearcher:
             timeout=httpx.Timeout(180.0),  # 3 minute timeout to accommodate slower headless crawls
             limits=httpx.Limits(max_keepalive_connections=5, max_connections=10)
         )
+        # Track if force_headful mode has been successful
+        self._use_force_headful = False
 
     async def search_tiktok(self, query: str, num_videos: int = 10) -> TikTokSearchResponse:
         """
@@ -34,19 +36,24 @@ class TikTokSearcher:
         Returns:
             TikTokSearchResponse with video results
         """
-        max_attempts = 3
+        max_attempts = 2
         base_delay = 15.0  # Base delay in seconds for exponential backoff
 
         for attempt in range(max_attempts):
             try:
+                # Determine if we should use force_headful mode
+                # Use it if: 1) we've learned it works, OR 2) this is the second attempt
+                use_headful = self._use_force_headful or (attempt == 1)
+                
                 logger.info(
-                    f"Attempting TikTok search for query: '{query}', num_videos: {num_videos} (attempt {attempt + 1}/{max_attempts})")
+                    f"Attempting TikTok search for query: '{query}', num_videos: {num_videos}, "
+                    f"force_headful: {use_headful} (attempt {attempt + 1}/{max_attempts})")
 
                 # Prepare request payload
                 payload: Dict[str, Any] = {
                     "query": query,
                     "numVideos": min(num_videos, 50),  # Cap at 50 as per API spec
-                    "force_headful": False
+                    "force_headful": use_headful
                 }
 
                 # Make the API call
@@ -61,6 +68,15 @@ class TikTokSearcher:
                     try:
                         response_data: Dict[str, Any] = response.json()
                         results: List[Dict[str, Any]] = response_data.get("results", [])
+                        
+                        # If this succeeded with force_headful on second attempt, remember it
+                        if use_headful and not self._use_force_headful:
+                            logger.info(
+                                "TikTok search succeeded with force_headful=true on retry. "
+                                "Will use force_headful for all subsequent searches."
+                            )
+                            self._use_force_headful = True
+                        
                         logger.info(
                             "Successfully retrieved TikTok search results for query '%s', got %d results",
                             query,
