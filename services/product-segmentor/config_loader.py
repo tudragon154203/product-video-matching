@@ -30,8 +30,8 @@ class ProductSegmentorConfig:
     HF_TOKEN = os.getenv("HF_TOKEN")
 
     # Processing configuration
-    MAX_CONCURRENT_IMAGES: int = int(os.getenv("MAX_CONCURRENT_IMAGES", "4"))
-    BATCH_TIMEOUT_SECONDS: int = int(os.getenv("BATCH_TIMEOUT_SECONDS", "3000"))
+    MAX_CONCURRENT_IMAGES: int = int(os.getenv("MAX_CONCURRENT_IMAGES", "2"))
+    BATCH_TIMEOUT_SECONDS: int = int(os.getenv("BATCH_TIMEOUT_SECONDS", "1800"))
     MASK_QUALITY: float = float(os.getenv("MASK_QUALITY", "0.8"))
     IMG_SIZE: tuple[int, int] = global_config.IMG_SIZE
 
