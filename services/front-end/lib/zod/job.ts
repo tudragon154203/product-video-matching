@@ -35,7 +35,7 @@ export const StartJobResponse = z.object({
 });
 
 export const StartJobRequest = z.object({
-  query: z.string(),
+  query: z.string().trim().min(1, { message: "Query must not be empty" }),
   top_amz: z.number().int().min(0).max(100),
   top_ebay: z.number().int().min(0).max(100),
   platforms: z.array(z.enum(["youtube", "douyin", "tiktok", "bilibili"])),

@@ -1,11 +1,19 @@
 from datetime import datetime
 from typing import Optional
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
 
 
 class StartJobRequest(BaseModel):
     query: str
     top_amz: int
+
+    @field_validator("query")
+    @classmethod
+    def query_must_not_be_empty(cls, v: str) -> str:
+        v = v.strip()
+        if not v:
+            raise ValueError("query must be a non-empty string")
+        return v
     top_ebay: int
     platforms: list
     recency_days: int
@@ -111,7 +119,7 @@ class ImageListResponse(BaseModel):
 class JobItem(BaseModel):
     """Schema for job item in list response"""
     job_id: str
-    query: str
+    query: Optional[str] = None
     industry: str
     phase: str
     created_at: datetime
