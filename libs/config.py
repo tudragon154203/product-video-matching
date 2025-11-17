@@ -71,6 +71,11 @@ class Config:
     # Logging
     LOG_LEVEL: str = field(default_factory=lambda: get_env_var("LOG_LEVEL", "INFO"))
     LOG_TIMEZONE: str = field(default_factory=lambda: get_env_var("LOG_TIMEZONE", "gmt+7"))
+
+    # Progress Tracking
+    COMPLETION_THRESHOLD_PERCENTAGE: int = field(
+        default_factory=lambda: max(0, min(100, get_env_int("COMPLETION_THRESHOLD_PERCENTAGE", 90)))
+    )
     
     # Service URLs (for inter-service communication)
     MAIN_API_URL: str = field(default_factory=lambda: get_env_var("MAIN_API_URL", f"http://localhost:{get_env_int('PORT_MAIN', 8888)}"))

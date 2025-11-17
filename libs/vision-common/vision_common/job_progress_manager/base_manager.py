@@ -1,14 +1,14 @@
-import asyncio
-import uuid
-from typing import Dict, Any, Set, Optional
+from typing import Dict, Set
 from common_py.logging_config import configure_logging
 from common_py.messaging import MessageBroker
 
 logger = configure_logging("vision-common:base_manager")
 
+
 class BaseJobProgressManager:
-    def __init__(self, broker: MessageBroker):
+    def __init__(self, broker: MessageBroker, completion_threshold: float = 1.0):
         self.broker = broker
+        self.completion_threshold = max(0.0, min(completion_threshold, 1.0))
         self.processed_assets: Set[str] = set()
         # Track per (job_id, asset_type, event_type_prefix)
         self.job_tracking: Dict[str, Dict] = {}
@@ -105,8 +105,15 @@ class BaseJobProgressManager:
         current_done = job_data["done"]
         job_data["expected"] = real_expected
         logger.debug("Updated expected count", job_id=job_id, new_expected=real_expected, current_done=current_done, asset_type=asset_type, event_type_prefix=event_type_prefix)
-        if current_done >= real_expected:
+        if self._has_reached_completion(current_done, real_expected):
             logger.info("Job completed after updating expected count", job_id=job_id, asset_type=asset_type, done=current_done, expected=real_expected, event_type_prefix=event_type_prefix)
             return True
         logger.debug("Job not complete after updating expected count", job_id=job_id, asset_type=asset_type, done=current_done, expected=real_expected, event_type_prefix=event_type_prefix)
         return False
+
+    def _has_reached_completion(self, done: int, expected: int) -> bool:
+        """Determine whether the completion threshold has been met."""
+        if expected <= 0:
+            return done >= expected
+        threshold_count = expected * self.completion_threshold
+        return done >= threshold_count

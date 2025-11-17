@@ -1,13 +1,34 @@
 import asyncio
-import uuid
-from typing import Dict, Any, Set, Optional
+import os
+from typing import Dict, Set
 from common_py.logging_config import configure_logging
 from common_py.messaging import MessageBroker
 from .job_progress_manager.base_manager import BaseJobProgressManager
 from .job_progress_manager.watermark_timer_manager import WatermarkTimerManager
 from .job_progress_manager.completion_event_publisher import CompletionEventPublisher
 
+try:
+    from config import config as global_config
+except ImportError:
+    try:
+        from libs.config import config as global_config
+    except ImportError:
+        global_config = None
+
 logger = configure_logging("vision-common:_job_progress_manager")
+
+
+def _get_completion_threshold_percentage() -> int:
+    """Resolve the completion threshold percentage from global config or environment."""
+    if global_config and hasattr(global_config, "COMPLETION_THRESHOLD_PERCENTAGE"):
+        return getattr(global_config, "COMPLETION_THRESHOLD_PERCENTAGE", 100)
+    env_value = os.getenv("COMPLETION_THRESHOLD_PERCENTAGE")
+    try:
+        return int(env_value) if env_value is not None else 100
+    except ValueError:
+        logger.warning("Invalid COMPLETION_THRESHOLD_PERCENTAGE value, falling back to 100", value=env_value)
+        return 100
+
 
 class JobProgressManager:
     """
@@ -17,7 +38,10 @@ class JobProgressManager:
 
     def __init__(self, broker: MessageBroker):
         self.broker = broker
-        self.base_manager = BaseJobProgressManager(broker)
+        threshold_percentage = max(0, min(_get_completion_threshold_percentage(), 100))
+        self.completion_threshold_percentage = threshold_percentage
+        completion_threshold_ratio = threshold_percentage / 100 if threshold_percentage > 0 else 0.0
+        self.base_manager = BaseJobProgressManager(broker, completion_threshold=completion_threshold_ratio)
         self.completion_publisher = CompletionEventPublisher(broker, self.base_manager)
         self.watermark_timer_manager = WatermarkTimerManager(self.completion_publisher, self.base_manager)
 
@@ -54,12 +78,13 @@ class JobProgressManager:
                         job_id=job_id, asset_type=asset_type, event_type_prefix=event_type_prefix,
                         expected=current_expected, done=job_data["done"])
             return
-        if job_data["done"] >= job_data["expected"]:
+        if self.base_manager._has_reached_completion(job_data["done"], job_data["expected"]):
             done = job_data["done"]
             expected = job_data["expected"]
             logger.info("Automatic completion triggered by progress update",
                        job_id=job_id, asset_type=asset_type, event_type_prefix=event_type_prefix,
                        done=done, expected=expected,
+                       completion_threshold_percentage=self.completion_threshold_percentage,
                        completion_trigger="update_job_progress",
                        current_completion_events_sent=len(self.completion_publisher._completion_events_sent))
             await self.completion_publisher.publish_completion_event_with_count(job_id, asset_type, expected, done, event_type_prefix)
