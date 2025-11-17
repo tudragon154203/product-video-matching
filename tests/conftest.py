@@ -17,6 +17,11 @@ import httpx
 import os
 import sys
 from pathlib import Path
+from _pytest.fixtures import FixtureDef
+
+# pytest-asyncio>=0.21 expects FixtureDef.unittest; older pytest versions may not set it.
+if not hasattr(FixtureDef, "unittest"):
+    FixtureDef.unittest = False
 
 # Compute and add project paths BEFORE any project imports
 PROJECT_ROOT = Path(__file__).resolve().parent.parent

@@ -114,16 +114,41 @@ class AbstractKeyframeExtractor(KeyframeExtractorInterface, ABC):
                 logger.warning("Video file is empty", video_path=video_path)
                 return False
 
-            # Try to open with OpenCV
-            cap = cv2.VideoCapture(video_path)
-            if not cap.isOpened():
-                logger.warning("Cannot open video file with OpenCV", video_path=video_path)
-                cap.release()
-                return False
+            # Try to open with OpenCV using FFmpeg backend and software decoding
+            import os
+            old_env = {}
+            hwaccel_env_vars = {
+                'FFMPEG_HWACCEL': 'none',
+                'OPENCV_FFMPEG_CAPTURE_OPTIONS': 'hwaccel;none'
+            }
 
-            # Check if video has frames
-            frame_count = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
-            cap.release()
+            try:
+                for key, value in hwaccel_env_vars.items():
+                    old_env[key] = os.environ.get(key)
+                    os.environ[key] = value
+
+                cap = cv2.VideoCapture(video_path, cv2.CAP_FFMPEG)
+
+                if not cap.isOpened():
+                    logger.warning("FFMPEG backend failed, trying default backend for validation", video_path=video_path)
+                    cap = cv2.VideoCapture(video_path)
+
+                if not cap.isOpened():
+                    logger.warning("Cannot open video file with OpenCV", video_path=video_path)
+                    return False
+
+                # Check if video has frames
+                frame_count = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+
+            finally:
+                if 'cap' in locals() and cap is not None:
+                    cap.release()
+
+                for key, old_value in old_env.items():
+                    if old_value is None:
+                        os.environ.pop(key, None)
+                    else:
+                        os.environ[key] = old_value
 
             if frame_count <= 0:
                 logger.warning("Video file has no frames", video_path=video_path)
@@ -153,22 +178,42 @@ class AbstractKeyframeExtractor(KeyframeExtractorInterface, ABC):
             if not Path(video_path).exists():
                 raise FileNotFoundError(f"Video file not found: {video_path}")
 
-            cap = cv2.VideoCapture(video_path)
-            if not cap.isOpened():
-                raise ValueError(f"Cannot open video file: {video_path}")
+            import os
+            old_env = {}
+            hwaccel_env_vars = {
+                'FFMPEG_HWACCEL': 'none',
+                'OPENCV_FFMPEG_CAPTURE_OPTIONS': 'hwaccel;none'
+            }
 
             try:
-                fps = cap.get(cv2.CAP_PROP_FPS)
-                frame_count = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+                for key, value in hwaccel_env_vars.items():
+                    old_env[key] = os.environ.get(key)
+                    os.environ[key] = value
 
-                if fps <= 0:
-                    raise ValueError(f"Invalid FPS value: {fps}")
+                cap = cv2.VideoCapture(video_path, cv2.CAP_FFMPEG)
 
-                duration = frame_count / fps
-                return duration
+                if not cap.isOpened():
+                    raise ValueError(f"Cannot open video file: {video_path}")
+
+                try:
+                    fps = cap.get(cv2.CAP_PROP_FPS)
+                    frame_count = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+
+                    if fps <= 0:
+                        raise ValueError(f"Invalid FPS value: {fps}")
+
+                    duration = frame_count / fps
+                    return duration
+
+                finally:
+                    cap.release()
 
             finally:
-                cap.release()
+                for key, old_value in old_env.items():
+                    if old_value is None:
+                        os.environ.pop(key, None)
+                    else:
+                        os.environ[key] = old_value
 
         except Exception as e:
             logger.error("Failed to get video duration", video_path=video_path, error=str(e))
