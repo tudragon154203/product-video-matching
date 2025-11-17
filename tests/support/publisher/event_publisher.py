@@ -5,7 +5,7 @@ Provides helpers for publishing test events and validating event flow.
 
 import uuid
 from typing import Dict, Any, Optional, List
-from datetime import datetime
+from datetime import datetime, timezone
 
 from common_py.messaging import MessageBroker
 from common_py.logging_config import configure_logging
@@ -90,7 +90,7 @@ class CollectionEventPublisher:
             "topic": "products.collect.request",
             "event_data": event_data,
             "correlation_id": correlation_id,
-            "timestamp": datetime.utcnow().isoformat()
+            "timestamp": datetime.now(timezone.utc).isoformat()
         })
 
         logger.info(
@@ -157,7 +157,7 @@ class CollectionEventPublisher:
             "topic": "videos.search.request",
             "event_data": event_data,
             "correlation_id": correlation_id,
-            "timestamp": datetime.utcnow().isoformat()
+            "timestamp": datetime.now(timezone.utc).isoformat()
         })
 
         logger.info(
@@ -203,7 +203,7 @@ class CollectionEventPublisher:
             "topic": "products.collections.completed",
             "event_data": event_data,
             "correlation_id": correlation_id,
-            "timestamp": datetime.utcnow().isoformat()
+            "timestamp": datetime.now(timezone.utc).isoformat()
         })
 
         logger.info(
@@ -247,7 +247,7 @@ class CollectionEventPublisher:
             "topic": "videos.collections.completed",
             "event_data": event_data,
             "correlation_id": correlation_id,
-            "timestamp": datetime.utcnow().isoformat()
+            "timestamp": datetime.now(timezone.utc).isoformat()
         })
 
         logger.info(
@@ -477,7 +477,7 @@ class TestEventFactory:
     @staticmethod
     def create_test_job_id() -> str:
         """Create a test job ID with timestamp"""
-        timestamp = datetime.utcnow().strftime("%Y%m%d_%H%M%S")
+        timestamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
         return f"test_job_{timestamp}_{uuid.uuid4().hex[:8]}"
 
 
@@ -547,7 +547,7 @@ class FeatureExtractionEventPublisher:
         """Publish event via common MessageBroker to the configured topic exchange"""
         # Generate correlation_id if not present
         correlation_id = event_data.get("correlation_id") or (
-            f"test_{event_data.get('job_id', 'unknown')}_{datetime.utcnow().strftime('%Y%m%d_%H%M%S')}"
+            f"test_{event_data.get('job_id', 'unknown')}_{datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')}"
         )
 
         # Use the shared broker API which targets 'product_video_matching' topic exchange
@@ -561,7 +561,7 @@ class FeatureExtractionEventPublisher:
         self.published_events.append({
             "routing_key": routing_key,
             "event_data": event_data,
-            "published_at": datetime.utcnow().isoformat()
+            "published_at": datetime.now(timezone.utc).isoformat()
         })
 
     def clear_published_events(self):
@@ -609,7 +609,7 @@ class FeatureExtractionEventFactory:
         return {
             "job_id": job_id,
             "event_id": str(uuid.uuid4()),
-            "timestamp": datetime.utcnow().isoformat(),
+            "timestamp": datetime.now(timezone.utc).isoformat(),
             "total_embeddings": len(embeddings),
             "embeddings": embeddings
         }
@@ -631,7 +631,7 @@ class FeatureExtractionEventFactory:
         return {
             "job_id": job_id,
             "event_id": str(uuid.uuid4()),
-            "timestamp": datetime.utcnow().isoformat(),
+            "timestamp": datetime.now(timezone.utc).isoformat(),
             "total_keypoints": len(keypoints),
             "keypoints": keypoints
         }
@@ -655,7 +655,7 @@ class FeatureExtractionEventFactory:
         return {
             "job_id": job_id,
             "event_id": str(uuid.uuid4()),
-            "timestamp": datetime.utcnow().isoformat(),
+            "timestamp": datetime.now(timezone.utc).isoformat(),
             "total_keypoints": len(video_keypoints),
             "keypoints": video_keypoints
         }
@@ -675,7 +675,7 @@ class MatchingEventPublisher:
     async def _publish_event(self, routing_key: str, event_data: Dict[str, Any]):
         """Publish event via common MessageBroker to the configured topic exchange"""
         correlation_id = event_data.get("correlation_id") or (
-            f"test_{event_data.get('job_id', 'unknown')}_{datetime.utcnow().strftime('%Y%m%d_%H%M%S')}"
+            f"test_{event_data.get('job_id', 'unknown')}_{datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')}"
         )
 
         await self.message_broker.publish_event(
@@ -688,7 +688,7 @@ class MatchingEventPublisher:
             "routing_key": routing_key,
             "payload": event_data,
             "correlation_id": correlation_id,
-            "timestamp": datetime.utcnow().isoformat()
+            "timestamp": datetime.now(timezone.utc).isoformat()
         })
 
         logger.info(

@@ -14,7 +14,7 @@ import sys
 from pathlib import Path
 import json
 import time
-from datetime import datetime
+from datetime import datetime, timezone
 
 # Add current directory to Python path
 sys.path.insert(0, str(Path(__file__).parent))
@@ -35,7 +35,7 @@ async def test_e2e_flow():
     auth_service = eBayAuthService(config, redis_client)
 
     results = {
-        "timestamp": datetime.utcnow().isoformat(),
+        "timestamp": datetime.now(timezone.utc).isoformat(),
         "tests": {},
         "performance": {},
         "issues": [],

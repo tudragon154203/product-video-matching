@@ -14,7 +14,7 @@ import sys
 from pathlib import Path
 import json
 import redis
-from datetime import datetime
+from datetime import datetime, timezone
 
 # Add current directory to Python path
 sys.path.insert(0, str(Path(__file__).parent.parent))
@@ -680,7 +680,7 @@ async def run_comprehensive_test():
     )
 
     results = {
-        "timestamp": datetime.utcnow().isoformat(),
+        "timestamp": datetime.now(timezone.utc).isoformat(),
         "config": {
             "ebay_environment": config.EBAY_ENVIRONMENT,
             "marketplaces": collector.marketplaces,

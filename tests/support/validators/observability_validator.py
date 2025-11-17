@@ -4,7 +4,7 @@ Provides comprehensive validation of logs, metrics, and health checks.
 """
 import json
 import re
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Dict, Any, List, Optional
 
 from common_py.logging_config import configure_logging
@@ -489,7 +489,7 @@ class ObservabilityValidator:
 
         results = {
             "correlation_id": correlation_id,
-            "validation_timestamp": datetime.utcnow().isoformat(),
+            "validation_timestamp": datetime.now(timezone.utc).isoformat(),
             "logs": {},
             "metrics": {},
             "health": {}

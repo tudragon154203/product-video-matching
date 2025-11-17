@@ -5,7 +5,7 @@ Provides comprehensive test environment management with proper isolation.
 import os
 import tempfile
 from typing import Dict, Any, Optional, List
-from datetime import datetime
+from datetime import datetime, timezone
 
 from common_py.database import DatabaseManager
 from common_py.messaging import MessageBroker
@@ -60,7 +60,7 @@ class CollectionPhaseTestEnvironment:
             # Generate test job ID if not provided
             if not job_id:
                 # Use microseconds and a random suffix to guarantee uniqueness across rapid concurrent setups
-                timestamp = datetime.utcnow().strftime("%Y%m%d_%H%M%S_%f")
+                timestamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S_%f")
                 unique_suffix = os.urandom(2).hex()
                 self.test_job_id = f"test_job_{timestamp}_{os.getpid()}_{unique_suffix}"
             else:
@@ -358,7 +358,7 @@ class TestEnvironmentManager:
 
         # Generate a unique job_id if not provided
         if job_id is None:
-            timestamp = datetime.utcnow().strftime("%Y%m%d_%H%M%S_%f")
+            timestamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S_%f")
             unique_suffix = os.urandom(2).hex()
             generated_job_id = f"test_job_{timestamp}_{os.getpid()}_{name}_{unique_suffix}"
         else:

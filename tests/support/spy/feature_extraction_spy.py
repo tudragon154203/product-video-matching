@@ -5,7 +5,7 @@ Spy for RabbitMQ messages during feature extraction phase integration tests.
 import asyncio
 import json
 from typing import Dict, List, Any
-from datetime import datetime
+from datetime import datetime, timezone
 
 from common_py.messaging import MessageBroker
 
@@ -36,7 +36,7 @@ class FeatureExtractionSpy:
         await self.broker.connect()
 
         # Create namespaced spy queues for each event type
-        timestamp = datetime.utcnow().strftime("%Y%m%d_%H%M%S")
+        timestamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
 
         # Set up queues with auto-delete and namespacing
         queue_configs = [
@@ -80,7 +80,7 @@ class FeatureExtractionSpy:
                 captured_message = {
                     "event_data": body,
                     "routing_key": message.routing_key,
-                    "timestamp": datetime.utcnow().isoformat(),
+                    "timestamp": datetime.now(timezone.utc).isoformat(),
                     "headers": dict(message.headers or {}),
                     "correlation_id": message.correlation_id
                 }

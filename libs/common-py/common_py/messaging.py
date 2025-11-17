@@ -2,7 +2,7 @@ import asyncio
 import json
 import uuid
 from typing import Dict, Any, Callable, Optional
-from datetime import datetime
+from datetime import datetime, timezone
 import aio_pika
 from aio_pika import Message, DeliveryMode
 from .logging_config import configure_logging
@@ -65,7 +65,7 @@ class MessageBroker:
         enriched_event = {
             **event_data,
             "_metadata": {
-                "timestamp": datetime.utcnow().isoformat(),
+                "timestamp": datetime.now(timezone.utc).isoformat(),
                 "correlation_id": correlation_id or str(uuid.uuid4()),
                 "topic": topic
             }

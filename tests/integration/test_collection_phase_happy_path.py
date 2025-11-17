@@ -19,7 +19,7 @@ from common_py.crud import ProductCRUD, VideoCRUD, EventCRUD
 import pytest
 import asyncio
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 
 pytestmark = [
     pytest.mark.asyncio,
@@ -52,6 +52,7 @@ class TestCollectionPhaseHappyPath:
         video_mode = os.environ.get("VIDEO_CRAWLER_MODE", "").lower()
         dropship_mode = os.environ.get("DROPSHIP_PRODUCT_FINDER_MODE", "").lower()
         enforce_flag = os.environ.get("INTEGRATION_TESTS_ENFORCE_REAL_SERVICES", "").lower()
+        truthy_values = {"true", "1", "yes"}
 
         if video_mode != "live":
             raise AssertionError(f"VIDEO_CRAWLER_MODE must be 'live', got '{video_mode}'")
@@ -59,8 +60,10 @@ class TestCollectionPhaseHappyPath:
         if dropship_mode != "live":
             raise AssertionError(f"DROPSHIP_PRODUCT_FINDER_MODE must be 'live', got '{dropship_mode}'")
 
-        if enforce_flag != "true":
-            raise AssertionError(f"INTEGRATION_TESTS_ENFORCE_REAL_SERVICES must be 'true', got '{enforce_flag}'")
+        if enforce_flag not in truthy_values:
+            raise AssertionError(
+                f"INTEGRATION_TESTS_ENFORCE_REAL_SERVICES must be one of {sorted(truthy_values)}, got '{enforce_flag}'"
+            )
 
         print("Real service usage validated for test execution")
 
@@ -502,7 +505,7 @@ class TestCollectionPhaseHappyPath:
         )
 
         # Start time for timeout validation
-        start_time = datetime.utcnow()
+        start_time = datetime.now(timezone.utc)
 
         # Publish requests
         _ = await publisher.publish_products_collect_request(
@@ -527,7 +530,7 @@ class TestCollectionPhaseHappyPath:
         videos_event = await spy.wait_for_videos_completed(job_id=job_id, timeout=900.0)  # 15 minutes
 
         # End time for timeout validation
-        end_time = datetime.utcnow()
+        end_time = datetime.now(timezone.utc)
         total_time = (end_time - start_time).total_seconds()
 
         # Verify timeout constraints; allow up to 900s (15 minutes) for comprehensive scenario on real services

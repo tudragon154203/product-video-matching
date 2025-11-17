@@ -2,7 +2,7 @@
 
 import json
 from typing import Optional, Dict, Any
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from common_py.logging_config import configure_logging
 from .ebay_auth_api_client import EbayAuthAPIClient
 
@@ -78,7 +78,7 @@ class eBayAuthService:
             ttl = expires_in - 300
 
             # Add timestamp for tracking
-            token_data["stored_at"] = datetime.utcnow().isoformat()
+            token_data["stored_at"] = datetime.now(timezone.utc).isoformat()
 
             await self.redis.setex(self.redis_key, ttl, json.dumps(token_data))
 
@@ -118,7 +118,7 @@ class eBayAuthService:
             expiration_time = stored_at + timedelta(
                 seconds=expires_in - 300
             )  # 5-minute buffer
-            current_time = datetime.utcnow()
+            current_time = datetime.now(timezone.utc)
 
             # Debug logging
             logger.debug(

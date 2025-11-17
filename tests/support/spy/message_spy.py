@@ -6,7 +6,7 @@ import asyncio
 import json
 import uuid
 from typing import Dict, Any, List, Optional, Callable
-from datetime import datetime
+from datetime import datetime, timezone
 import aio_pika
 import os
 from aio_pika import Message, DeliveryMode
@@ -338,7 +338,7 @@ class MessageSpy:
                         "event_data": event_data,
                         "routing_key": message.routing_key,
                         "correlation_id": message.correlation_id,
-                        "timestamp": datetime.utcnow().isoformat(),
+                        "timestamp": datetime.now(timezone.utc).isoformat(),
                         "headers": dict(message.headers) if message.headers else {}
                     }
 

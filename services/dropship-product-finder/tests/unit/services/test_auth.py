@@ -3,7 +3,7 @@ Unit tests for eBay authentication service with Redis token management.
 """
 
 import json
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -48,7 +48,7 @@ class TesteBayAuthService:
         cached_token = {
             "access_token": "cached_token_123",
             "expires_in": 7200,
-            "stored_at": datetime.utcnow().isoformat(),
+            "stored_at": datetime.now(timezone.utc).isoformat(),
         }
         mock_redis.get.return_value = json.dumps(cached_token)
 
@@ -69,7 +69,7 @@ class TesteBayAuthService:
         new_token = {
             "access_token": "new_token_456",
             "expires_in": 7200,
-            "stored_at": datetime.utcnow().isoformat(),
+            "stored_at": datetime.now(timezone.utc).isoformat(),
         }
 
         with patch.object(auth_service, "_refresh_token") as mock_refresh:
@@ -170,7 +170,7 @@ class TesteBayAuthService:
         token_data = {
             "access_token": "valid_token",
             "expires_in": 7200,
-            "stored_at": (datetime.utcnow() - timedelta(seconds=1000)).isoformat(),
+            "stored_at": (datetime.now(timezone.utc) - timedelta(seconds=1000)).isoformat(),
         }
 
         result = auth_service._is_token_valid(token_data)
@@ -183,7 +183,7 @@ class TesteBayAuthService:
             "access_token": "expired_token",
             "expires_in": 7200,
             "stored_at": (
-                datetime.utcnow() - timedelta(seconds=7000)
+                datetime.now(timezone.utc) - timedelta(seconds=7000)
             ).isoformat(),  # Expired
         }
 
@@ -198,7 +198,7 @@ class TesteBayAuthService:
         cached_token = {
             "access_token": "valid_cached_token",
             "expires_in": 7200,
-            "stored_at": (datetime.utcnow() - timedelta(seconds=1000)).isoformat(),
+            "stored_at": (datetime.now(timezone.utc) - timedelta(seconds=1000)).isoformat(),
         }
         mock_redis.get.return_value = json.dumps(cached_token)
 
@@ -216,7 +216,7 @@ class TesteBayAuthService:
         cached_token = {
             "access_token": "expired_cached_token",
             "expires_in": 7200,
-            "stored_at": (datetime.utcnow() - timedelta(seconds=7000)).isoformat(),  # Expired
+            "stored_at": (datetime.now(timezone.utc) - timedelta(seconds=7000)).isoformat(),  # Expired
         }
         mock_redis.get.return_value = json.dumps(cached_token)
 
@@ -226,7 +226,7 @@ class TesteBayAuthService:
             new_token = {
                 "access_token": "new_refreshed_token",
                 "expires_in": 7200,
-                "stored_at": datetime.utcnow().isoformat(),
+                "stored_at": datetime.now(timezone.utc).isoformat(),
             }
 
             with patch.object(auth_service, "_refresh_token") as mock_refresh:

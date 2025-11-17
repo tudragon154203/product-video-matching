@@ -1,5 +1,5 @@
 import asyncio
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, List
 
 import yt_dlp
@@ -96,7 +96,7 @@ class YoutubeSearcher:
 
     def _filter_and_format_entries(self, entries: List[Dict[str, Any]], recency_days: int) -> List[Dict[str, Any]]:
         videos = []
-        cutoff_date = datetime.utcnow() - timedelta(days=recency_days)
+        cutoff_date = datetime.now(timezone.utc) - timedelta(days=recency_days)
 
         filter_chain = FilterChain()
         filter_chain.add_filter("valid_entry", filter_valid_entry)
