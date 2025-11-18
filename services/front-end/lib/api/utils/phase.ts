@@ -26,7 +26,7 @@ export const phaseInfo: Record<Phase, PhaseInfo> = {
     getCompactLabel: (t) => t('jobStatus.collectionCompact') || 'Collecting',
     color: 'bg-blue-500',
     getDescription: (t) => t('jobStatus.collectionDescription') || 'Collecting candidate products and videos.',
-    effect: 'animated-dots'
+    effect: 'progress-bar'
   },
   feature_extraction: {
     getLabel: (t) => t('phases.featureExtraction.label') || 'Extracting features (images / video frames)…',
@@ -40,7 +40,7 @@ export const phaseInfo: Record<Phase, PhaseInfo> = {
     getCompactLabel: (t) => t('phases.matching.compact') || 'Matching',
     color: 'bg-purple-500',
     getDescription: (t) => t('phases.matching.description') || 'Matching collected products with candidate videos.',
-    effect: 'spinner'
+    effect: 'progress-bar'
   },
   evidence: {
     getLabel: (t) => t('phases.evidence.label') || 'Generating visual evidence…',

@@ -52,16 +52,6 @@ export function JobItemRow({ job }: JobItemRowProps) {
   const shouldShowStatusCircle = true
 
   const renderPhaseEffect = () => {
-    if (resolvedPhase === 'collection') {
-      return (
-        <div
-          data-testid="status-spinner"
-          className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent"
-          aria-hidden="true"
-        />
-      )
-    }
-
     if (!phaseInfo.effect || phaseInfo.effect === 'none') {
       return null
     }

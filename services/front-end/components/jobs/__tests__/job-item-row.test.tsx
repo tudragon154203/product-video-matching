@@ -4,6 +4,16 @@ import { JobItemRow } from '../../jobs/JobItemRow';
 import { useJobStatusPolling } from '@/lib/hooks/useJobStatusPolling';
 import { getPhaseInfo } from '@/lib/api/utils/phase';
 import { formatToGMT7 } from '@/lib/time';
+import test from 'node:test';
+import test from 'node:test';
+import test from 'node:test';
+import test from 'node:test';
+import test from 'node:test';
+import test from 'node:test';
+import test from 'node:test';
+import test from 'node:test';
+import { beforeEach } from 'node:test';
+import { describe } from 'node:test';
 
 // Mock external dependencies
 jest.mock('@/lib/hooks/useJobStatusPolling');
@@ -50,9 +60,9 @@ describe('JobItemRow', () => {
     mockGetPhaseInfo.mockImplementation((phase) => {
       switch (phase) {
         case 'unknown': return { getLabel: () => 'Status unknown.', color: 'gray', effect: 'none' };
-        case 'collection': return { getLabel: () => 'Collecting products and videos…', color: 'blue', effect: 'animated-dots' };
+        case 'collection': return { getLabel: () => 'Collecting products and videos…', color: 'blue', effect: 'progress-bar' };
         case 'feature_extraction': return { getLabel: () => 'Extracting features (images / video frames)…', color: 'yellow', effect: 'progress-bar' };
-        case 'matching': return { getLabel: () => 'Matching products with videos…', color: 'purple', effect: 'spinner' };
+        case 'matching': return { getLabel: () => 'Matching products with videos…', color: 'purple', effect: 'progress-bar' };
         case 'evidence': return { getLabel: () => 'Generating visual evidence…', color: 'orange', effect: 'progress-bar' };
         case 'completed': return { getLabel: () => '✅ Completed!', color: 'green', effect: 'none' };
         case 'failed': return { getLabel: () => '❌ Job failed.', color: 'red', effect: 'none' };
@@ -71,7 +81,7 @@ describe('JobItemRow', () => {
     expect(screen.getByRole('status')).toHaveAttribute('aria-live', 'polite');
   });
 
-  test('renders collection phase with only phase label', () => {
+  test('renders collection phase with progress bar', () => {
     mockUseJobStatusPolling.mockReturnValue({
       phase: 'collection',
       percent: 20,
@@ -83,9 +93,9 @@ describe('JobItemRow', () => {
     // For collection phase, the phase label is hidden (line 150 in JobItemRow.tsx)
     expect(screen.queryByText('Collecting products and videos…')).not.toBeInTheDocument();
     expect(screen.getByTestId('status-color-circle')).toBeInTheDocument();
+    expect(screen.getByTestId('status-progress-bar')).toBeInTheDocument();
+    expect(screen.queryByTestId('status-spinner')).not.toBeInTheDocument();
     expect(screen.queryByTestId('status-animated-dots')).not.toBeInTheDocument();
-    expect(screen.queryByTestId('status-spinner')).toBeInTheDocument();
-    expect(screen.queryByTestId('status-progress-bar')).not.toBeInTheDocument();
     expect(screen.queryByText('✔ Products done')).not.toBeInTheDocument();
     expect(screen.queryByText('✔ Videos done')).not.toBeInTheDocument();
     expect(screen.queryByText('Collection finished')).not.toBeInTheDocument();
@@ -107,7 +117,7 @@ describe('JobItemRow', () => {
     expect(screen.queryByTestId('status-animated-dots')).not.toBeInTheDocument();
   });
 
-  test('renders matching phase with spinner', () => {
+  test('renders matching phase with progress bar', () => {
     mockUseJobStatusPolling.mockReturnValue({
       phase: 'matching',
       percent: 80,
@@ -118,8 +128,8 @@ describe('JobItemRow', () => {
 
     expect(screen.getByText('Matching products with videos…')).toBeInTheDocument();
     expect(screen.getByTestId('status-color-circle')).toHaveClass('bg-purple-500');
-    expect(screen.getByTestId('status-spinner')).toBeInTheDocument();
-    expect(screen.queryByTestId('status-progress-bar')).not.toBeInTheDocument();
+    expect(screen.getByTestId('status-progress-bar')).toBeInTheDocument();
+    expect(screen.queryByTestId('status-spinner')).not.toBeInTheDocument();
     expect(screen.queryByTestId('status-animated-dots')).not.toBeInTheDocument();
   });
 
