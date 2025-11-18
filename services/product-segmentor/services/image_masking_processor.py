@@ -55,12 +55,21 @@ class ImageMaskingProcessor:
     async def _generate_and_load_foreground_mask(
         self, image_id: str, local_path: str, image_type: str, job_id: str
     ) -> Optional[np.ndarray]:
-        foreground_mask_path = await self.image_processor.process_image(
-            image_id=image_id,
-            local_path=local_path,
-            image_type=image_type,
-            file_manager=self.file_manager,
-        )
+        try:
+            foreground_mask_path = await self.image_processor.process_image(
+                image_id=image_id,
+                local_path=local_path,
+                image_type=image_type,
+                file_manager=self.file_manager,
+            )
+        except Exception as e:
+            # Re-raise CUDA OOM errors for retry logic
+            error_str = str(e).lower()
+            if any(indicator in error_str for indicator in ["cuda out of memory", "cudnn error", "out of memory"]):
+                raise  # Propagate OOM errors
+            # For other errors, log and return None
+            logger.error("Error generating foreground mask", job_id=job_id, asset_id=image_id, error=str(e))
+            return None
 
         if foreground_mask_path is None:
             logger.warning("Item processing failed",

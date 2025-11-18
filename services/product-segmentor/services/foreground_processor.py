@@ -90,5 +90,11 @@ class ForegroundProcessor:
             return mask_path
 
         except Exception as e:
+            # Re-raise CUDA OOM errors so retry logic can handle them
+            error_str = str(e).lower()
+            if any(indicator in error_str for indicator in ["cuda out of memory", "cudnn error", "out of memory"]):
+                logger.error("CUDA OOM error during image processing", image_id=image_id, error=str(e))
+                raise  # Re-raise to allow retry logic to handle
+            
             logger.error("Error processing image", image_id=image_id, error=str(e))
             return None
