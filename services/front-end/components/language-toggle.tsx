@@ -1,24 +1,44 @@
 'use client'
 
 import { useLocale, useTranslations } from 'next-intl'
-import { useRouter } from 'next/navigation'
 import { usePathname } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { useState, useEffect } from 'react'
 import { useAutoAnimateList } from '@/lib/hooks/useAutoAnimateList'
 
+const FlagIcon = ({ code }: { code: string }) => {
+  if (code === 'vi') {
+    return (
+      <svg width="24" height="16" viewBox="0 0 30 20" className="inline-block shrink-0 rounded-sm border border-gray-200">
+        <rect width="30" height="20" fill="#DA251D"/>
+        <polygon points="15,4 17.5,11 25,11 19,15 21,22 15,17 9,22 11,15 5,11 12.5,11" fill="#FFFF00"/>
+      </svg>
+    )
+  }
+  return (
+    <svg width="24" height="16" viewBox="0 0 30 20" className="inline-block shrink-0 rounded-sm border border-gray-200">
+      <rect width="30" height="20" fill="#B22234"/>
+      <rect y="2" width="30" height="2" fill="white"/>
+      <rect y="6" width="30" height="2" fill="white"/>
+      <rect y="10" width="30" height="2" fill="white"/>
+      <rect y="14" width="30" height="2" fill="white"/>
+      <rect y="18" width="30" height="2" fill="white"/>
+      <rect width="12" height="10" fill="#3C3B6E"/>
+    </svg>
+  )
+}
+
 export function LanguageToggle() {
   const t = useTranslations()
   const locale = useLocale()
-  const router = useRouter()
   const pathname = usePathname()
   const [isOpen, setIsOpen] = useState(false)
   const [currentLocale, setCurrentLocale] = useState(locale)
   const { parentRef: menuRef } = useAutoAnimateList<HTMLDivElement>({ duration: 180 })
 
   const languages = [
-    { code: 'vi', name: t('languages.vietnamese'), flag: '🇻🇳' },
-    { code: 'en', name: t('languages.english'), flag: '🇺🇸' }
+    { code: 'vi', name: t('languages.vietnamese') },
+    { code: 'en', name: t('languages.english') }
   ]
 
   // Update current locale when URL changes
@@ -60,24 +80,28 @@ export function LanguageToggle() {
         variant="outline"
         size="sm"
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center space-x-2"
+        className="flex items-center gap-2 overflow-visible"
       >
-        <span>{currentLanguage?.flag}</span>
-        <span>{currentLanguage?.name}</span>
+        <span className="flex items-center shrink-0">
+          <FlagIcon code={currentLocale} />
+        </span>
+        <span className="text-sm">{currentLanguage?.name}</span>
       </Button>
       
       {isOpen && (
-        <div className="absolute top-full mt-2 right-0 bg-white border rounded-lg shadow-lg z-50 min-w-[120px]">
+        <div className="absolute top-full mt-2 right-0 bg-background border rounded-lg shadow-lg z-50 min-w-[160px]">
           {languages.map((language) => (
             <button
               key={language.code}
               onClick={() => handleLanguageChange(language.code)}
-              className={`w-full px-4 py-2 text-left flex items-center space-x-2 hover:bg-gray-100 ${
-                language.code === currentLocale ? 'bg-gray-100' : ''
+              className={`w-full px-4 py-2.5 text-left flex items-center gap-3 hover:bg-accent transition-colors first:rounded-t-lg last:rounded-b-lg ${
+                language.code === currentLocale ? 'bg-accent' : ''
               }`}
             >
-              <span>{language.flag}</span>
-              <span>{language.name}</span>
+              <span className="flex items-center shrink-0">
+                <FlagIcon code={language.code} />
+              </span>
+              <span className="text-sm">{language.name}</span>
             </button>
           ))}
         </div>
