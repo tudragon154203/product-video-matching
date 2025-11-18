@@ -21,7 +21,7 @@ class ProductSegmentorHandler:
             db=self.db,
             broker=self.broker,
             foreground_model_name=config.FOREGROUND_SEG_MODEL_NAME,
-            max_concurrent=config.MAX_CONCURRENT_IMAGES
+            max_concurrent=config.MAX_CONCURRENT_IMAGES_IN_BATCH
         )
         self.initialized = False
 

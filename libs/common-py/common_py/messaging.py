@@ -85,7 +85,7 @@ class MessageBroker:
             correlation_id=enriched_event["_metadata"]["correlation_id"]
         )
     
-    async def subscribe_to_topic(self, topic: str, handler: Callable, queue_name: Optional[str] = None):
+    async def subscribe_to_topic(self, topic: str, handler: Callable, queue_name: Optional[str] = None, prefetch_count: int = 1):
         """
         Subscribe to a topic and handle messages
         
@@ -93,9 +93,13 @@ class MessageBroker:
             topic: The topic to subscribe to
             handler: Async function to handle messages
             queue_name: Optional queue name (defaults to topic-based name)
+            prefetch_count: Maximum number of unacknowledged messages (default: 1)
         """
         if not self.exchange:
             raise RuntimeError("Not connected to RabbitMQ")
+        
+        # Set QoS (prefetch) to limit concurrent message processing
+        await self.channel.set_qos(prefetch_count=prefetch_count)
         
         # Create queue
         queue_name = queue_name or f"queue.{topic}"
@@ -117,7 +121,8 @@ class MessageBroker:
         logger.info(
             "Subscribed to topic",
             topic=topic,
-            queue=queue_name
+            queue=queue_name,
+            prefetch_count=prefetch_count
         )
 
     async def get_queue_message_count(self, queue_name: str) -> int:

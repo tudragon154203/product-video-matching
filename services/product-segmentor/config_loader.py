@@ -40,17 +40,18 @@ class ProductSegmentorConfig:
     HF_TOKEN = os.getenv("HF_TOKEN")
 
     # Processing configuration
-    MAX_CONCURRENT_IMAGES: int = int(os.getenv("MAX_CONCURRENT_IMAGES", "3"))
+    MAX_CONCURRENT_IMAGES_IN_BATCH: int = int(os.getenv("MAX_CONCURRENT_IMAGES_IN_BATCH", "3"))
+    MIN_CONCURRENT_IMAGES_IN_BATCH: int = int(os.getenv("MIN_CONCURRENT_IMAGES_IN_BATCH", "1"))
+    MAX_CONCURRENT_BATCHES: int = int(os.getenv("MAX_CONCURRENT_BATCHES", "2"))
     BATCH_TIMEOUT_SECONDS: int = int(os.getenv("BATCH_TIMEOUT_SECONDS", "1800"))
     MASK_QUALITY: float = float(os.getenv("MASK_QUALITY", "0.8"))
     IMG_SIZE: tuple[int, int] = global_config.IMG_SIZE
 
     # GPU Memory Management
+    USE_FP16: bool = _parse_bool("USE_FP16", "true")
     RETRY_ON_OOM: bool = _parse_bool("RETRY_ON_OOM", "true")
     MAX_OOM_RETRIES: int = int(os.getenv("MAX_OOM_RETRIES", "3"))
     GPU_MEMORY_THRESHOLD: float = float(os.getenv("GPU_MEMORY_THRESHOLD", "0.85"))
-    MIN_CONCURRENT_IMAGES: int = int(os.getenv("MIN_CONCURRENT_IMAGES", "1"))
-    USE_FP16: bool = _parse_bool("USE_FP16", "true")
 
     # File paths
     FOREGROUND_MASK_DIR_PATH: str = os.path.join(global_config.DATA_ROOT_CONTAINER,
