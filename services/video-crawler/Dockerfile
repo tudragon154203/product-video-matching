@@ -2,12 +2,14 @@ FROM python:3.10.8-slim
 
 WORKDIR /app
 
-# Install system dependencies
+# Install system dependencies including AV1 codec support
 RUN apt-get update && apt-get install -y \
     gcc \
     ffmpeg \
     build-essential \
     ca-certificates \
+    libdav1d-dev \
+    libaom-dev \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy requirements first for better caching
