@@ -34,17 +34,27 @@ class EmbeddingExtractor:
     async def initialize(self) -> None:
         """Initialize the model and processor."""
         try:
-            # Detect device
-            if torch.cuda.is_available():
+            # Determine device from config
+            device_config = config.DEVICE.lower()
+            if device_config == "cuda" and torch.cuda.is_available():
                 self.device = torch.device("cuda")
                 logger.info(
                     "Using GPU for embeddings",
                     device=str(self.device),
                 )
-            else:
+            elif device_config == "cuda" and not torch.cuda.is_available():
+                logger.warning(
+                    "CUDA requested but not available, falling back to CPU"
+                )
                 self.device = torch.device("cpu")
                 logger.info(
                     "Using CPU for embeddings",
+                    device=str(self.device),
+                )
+            else:
+                self.device = torch.device("cpu")
+                logger.info(
+                    "Using CPU for embeddings (configured)",
                     device=str(self.device),
                 )
 

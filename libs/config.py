@@ -64,7 +64,6 @@ class Config:
     VIDEO_DIR: str = field(default_factory=lambda: get_env_var("VIDEO_DIR", os.path.join(get_env_var("DATA_ROOT_CONTAINER", "/app/data"), "videos")))
     
     # Vision Models
-    EMBED_MODEL: str = field(default_factory=lambda: get_env_var("EMBED_MODEL", "clip-vit-b32"))
     MODEL_CACHE: str = field(default_factory=lambda: get_env_var("MODEL_CACHE", "./model_cache"))
     IMG_SIZE: Tuple[int, int] = field(default_factory=lambda: get_env_tuple_int("IMG_SIZE", (384, 384)))
 
