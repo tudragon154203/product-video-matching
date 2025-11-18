@@ -10,9 +10,11 @@ import { JobStatusHeader } from '@/components/jobs/JobStatusHeader';
 import { FeatureExtractionBanner } from '@/components/jobs/FeatureExtractionBanner';
 import { FeatureExtractionPanel } from '@/components/jobs/FeatureExtractionPanel';
 import { CollectionSummary } from '@/components/jobs/CollectionSummary';
+import { JobActionButtons } from '@/components/jobs/JobActionButtons';
 import { jobApiService } from '@/lib/api/services/job.api';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useFeaturesSummary } from '@/lib/api/hooks';
+import type { Phase } from '@/lib/zod/job';
 
 
 interface JobDetailsPageProps {
@@ -55,19 +57,22 @@ export default function JobDetailsPage({ params }: JobDetailsPageProps) {
   return (
     <div className="container mx-auto px-4 py-6">
       <div className="space-y-6">
-        <div>
-          {isJobLoading ? (
-            <div className="h-8 bg-muted rounded animate-pulse w-1/3" />
-          ) : jobError ? (
-            <h1 className="text-2xl font-bold">{t('jobs.title')}</h1>
-          ) : (
-            <h1 className="text-2xl font-bold">
-              {jobData ? jobData.query : t('jobs.title')}
-            </h1>
-          )}
-          <p className="text-muted-foreground">
-            Job ID: {jobId}
-          </p>
+        <div className="flex justify-between items-start">
+          <div>
+            {isJobLoading ? (
+              <div className="h-8 bg-muted rounded animate-pulse w-1/3" />
+            ) : jobError ? (
+              <h1 className="text-2xl font-bold">{t('jobs.title')}</h1>
+            ) : (
+              <h1 className="text-2xl font-bold">
+                {jobData ? jobData.query : t('jobs.title')}
+              </h1>
+            )}
+            <p className="text-muted-foreground">
+              Job ID: {jobId}
+            </p>
+          </div>
+          {phase && <JobActionButtons jobId={jobId} phase={phase as Phase} />}
         </div>
         
         <Suspense fallback={

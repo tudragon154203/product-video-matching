@@ -19,6 +19,7 @@ import type {
   FeaturesSummaryResponse,
   ProductImageFeaturesResponse,
   VideoFrameFeaturesResponse,
+  CancelJobRequest,
 } from '@/lib/zod';
 
 /**
@@ -66,6 +67,32 @@ export const useStartJob = () => {
     mutationFn: (request: StartJobRequest) => jobApiService.startJob(request),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.jobs.all });
+    },
+  });
+};
+
+export const useCancelJob = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ jobId, request }: { jobId: string; request?: CancelJobRequest }) =>
+      jobApiService.cancelJob(jobId, request),
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.jobs.all });
+      queryClient.invalidateQueries({ queryKey: queryKeys.jobs.status(data.job_id) });
+    },
+  });
+};
+
+export const useDeleteJob = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ jobId, force }: { jobId: string; force?: boolean }) =>
+      jobApiService.deleteJob(jobId, force),
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.jobs.all });
+      queryClient.removeQueries({ queryKey: queryKeys.jobs.status(data.job_id) });
     },
   });
 };

@@ -3,7 +3,10 @@ import {
   StartJobRequest, 
   StartJobResponse,
   JobListResponse,
-  JobItem
+  JobItem,
+  CancelJobRequest,
+  CancelJobResponse,
+  DeleteJobResponse
 } from '@/lib/zod/job';
 import { mainApiClient, apiRequest } from '../client';
 import { handleApiError } from '../utils/error-handling';
@@ -91,6 +94,40 @@ export class JobApiService {
       });
       
       return JobListResponse.parse(response);
+    } catch (error) {
+      throw handleApiError(error);
+    }
+  }
+
+  /**
+   * Cancel a running job
+   */
+  async cancelJob(jobId: string, request?: CancelJobRequest): Promise<CancelJobResponse> {
+    try {
+      const response = await apiRequest<CancelJobResponse>(mainApiClient, {
+        method: 'POST',
+        url: MAIN_API_ENDPOINTS.jobs.cancel(jobId),
+        data: request || {},
+      });
+      
+      return CancelJobResponse.parse(response);
+    } catch (error) {
+      throw handleApiError(error);
+    }
+  }
+
+  /**
+   * Delete a job and all its associated data
+   */
+  async deleteJob(jobId: string, force: boolean = false): Promise<DeleteJobResponse> {
+    try {
+      const url = `${MAIN_API_ENDPOINTS.jobs.delete(jobId)}?force=${force}`;
+      const response = await apiRequest<DeleteJobResponse>(mainApiClient, {
+        method: 'DELETE',
+        url,
+      });
+      
+      return DeleteJobResponse.parse(response);
     } catch (error) {
       throw handleApiError(error);
     }

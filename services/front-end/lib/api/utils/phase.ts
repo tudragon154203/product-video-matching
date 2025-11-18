@@ -56,6 +56,12 @@ export const phaseInfo: Record<Phase, PhaseInfo> = {
     getDescription: (t) => t('jobStatus.failedDescription') || 'Job failed during processing.',
     effect: 'none'
   },
+  cancelled: {
+    getLabel: (t) => t('jobStatus.cancelled') || 'Cancelled',
+    color: 'bg-gray-500',
+    getDescription: (t) => t('jobStatus.cancelledDescription') || 'Job was cancelled by user.',
+    effect: 'none'
+  },
 } as const;
 
 const FALLBACK_PHASE: Phase = 'unknown';
@@ -83,6 +89,7 @@ export function getPhasePercent(phase: Phase): number {
     evidence: 90,
     completed: 100,
     failed: 0,
+    cancelled: 0,
   };
   return phaseToPercent[phase] || 0;
 }
@@ -91,14 +98,14 @@ export function getPhasePercent(phase: Phase): number {
  * Check if a job phase should continue polling
  */
 export function shouldPoll(phase: Phase): boolean {
-  return phase !== 'completed' && phase !== 'failed';
+  return phase !== 'completed' && phase !== 'failed' && phase !== 'cancelled';
 }
 
 /**
  * Check if a phase is in progress (not terminal)
  */
 export function isPhaseInProgress(phase: Phase): boolean {
-  return phase !== 'completed' && phase !== 'failed' && phase !== 'unknown';
+  return phase !== 'completed' && phase !== 'failed' && phase !== 'cancelled' && phase !== 'unknown';
 }
 
 /**

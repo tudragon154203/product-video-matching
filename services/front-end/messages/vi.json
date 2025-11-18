@@ -190,6 +190,12 @@
     "unknownDescription": "Trạng thái công việc không xác định hoặc chưa được khởi tạo",
     "collection": "Đang thu thập",
     "collectionDescription": "Đang thu thập các sản phẩm và video ứng viên",
+    "completed": "✅ Hoàn thành!",
+    "completedDescription": "Công việc hoàn thành thành công.",
+    "failed": "❌ Công việc thất bại.",
+    "failedDescription": "Công việc thất bại trong quá trình xử lý.",
+    "cancelled": "Đã hủy",
+    "cancelledDescription": "Công việc đã bị người dùng hủy.",
     "productsDone": "✔ Sản phẩm hoàn thành",
     "videosDone": "✔ Video hoàn thành",
     "collectionFinished": "Thu thập hoàn tất"

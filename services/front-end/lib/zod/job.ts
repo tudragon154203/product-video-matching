@@ -8,6 +8,7 @@ export const Phase = z.enum([
   "evidence",
   "completed",
   "failed",
+  "cancelled",
 ]);
 
 export const JobStatus = z.object({
@@ -49,6 +50,8 @@ export const JobItem = z.object({
   phase: z.string(),
   created_at: z.string(),
   updated_at: z.string().nullable(),
+  cancelled_at: z.string().nullable().optional(),
+  deleted_at: z.string().nullable().optional(),
 });
 
 export const JobListResponse = z.object({
@@ -69,6 +72,25 @@ export const JobAssetTypes = z.object({
            "zero-asset"
 }));
 
+export const CancelJobRequest = z.object({
+  reason: z.string().optional().default("user_request"),
+  notes: z.string().optional(),
+});
+
+export const CancelJobResponse = z.object({
+  job_id: z.string(),
+  phase: z.string(),
+  cancelled_at: z.string(),
+  reason: z.string(),
+  notes: z.string().nullable().optional(),
+});
+
+export const DeleteJobResponse = z.object({
+  job_id: z.string(),
+  status: z.string(),
+  deleted_at: z.string(),
+});
+
 export type Phase = z.infer<typeof Phase>;
 export type JobStatus = z.infer<typeof JobStatus>;
 export type StartJobResponse = z.infer<typeof StartJobResponse>;
@@ -76,3 +98,6 @@ export type StartJobRequest = z.infer<typeof StartJobRequest>;
 export type JobItem = z.infer<typeof JobItem>;
 export type JobListResponse = z.infer<typeof JobListResponse>;
 export type JobAssetTypes = z.infer<typeof JobAssetTypes>;
+export type CancelJobRequest = z.infer<typeof CancelJobRequest>;
+export type CancelJobResponse = z.infer<typeof CancelJobResponse>;
+export type DeleteJobResponse = z.infer<typeof DeleteJobResponse>;

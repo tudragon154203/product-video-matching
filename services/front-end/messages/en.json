@@ -190,6 +190,12 @@
     "unknownDescription": "Job status is unknown or not initialized",
     "collection": "Collecting",
     "collectionDescription": "Collecting candidate products and videos",
+    "completed": "✅ Completed!",
+    "completedDescription": "Job completed successfully.",
+    "failed": "❌ Job failed.",
+    "failedDescription": "Job failed during processing.",
+    "cancelled": "Cancelled",
+    "cancelledDescription": "Job was cancelled by user.",
     "productsDone": "✔ Products done",
     "videosDone": "✔ Videos done",
     "collectionFinished": "Collection finished"

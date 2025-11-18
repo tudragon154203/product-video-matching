@@ -21,7 +21,8 @@ export function JobSidebar() {
     refetchOnReconnect: true, // Refetch on network reconnect
   })
 
-  const jobs = jobsResponse?.items || []
+  // Filter out deleted jobs (jobs with deleted_at timestamp)
+  const jobs = (jobsResponse?.items || []).filter(job => !job.deleted_at)
   const stats = useJobStats(jobs)
   const sortedJobs = useSortedJobs(jobs)
   const groupedJobs = useGroupedJobs(sortedJobs)

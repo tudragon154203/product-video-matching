@@ -8,6 +8,8 @@ export const MAIN_API_ENDPOINTS = {
     status: (jobId: string) => `/status/${jobId}`,
     get: (jobId: string) => `/jobs/${jobId}`,
     list: '/jobs',
+    cancel: (jobId: string) => `/jobs/${jobId}/cancel`,
+    delete: (jobId: string) => `/jobs/${jobId}`,
   },
   
   // Product endpoints

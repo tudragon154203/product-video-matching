@@ -133,15 +133,17 @@ export function JobItemRow({ job }: JobItemRowProps) {
     )
   }
 
+  const isCancelled = resolvedPhase === 'cancelled';
+
   return (
     <Link
       key={job.job_id}
       href={`/jobs/${job.job_id}`}
-      className="block rounded-lg border p-3 transition-colors hover:bg-accent/50"
+      className={`block rounded-lg border p-3 transition-colors hover:bg-accent/50 ${isCancelled ? 'opacity-60' : ''}`}
     >
       <div className="space-y-2">
         <div className="flex items-center justify-between">
-          <h4 className="truncate text-sm font-medium">{job.query}</h4>
+          <h4 className={`truncate text-sm font-medium ${isCancelled ? 'text-muted-foreground' : ''}`}>{job.query}</h4>
           <div className="flex items-center space-x-2" aria-live="polite" role="status">
             {shouldShowStatusCircle && (
               <div
