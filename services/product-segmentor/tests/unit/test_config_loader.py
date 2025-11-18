@@ -21,7 +21,6 @@ def clean_env():
     """Clean environment variables before and after tests."""
     keys_to_clean = [
         "MAX_CONCURRENT_IMAGES_IN_BATCH",
-        "MIN_CONCURRENT_IMAGES_IN_BATCH",
         "MAX_CONCURRENT_BATCHES",
         "BATCH_TIMEOUT_SECONDS",
         "USE_FP16",
@@ -110,36 +109,6 @@ class TestBatchConcurrencyConfig:
                 config = ProductSegmentorConfig()
                 
                 assert config.MAX_CONCURRENT_IMAGES_IN_BATCH == 10
-
-    def test_min_concurrent_images_in_batch_default(self, clean_env):
-        """Test MIN_CONCURRENT_IMAGES_IN_BATCH default value."""
-        with patch('config_loader.load_dotenv'):
-            with patch.dict('sys.modules', {'config': MagicMock(config=mock_global_config)}):
-                import importlib
-                import sys
-                if 'config_loader' in sys.modules:
-                    del sys.modules['config_loader']
-                
-                from config_loader import ProductSegmentorConfig
-                config = ProductSegmentorConfig()
-                
-                assert config.MIN_CONCURRENT_IMAGES_IN_BATCH == 1
-
-    def test_min_concurrent_images_in_batch_custom(self, clean_env):
-        """Test MIN_CONCURRENT_IMAGES_IN_BATCH with custom value."""
-        os.environ["MIN_CONCURRENT_IMAGES_IN_BATCH"] = "2"
-        
-        with patch('config_loader.load_dotenv'):
-            with patch.dict('sys.modules', {'config': MagicMock(config=mock_global_config)}):
-                import importlib
-                import sys
-                if 'config_loader' in sys.modules:
-                    del sys.modules['config_loader']
-                
-                from config_loader import ProductSegmentorConfig
-                config = ProductSegmentorConfig()
-                
-                assert config.MIN_CONCURRENT_IMAGES_IN_BATCH == 2
 
     def test_batch_timeout_seconds_default(self, clean_env):
         """Test BATCH_TIMEOUT_SECONDS default value."""
@@ -368,7 +337,6 @@ class TestConfigIntegration:
         """Test all batch-related config values together."""
         os.environ["MAX_CONCURRENT_BATCHES"] = "4"
         os.environ["MAX_CONCURRENT_IMAGES_IN_BATCH"] = "8"
-        os.environ["MIN_CONCURRENT_IMAGES_IN_BATCH"] = "2"
         os.environ["BATCH_TIMEOUT_SECONDS"] = "7200"
         
         with patch('config_loader.load_dotenv'):
@@ -382,7 +350,6 @@ class TestConfigIntegration:
                 
                 assert config.MAX_CONCURRENT_BATCHES == 4
                 assert config.MAX_CONCURRENT_IMAGES_IN_BATCH == 8
-                assert config.MIN_CONCURRENT_IMAGES_IN_BATCH == 2
                 assert config.BATCH_TIMEOUT_SECONDS == 7200
 
     def test_all_gpu_config_together(self, clean_env):
@@ -410,7 +377,6 @@ class TestConfigIntegration:
         """Test production-like configuration."""
         os.environ["MAX_CONCURRENT_BATCHES"] = "2"
         os.environ["MAX_CONCURRENT_IMAGES_IN_BATCH"] = "2"
-        os.environ["MIN_CONCURRENT_IMAGES_IN_BATCH"] = "1"
         os.environ["USE_FP16"] = "true"
         os.environ["RETRY_ON_OOM"] = "true"
         os.environ["GPU_MEMORY_THRESHOLD"] = "0.85"
@@ -427,7 +393,6 @@ class TestConfigIntegration:
                 # Verify conservative production settings
                 assert config.MAX_CONCURRENT_BATCHES == 2
                 assert config.MAX_CONCURRENT_IMAGES_IN_BATCH == 2
-                assert config.MIN_CONCURRENT_IMAGES_IN_BATCH == 1
                 assert config.USE_FP16 is True
                 assert config.RETRY_ON_OOM is True
                 assert config.GPU_MEMORY_THRESHOLD == 0.85

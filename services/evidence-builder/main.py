@@ -39,13 +39,17 @@ async def main() -> None:
 
     try:
         async with service_context() as handler:
+            # Per-asset event: prefetch_count=10 (allow parallel evidence generation)
             await handler.broker.subscribe_to_topic(
                 "match.result",
                 handler.handle_match_result,
+                prefetch_count=10,
             )
+            # Completion event: prefetch_count=1 (process one job completion at a time)
             await handler.broker.subscribe_to_topic(
                 "matchings.process.completed",
                 handler.handle_matchings_completed,
+                prefetch_count=1,
             )
 
             logger.info("Evidence builder service started")

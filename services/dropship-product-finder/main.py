@@ -51,8 +51,11 @@ async def main():
     try:
         async with service_context() as handler:
             # Subscribe to events
+            # Per-job event: prefetch_count=1 (process one product collection request at a time)
             await handler.broker.subscribe_to_topic(
-                "products.collect.request", handler.handle_products_collect_request
+                "products.collect.request",
+                handler.handle_products_collect_request,
+                prefetch_count=1,
             )
 
             logger.info("Product finder service started")

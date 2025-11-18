@@ -36,13 +36,14 @@ async def main():
             from config_loader import config
             
             # Subscribe to product image events
-            # Batch events don't need prefetch limit (single large batch)
+            # Batch events: prefetch_count=1 (process one batch at a time)
             await handler.broker.subscribe_to_topic(
                 "products.images.ready.batch",
                 handler.handle_products_images_ready_batch,
+                prefetch_count=1,
             )
 
-            # Individual image events need prefetch to limit concurrent batches
+            # Per-asset events: allow parallel processing up to MAX_CONCURRENT_BATCHES
             await handler.broker.subscribe_to_topic(
                 "products.image.ready",
                 handler.handle_products_image_ready,
@@ -50,13 +51,14 @@ async def main():
             )
 
             # Subscribe to video keyframe events
-            # Batch events don't need prefetch limit (single large batch)
+            # Batch events: prefetch_count=1 (process one batch at a time)
             await handler.broker.subscribe_to_topic(
                 "videos.keyframes.ready.batch",
                 handler.handle_videos_keyframes_ready_batch,
+                prefetch_count=1,
             )
 
-            # Individual video events need prefetch to limit concurrent batches
+            # Per-asset events: allow parallel processing up to MAX_CONCURRENT_BATCHES
             await handler.broker.subscribe_to_topic(
                 "videos.keyframes.ready",
                 handler.handle_videos_keyframes_ready,

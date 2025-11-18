@@ -85,7 +85,7 @@ class MessageBroker:
             correlation_id=enriched_event["_metadata"]["correlation_id"]
         )
     
-    async def subscribe_to_topic(self, topic: str, handler: Callable, queue_name: Optional[str] = None, prefetch_count: int = 1):
+    async def subscribe_to_topic(self, topic: str, handler: Callable, queue_name: Optional[str] = None, prefetch_count: int = 10):
         """
         Subscribe to a topic and handle messages
         
@@ -93,7 +93,7 @@ class MessageBroker:
             topic: The topic to subscribe to
             handler: Async function to handle messages
             queue_name: Optional queue name (defaults to topic-based name)
-            prefetch_count: Maximum number of unacknowledged messages (default: 1)
+            prefetch_count: Maximum number of unacknowledged messages consumed at once (default: 10)
         """
         if not self.exchange:
             raise RuntimeError("Not connected to RabbitMQ")

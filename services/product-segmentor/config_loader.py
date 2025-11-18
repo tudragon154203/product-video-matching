@@ -41,7 +41,6 @@ class ProductSegmentorConfig:
 
     # Processing configuration
     MAX_CONCURRENT_IMAGES_IN_BATCH: int = int(os.getenv("MAX_CONCURRENT_IMAGES_IN_BATCH", "3"))
-    MIN_CONCURRENT_IMAGES_IN_BATCH: int = int(os.getenv("MIN_CONCURRENT_IMAGES_IN_BATCH", "1"))
     MAX_CONCURRENT_BATCHES: int = int(os.getenv("MAX_CONCURRENT_BATCHES", "2"))
     BATCH_TIMEOUT_SECONDS: int = int(os.getenv("BATCH_TIMEOUT_SECONDS", "1800"))
     MASK_QUALITY: float = float(os.getenv("MASK_QUALITY", "0.8"))

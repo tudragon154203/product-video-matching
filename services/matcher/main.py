@@ -45,9 +45,11 @@ async def main():
 
         async with service_context() as handler:
             # Subscribe to events
+            # Per-job event: prefetch_count=1 (process one match request at a time)
             await handler.broker.subscribe_to_topic(
                 "match.request",
-                handler.handle_match_request
+                handler.handle_match_request,
+                prefetch_count=1,
             )
 
             logger.info("Matcher service started")

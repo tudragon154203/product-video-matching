@@ -31,10 +31,11 @@ async def main():
     """Main service loop"""
     try:
         async with service_context() as handler:
-            # Subscribe to events
+            # Subscribe to events with prefetch_count=1 to process one video at a time
             await handler.broker.subscribe_to_topic(
                 "videos.search.request",
-                handler.handle_videos_search_request
+                handler.handle_videos_search_request,
+                prefetch_count=1
             )
 
             logger.info("Video crawler service started")

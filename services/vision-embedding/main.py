@@ -32,28 +32,34 @@ async def main():
     try:
         async with service_context() as handler:
             # Subscribe to masked events (new segmentation pipeline)
+            # Batch events: prefetch_count=1 (process one batch at a time)
             await handler.broker.subscribe_to_topic(
                 "products.images.masked.batch",
                 handler.handle_products_images_masked_batch,
                 queue_name="q.vision-embedding.images.masked.batch",
+                prefetch_count=1,
             )
 
             await handler.broker.subscribe_to_topic(
                 "video.keyframes.masked.batch",
                 handler.handle_videos_keyframes_masked_batch,
                 queue_name="q.vision_embedding.keyframes.masked.batch",
+                prefetch_count=1,
             )
 
+            # Per-asset events: prefetch_count=10 (allow parallel processing)
             await handler.broker.subscribe_to_topic(
                 "products.image.masked",
                 handler.handle_products_image_masked,
                 queue_name="q.vision_embedding.image.masked",
+                prefetch_count=10,
             )
 
             await handler.broker.subscribe_to_topic(
                 "video.keyframes.masked",
                 handler.handle_video_keyframes_masked,
                 queue_name="q.vision_embedding.keyframes.masked",
+                prefetch_count=10,
             )
 
             logger.info("Vision embedding service started")
