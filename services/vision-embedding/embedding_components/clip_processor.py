@@ -28,6 +28,9 @@ class CLIPProcessor:
         self, image: Image.Image
     ) -> Tuple[np.ndarray, np.ndarray]:
         """Extract real CLIP embeddings."""
+        import time
+        start_time = time.time()
+        
         with torch.no_grad():
             # RGB embedding
             rgb_inputs = self.processor(images=image, return_tensors="pt")
@@ -60,6 +63,14 @@ class CLIPProcessor:
                 p=2,
                 dim=1,
             ).cpu().numpy()[0]
+            
+            total_time = time.time() - start_time
+            
+            logger.info(
+                "CLIP embedding extraction",
+                time_ms=round(total_time * 1000, 2),
+                device=str(self.device),
+            )
 
             return rgb_embedding, gray_embedding
 

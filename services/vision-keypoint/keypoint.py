@@ -25,6 +25,9 @@ class KeypointExtractor:
 
     async def extract_keypoints(self, image_path: str, entity_id: str) -> Optional[str]:
         """Extract keypoints and descriptors from an image"""
+        import time
+        start_time = time.time()
+        
         try:
             # Load image
             image = cv2.imread(image_path, cv2.IMREAD_GRAYSCALE)
@@ -37,6 +40,8 @@ class KeypointExtractor:
 
             # Try AKAZE first (faster and more robust)
             keypoints, descriptors = await self._extract_akaze_keypoints(image)
+            
+            algorithm_used = "AKAZE"
 
             # Fallback to SIFT if AKAZE fails or finds too few keypoints
             if descriptors is None or len(keypoints) < 10:
@@ -46,6 +51,7 @@ class KeypointExtractor:
                     akaze_count=len(keypoints) if keypoints else 0,
                 )
                 keypoints, descriptors = await self._extract_sift_keypoints(image)
+                algorithm_used = "SIFT"
 
             if descriptors is None or len(keypoints) < 5:
                 logger.warning(
@@ -58,12 +64,15 @@ class KeypointExtractor:
 
             # Save keypoints and descriptors
             kp_blob_path = await self._save_keypoints(entity_id, keypoints, descriptors)
+            
+            total_time = time.time() - start_time
 
             logger.info(
-                "Extracted keypoints",
+                "Keypoint extraction",
                 entity_id=entity_id,
-                count=len(keypoints),
-                descriptor_shape=descriptors.shape,
+                algorithm=algorithm_used,
+                keypoint_count=len(keypoints),
+                time_ms=round(total_time * 1000, 2),
             )
 
             return kp_blob_path
@@ -214,6 +223,9 @@ class KeypointExtractor:
         self, image_path: str, mask_path: str, entity_id: str
     ) -> Optional[str]:
         """Extract keypoints and descriptors from an image with mask applied"""
+        import time
+        start_time = time.time()
+        
         try:
             # Load image
             image = cv2.imread(image_path, cv2.IMREAD_GRAYSCALE)
@@ -240,6 +252,8 @@ class KeypointExtractor:
             keypoints, descriptors = await self._extract_akaze_keypoints_with_mask(
                 masked_image, mask
             )
+            
+            algorithm_used = "AKAZE"
 
             # Fallback to SIFT if AKAZE fails or finds too few keypoints
             if descriptors is None or len(keypoints) < 10:
@@ -251,6 +265,7 @@ class KeypointExtractor:
                 keypoints, descriptors = await self._extract_sift_keypoints_with_mask(
                     masked_image, mask
                 )
+                algorithm_used = "SIFT"
 
             if descriptors is None or len(keypoints) < 5:
                 logger.warning(
@@ -263,12 +278,15 @@ class KeypointExtractor:
 
             # Save keypoints and descriptors
             kp_blob_path = await self._save_keypoints(entity_id, keypoints, descriptors)
+            
+            total_time = time.time() - start_time
 
             logger.info(
-                "Extracted keypoints with mask",
+                "Keypoint extraction with mask",
                 entity_id=entity_id,
-                count=len(keypoints),
-                descriptor_shape=descriptors.shape,
+                algorithm=algorithm_used,
+                keypoint_count=len(keypoints),
+                time_ms=round(total_time * 1000, 2),
             )
 
             return kp_blob_path
