@@ -73,7 +73,9 @@ class VideoProcessor:
             if not created_new:
                 existing_frames = await self.idempotency_manager.get_existing_frames(video.video_id)
                 if existing_frames:
-                    logger.info(f"Video and frames already exist, skipping processing: {video.video_id}")
+                    logger.info(f"Video and frames already exist, reusing for new job: {video.video_id}")
+                    # Emit keyframes ready event for reused video so downstream services can process it
+                    await self._emit_keyframes_ready_event(video, existing_frames, job_id)
                     await self._update_progress(job_id)
                     return {
                         "video_id": video.video_id,

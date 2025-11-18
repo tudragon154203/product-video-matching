@@ -190,13 +190,15 @@ class TestVideoProcessing:
             {"frame_id": "existing_video_frame_0", "ts": 0.0, "local_path": "/path/frame_0.jpg"}
         ])
         video_processor._update_progress = AsyncMock()
+        video_processor._emit_keyframes_ready_event = AsyncMock()
 
         result = await video_processor.process_video(sample_video_data, "test_job")
 
         assert result["video_id"] == "existing_video"
         assert result["skipped"] is True
         assert len(result["frames"]) == 1
-        # Note: Processing methods should not be called, but we can't assert on actual methods
+        # Verify that keyframes ready event is emitted for reused videos
+        video_processor._emit_keyframes_ready_event.assert_called_once()
 
     @pytest.mark.asyncio
     async def test_process_video_existing_video_no_frames(self, video_processor, sample_video_data, mock_event_emitter):
@@ -424,6 +426,7 @@ class TestVideoProcessorIntegration:
             {"frame_id": "existing_video_frame_0", "ts": 0.0, "local_path": "/path/to/frame_0.jpg"}
         ])
         video_processor._update_progress = AsyncMock()
+        video_processor._emit_keyframes_ready_event = AsyncMock()
 
         result = await video_processor.process_video(sample_video_data, "test_job")
 
@@ -434,9 +437,8 @@ class TestVideoProcessorIntegration:
         # Verify minimal processing was done
         video_processor.idempotency_manager.create_video_with_idempotency.assert_called_once()
         video_processor.idempotency_manager.get_existing_frames.assert_called_once()
+        video_processor._emit_keyframes_ready_event.assert_called_once()
         video_processor._update_progress.assert_called_once()
-
-        # Note: Processing methods should not be called, but we can't assert on actual methods
 
     @pytest.mark.asyncio
     async def test_processing_error_recovery(self, video_processor, sample_video_data):
