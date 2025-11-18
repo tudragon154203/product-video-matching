@@ -139,7 +139,7 @@ export function JobItemRow({ job }: JobItemRowProps) {
     <Link
       key={job.job_id}
       href={`/jobs/${job.job_id}`}
-      className={`block rounded-lg border p-3 transition-colors hover:bg-accent/50 ${isCancelled ? 'opacity-60' : ''}`}
+      className={`block rounded-lg border p-3 mb-2 transition-colors hover:bg-accent/50 ${isCancelled ? 'opacity-60' : ''}`}
     >
       <div className="space-y-2">
         <div className="flex items-center justify-between gap-2">
