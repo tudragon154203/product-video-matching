@@ -6,7 +6,7 @@ Operators have no supported way to stop a long-running job that is malfunctionin
 ## 2. Goals
 1. **Cancelable jobs** – provide an authenticated HTTP endpoint that marks a job as `cancelled`, purges queued work for that job from RabbitMQ, and broadcasts a `job.cancelled` event so workers stop gracefully.
 2. **Deletable jobs** – provide an endpoint to delete a job (and all associated assets). If the job is running, delete first cancels it, waits for acknowledgement, then removes database rows and file artifacts.
-3. **Idempotent + auditable** – repeated cancel/delete requests should be safe; state transitions should be logged with metadata (reason, operator, timestamps) using existing persistence (e.g., `phase_events`) so we avoid schema churn.
+3. **Idempotent + auditable** – repeated cancel/delete requests should be safe; state transitions should be logged with metadata (reason, operator, timestamps) while keeping DB changes minimal (e.g., a couple of new columns or JSON payloads in existing tables).
 4. **Operational safety** – ensure we do not orphan worker processes, leak queues, or delete data needed for compliance. Provide metrics + alerts for cancel/delete usage.
 
 ## 3. Non-Goals
@@ -28,7 +28,7 @@ Operators have no supported way to stop a long-running job that is malfunctionin
   ```
 - **Behavior**:
   1. Validate job exists. If already `completed`/`failed`/`cancelled`, return 200 with current state (idempotent).
-  2. Update `jobs.phase` to `cancelled`. Persist metadata (reason/operator/timestamp) as a structured `phase_events` row instead of adding new columns.
+  2. Update `jobs.phase` to `cancelled`. Store `cancelled_at` (timestamp) and optional `cancelled_by` columns if needed for quick querying; additional metadata (reason/operator notes) can live in `phase_events` payloads to avoid multiple schema changes.
   3. Publish `job.cancelled` event with payload `{ job_id, reason, requested_by }`.
   4. Purge RabbitMQ queues for outstanding job-specific tasks:
      - Use `job_id` correlation IDs to remove in-flight messages (requires new helper in `BrokerHandler` to iterate over queues: `products.collect.request`, `videos.search.request`, etc.) and drop ones matching `job_id`.
@@ -39,7 +39,7 @@ Operators have no supported way to stop a long-running job that is malfunctionin
      {
        "job_id": "uuid",
        "phase": "cancelled",
-       "cancelled_at": "...",      // derived from event timestamp
+       "cancelled_at": "...",
        "reason": "user_request"
      }
      ```
@@ -98,10 +98,10 @@ Operators have no supported way to stop a long-running job that is malfunctionin
    - Workers should publish `job.cancelled.ack` to confirm they stopped and cleaned up. `main-api` tracks ack count to unblock deletion.
 
 ## 7. Data Model Updates (Minimized)
-- **No new columns** on `jobs`. We continue to rely on `jobs.phase` plus timestamps (`updated_at`) to reflect cancellation.
-- Store cancellation/deletion metadata inside `phase_events.payload` JSON (add a JSONB column if not yet present, or reuse existing `details` field). Each cancel/delete action inserts a `phase_events` row (`name = 'job.cancelled' | 'job.deleted'`) with `{ reason, requested_by, ts }`.
-- Reuse existing cascades for dependent tables; deletion endpoint physically removes rows exactly as today (no tombstone table). External audit logs (e.g., ELK) capture `deleted_by`.
-- `JobStatusResponse` reads latest relevant `phase_events` entry to populate `cancelled_at`/`reason` fields without schema changes.
+- Add **at most two nullable columns** on `jobs`: `cancelled_at TIMESTAMP` and `deleted_at TIMESTAMP` for fast filtering/analytics. Optional `cancelled_by/deleted_by` columns can be appended if we need operator attribution, but keep additions lean.
+- Store detailed metadata (reason, notes, operator email, request origin) inside `phase_events.payload` JSON (add JSONB column if needed, otherwise reuse existing structure). Insert `phase_events` rows with names `job.cancelled` / `job.deleted`.
+- Reuse existing cascades for dependent tables; deletion endpoint still removes rows exactly as today (no new tombstone table). Audit logs remain external.
+- `JobStatusResponse` sources timestamps from the new columns, falling back to latest `phase_events` entries if columns are null (for backward compatibility).
 
 ## 8. API Contracts
 ### 8.1 Cancel Job
@@ -110,7 +110,7 @@ POST /jobs/{job_id}/cancel
 Headers: Authorization, Content-Type: application/json
 Body: { "reason": "user_request", "notes": "optional string" }
 Responses:
-- 200: { job_id, phase: "cancelled", cancelled_at (from phase_events), reason, notes }
+- 200: { job_id, phase: "cancelled", cancelled_at, reason, notes }
 - 202: { job_id, phase: "cancellation_pending" } (if RabbitMQ purge still running)
 - 404: if job unknown
 - 409: if job already deleted
@@ -121,7 +121,7 @@ Responses:
 DELETE /jobs/{job_id}?force=true|false
 Headers: Authorization
 Responses:
-- 200: { job_id, status: "deleted", deleted_at (from phase_events) }
+- 200: { job_id, status: "deleted", deleted_at }
 - 202: { job_id, status: "deletion_in_progress" } (async disk cleanup)
 - 404: job not found
 - 409: job in progress and force=false
@@ -168,7 +168,7 @@ Responses:
 - Runbook updates: how to trigger cancel/delete, interpret logs, recover on partial failures.
 
 ## 13. Rollout Plan
-1. Minimal DB change required: ensure `phase_events` (or equivalent) can store JSON payloads if it does not already—otherwise reuse existing column. Deploy main-api with cancel endpoint hidden behind feature flag.
+1. Apply small migration adding `cancelled_at` / `deleted_at` (and optional `*_by`) columns plus JSON payload support on `phase_events` if missing. Deploy main-api with cancel endpoint hidden behind feature flag.
 2. Update worker services to honor `job.cancelled` event before enabling endpoint in prod.
 3. Enable deletion endpoint after verifying end-to-end cleanup (staging + canary).
 4. Document procedures for ops + support teams.
@@ -181,7 +181,7 @@ Responses:
 ## 15. Implementation Notes & Touch Points
 - **FastAPI layer (`services/main-api/api`)**: add routes + schemas for cancel/delete, enforce auth, surface phase changes in responses.
 - **Service layer (`services/main-api/services/job/job_management_service.py`)**: implement `cancel_job` and `delete_job` orchestrations, reusing `DatabaseHandler` + `BrokerHandler`.
-- **DatabaseHandler (`services/main-api/handlers/database_handler.py`)**: helpers to read/write cancellation metadata via `phase_events` payloads (no schema changes) plus cascade delete routines and auditing hooks.
+- **DatabaseHandler (`services/main-api/handlers/database_handler.py`)**: helpers to read/write cancellation metadata (use new `cancelled_at/deleted_at` columns + `phase_events` payloads) plus cascade delete routines and auditing hooks.
 - **BrokerHandler**: helper to purge job-specific RabbitMQ messages and to publish `job.cancelled` / `job.deleted`.
 - **Phase processing (`services/main-api/services/phase/phase_event_service.py`)**: ignore incoming events for cancelled/deleted jobs.
 - **Infrastructure**: RabbitMQ policy or management API permissions for selective purge; data volume cleanup script under `scripts/cleanup_job_assets.py`.
