@@ -83,6 +83,17 @@ class YOLOSegmentor(BaseSegmentation):
                     # Restore original working directory
                     os.chdir(original_cwd)
 
+            # Convert to FP16 if enabled and CUDA is available
+            if config.USE_FP16 and hasattr(self._model, 'model') and hasattr(self._model.model, 'half'):
+                try:
+                    import torch
+                    if torch.cuda.is_available():
+                        self._model.model.half()
+                        logger.info("YOLO model converted to FP16 precision for memory efficiency")
+                except Exception as e:
+                    logger.warning("Failed to convert YOLO to FP16, continuing with FP32",
+                                   error=str(e))
+
             logger.info("Model initialized successfully",
                         model_name=self.model_name)
             # Mark as initialized using the base class method

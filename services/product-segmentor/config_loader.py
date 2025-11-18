@@ -20,6 +20,16 @@ except ImportError:
     from libs.config import config as global_config
 
 
+def _parse_bool(value: str, default: str = "true") -> bool:
+    """Parse boolean from environment variable.
+    
+    Accepts: 1, true, yes, enable (case-insensitive)
+    Rejects: 0, false, no, disable (case-insensitive)
+    """
+    val = os.getenv(value, default).lower().strip()
+    return val in ("1", "true", "yes", "enable")
+
+
 @dataclass
 class ProductSegmentorConfig:
     """Configuration for Product Segmentor Service."""
@@ -36,10 +46,11 @@ class ProductSegmentorConfig:
     IMG_SIZE: tuple[int, int] = global_config.IMG_SIZE
 
     # GPU Memory Management
-    RETRY_ON_OOM: bool = os.getenv("RETRY_ON_OOM", "true").lower() == "true"
+    RETRY_ON_OOM: bool = _parse_bool("RETRY_ON_OOM", "true")
     MAX_OOM_RETRIES: int = int(os.getenv("MAX_OOM_RETRIES", "3"))
     GPU_MEMORY_THRESHOLD: float = float(os.getenv("GPU_MEMORY_THRESHOLD", "0.85"))
     MIN_CONCURRENT_IMAGES: int = int(os.getenv("MIN_CONCURRENT_IMAGES", "1"))
+    USE_FP16: bool = _parse_bool("USE_FP16", "true")
 
     # File paths
     FOREGROUND_MASK_DIR_PATH: str = os.path.join(global_config.DATA_ROOT_CONTAINER,

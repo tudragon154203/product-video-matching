@@ -61,6 +61,11 @@ class RMBG20Segmentor(BaseSegmentation):
             self._model = self._model.to(self._device)
             self._model.eval()
 
+            # Convert to FP16 if enabled and using CUDA
+            if config.USE_FP16 and self._device == "cuda":
+                self._model = self._model.half()
+                logger.info("Model converted to FP16 precision for memory efficiency")
+
             # Setup image transforms
             self._transform = transforms.Compose([
                 transforms.Resize(self._image_size),
@@ -124,6 +129,10 @@ class RMBG20Segmentor(BaseSegmentation):
 
     async def _run_inference(self, input_tensor: torch.Tensor, loop: asyncio.BaseEventLoop) -> torch.Tensor:
         with torch.no_grad():
+            # Convert input to FP16 if model is in FP16
+            if config.USE_FP16 and self._device == "cuda":
+                input_tensor = input_tensor.half()
+            
             preds = await loop.run_in_executor(
                 None,
                 lambda: self._model(input_tensor)[-1].sigmoid().cpu()
