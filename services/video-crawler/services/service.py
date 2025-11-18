@@ -244,13 +244,14 @@ class VideoCrawlerService:
 
         for video_data in all_videos:
             result = await self.video_processor.process_video(video_data, job_id)
-            if result.get("video_id"):
+            # Only include videos that have frames in the batch payload
+            if result.get("video_id") and result.get("frames"):
                 batch_payload.append(result)
 
         # Run automatic cleanup after video processing if enabled
         await self.cleanup_service.run_auto_cleanup(job_id)
 
-        # Emit batch completion events
+        # Emit batch completion events (only if there are videos with frames)
         if self.event_emitter and batch_payload:
             await self.event_emitter.publish_videos_keyframes_ready_batch(job_id, batch_payload, correlation_id)
 
