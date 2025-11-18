@@ -88,13 +88,15 @@ class DatabaseHandler:
 
             # Count images (product_images)
             image_count = await self.db.fetch_val(
-                "SELECT COUNT(*) FROM product_images WHERE product_id IN (SELECT product_id FROM products WHERE job_id = $1)",
+                "SELECT COUNT(*) FROM product_images WHERE product_id IN "
+                "(SELECT product_id FROM products WHERE job_id = $1)",
                 job_id
             ) or 0
 
             # Count frames (video_frames)
             frame_count = await self.db.fetch_val(
-                "SELECT COUNT(*) FROM video_frames WHERE video_id IN (SELECT video_id FROM job_videos WHERE job_id = $1)",
+                "SELECT COUNT(*) FROM video_frames WHERE video_id IN "
+                "(SELECT video_id FROM job_videos WHERE job_id = $1)",
                 job_id
             ) or 0
 
@@ -247,7 +249,8 @@ class DatabaseHandler:
         - {"images": False, "videos": False} for zero-asset jobs
         """
         try:
-            product_count, video_count, products_with_features, videos_with_features = await self._get_raw_asset_counts(job_id)
+            counts = await self._get_raw_asset_counts(job_id)
+            product_count, video_count, products_with_features, videos_with_features = counts
             has_images, has_videos = self._determine_asset_presence(
                 product_count, video_count, products_with_features, videos_with_features)
 
@@ -268,11 +271,14 @@ class DatabaseHandler:
 
     async def _get_raw_asset_counts(self, job_id: str) -> tuple[int, int, int, int]:
         product_count, video_count, _ = await self.get_job_counts(job_id)
-        products_with_features, videos_with_features = await self.get_features_counts(job_id)
+        features = await self.get_features_counts(job_id)
+        products_with_features, videos_with_features = features
         return product_count, video_count, products_with_features, videos_with_features
 
-    def _determine_asset_presence(self, product_count: int, video_count: int,
-                                  products_with_features: int, videos_with_features: int) -> tuple[bool, bool]:
+    def _determine_asset_presence(
+        self, product_count: int, video_count: int,
+        products_with_features: int, videos_with_features: int
+    ) -> tuple[bool, bool]:
         has_images = product_count > 0 or products_with_features > 0
         has_videos = video_count > 0 or videos_with_features > 0
         return has_images, has_videos
@@ -303,7 +309,10 @@ class DatabaseHandler:
         """
         try:
             # Build base query
-            base_query = "SELECT job_id, query, industry, phase, created_at, updated_at FROM jobs"
+            base_query = (
+                "SELECT job_id, query, industry, phase, created_at, updated_at, "
+                "cancelled_at, deleted_at FROM jobs"
+            )
             count_query = "SELECT COUNT(*) FROM jobs"
 
             # Add WHERE clause if status filter is provided
@@ -333,7 +342,10 @@ class DatabaseHandler:
 
             # Execute queries
             jobs = await self.db.fetch_all(base_query, *params)
-            total = await self.db.fetch_val(count_query, *params[:-2]) if where_conditions else await self.db.fetch_val(count_query)
+            if where_conditions:
+                total = await self.db.fetch_val(count_query, *params[:-2])
+            else:
+                total = await self.db.fetch_val(count_query)
 
             return jobs, total or 0
 
@@ -342,3 +354,160 @@ class DatabaseHandler:
                 f"Failed to list jobs: {e}"
             )
             return [], 0
+
+    async def cancel_job(self, job_id: str, reason: str, notes: str = None, cancelled_by: str = None):
+        """Mark a job as cancelled and store metadata."""
+        try:
+            await self.db.execute(
+                """
+                UPDATE jobs
+                SET phase = 'cancelled',
+                    cancelled_at = NOW(),
+                    cancelled_by = $2,
+                    updated_at = NOW()
+                WHERE job_id = $1
+                """,
+                job_id, cancelled_by
+            )
+
+            # Store cancellation metadata in phase_events
+            import uuid
+            import json
+            event_id = str(uuid.uuid4())
+            payload = {
+                "reason": reason,
+                "notes": notes,
+                "cancelled_by": cancelled_by
+            }
+            await self.db.execute(
+                """
+                INSERT INTO phase_events (event_id, job_id, name, payload)
+                VALUES ($1, $2, $3, $4::jsonb)
+                """,
+                event_id, job_id, "job.cancelled", json.dumps(payload)
+            )
+
+            logger.info(f"Cancelled job {job_id} (reason: {reason})")
+        except Exception as e:
+            logger.error(f"Failed to cancel job {job_id}: {e}")
+            raise
+
+    async def get_job_cancellation_info(self, job_id: str):
+        """Get cancellation information for a job."""
+        try:
+            result = await self.db.fetch_one(
+                """
+                SELECT cancelled_at, cancelled_by
+                FROM jobs
+                WHERE job_id = $1
+                """,
+                job_id
+            )
+            if not result:
+                return None
+
+            # Get metadata from phase_events
+            event = await self.db.fetch_one(
+                """
+                SELECT payload
+                FROM phase_events
+                WHERE job_id = $1 AND name = 'job.cancelled'
+                ORDER BY received_at DESC
+                LIMIT 1
+                """,
+                job_id
+            )
+
+            # Parse payload if it's a string (JSON)
+            import json
+            if event and event["payload"]:
+                if isinstance(event["payload"], str):
+                    payload = json.loads(event["payload"])
+                else:
+                    payload = event["payload"]
+            else:
+                payload = {}
+
+            return {
+                "cancelled_at": result["cancelled_at"],
+                "cancelled_by": result["cancelled_by"],
+                "reason": payload.get("reason", "unknown"),
+                "notes": payload.get("notes")
+            }
+        except Exception as e:
+            logger.error(f"Failed to get cancellation info for job {job_id}: {e}")
+            return None
+
+    async def delete_job_data(self, job_id: str, deleted_by: str = None):
+        """Delete all data associated with a job.
+
+        Deletes in order to maintain referential integrity:
+        1. match_evidence
+        2. matches
+        3. video_frames
+        4. product_images
+        5. job_videos
+        6. products
+        7. phase_events
+        8. jobs
+        """
+        try:
+            # Store deletion event before deleting
+            import uuid
+            import json
+            event_id = str(uuid.uuid4())
+            payload = {"deleted_by": deleted_by}
+            await self.db.execute(
+                """
+                INSERT INTO phase_events (event_id, job_id, name, payload)
+                VALUES ($1, $2, $3, $4::jsonb)
+                """,
+                event_id, job_id, "job.deleted", json.dumps(payload)
+            )
+
+            # Delete in order
+            await self.db.execute("DELETE FROM matches WHERE job_id = $1", job_id)
+
+            # Delete video frames for videos associated with this job
+            await self.db.execute(
+                "DELETE FROM video_frames WHERE video_id IN "
+                "(SELECT video_id FROM job_videos WHERE job_id = $1)",
+                job_id
+            )
+
+            # Delete product images for products in this job
+            await self.db.execute(
+                "DELETE FROM product_images WHERE product_id IN "
+                "(SELECT product_id FROM products WHERE job_id = $1)",
+                job_id
+            )
+
+            await self.db.execute("DELETE FROM job_videos WHERE job_id = $1", job_id)
+            await self.db.execute("DELETE FROM products WHERE job_id = $1", job_id)
+            await self.db.execute("DELETE FROM phase_events WHERE job_id = $1", job_id)
+
+            # Mark job as deleted instead of hard delete (for audit trail)
+            await self.db.execute(
+                """
+                UPDATE jobs
+                SET deleted_at = NOW(),
+                    deleted_by = $2,
+                    updated_at = NOW()
+                WHERE job_id = $1
+                """,
+                job_id, deleted_by
+            )
+
+            logger.info(f"Deleted all data for job {job_id}")
+        except Exception as e:
+            logger.error(f"Failed to delete job data for {job_id}: {e}")
+            raise
+
+    async def is_job_active(self, job_id: str) -> bool:
+        """Check if a job is in an active state (not completed, failed, or cancelled)."""
+        try:
+            phase = await self.get_job_phase(job_id)
+            return phase not in ("completed", "failed", "cancelled", "unknown")
+        except Exception as e:
+            logger.error(f"Failed to check if job is active: {e}")
+            return False

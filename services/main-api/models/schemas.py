@@ -124,6 +124,30 @@ class JobItem(BaseModel):
     phase: str
     created_at: datetime
     updated_at: Optional[datetime] = None
+    cancelled_at: Optional[datetime] = None
+    deleted_at: Optional[datetime] = None
+
+
+class CancelJobRequest(BaseModel):
+    """Schema for job cancellation request"""
+    reason: Optional[str] = "user_request"
+    notes: Optional[str] = None
+
+
+class CancelJobResponse(BaseModel):
+    """Schema for job cancellation response"""
+    job_id: str
+    phase: str
+    cancelled_at: datetime
+    reason: str
+    notes: Optional[str] = None
+
+
+class DeleteJobResponse(BaseModel):
+    """Schema for job deletion response"""
+    job_id: str
+    status: str
+    deleted_at: datetime
 
 
 class JobListResponse(BaseModel):

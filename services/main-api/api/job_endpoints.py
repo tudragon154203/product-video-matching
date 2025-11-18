@@ -1,6 +1,9 @@
 from fastapi import APIRouter, Depends, Query, HTTPException
 from services.job.job_service import JobService
-from models.schemas import StartJobRequest, StartJobResponse, JobStatusResponse, JobListResponse, JobItem
+from models.schemas import (
+    StartJobRequest, StartJobResponse, JobStatusResponse, JobListResponse, JobItem,
+    CancelJobRequest, CancelJobResponse, DeleteJobResponse
+)
 from api.dependency import get_job_service
 
 
@@ -64,7 +67,9 @@ async def list_jobs(
             industry=job["industry"],
             phase=job["phase"],
             created_at=job["created_at"],
-            updated_at=job["updated_at"]
+            updated_at=job["updated_at"],
+            cancelled_at=job.get("cancelled_at"),
+            deleted_at=job.get("deleted_at")
         ))
 
     return JobListResponse(
@@ -72,4 +77,47 @@ async def list_jobs(
         total=total,
         limit=limit,
         offset=offset
+    )
+
+
+@router.post("/jobs/{job_id}/cancel", response_model=CancelJobResponse)
+async def cancel_job(
+    job_id: str,
+    request: CancelJobRequest = CancelJobRequest(),
+    job_service: JobService = Depends(get_job_service)
+):
+    """Cancel a running job and purge its queued messages"""
+    result = await job_service.cancel_job(
+        job_id=job_id,
+        reason=request.reason,
+        notes=request.notes,
+        cancelled_by="api_user"
+    )
+
+    return CancelJobResponse(
+        job_id=result["job_id"],
+        phase=result["phase"],
+        cancelled_at=result["cancelled_at"],
+        reason=result["reason"],
+        notes=result.get("notes")
+    )
+
+
+@router.delete("/jobs/{job_id}", response_model=DeleteJobResponse)
+async def delete_job(
+    job_id: str,
+    force: bool = Query(False, description="Force delete even if job is active"),
+    job_service: JobService = Depends(get_job_service)
+):
+    """Delete a job and all its associated data"""
+    result = await job_service.delete_job(
+        job_id=job_id,
+        force=force,
+        deleted_by="api_user"
+    )
+
+    return DeleteJobResponse(
+        job_id=result["job_id"],
+        status=result["status"],
+        deleted_at=result["deleted_at"]
     )

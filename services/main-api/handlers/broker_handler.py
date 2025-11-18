@@ -86,3 +86,72 @@ class BrokerHandler:
                 f"Failed to publish job completion for job {job_id}: {str(e)}"
             )
             raise
+
+    async def publish_job_cancelled(self, job_id: str, reason: str, requested_by: str = None):
+        """Publish a job cancellation event."""
+        try:
+            import uuid
+            await self.broker.publish_event(
+                "job.cancelled",
+                {
+                    "job_id": job_id,
+                    "reason": reason,
+                    "requested_by": requested_by,
+                    "event_id": str(uuid.uuid4())
+                },
+                correlation_id=job_id
+            )
+            logger.info(f"Published job cancellation for job {job_id} (reason: {reason})")
+        except Exception as e:
+            logger.error(
+                f"Failed to publish job cancellation for job {job_id}: {str(e)}"
+            )
+            raise
+
+    async def publish_job_deleted(self, job_id: str):
+        """Publish a job deletion event."""
+        try:
+            import uuid
+            await self.broker.publish_event(
+                "job.deleted",
+                {
+                    "job_id": job_id,
+                    "event_id": str(uuid.uuid4())
+                },
+                correlation_id=job_id
+            )
+            logger.info(f"Published job deletion for job {job_id}")
+        except Exception as e:
+            logger.error(
+                f"Failed to publish job deletion for job {job_id}: {str(e)}"
+            )
+            raise
+
+    async def purge_job_messages(self, job_id: str) -> int:
+        """Purge all messages for a specific job from RabbitMQ queues.
+
+        Note: Simplified implementation - relies on workers checking job.cancelled event.
+        Full queue purging requires RabbitMQ Management API.
+
+        Returns the number of messages purged (currently always 0).
+        """
+        try:
+            queues_to_check = [
+                "products.collect.request",
+                "videos.search.request",
+                "match.request",
+                "products.images.masked.batch",
+                "video.keyframes.ready.batch"
+            ]
+
+            logger.info(
+                f"Job {job_id} cancelled - workers should ignore messages. "
+                f"Queues: {', '.join(queues_to_check)}"
+            )
+
+            # TODO: Implement actual queue purging using RabbitMQ Management API
+            # For now, rely on workers checking job.cancelled event
+            return 0
+        except Exception as e:
+            logger.error(f"Failed to purge job messages for job {job_id}: {str(e)}")
+            raise

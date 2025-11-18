@@ -36,3 +36,11 @@ class JobService:
     async def list_jobs(self, limit: int = 50, offset: int = 0, status: str = None):
         """List jobs with pagination and optional status filtering"""
         return await self.job_management_service.list_jobs(limit, offset, status)
+
+    async def cancel_job(self, job_id: str, reason: str = "user_request", notes: str = None, cancelled_by: str = None):
+        """Cancel a job"""
+        return await self.job_management_service.cancel_job(job_id, reason, notes, cancelled_by)
+
+    async def delete_job(self, job_id: str, force: bool = False, deleted_by: str = None):
+        """Delete a job"""
+        return await self.job_management_service.delete_job(job_id, force, deleted_by)

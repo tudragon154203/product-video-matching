@@ -87,12 +87,15 @@ class JobManagementService:
             }
 
             # Get comprehensive counts including frames
-            product_count, video_count, image_count, frame_count, match_count = await self.db_handler.get_job_counts_with_frames(job_id)
+            counts = await self.db_handler.get_job_counts_with_frames(job_id)
+            product_count, video_count, image_count, frame_count, match_count = counts
             updated_at = await self.db_handler.get_job_updated_at(job_id)
 
             # Determine collection completion flags based on phase_events
             try:
-                products_collection_done = await self.db_handler.has_phase_event(job_id, "products.collections.completed")
+                products_collection_done = await self.db_handler.has_phase_event(
+                    job_id, "products.collections.completed"
+                )
             except Exception:
                 products_collection_done = False
             try:
@@ -139,4 +142,135 @@ class JobManagementService:
             return await self.db_handler.list_jobs(limit, offset, status)
         except Exception as e:
             logger.error(f"Failed to list jobs: {e}")
+            raise HTTPException(status_code=500, detail=str(e))
+
+    async def cancel_job(self, job_id: str, reason: str = "user_request", notes: str = None, cancelled_by: str = None):
+        """Cancel a job and purge its messages from RabbitMQ.
+
+        Args:
+            job_id: The job ID to cancel
+            reason: Reason for cancellation
+            notes: Optional notes
+            cancelled_by: Operator/user who requested cancellation
+
+        Returns:
+            dict with cancellation details
+        """
+        try:
+            # Check if job exists
+            job = await self.db_handler.get_job(job_id)
+            if not job:
+                raise HTTPException(status_code=404, detail="Job not found")
+
+            # If already cancelled, return existing cancellation info (idempotent)
+            if job["phase"] == "cancelled":
+                cancel_info = await self.db_handler.get_job_cancellation_info(job_id)
+                if cancel_info:
+                    return {
+                        "job_id": job_id,
+                        "phase": "cancelled",
+                        "cancelled_at": cancel_info["cancelled_at"],
+                        "reason": cancel_info["reason"],
+                        "notes": cancel_info.get("notes")
+                    }
+
+            # If already completed/failed, return current state
+            if job["phase"] in ("completed", "failed"):
+                logger.info(f"Job {job_id} already in terminal state: {job['phase']}")
+                return {
+                    "job_id": job_id,
+                    "phase": job["phase"],
+                    "cancelled_at": None,
+                    "reason": f"Job already {job['phase']}",
+                    "notes": "Cannot cancel completed or failed jobs"
+                }
+
+            # Update database to mark as cancelled
+            await self.db_handler.cancel_job(job_id, reason, notes, cancelled_by)
+
+            # Purge RabbitMQ messages for this job
+            try:
+                purged_count = await self.broker_handler.purge_job_messages(job_id)
+                logger.info(f"Purged {purged_count} messages for job {job_id}")
+            except Exception as e:
+                logger.warning(f"Failed to purge messages for job {job_id}: {e}")
+
+            # Publish cancellation event to notify workers
+            await self.broker_handler.publish_job_cancelled(job_id, reason, cancelled_by)
+
+            # Get updated cancellation info
+            cancel_info = await self.db_handler.get_job_cancellation_info(job_id)
+
+            return {
+                "job_id": job_id,
+                "phase": "cancelled",
+                "cancelled_at": cancel_info["cancelled_at"],
+                "reason": cancel_info["reason"],
+                "notes": cancel_info.get("notes")
+            }
+
+        except HTTPException:
+            raise
+        except Exception as e:
+            logger.error(f"Failed to cancel job {job_id}: {e}")
+            raise HTTPException(status_code=500, detail=str(e))
+
+    async def delete_job(self, job_id: str, force: bool = False, deleted_by: str = None):
+        """Delete a job and all its associated data.
+
+        Args:
+            job_id: The job ID to delete
+            force: If True, skip waiting for cancellation on active jobs
+            deleted_by: Operator/user who requested deletion
+
+        Returns:
+            dict with deletion details
+        """
+        try:
+            # Check if job exists
+            job = await self.db_handler.get_job(job_id)
+            if not job:
+                raise HTTPException(status_code=404, detail="Job not found")
+
+            # Check if already deleted
+            if job.get("deleted_at"):
+                logger.info(f"Job {job_id} already deleted")
+                return {
+                    "job_id": job_id,
+                    "status": "deleted",
+                    "deleted_at": job["deleted_at"]
+                }
+
+            # If job is active and force is not set, require cancellation first
+            is_active = await self.db_handler.is_job_active(job_id)
+            if is_active and not force:
+                raise HTTPException(
+                    status_code=409,
+                    detail="Job is still active. Cancel it first or use force=true"
+                )
+
+            # If active, cancel first
+            if is_active:
+                logger.info(f"Cancelling active job {job_id} before deletion")
+                await self.cancel_job(job_id, reason="deletion_requested", cancelled_by=deleted_by)
+
+            # Delete all job data from database
+            await self.db_handler.delete_job_data(job_id, deleted_by)
+
+            # Publish deletion event
+            await self.broker_handler.publish_job_deleted(job_id)
+
+            # Get updated job info
+            job = await self.db_handler.get_job(job_id)
+
+            return {
+                "job_id": job_id,
+                "status": "deleted",
+                "deleted_at": job["deleted_at"]
+            }
+
+        except HTTPException:
+            raise
+        except Exception as e:
+            logger.error(f"Failed to delete job {job_id}: {e}")
             raise HTTPException(status_code=500, detail=str(e))

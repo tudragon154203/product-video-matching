@@ -1,0 +1,25 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "JobCancelled",
+  "type": "object",
+  "additionalProperties": true,
+  "required": ["job_id", "event_id", "reason"],
+  "properties": {
+    "job_id": {
+      "type": "string",
+      "description": "Unique identifier for the cancelled job"
+    },
+    "event_id": {
+      "type": "string",
+      "description": "Unique identifier for this cancellation event"
+    },
+    "reason": {
+      "type": "string",
+      "description": "Reason for cancellation (e.g., user_request, timeout, error)"
+    },
+    "requested_by": {
+      "type": ["string", "null"],
+      "description": "Operator or user who requested the cancellation"
+    }
+  }
+}

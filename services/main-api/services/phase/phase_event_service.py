@@ -29,6 +29,15 @@ class PhaseEventService:
             logger.error(f"Missing event_id or job_id in event: {event_type}")
             return
 
+        # Check if job is cancelled or deleted - ignore events for such jobs
+        try:
+            job_phase = await self.db_handler.get_job_phase(job_id)
+            if job_phase in ("cancelled", "deleted"):
+                logger.info(f"Ignoring event {event_type} for {job_phase} job {job_id}")
+                return
+        except Exception as e:
+            logger.warning(f"Failed to check job phase for {job_id}: {e}")
+
         if event_id in self.processed_events:
             logger.debug(
                 f"Duplicate event, skipping: {event_id} for job {job_id}")
