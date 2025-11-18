@@ -25,6 +25,7 @@ from .foreground_segmentor_factory import create_segmentor
 from segmentation.models.yolo_segmentor import YOLOSegmentor
 from .asset_processor import AssetProcessor
 from vision_common import JobProgressManager
+from utils.gpu_memory_monitor import GPUMemoryMonitor
 
 logger = configure_logging("product-segmentor:service", config.LOG_LEVEL)
 
@@ -95,6 +96,11 @@ class ProductSegmentorService:
 
         self._processing_semaphore = asyncio.Semaphore(int(max_concurrent))
 
+        # Initialize GPU memory monitor
+        self.gpu_memory_monitor = GPUMemoryMonitor(
+            memory_threshold=config.GPU_MEMORY_THRESHOLD
+        )
+
         # Initialize AssetProcessor
         self.asset_processor = AssetProcessor(
             image_masking_processor=self.image_masking_processor,
@@ -110,12 +116,18 @@ class ProductSegmentorService:
         try:
             logger.info("Initializing Product Segmentor Service")
 
+            # Log initial GPU memory state
+            self.gpu_memory_monitor.log_memory_stats("service_initialization_start")
+
             # Initialize file manager
             await self.file_manager.initialize()
 
             # Initialize segmentation model
             await self.foreground_segmentor.initialize()
             await self.people_segmentor.initialize()
+
+            # Log GPU memory after model loading
+            self.gpu_memory_monitor.log_memory_stats("models_loaded")
 
             self.initialized = True
             logger.info("Product Segmentor Service initialized successfully")
@@ -191,6 +203,9 @@ class ProductSegmentorService:
         async with self._processing_semaphore:
             job_id = event_data["job_id"]
 
+            # Log GPU memory before processing
+            self.gpu_memory_monitor.log_memory_stats(f"before_image_{event_data.get('image_id')}")
+
             # Initialize job with high expected count to prevent premature completion
             # before batch event arrives with actual total
             if not self.job_progress_manager._is_batch_initialized(job_id, "image"):
@@ -208,6 +223,9 @@ class ProductSegmentorService:
                 emit_masked_func=self.event_emitter.emit_product_image_masked,
                 job_id=job_id
             )
+
+            # Periodic GPU cleanup
+            self.gpu_memory_monitor.periodic_cleanup()
             
             # Log current progress after processing
             key = f"{job_id}:image:segmentation"
@@ -338,6 +356,9 @@ class ProductSegmentorService:
                     total_items=len(frames),
                     operation="segmentation")
 
+        # Log GPU memory at batch start
+        self.gpu_memory_monitor.log_memory_stats(f"video_batch_start_{video_id}")
+
         processed_frames = []
 
         for frame in frames:
@@ -360,6 +381,9 @@ class ProductSegmentorService:
                     "mask_path": mask_path
                 })
 
+            # Periodic GPU cleanup during video processing
+            self.gpu_memory_monitor.periodic_cleanup()
+
         if processed_frames:
             await self.event_emitter.emit_video_keyframes_masked(
                 job_id=job_id,
@@ -371,6 +395,12 @@ class ProductSegmentorService:
                 video_id=video_id,
                 processed=len(processed_frames),
             )
+
+        # Force GPU cleanup after video batch completion
+        self.gpu_memory_monitor.periodic_cleanup(force=True)
+
+        # Log GPU memory at batch end
+        self.gpu_memory_monitor.log_memory_stats(f"video_batch_end_{video_id}")
 
         # Note: Expected is set via videos_keyframes_ready_batch; avoid per-video overwrites.
 

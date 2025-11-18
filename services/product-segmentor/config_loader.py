@@ -30,10 +30,16 @@ class ProductSegmentorConfig:
     HF_TOKEN = os.getenv("HF_TOKEN")
 
     # Processing configuration
-    MAX_CONCURRENT_IMAGES: int = int(os.getenv("MAX_CONCURRENT_IMAGES", "2"))
+    MAX_CONCURRENT_IMAGES: int = int(os.getenv("MAX_CONCURRENT_IMAGES", "3"))
     BATCH_TIMEOUT_SECONDS: int = int(os.getenv("BATCH_TIMEOUT_SECONDS", "1800"))
     MASK_QUALITY: float = float(os.getenv("MASK_QUALITY", "0.8"))
     IMG_SIZE: tuple[int, int] = global_config.IMG_SIZE
+
+    # GPU Memory Management
+    RETRY_ON_OOM: bool = os.getenv("RETRY_ON_OOM", "true").lower() == "true"
+    MAX_OOM_RETRIES: int = int(os.getenv("MAX_OOM_RETRIES", "3"))
+    GPU_MEMORY_THRESHOLD: float = float(os.getenv("GPU_MEMORY_THRESHOLD", "0.85"))
+    MIN_CONCURRENT_IMAGES: int = int(os.getenv("MIN_CONCURRENT_IMAGES", "1"))
 
     # File paths
     FOREGROUND_MASK_DIR_PATH: str = os.path.join(global_config.DATA_ROOT_CONTAINER,

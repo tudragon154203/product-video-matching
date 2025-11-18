@@ -19,7 +19,7 @@ def prepare_image(image_path: str, transform: transforms.Compose, device: torch.
     image = image.convert('RGB')
 
     # Transform image
-    input_tensor = transform(image).unsqueeze(0).to(device)
+    input_tensor = transform(image).unsqueeze(0).to(device, non_blocking=True)
 
     return image, input_tensor
 
@@ -44,6 +44,10 @@ def normalize_and_resize_mask(preds: torch.Tensor, original_size: tuple) -> np.n
 
         if isinstance(pred, torch.Tensor) and pred.dim() > 2:
             pred = pred[0] if pred.shape[0] <= pred.shape[1] and pred.shape[0] <= pred.shape[2] else pred[:, :, 0]
+
+        # Move to CPU before converting to PIL to free GPU memory
+        if isinstance(pred, torch.Tensor):
+            pred = pred.cpu()
 
         pred_pil = transforms.ToPILImage()(pred)
         mask_resized = pred_pil.resize(original_size, Image.NEAREST)
