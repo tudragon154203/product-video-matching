@@ -142,16 +142,20 @@ export function JobItemRow({ job }: JobItemRowProps) {
       className={`block rounded-lg border p-3 transition-colors hover:bg-accent/50 ${isCancelled ? 'opacity-60' : ''}`}
     >
       <div className="space-y-2">
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between gap-2">
           <h4 className={`truncate text-sm font-medium ${isCancelled ? 'text-muted-foreground' : ''}`}>{job.query}</h4>
-          <div className="flex items-center space-x-2" aria-live="polite" role="status">
+          <div className="flex items-center space-x-2 shrink-0" aria-live="polite" role="status">
             {shouldShowStatusCircle && (
               <div
                 data-testid="status-color-circle"
                 className={`h-2 w-2 rounded-full ${colorClass}`}
               />
             )}
-            {resolvedPhase === 'collection' ? null : <span className="text-xs text-muted-foreground">{phaseInfo.getLabel(t)}</span>}
+            {resolvedPhase === 'collection' ? null : (
+              <span className="text-xs text-muted-foreground whitespace-nowrap">
+                {phaseInfo.getCompactLabel ? phaseInfo.getCompactLabel(t) : phaseInfo.getLabel(t)}
+              </span>
+            )}
             {renderPhaseEffect()}
           </div>
         </div>
@@ -159,20 +163,6 @@ export function JobItemRow({ job }: JobItemRowProps) {
           <span>{formatToGMT7(displayDate)}</span>
           <span className="capitalize">{job.industry}</span>
         </div>
-        {resolvedPhase !== 'collection' && percent !== undefined && !Number.isNaN(percent) && (
-          <div className="flex items-center space-x-1 text-xs text-muted-foreground" aria-live="polite">
-            <span>{t('jobResults.progress')}</span>
-            <span className="font-medium">{clampPercent(percent)}%</span>
-          </div>
-        )}
-        {resolvedPhase !== 'collection' && counts && (
-          <div className="flex flex-wrap gap-2 text-[10px] uppercase tracking-wide text-muted-foreground" aria-hidden="true">
-            <span>{t('jobResults.counts.products')}: {counts.products}</span>
-            <span>{t('jobResults.counts.videos')}: {counts.videos}</span>
-            <span>{t('jobResults.counts.images')}: {counts.images}</span>
-            <span>{t('jobResults.counts.frames')}: {counts.frames}</span>
-          </div>
-        )}
         {!isCollecting && renderCollectionSummary()}
       </div>
     </Link>

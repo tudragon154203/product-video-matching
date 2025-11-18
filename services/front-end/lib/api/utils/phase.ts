@@ -5,6 +5,7 @@ import { type Phase } from '@/lib/zod/job';
  */
 export interface PhaseInfo {
   getLabel: (t?: any) => string;
+  getCompactLabel?: (t?: any) => string;
   color: string;
   getDescription?: (t?: any) => string;
   effect?: 'spinner' | 'progress-bar' | 'animated-dots' | 'none';
@@ -22,24 +23,28 @@ export const phaseInfo: Record<Phase, PhaseInfo> = {
   },
   collection: {
     getLabel: (t) => t('jobStatus.collection') || '',
+    getCompactLabel: (t) => t('jobStatus.collectionCompact') || 'Collecting',
     color: 'bg-blue-500',
     getDescription: (t) => t('jobStatus.collectionDescription') || 'Collecting candidate products and videos.',
     effect: 'animated-dots'
   },
   feature_extraction: {
     getLabel: (t) => t('phases.featureExtraction.label') || 'Extracting features (images / video frames)…',
+    getCompactLabel: (t) => t('phases.featureExtraction.compact') || 'Extracting',
     color: 'bg-yellow-500',
     getDescription: (t) => t('phases.featureExtraction.description') || 'Extracting visual features from product images and video frames.',
     effect: 'progress-bar'
   },
   matching: {
     getLabel: (t) => t('phases.matching.label') || 'Matching products with videos…',
+    getCompactLabel: (t) => t('phases.matching.compact') || 'Matching',
     color: 'bg-purple-500',
     getDescription: (t) => t('phases.matching.description') || 'Matching collected products with candidate videos.',
     effect: 'spinner'
   },
   evidence: {
     getLabel: (t) => t('phases.evidence.label') || 'Generating visual evidence…',
+    getCompactLabel: (t) => t('phases.evidence.compact') || 'Evidence',
     color: 'bg-orange-500',
     getDescription: (t) => t('phases.evidence.description') || 'Building visual evidence packets for matched products and videos.',
     effect: 'progress-bar'

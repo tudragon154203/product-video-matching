@@ -189,6 +189,7 @@
     "unknown": "Status unknown",
     "unknownDescription": "Job status is unknown or not initialized",
     "collection": "Collecting",
+    "collectionCompact": "Collecting",
     "collectionDescription": "Collecting candidate products and videos",
     "completed": "✅ Completed!",
     "completedDescription": "Job completed successfully.",
@@ -218,11 +219,18 @@
   "phases": {
     "featureExtraction": {
       "label": "Extracting features (images / video frames)…",
+      "compact": "Extracting",
       "description": "Extracting visual features from product images and video frames."
     },
     "matching": {
       "label": "Matching products with videos…",
+      "compact": "Matching",
       "description": "Matching collected products with candidate videos."
+    },
+    "evidence": {
+      "label": "Generating visual evidence…",
+      "compact": "Evidence",
+      "description": "Building visual evidence packets for matched products and videos."
     }
   },
   "app": {

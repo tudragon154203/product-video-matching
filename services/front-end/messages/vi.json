@@ -189,6 +189,7 @@
     "unknown": "Trạng thái không xác định",
     "unknownDescription": "Trạng thái công việc không xác định hoặc chưa được khởi tạo",
     "collection": "Đang thu thập",
+    "collectionCompact": "Thu thập",
     "collectionDescription": "Đang thu thập các sản phẩm và video ứng viên",
     "completed": "✅ Hoàn thành!",
     "completedDescription": "Công việc hoàn thành thành công.",
@@ -218,11 +219,18 @@
   "phases": {
     "featureExtraction": {
       "label": "Đang trích xuất đặc trưng (hình ảnh / khung hình video)…",
+      "compact": "Trích xuất",
       "description": "Đang trích xuất các đặc trưng hình ảnh từ hình ảnh sản phẩm và khung hình video."
     },
     "matching": {
       "label": "Đang so khớp sản phẩm với video…",
+      "compact": "So khớp",
       "description": "Đang so khớp các sản phẩm đã thu thập với các video ứng viên."
+    },
+    "evidence": {
+      "label": "Đang tạo bằng chứng hình ảnh…",
+      "compact": "Bằng chứng",
+      "description": "Đang xây dựng các gói bằng chứng hình ảnh cho sản phẩm và video đã khớp."
     }
   },
   "app": {
