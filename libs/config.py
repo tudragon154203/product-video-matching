@@ -66,7 +66,7 @@ class Config:
     # Vision Models
     EMBED_MODEL: str = field(default_factory=lambda: get_env_var("EMBED_MODEL", "clip-vit-b32"))
     MODEL_CACHE: str = field(default_factory=lambda: get_env_var("MODEL_CACHE", "./model_cache"))
-    IMG_SIZE: Tuple[int, int] = field(default_factory=lambda: get_env_tuple_int("IMG_SIZE", (512, 512)))
+    IMG_SIZE: Tuple[int, int] = field(default_factory=lambda: get_env_tuple_int("IMG_SIZE", (384, 384)))
 
     # Logging
     LOG_LEVEL: str = field(default_factory=lambda: get_env_var("LOG_LEVEL", "INFO"))
