@@ -284,8 +284,10 @@ class TestPhaseTransitionWithAssetTypes:
         """Test phase transition from matching to evidence"""
         job_id = "evidences-generation-job"
 
+        # First call (cancelled/deleted check): return "matching"
+        # Second call (in check_phase_transitions): return "matching"
         db_handler.get_job_phase = AsyncMock(
-            side_effect=["matching", "evidence"])
+            side_effect=["matching", "matching"])
         db_handler.update_job_phase = AsyncMock()
 
         # Mock that matching process is completed
@@ -314,8 +316,11 @@ class TestPhaseTransitionWithAssetTypes:
         """Test phase transition from evidence to completed"""
         job_id = "completed-job"
 
+        # First call (cancelled/deleted check): return "evidence"
+        # Second call (in check_phase_transitions): return "evidence"
+        # Third call (if any): return "completed"
         db_handler.get_job_phase = AsyncMock(
-            side_effect=["evidence", "completed"])
+            side_effect=["evidence", "evidence"])
         db_handler.update_job_phase = AsyncMock()
 
         # Mock that evidences generation is completed
@@ -343,8 +348,10 @@ class TestPhaseTransitionWithAssetTypes:
         """Test phase transition to completed with partial completion"""
         job_id = "partial-completed-job"
 
+        # First call (cancelled/deleted check): return "evidence"
+        # Second call (in check_phase_transitions): return "evidence"
         db_handler.get_job_phase = AsyncMock(
-            side_effect=["evidence", "completed"])
+            side_effect=["evidence", "evidence"])
         db_handler.update_job_phase = AsyncMock()
 
         # Mock that evidences generation is completed with partial completion
@@ -379,8 +386,10 @@ class TestPhaseTransitionWithAssetTypes:
         # 0 products with features, 0 videos with features
         db_handler.get_features_counts = AsyncMock(return_value=(0, 0))
 
+        # First call (cancelled/deleted check): return "feature_extraction"
+        # Second call (in check_phase_transitions): return "feature_extraction"
         db_handler.get_job_phase = AsyncMock(
-            side_effect=["feature_extraction", "matching"])
+            side_effect=["feature_extraction", "feature_extraction"])
         db_handler.update_job_phase = AsyncMock()
         db_handler.get_job_industry = AsyncMock(return_value="unknown")
 

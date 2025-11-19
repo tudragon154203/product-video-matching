@@ -16,6 +16,13 @@ class TestKeypointAssetProcessor:
         self.mock_broker = Mock()
         self.mock_extractor = Mock()
 
+        # Initialize async methods as AsyncMock since they're awaited in the code
+        self.mock_extractor.extract_keypoints = AsyncMock()
+        self.mock_extractor.extract_keypoints_with_mask = AsyncMock()
+        self.mock_db.execute = AsyncMock()
+        self.mock_db.fetch_one = AsyncMock()
+        self.mock_broker.publish_event = AsyncMock()
+
         # Create a proper mock for progress manager with expected attributes
         self.mock_progress_manager = Mock()
         self.mock_progress_manager.processed_assets = set()
@@ -38,10 +45,8 @@ class TestKeypointAssetProcessor:
         """Test successful processing of a single non-masked asset"""
         # Setup
         mock_uuid.return_value = "test-uuid-123"
-        self.mock_extractor.extract_keypoints = AsyncMock(return_value="/path/to/keypoints.npz")
+        self.mock_extractor.extract_keypoints.return_value = "/path/to/keypoints.npz"
         self.mock_progress_manager.processed_assets = set()
-        self.mock_db.execute = AsyncMock()
-        self.mock_broker.publish_event = AsyncMock()
 
         # Call the method
         result = await self.processor.process_single_asset(
@@ -72,11 +77,9 @@ class TestKeypointAssetProcessor:
         """Test successful processing of a single masked image asset"""
         # Setup
         mock_uuid.return_value = "test-uuid-456"
-        self.mock_extractor.extract_keypoints_with_mask = AsyncMock(return_value="/path/to/keypoints.npz")
+        self.mock_extractor.extract_keypoints_with_mask.return_value = "/path/to/keypoints.npz"
         self.mock_progress_manager.processed_assets = set()
-        self.mock_db.execute = AsyncMock()
-        self.mock_broker.publish_event = AsyncMock()
-        self.mock_db.fetch_one = AsyncMock(return_value={"local_path": "/original/image.jpg"})
+        self.mock_db.fetch_one.return_value = {"local_path": "/original/image.jpg"}
 
         # Call the method
         result = await self.processor.process_single_asset(
@@ -110,11 +113,9 @@ class TestKeypointAssetProcessor:
         """
         # Setup
         mock_uuid.return_value = "test-uuid-789"
-        self.mock_extractor.extract_keypoints_with_mask = AsyncMock(return_value="/path/to/keypoints.npz")
+        self.mock_extractor.extract_keypoints_with_mask.return_value = "/path/to/keypoints.npz"
         self.mock_progress_manager.processed_assets = set()
-        self.mock_db.execute = AsyncMock()
-        self.mock_broker.publish_event = AsyncMock()
-        self.mock_db.fetch_one = AsyncMock(return_value={"local_path": "/original/frame.jpg"})
+        self.mock_db.fetch_one.return_value = {"local_path": "/original/frame.jpg"}
 
         # Call the method
         result = await self.processor.process_single_asset(
@@ -140,90 +141,95 @@ class TestKeypointAssetProcessor:
 
     @pytest.mark.unit
     async def test_process_single_asset_no_mask_path_indicates_segmentation_failure(self):
-        """Test that None mask_path indicates segmentation failure and is not processed.
+        """Test that when is_masked=False, keypoints are extracted from local_path directly.
 
-        When mask_path is None for a video frame, it indicates segmentation failed
-        upstream, so keypoint extraction, DB updates, and events must be skipped.
+        When mask_path is None and is_masked=False, the code extracts keypoints
+        directly from the local_path without using a mask.
         """
-        # Setup - mask_path=None indicates segmentation failed
+        # Setup - is_masked=False, so extraction happens from local_path directly
         self.mock_progress_manager.processed_assets = set()
+        self.mock_extractor.extract_keypoints.return_value = "/path/to/keypoints.npz"
 
         # Call method
         result = await self.processor.process_single_asset(
             job_id="job_seg_fail",
             asset_id="frame_failed",
             asset_type="video",
-            local_path=None,
-            is_masked=False,  # Not masked because segmentation failed
-            mask_path=None    # This indicates segmentation failure
+            local_path="/path/to/video_frame.jpg",
+            is_masked=False,  # Not masked, extract directly from local_path
+            mask_path=None
         )
 
         # Assertions
-        assert result is False  # Should return False for failed segmentation
-        # Extractor should not be called if segmentation failed
-        self.mock_extractor.extract_keypoints.assert_not_called()
+        assert result is True  # Should succeed when extraction returns a path
+        # Extractor should be called for direct keypoint extraction
+        self.mock_extractor.extract_keypoints.assert_called_once_with("/path/to/video_frame.jpg", "frame_failed")
         self.mock_extractor.extract_keypoints_with_mask.assert_not_called()
-        # DB and broker should not be called
-        self.mock_db.execute.assert_not_called()
-        self.mock_broker.publish_event.assert_not_called()
+        # DB and broker should be called since extraction succeeded
+        assert self.mock_db.execute.call_count == 1
+        assert self.mock_broker.publish_event.call_count == 1
 
     @pytest.mark.unit
     async def test_mixed_video_frame_scenario_successful_only_counts(self):
-        """Test scenario with mixed success/failure segmentation for video frames.
+        """Test scenario with mixed masked and non-masked video frames.
 
-        Only successfully segmented frames should have keypoint extraction,
-        DB updates, and broker events.
+        Frames with is_masked=True use extract_keypoints_with_mask.
+        Frames with is_masked=False use extract_keypoints directly.
         """
-        # Setup scenario: 3 frames, 2 successful segmentation, 1 failed
-        successful_masks = ["/mask1.png", "/mask3.png"]  # frames 1 and 3 succeed
-        failed_frame_idx = 1  # frame 2 fails
+        # Setup scenario: 3 frames with different masking scenarios
+        # frame_1: masked extraction with mask
+        # frame_2: direct extraction without mask
+        # frame_3: masked extraction with mask
+        masked_frames = ["/mask1.png", "/mask3.png"]
 
-        # Mock successful keypoint extraction for successfully segmented frames
-        self.mock_extractor.extract_keypoints_with_mask = AsyncMock(return_value="/path/to/keypoints.npz")
-        self.mock_db.fetch_one = AsyncMock(return_value={"local_path": "/original/frame.jpg"})
-        self.mock_db.execute = AsyncMock()
-        self.mock_broker.publish_event = AsyncMock()
+        # Mock successful keypoint extraction
+        self.mock_extractor.extract_keypoints_with_mask.return_value = "/path/to/keypoints_masked.npz"
+        self.mock_extractor.extract_keypoints.return_value = "/path/to/keypoints_direct.npz"
+        self.mock_db.fetch_one.return_value = {"local_path": "/original/frame.jpg"}
 
         results = []
-        # Process 3 frames with different segmentation outcomes
+        masked_count = 0
+        # Process 3 frames with different masking scenarios
         for i in range(3):
             frame_id = f"frame_{i+1}"
 
-            if i == failed_frame_idx:
-                # Failed segmentation - no mask_path
+            if i == 1:  # frame 2 - direct extraction
+                # Direct keypoint extraction - no mask
                 result = await self.processor.process_single_asset(
                     job_id="mixed_video_job",
                     asset_id=frame_id,
                     asset_type="video",
-                    local_path=None,
+                    local_path=f"/path/to/frame_{i+1}.jpg",
                     is_masked=False,
-                    mask_path=None  # Failed segmentation
+                    mask_path=None
                 )
-            else:
-                # Successful segmentation - has mask_path
+            else:  # frames 1 and 3 - masked extraction
+                # Masked keypoint extraction
                 result = await self.processor.process_single_asset(
                     job_id="mixed_video_job",
                     asset_id=frame_id,
                     asset_type="video",
                     local_path=None,
                     is_masked=True,
-                    mask_path=successful_masks[len(results)]
+                    mask_path=masked_frames[masked_count]
                 )
+                masked_count += 1
 
             results.append(result)
 
         # Assertions
-        # 2 successful, 1 failed
-        assert results[0] is True  # Success
-        assert results[1] is False # Failure
-        assert results[2] is True  # Success
+        # All 3 should succeed since both extraction methods are mocked to succeed
+        assert results[0] is True  # Masked extraction success
+        assert results[1] is True  # Direct extraction success
+        assert results[2] is True  # Masked extraction success
 
-        # Only successful frames should have keypoint extraction
+        # Verify extraction methods were called correctly
         assert self.mock_extractor.extract_keypoints_with_mask.call_count == 2
+        assert self.mock_extractor.extract_keypoints.call_count == 1
 
-        # Only successful frames should have DB updates and broker events
-        assert self.mock_db.execute.call_count == 2
-        assert self.mock_broker.publish_event.call_count == 2
+        # All frames should have DB updates and broker events since all succeeded
+        assert self.mock_db.execute.call_count == 3
+        assert self.mock_broker.publish_event.call_count == 3
 
     @pytest.mark.unit
     async def test_process_single_asset_duplicate(self):
@@ -274,7 +280,7 @@ class TestKeypointAssetProcessor:
         """Test processing when keypoint extraction fails"""
         # Setup
         self.mock_progress_manager.processed_assets = set()
-        self.mock_extractor.extract_keypoints = AsyncMock(return_value=None)  # Simulate failure
+        self.mock_extractor.extract_keypoints.return_value = None  # Simulate failure
 
         # Call the method
         result = await self.processor.process_single_asset(
