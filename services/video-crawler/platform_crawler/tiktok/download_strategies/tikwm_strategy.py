@@ -8,6 +8,7 @@ from typing import Any, Dict, List, Optional, Tuple
 import httpx
 
 from common_py.logging_config import configure_logging
+from keyframe_extractor.factory import KeyframeExtractorFactory
 
 from .base import TikTokDownloadStrategy
 from ..metrics import record_download_metrics
@@ -30,6 +31,10 @@ class TikwmDownloadStrategy(TikTokDownloadStrategy):
 
         # Video storage configuration
         self.keyframe_storage_path = self.config.get("keyframe_storage_path", "./keyframes/tiktok")
+        self.keyframe_extractor = KeyframeExtractorFactory.build(
+            keyframe_dir=self.keyframe_storage_path,
+            create_dirs=True
+        )
 
     def download_video(self, url: str, video_id: str, output_path: str) -> Optional[str]:
         """
@@ -453,25 +458,7 @@ class TikwmDownloadStrategy(TikTokDownloadStrategy):
                     strategy="tikwm"
                 )
 
-                try:
-                    from keyframe_extractor.length_adaptive_extractor import (
-                        LengthAdaptiveKeyframeExtractor,
-                    )
-                except ImportError as exc:
-                    logger.warning(
-                        "Keyframe extractor unavailable: %s",
-                        exc,
-                        video_id=video_id,
-                        strategy="tikwm"
-                    )
-                    if attempt == max_retries:  # Only cleanup on final attempt
-                        shutil.rmtree(keyframes_dir, ignore_errors=True)
-                    return None, []
-
-                extractor = LengthAdaptiveKeyframeExtractor(
-                    keyframe_root_dir=self.keyframe_storage_path
-                )
-                keyframes = await extractor.extract_keyframes(
+                keyframes = await self.keyframe_extractor.extract_keyframes(
                     video_url="",  # Not available for TikWM downloads
                     video_id=video_id,
                     local_path=video_path,

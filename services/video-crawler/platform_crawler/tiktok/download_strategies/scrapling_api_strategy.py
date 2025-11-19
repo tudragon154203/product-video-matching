@@ -6,6 +6,7 @@ from typing import Any, Dict, List, Optional, Tuple
 import httpx
 
 from common_py.logging_config import configure_logging
+from keyframe_extractor.factory import KeyframeExtractorFactory
 
 from .base import TikTokDownloadStrategy
 from ..metrics import record_download_metrics
@@ -29,6 +30,15 @@ class ScraplingApiDownloadStrategy(TikTokDownloadStrategy):
 
         # Initialize client on demand
         self._client = None
+        self.keyframe_storage_path = (
+            config.get("keyframe_storage_path") or
+            config.get("TIKTOK_KEYFRAME_STORAGE_PATH") or
+            "./keyframes/tiktok"
+        )
+        self.keyframe_extractor = KeyframeExtractorFactory.build(
+            keyframe_dir=self.keyframe_storage_path,
+            create_dirs=True
+        )
 
     @property
     def client(self):
@@ -300,7 +310,6 @@ class ScraplingApiDownloadStrategy(TikTokDownloadStrategy):
             strategy="scrapling-api"
         )
 
-        keyframe_storage_path = self.config.get("keyframe_storage_path", "./keyframes/tiktok")
         keyframes_dir: Optional[str] = None
         keyframes: List[Tuple[float, str]] = []
 
@@ -310,29 +319,11 @@ class ScraplingApiDownloadStrategy(TikTokDownloadStrategy):
 
         for attempt in range(max_retries + 1):
             try:
-                keyframes_dir = os.path.join(keyframe_storage_path, video_id)
+                keyframes_dir = os.path.join(self.keyframe_storage_path, video_id)
                 os.makedirs(keyframes_dir, exist_ok=True)
 
                 logger.debug("Created keyframes directory: %s", keyframes_dir)
-
-                try:
-                    from keyframe_extractor.length_adaptive_extractor import (
-                        LengthAdaptiveKeyframeExtractor,
-                    )
-                except ImportError as exc:
-                    logger.warning(
-                        "Keyframe extractor unavailable: %s",
-                        exc,
-                        strategy="scrapling-api"
-                    )
-                    if attempt == max_retries:  # Only cleanup on final attempt
-                        shutil.rmtree(keyframes_dir, ignore_errors=True)
-                    return None, []
-
-                extractor = LengthAdaptiveKeyframeExtractor(
-                    keyframe_root_dir=keyframe_storage_path
-                )
-                keyframes = await extractor.extract_keyframes(
+                keyframes = await self.keyframe_extractor.extract_keyframes(
                     video_url="",  # Not available for API downloads
                     video_id=video_id,
                     local_path=video_path,

@@ -5,7 +5,7 @@ Uses environment variables directly since Docker Compose loads both shared and s
 import os
 import sys
 import logging
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from urllib.parse import urlparse
 
 from dotenv import load_dotenv
@@ -45,6 +45,24 @@ def _get_effective_dsn() -> str:
             return val
     return global_config.POSTGRES_DSN
 
+@dataclass
+class PySceneDetectSettings:
+    """Internal configuration for the PySceneDetect strategy."""
+
+    adaptive_threshold: float = 3.0
+    min_scene_len: int = 15
+    window_width: int = 2
+    min_content_val: float = 15.0
+    weights_luma_only: bool = True
+    downscale_factor: int = 1
+    min_scene_duration_seconds: float = 0.5
+    boundary_guard_seconds: float = 0.15
+    fallback_offset_seconds: float = 0.25
+    min_blur_threshold: float = 100.0
+    frame_quality: int = 95
+    frame_format: str = "jpg"
+    max_scenes: int = 0  # 0 => unlimited timestamps
+
 
 @dataclass
 class VideoCrawlerConfig:
@@ -64,6 +82,7 @@ class VideoCrawlerConfig:
     # Video storage directory
     VIDEO_DIR: str = os.path.join(global_config.DATA_ROOT_CONTAINER, os.getenv("VIDEO_REL_PATH", "videos"))
     KEYFRAME_DIR: str = os.path.join(global_config.DATA_ROOT_CONTAINER, os.getenv("KEYFRAME_REL_PATH", "keyframes"))
+    KEYFRAME_EXTRACTOR_STRATEGY: str = os.getenv("KEYFRAME_EXTRACTOR_STRATEGY", "pyscene_detect")
 
     # Number of videos to search for per query
     NUM_VIDEOS: int = int(os.getenv("NUM_VIDEOS", "5"))
@@ -96,6 +115,20 @@ class VideoCrawlerConfig:
     # TikTok storage paths
     TIKTOK_VIDEO_STORAGE_PATH: str = os.path.join(global_config.DATA_ROOT_CONTAINER, 'videos', 'tiktok')
     TIKTOK_KEYFRAME_STORAGE_PATH: str = os.path.join(global_config.DATA_ROOT_CONTAINER, 'keyframes', 'tiktok')
+
+    # Scene detection tuning
+    PYSCENEDETECT_SETTINGS: PySceneDetectSettings = field(default_factory=PySceneDetectSettings)
+
+    def __post_init__(self) -> None:
+        strategy = (self.KEYFRAME_EXTRACTOR_STRATEGY or "pyscene_detect").strip().lower()
+        allowed = {"pyscene_detect", "length_based"}
+        if strategy not in allowed:
+            logger.warning(
+                "Invalid KEYFRAME_EXTRACTOR_STRATEGY '%s'. Falling back to pyscene_detect.",
+                strategy
+            )
+            strategy = "pyscene_detect"
+        object.__setattr__(self, "KEYFRAME_EXTRACTOR_STRATEGY", strategy)
 
 
 # Create config instance

@@ -12,7 +12,7 @@ from common_py.models import Video
 
 from config_loader import config
 from handlers.event_emitter import EventEmitter
-from keyframe_extractor.length_adaptive_extractor import LengthAdaptiveKeyframeExtractor
+from keyframe_extractor.factory import KeyframeExtractorFactory
 from platform_crawler.tiktok.tiktok_downloader import TikTokDownloader
 from services.idempotency_manager import IdempotencyManager
 # Unused exceptions imported but not used in this file
@@ -41,7 +41,7 @@ class VideoProcessor:
 
         self.video_crud = VideoCRUD(db) if db else None
         self.frame_crud = VideoFrameCRUD(db) if db else None
-        self.keyframe_extractor = LengthAdaptiveKeyframeExtractor(create_dirs=False)
+        self.keyframe_extractor = KeyframeExtractorFactory.build(create_dirs=False)
 
     async def process_video(self, video_data: Dict[str, Any], job_id: str) -> Dict[str, Any]:
         """Process a single video and extract keyframes.
@@ -412,8 +412,8 @@ class VideoProcessor:
 
     def initialize_keyframe_extractor(self, keyframe_dir: Optional[str] = None) -> None:
         """Initialize keyframe extractor with specific directory."""
-        self.keyframe_extractor = LengthAdaptiveKeyframeExtractor(
-            keyframe_root_dir=keyframe_dir,
+        self.keyframe_extractor = KeyframeExtractorFactory.build(
+            keyframe_dir=keyframe_dir,
             create_dirs=True
         )
 

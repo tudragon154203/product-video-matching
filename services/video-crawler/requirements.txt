@@ -4,6 +4,7 @@ pydantic==2.8.2
 yt-dlp
 opencv-python==4.10.0.84
 numpy==1.26.4
+scenedetect[opencv]==0.6.7
 python-dotenv==1.0.1
 playwright==1.43.0
 
