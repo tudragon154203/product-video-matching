@@ -40,14 +40,14 @@ class TestDownloadMetrics:
         """Test DownloadMetrics with default values."""
         before = time.time()
         metrics = DownloadMetrics(
-            strategy="yt-dlp",
+            strategy="tikwm",
             video_id="test456",
             url="https://tiktok.com/test2",
             success=False
         )
         after = time.time()
 
-        assert metrics.strategy == "yt-dlp"
+        assert metrics.strategy == "tikwm"
         assert metrics.video_id == "test456"
         assert metrics.url == "https://tiktok.com/test2"
         assert metrics.success is False
@@ -102,7 +102,7 @@ class TestTikTokMetricsCollector:
         """Test recording a failed download."""
         collector = TikTokMetricsCollector()
         metrics = DownloadMetrics(
-            strategy="yt-dlp",
+            strategy="tikwm",
             video_id="test456",
             url="https://tiktok.com/test2",
             success=False,
@@ -113,15 +113,15 @@ class TestTikTokMetricsCollector:
         collector.record_download_attempt(metrics)
 
         # Check counters
-        assert collector._counters["yt-dlp"]["success"] == 0
-        assert collector._counters["yt-dlp"]["failure"] == 1
+        assert collector._counters["tikwm"]["success"] == 0
+        assert collector._counters["tikwm"]["failure"] == 1
 
         # Check error counts
         assert collector._error_counts["NAVIGATION_FAILED"] == 1
 
         # Check timings
-        assert len(collector._timings["yt-dlp"]) == 1
-        assert collector._timings["yt-dlp"][0] == 5.0
+        assert len(collector._timings["tikwm"]) == 1
+        assert collector._timings["tikwm"][0] == 5.0
 
     def test_multiple_downloads_same_strategy(self):
         """Test recording multiple downloads for the same strategy."""
@@ -215,8 +215,8 @@ class TestTikTokMetricsCollector:
         downloads = [
             DownloadMetrics("scrapling-api", "test1", "url1", True, execution_time=5.0),
             DownloadMetrics("scrapling-api", "test2", "url2", False, error_code="ERROR1"),
-            DownloadMetrics("yt-dlp", "test3", "url3", True, execution_time=8.0),
-            DownloadMetrics("yt-dlp", "test4", "url4", False, error_code="ERROR2"),
+            DownloadMetrics("tikwm", "test3", "url3", True, execution_time=8.0),
+            DownloadMetrics("tikwm", "test4", "url4", False, error_code="ERROR2"),
         ]
 
         for metrics in downloads:
@@ -230,7 +230,7 @@ class TestTikTokMetricsCollector:
 
         # Check strategy stats
         assert "scrapling-api" in all_stats["strategies"]
-        assert "yt-dlp" in all_stats["strategies"]
+        assert "tikwm" in all_stats["strategies"]
 
         # Check error counts
         assert all_stats["total_error_counts"]["ERROR1"] == 1
@@ -247,9 +247,9 @@ class TestTikTokMetricsCollector:
         downloads = [
             DownloadMetrics("scrapling-api", "test1", "url1", True),
             DownloadMetrics("scrapling-api", "test2", "url2", False, error_code="ERROR1"),
-            DownloadMetrics("yt-dlp", "test3", "url3", False, error_code="ERROR2"),
+            DownloadMetrics("tikwm", "test3", "url3", False, error_code="ERROR2"),
             DownloadMetrics("scrapling-api", "test4", "url4", True),
-            DownloadMetrics("yt-dlp", "test5", "url5", False, error_code="ERROR3"),
+            DownloadMetrics("tikwm", "test5", "url5", False, error_code="ERROR3"),
         ]
 
         for metrics in downloads:
@@ -262,7 +262,7 @@ class TestTikTokMetricsCollector:
         assert failures[0]["strategy"] == "scrapling-api"
         assert failures[0]["error_code"] == "ERROR1"
         assert failures[1]["video_id"] == "test3"
-        assert failures[1]["strategy"] == "yt-dlp"
+        assert failures[1]["strategy"] == "tikwm"
         assert failures[1]["error_code"] == "ERROR2"
 
     @patch('platform_crawler.tiktok.metrics.logger')

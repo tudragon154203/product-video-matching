@@ -2,6 +2,11 @@ from abc import ABC, abstractmethod
 from typing import Any, Dict, List, Optional, Tuple
 
 
+class TikTokAntiBotError(Exception):
+    """Custom exception for TikTok anti-bot detection"""
+    pass
+
+
 class TikTokDownloadStrategy(ABC):
     """Abstract base class for TikTok download strategies."""
 

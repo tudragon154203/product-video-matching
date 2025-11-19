@@ -65,8 +65,8 @@ The TikTok downloader provides robust video download capabilities with configura
 - **Timeout**: Download timeout in seconds (default: 30)
 
 ### Error Handling
-- **TikTokAntiBotError**: Custom exception for anti-bot detection (yt-dlp strategy)
-- **Strategy-Specific Errors**: Detailed error codes for API failures (scrapling-api strategy)
+- **TikTokAntiBotError**: Custom exception for anti-bot detection
+- **Strategy-Specific Errors**: Detailed error codes for API failures
 - **Automatic Retries**: Failed downloads automatically retry with appropriate strategy
 - **Graceful Degradation**: Database errors don't fail the entire download process
 - **Comprehensive Logging**: Detailed logging for debugging and monitoring

@@ -313,8 +313,8 @@ class TestScraplingApiStrategyIntegration:
         assert hasattr(downloader.download_strategy, 'api_port')
         assert hasattr(downloader.download_strategy, 'api_timeout')
 
-    def test_backward_compatibility_yt_dlp_default(self, temp_dirs):
-        """Test that yt-dlp remains the default strategy."""
+    def test_default_strategy_tikwm(self, temp_dirs):
+        """Test that tikwm is the default strategy."""
         video_dir, keyframe_dir = temp_dirs
         config_without_strategy = {
             "TIKTOK_VIDEO_STORAGE_PATH": video_dir,
@@ -327,5 +327,5 @@ class TestScraplingApiStrategyIntegration:
         with patch.dict(os.environ, {}, clear=True):
             downloader = TikTokDownloader(config_without_strategy)
 
-            # Should default to yt-dlp strategy
-            assert type(downloader.download_strategy).__name__ == "YtdlpDownloadStrategy"
+            # Should default to tikwm strategy
+            assert type(downloader.download_strategy).__name__ == "TikwmDownloadStrategy"

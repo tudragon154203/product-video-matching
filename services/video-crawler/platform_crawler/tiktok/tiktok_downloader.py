@@ -8,7 +8,7 @@ from typing import Any, Dict, List, Optional, Tuple
 from common_py.logging_config import configure_logging
 
 from .download_strategies.factory import TikTokDownloadStrategyFactory
-from .download_strategies.ytdlp_strategy import TikTokAntiBotError
+from .download_strategies.base import TikTokAntiBotError
 
 logger = configure_logging("video-crawler:tiktok_downloader")
 
@@ -44,6 +44,7 @@ class TikTokDownloader:
         # Initialize the download strategy
         strategy_config = config.copy()
         strategy_config["keyframe_storage_path"] = self.keyframe_storage_path
+
         self.download_strategy = TikTokDownloadStrategyFactory.create_strategy(strategy_config)
 
     def _resolve_storage_path(
