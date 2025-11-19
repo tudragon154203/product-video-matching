@@ -88,7 +88,7 @@ export function FeatureExtractionPanel({
                 )}
                 <h3 className="font-semibold text-sm">{t('complete.title')}</h3>
               </div>
-              
+
               {/* Show completion badge when collapsed */}
               {!isExpanded && (
                 <Badge variant="outline" className="text-xs bg-emerald-50 text-emerald-700 border-emerald-200">
@@ -116,7 +116,7 @@ export function FeatureExtractionPanel({
 
         {/* Accordion Content - shows full progress board when expanded */}
         {isExpanded && (
-          <div 
+          <div
             id="feature-extraction-summary-content"
             className="bg-white p-4"
           >
@@ -258,22 +258,13 @@ export function FeatureExtractionPanel({
   const { product_images, video_frames } = summary;
 
   // Check if all steps are complete
-  const allComplete = 
-    product_images.keypoints.percent >= 100 && 
+  const allComplete =
+    product_images.keypoints.percent >= 100 &&
     video_frames.keypoints.percent >= 100;
 
+  // Skip rendering when feature extraction is complete
   if (allComplete) {
-    return (
-      <div className="border rounded-lg p-4 bg-emerald-50">
-        <div className="flex items-center gap-3">
-          <CheckCircle2 className="h-5 w-5 text-emerald-600" />
-          <div>
-            <h3 className="font-medium text-emerald-900">{t('complete.title')}</h3>
-            <p className="text-sm text-emerald-700">{t('complete.description')}</p>
-          </div>
-        </div>
-      </div>
-    );
+    return null;
   }
 
   // Show alert if no assets

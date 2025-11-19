@@ -132,23 +132,26 @@ export function JobItemRow({ job }: JobItemRowProps) {
       className={`block rounded-lg border p-3 mb-2 transition-colors hover:bg-accent/50 ${isCancelled ? 'opacity-60' : ''}`}
     >
       <div className="space-y-2">
+        {/* Query occupies first row solely */}
+        <div>
+          <h4 className={`text-sm font-medium ${isCancelled ? 'text-muted-foreground' : ''}`}>{job.query}</h4>
+        </div>
+        {/* Status indicators on second row */}
         <div className="flex items-center justify-between gap-2">
-          <h4 className={`truncate text-sm font-medium ${isCancelled ? 'text-muted-foreground' : ''}`}>{job.query}</h4>
-          <div className="flex items-center space-x-2 shrink-0" aria-live="polite" role="status">
+          <div className="flex items-center space-x-2" aria-live="polite" role="status">
             {shouldShowStatusCircle && (
               <div
                 data-testid="status-color-circle"
                 className={`h-2 w-2 rounded-full ${colorClass}`}
               />
             )}
-            {resolvedPhase === 'collection' ? null : (
-              <span className="text-xs text-muted-foreground whitespace-nowrap">
-                {phaseInfo.getCompactLabel ? phaseInfo.getCompactLabel(t) : phaseInfo.getLabel(t)}
-              </span>
-            )}
+            <span className="text-xs text-muted-foreground whitespace-nowrap">
+              {phaseInfo.getCompactLabel ? phaseInfo.getCompactLabel(t) : phaseInfo.getLabel(t)}
+            </span>
             {renderPhaseEffect()}
           </div>
         </div>
+        {/* Timestamp and industry on third row */}
         <div className="flex items-center justify-between text-xs text-muted-foreground">
           <span>{formatToGMT7(displayDate)}</span>
           <span className="capitalize">{job.industry}</span>
