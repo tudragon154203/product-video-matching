@@ -89,6 +89,40 @@ if not ensure_test_media_available(WORKSPACE_ROOT):
 # Auto-start infra (no build) if core services are down
 ensure_infra_running(WORKSPACE_ROOT)
 
+# Clean up old spy queues from previous test runs to prevent message interception
+def cleanup_spy_queues():
+    """Remove all spy queues from RabbitMQ before tests run."""
+    import subprocess
+    try:
+        # Get list of spy queues
+        result = subprocess.run(
+            ["docker", "compose", "-f", "infra/pvm/docker-compose.dev.yml", "exec", "-T", "rabbitmq",
+             "rabbitmqctl", "list_queues", "name"],
+            cwd=str(WORKSPACE_ROOT),
+            capture_output=True,
+            text=True,
+            check=False
+        )
+
+        if result.returncode == 0:
+            spy_queues = [line.split()[0] for line in result.stdout.splitlines() if line.startswith("spy.")]
+
+            if spy_queues:
+                print(f"[integration] Cleaning up {len(spy_queues)} old spy queues from previous test runs")
+                for queue in spy_queues:
+                    subprocess.run(
+                        ["docker", "compose", "-f", "infra/pvm/docker-compose.dev.yml", "exec", "-T", "rabbitmq",
+                         "rabbitmqctl", "delete_queue", queue],
+                        cwd=str(WORKSPACE_ROOT),
+                        capture_output=True,
+                        check=False
+                    )
+                print(f"[integration] Cleaned up {len(spy_queues)} spy queues")
+    except Exception as e:
+        print(f"[integration] WARNING: Failed to cleanup spy queues: {e}")
+
+cleanup_spy_queues()
+
 # Reload centralized config after env update
 if "config" in sys.modules:
     importlib.reload(sys.modules["config"])
