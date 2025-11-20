@@ -7,6 +7,7 @@ numpy==1.26.4
 scenedetect[opencv]==0.6.7
 python-dotenv==1.0.1
 playwright==1.43.0
+av==16.0.1
 
 # TikTok crawler dependencies
 sse-starlette==1.6.4
