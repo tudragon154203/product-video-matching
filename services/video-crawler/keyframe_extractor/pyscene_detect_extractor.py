@@ -194,6 +194,46 @@ class PySceneDetectKeyframeExtractor(AbstractKeyframeExtractor):
         fallback = max(0.0, self.settings.fallback_offset_seconds)
         max_scenes = max(0, self.settings.max_scenes)
 
+        # If only 1 scene detected, extract multiple evenly-spaced frames
+        # This is a fallback for short videos or videos with codec seek issues
+        if len(scenes) <= 1:
+            start = 0.0
+            end = video_duration
+
+            # Extract 5 frames for videos > 10s, 3 frames for videos 5-10s, 1 frame for shorter
+            if video_duration > 10:
+                num_frames = 5
+            elif video_duration > 5:
+                num_frames = 3
+            else:
+                num_frames = 1
+
+            # Respect max_scenes setting if configured
+            if max_scenes > 0 and num_frames > max_scenes:
+                num_frames = max_scenes
+
+            logger.debug("Single scene detected, using fallback multi-frame extraction",
+                         video_duration=video_duration,
+                         num_frames=num_frames)
+
+            # Calculate evenly-spaced timestamps with boundary guards
+            for i in range(num_frames):
+                # Position frames evenly across the video
+                if num_frames == 1:
+                    position = start + (end - start) / 2.0
+                else:
+                    position = start + (i + 0.5) * (end - start) / num_frames
+
+                # Apply boundary guard to avoid very start/end of video
+                upper_limit = max(start, end - guard)
+                position = min(position, upper_limit)
+                position = max(start, position)
+
+                timestamps.append(position)
+
+            return timestamps
+
+        # Multiple scenes detected - use normal midpoint extraction
         for start, end in scenes:
             start = max(0.0, start)
             if video_duration > 0:

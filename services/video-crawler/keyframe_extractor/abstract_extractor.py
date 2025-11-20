@@ -406,7 +406,7 @@ class AbstractKeyframeExtractor(KeyframeExtractorInterface, ABC):
 
     def _seek_to_timestamp(self, cap: cv2.VideoCapture, timestamp: float, fps: float) -> bool:
         """
-        Seek video capture to a specific timestamp.
+        Seek video capture to a specific timestamp with fallback methods.
 
         Args:
             cap: OpenCV VideoCapture object
@@ -417,18 +417,42 @@ class AbstractKeyframeExtractor(KeyframeExtractorInterface, ABC):
             True if seek was successful, False otherwise
         """
         try:
+            # Method 1: Frame-based seek (most accurate when it works)
             frame_number = int(timestamp * fps)
             cap.set(cv2.CAP_PROP_POS_FRAMES, frame_number)
 
             # Verify the seek was successful
             actual_frame = cap.get(cv2.CAP_PROP_POS_FRAMES)
-            if abs(actual_frame - frame_number) > 5:  # Allow small tolerance
-                logger.warning("Seek accuracy issue",
-                               target_frame=frame_number,
-                               actual_frame=actual_frame,
-                               timestamp=timestamp)
+            frame_seek_ok = abs(actual_frame - frame_number) <= 100  # Allow larger tolerance for AV1
 
-            return True
+            if frame_seek_ok:
+                return True
+
+            # Method 2: Timestamp-based seek (fallback for codecs like AV1)
+            logger.debug("Frame-based seek failed, trying timestamp-based seek",
+                         timestamp=timestamp,
+                         target_frame=frame_number,
+                         actual_frame=actual_frame)
+
+            timestamp_ms = int(timestamp * 1000)
+            cap.set(cv2.CAP_PROP_POS_MSEC, timestamp_ms)
+
+            # Verify timestamp seek
+            actual_timestamp = cap.get(cv2.CAP_PROP_POS_MSEC)
+            timestamp_seek_ok = abs(actual_timestamp - timestamp_ms) <= 1000  # Allow 1 second tolerance
+
+            if timestamp_seek_ok:
+                logger.debug("Timestamp-based seek succeeded", timestamp=timestamp)
+                return True
+
+            # Both seek methods failed
+            logger.warning("Both seek methods failed",
+                           timestamp=timestamp,
+                           target_frame=frame_number,
+                           actual_frame=actual_frame,
+                           target_timestamp_ms=timestamp_ms,
+                           actual_timestamp_ms=actual_timestamp)
+            return False
 
         except Exception as e:
             logger.error("Failed to seek to timestamp",

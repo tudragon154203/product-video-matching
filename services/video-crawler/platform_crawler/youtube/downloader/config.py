@@ -38,9 +38,13 @@ class DownloaderConfig:
     MAX_RETRIES = 5  # Increased from 3 to 5 for better reliability
 
     # Format options for video download
+    # Prioritize H.264 (avc) codec for better OpenCV compatibility
     FORMAT_OPTIONS = [
-        'bv*[height<=?1080][ext=mp4]+ba[ext=m4a]/b[height<=?1080][ext=mp4]/bv*[height<=?1080]+ba/b[height<=?1080]/best',
+        # Prefer H.264 codec (best OpenCV compatibility), then fallback to any MP4
+        'bestvideo[ext=mp4][vcodec^=avc]+bestaudio[ext=m4a]/best[ext=mp4]/bestvideo+bestaudio/best',
+        # Alternative: Best video quality with various formats
         'best[height<=?1080][ext=mp4]/best[height<=?1080]/best',
+        # Fallback: Lower quality but reliable
         'worst[height>=?360][ext=mp4]/worst[height>=?360]/worst',
         # Additional format options for better compatibility
         'bv*+ba/b',
