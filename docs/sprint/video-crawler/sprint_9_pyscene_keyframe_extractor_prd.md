@@ -1,7 +1,7 @@
 # Video Crawler – Sprint 9 PySceneDetect Keyframe Extractor PRD
 
 ## Objective
-Ship a new PySceneDetect-backed keyframe extractor that lives beside (not inside) the existing length-based extractor. The new class must inherit from `services/video-crawler/keyframe_extractor/abstract_extractor.py`, be selectable through a single env toggle `KEYFRAME_EXTRACTOR_STRATEGY=pyscene_detect|length_based`, and emit the same persistence/events contracts while extracting frames at the middle of each detected scene cut. No fallback to the legacy strategy occurs once `pyscene_detect` is selected.
+Ship a new PySceneDetect-backed keyframe extractor that lives beside (not inside) the existing length-based extractor. The new class must inherit from `services/video-crawler/keyframe_extractor/abstract_extractor.py` and emit the same persistence/events contracts while extracting frames at the middle of each detected scene cut. No fallback to the legacy strategy occurs once `pyscene_detect` is selected.
 
 ## Background & Problem Statement
 - The current `LengthAdaptiveKeyframeExtractor` samples timestamps purely from video duration percentages. It often misses fast transitions and over-samples uninformative frames on slow scenes.
@@ -12,7 +12,7 @@ Ship a new PySceneDetect-backed keyframe extractor that lives beside (not inside
 ## Goals & Success Criteria
 1. **Dedicated class**: Introduce `PySceneDetectKeyframeExtractor(AbstractKeyframeExtractor)` in `services/video-crawler/keyframe_extractor/pyscene_detect_extractor.py`. The legacy length-based extractor stays untouched.
 2. **Scene-aware midpoints**: Detect scene boundaries via PySceneDetect AdaptiveDetector and always capture a frame at each scene’s temporal midpoint `(start + end) / 2`. Only use `start` when the scene is shorter than the seek buffer.
-3. **Single strategy flag**: Replace prior `KEYFRAME_EXTRACTOR_IMPL` naming with `KEYFRAME_EXTRACTOR_STRATEGY=pyscene_detect|length_based`. No additional `.env` variables (e.g., `KEYFRAME_DEBUG_METRICS`) are introduced.
+3. **Single strategy default**: PySceneDetect replaces the old length-based path and ships as the default; no runtime env toggle is required or supported.
 4. **Config isolation**: Sensitivity knobs (`adaptive_threshold`, `min_scene_len`, `window_width`, `min_content_val`, `weights_luma_only`) remain inside `config_loader`; they can be tuned internally without surfacing `.env` entries yet.
 5. **Parity contracts**: Persist frames via `VideoFrameCRUD`/`IdempotencyManager` and emit the same `videos.keyframes.ready` events so downstream services remain unaware of the strategy swap.
 6. **Operational clarity**: Provide structured logs/metrics for detector runtime, scene counts, accepted/dropped frames, and ensure errors mark a video as failed without triggering a fallback.
@@ -41,7 +41,7 @@ Ship a new PySceneDetect-backed keyframe extractor that lives beside (not inside
 ## Proposed Solution & Architecture
 ```
 VideoProcessor.process_video
-    ↓ (strategy factory uses KEYFRAME_EXTRACTOR_STRATEGY)
+    ↓ (router builder returns codec-aware extractor; no env toggle)
 PySceneDetectKeyframeExtractor.extract_keyframes
     ↓ PySceneDetect SceneManager + AdaptiveDetector
 Scene list → midpoint timestamps → frame decode → blur filter
@@ -57,13 +57,13 @@ EventEmitter.publish_videos_keyframes_ready(+batch)
    - Implements `extract_keyframes(self, ctx: KeyframeExtractionContext) -> ExtractResult` using inherited helpers for IO, file naming, blur scoring, and error construction.
    - Maintains private method `_detect_scenes(Path) -> list[SceneInfo]` for unit testing.
 
-2. **Strategy factory**
-   - `services/video-crawler/keyframe_extractor/factory.py` (or existing wiring) reads `KEYFRAME_EXTRACTOR_STRATEGY` from env/config. Allowed values: `pyscene_detect` (default) and `length_based`.
-   - On invalid values, raise configuration error during startup; no silent fallback.
+2. **Router wiring**
+   - `services/video-crawler/keyframe_extractor/router.py` exposes a builder that returns a codec-aware router combining PySceneDetect and PyAV extractors.
+   - Selection is automatic; there is no env toggle to swap strategies.
 
 3. **Config loader updates**
-   - Add `keyframe_extractor_strategy: Literal["pyscene_detect", "length_based"]` with default `pyscene_detect`.
-   - Keep PySceneDetect tuning parameters as internal config fields (sourced from config files or secrets). No `.env` entries beyond the strategy toggle.
+   - Remove the `keyframe_extractor_strategy` toggle. PySceneDetect tuning parameters stay as internal config fields (sourced from config files or secrets).
+   - No `.env` entries remain for switching extractor implementations.
 
 4. **Dependencies**
    - Ensure `services/video-crawler/requirements.txt` includes `scenedetect[opencv]` and Docker image bundles ffmpeg.
@@ -75,14 +75,14 @@ EventEmitter.publish_videos_keyframes_ready(+batch)
 - **Instrumentation**:
   - Log per-video line: `job_id`, `video_id`, `scene_count`, `keyframes_saved`, `keyframes_dropped_blur`, `strategy`.
   - Emit metrics through existing observability hooks; since we removed `KEYFRAME_DEBUG_METRICS`, logging is always on at INFO level for aggregate stats, DEBUG for per-scene details if needed.
-- **No fallback**: If `KEYFRAME_EXTRACTOR_STRATEGY=pyscene_detect` and extraction fails, there is no automatic retry with `length_based`. Operators can revert by redeploying with `length_based` but not dynamically per video.
+- **No fallback**: If PySceneDetect extraction fails, there is no automatic retry with the legacy strategy. Operators can revert by redeploying with the legacy extractor but not dynamically per video.
 
 ## Data Contracts
 - **Database**: Continue writing to `video_frames` table (`frame_id`, `video_id`, `frame_index`, `timestamp`, `local_path`). Optionally store `scene_index` within the JSON metadata blob if available.
 - **Events**: `videos.keyframes.ready` and `.batch` payloads remain identical, ensuring downstream services require no changes.
 
 ## Operational Plan
-- **Rollout**: Default env remains `pyscene_detect`; staging uses PySceneDetect immediately. Production rollout can be toggled to `length_based` only if regressions appear.
+- **Rollout**: Default remains PySceneDetect; staging uses PySceneDetect immediately. Rolling back requires reverting to the legacy extractor via code/deploy change rather than an env toggle.
 - **Monitoring**: Track average scene count per video and compare with historical length-based frame counts. Alert if scene count is zero for more than X% of videos.
 - **Failure handling**: When PySceneDetect raises due to codec or corrupt media, log error, mark video failed, and continue processing other jobs. Operators can inspect logs via Kibana; no special fallback path.
 - **Cleanup**: Existing cleanup jobs continue deleting orphaned frames. No additional state besides frames is written.
@@ -97,8 +97,8 @@ EventEmitter.publish_videos_keyframes_ready(+batch)
 
 ## Milestones
 1. **Design sign-off** – finalize this PRD and confirm parameter defaults.
-2. **Implementation** – add new extractor class, factory wiring, config loader updates, requirements, and documentation.
-3. **Validation** – run crawler against smoke dataset; verify midpoint timestamps, scene counts, and event payloads. Document rollback procedure (set `KEYFRAME_EXTRACTOR_STRATEGY=length_based`).
+2. **Implementation** – add new extractor class, router wiring, config loader updates, requirements, and documentation.
+3. **Validation** – run crawler against smoke dataset; verify midpoint timestamps, scene counts, and event payloads. Document rollback procedure (redeploy with the legacy extractor if needed).
 4. **Rollout** – enable PySceneDetect in staging for 48h, then in production upon stable metrics.
 
 ## Open Questions

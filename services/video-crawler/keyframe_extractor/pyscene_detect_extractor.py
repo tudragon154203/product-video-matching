@@ -194,42 +194,80 @@ class PySceneDetectKeyframeExtractor(AbstractKeyframeExtractor):
         fallback = max(0.0, self.settings.fallback_offset_seconds)
         max_scenes = max(0, self.settings.max_scenes)
 
-        # If only 1 scene detected, extract multiple evenly-spaced frames
-        # This is a fallback for short videos or videos with codec seek issues
-        if len(scenes) <= 1:
+        if len(scenes) == 0:
             start = 0.0
-            end = video_duration
+            end = max(0.0, video_duration)
+            if end <= start:
+                return []
 
             # Extract 5 frames for videos > 10s, 3 frames for videos 5-10s, 1 frame for shorter
-            if video_duration > 10:
+            if end > 10:
                 num_frames = 5
-            elif video_duration > 5:
+            elif end > 5:
                 num_frames = 3
             else:
                 num_frames = 1
 
-            # Respect max_scenes setting if configured
             if max_scenes > 0 and num_frames > max_scenes:
                 num_frames = max_scenes
 
-            logger.debug("Single scene detected, using fallback multi-frame extraction",
-                         video_duration=video_duration,
+            logger.debug("No scenes detected, using fallback multi-frame extraction",
+                         video_duration=end,
                          num_frames=num_frames)
 
-            # Calculate evenly-spaced timestamps with boundary guards
             for i in range(num_frames):
-                # Position frames evenly across the video
                 if num_frames == 1:
                     position = start + (end - start) / 2.0
                 else:
                     position = start + (i + 0.5) * (end - start) / num_frames
 
-                # Apply boundary guard to avoid very start/end of video
                 upper_limit = max(start, end - guard)
                 position = min(position, upper_limit)
                 position = max(start, position)
 
                 timestamps.append(position)
+
+            return timestamps
+
+        if len(scenes) == 1:
+            start, end = scenes[0]
+            start = max(0.0, start)
+            end = max(start, end)
+            if video_duration > 0:
+                end = min(end, video_duration)
+            duration = end - start
+            if duration <= 0:
+                return []
+
+            if duration > 10:
+                num_frames = 5
+            elif duration > 5:
+                num_frames = 3
+            else:
+                num_frames = 1
+
+            if max_scenes > 0 and num_frames > max_scenes:
+                num_frames = max_scenes
+
+            logger.debug("Single scene detected, using scene-aware multi-frame extraction",
+                         scene_duration=duration,
+                         num_frames=num_frames)
+
+            for i in range(num_frames):
+                if num_frames == 1:
+                    midpoint = start + (duration / 2.0)
+                    upper_limit = max(start, end - min(guard, duration / 2.0))
+                    midpoint = min(midpoint, upper_limit)
+                    if duration < min_duration:
+                        midpoint = start + min(duration / 2.0, fallback)
+                    midpoint = max(start, min(midpoint, end))
+                    timestamps.append(midpoint)
+                else:
+                    position = start + (i + 0.5) * duration / num_frames
+                    upper_limit = max(start, end - guard)
+                    position = min(position, upper_limit)
+                    position = max(start, position)
+                    timestamps.append(position)
 
             return timestamps
 

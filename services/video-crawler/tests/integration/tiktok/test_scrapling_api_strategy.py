@@ -279,10 +279,10 @@ class TestScraplingApiStrategyIntegration:
 
         # Mock keyframe extraction
         with patch(
-            'platform_crawler.tiktok.download_strategies.scrapling_api_strategy.LengthAdaptiveKeyframeExtractor'
-        ) as mock_extractor_class:
+            'platform_crawler.tiktok.download_strategies.scrapling_api_strategy.build_keyframe_extractor'
+        ) as mock_builder:
             mock_extractor = MagicMock()
-            mock_extractor_class.return_value = mock_extractor
+            mock_builder.return_value = mock_extractor
             mock_extractor.extract_keyframes.return_value = [
                 (1.0, f"{video_dir}/keyframes/{video_id}/frame_1.jpg"),
                 (2.0, f"{video_dir}/keyframes/{video_id}/frame_2.jpg"),

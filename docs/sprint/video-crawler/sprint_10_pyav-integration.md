@@ -72,10 +72,10 @@ Implement a codec-aware routing system that:
 - Maintain system stability with graceful degradation
 
 #### FR6: Configuration & Settings
-- Add PyAV-specific settings to config loader
+- Add PyAV-specific settings to config loader with sane defaults (no new .env required)
 - Remove length-based extractor settings/strategy flag
-- Support quality settings (JPEG compression, frame formats)
-- Enable/disable PyAV routing via configuration flag
+- Support quality settings (JPEG compression, frame formats) via config loader overrides
+- PyAV routing enabled by default; no feature flag needed
 
 ### Non-Functional Requirements
 
@@ -146,7 +146,7 @@ class ExtractorRouter:
 #### 3. Configuration Updates
 ```python
 class PyAVSettings:
-    enable_pyav_routing: bool = True
+    enable_pyav_routing: bool = True  # default on, no .env toggle required
     pyav_quality: int = 90
     pyav_format: str = "jpg"
     pyav_max_frames: int = 5
@@ -201,7 +201,7 @@ SUPPORTED_EXTRACTORS = ["pyscene_detect", "pyav"]
 2. **Configuration & Settings**
    - Add PyAV settings to config loader
    - Remove length-based extractor settings/flags from config loader and docs
-   - Environment variable support
+   - Keep defaults in config loader (no new .env entries required)
    - Default values and validation
 
 3. **Error Handling**

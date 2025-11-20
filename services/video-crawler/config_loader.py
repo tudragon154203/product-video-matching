@@ -65,6 +65,20 @@ class PySceneDetectSettings:
 
 
 @dataclass
+class PyAVSettings:
+    """Internal configuration for the PyAV strategy."""
+
+    enable_pyav_routing: bool = True
+    fallback_to_pyscene: bool = os.getenv("PYAV_FALLBACK_TO_PYSCENE", "true").lower() == "true"
+    frame_quality: int = int(os.getenv("PYAV_QUALITY", os.getenv("PYAV_FRAME_QUALITY", "90")))
+    frame_format: str = os.getenv("PYAV_FORMAT", os.getenv("PYAV_FRAME_FORMAT", "jpg"))
+    max_frames: int = int(os.getenv("PYAV_MAX_FRAMES", "5"))
+    min_blur_threshold: float = float(os.getenv("PYAV_MIN_BLUR_THRESHOLD", "100.0"))
+    boundary_guard_seconds: float = float(os.getenv("PYAV_BOUNDARY_GUARD_SECONDS", "0.25"))
+    seek_tolerance_seconds: float = float(os.getenv("PYAV_SEEK_TOLERANCE_SECONDS", "1.0"))
+
+
+@dataclass
 class VideoCrawlerConfig:
     """Configuration for the video crawler service"""
 
@@ -82,7 +96,6 @@ class VideoCrawlerConfig:
     # Video storage directory
     VIDEO_DIR: str = os.path.join(global_config.DATA_ROOT_CONTAINER, os.getenv("VIDEO_REL_PATH", "videos"))
     KEYFRAME_DIR: str = os.path.join(global_config.DATA_ROOT_CONTAINER, os.getenv("KEYFRAME_REL_PATH", "keyframes"))
-    KEYFRAME_EXTRACTOR_STRATEGY: str = os.getenv("KEYFRAME_EXTRACTOR_STRATEGY", "pyscene_detect")
 
     # Number of videos to search for per query
     NUM_VIDEOS: int = int(os.getenv("NUM_VIDEOS", "5"))
@@ -118,17 +131,7 @@ class VideoCrawlerConfig:
 
     # Scene detection tuning
     PYSCENEDETECT_SETTINGS: PySceneDetectSettings = field(default_factory=PySceneDetectSettings)
-
-    def __post_init__(self) -> None:
-        strategy = (self.KEYFRAME_EXTRACTOR_STRATEGY or "pyscene_detect").strip().lower()
-        allowed = {"pyscene_detect", "length_based"}
-        if strategy not in allowed:
-            logger.warning(
-                "Invalid KEYFRAME_EXTRACTOR_STRATEGY '%s'. Falling back to pyscene_detect.",
-                strategy
-            )
-            strategy = "pyscene_detect"
-        object.__setattr__(self, "KEYFRAME_EXTRACTOR_STRATEGY", strategy)
+    PYAV_SETTINGS: PyAVSettings = field(default_factory=PyAVSettings)
 
 
 # Create config instance

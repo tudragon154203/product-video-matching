@@ -8,7 +8,7 @@ from typing import Any, Dict, List, Optional, Tuple
 import httpx
 
 from common_py.logging_config import configure_logging
-from keyframe_extractor.factory import KeyframeExtractorFactory
+from keyframe_extractor.router import build_keyframe_extractor
 
 from .base import TikTokDownloadStrategy
 from ..metrics import record_download_metrics
@@ -31,7 +31,7 @@ class TikwmDownloadStrategy(TikTokDownloadStrategy):
 
         # Video storage configuration
         self.keyframe_storage_path = self.config.get("keyframe_storage_path", "./keyframes/tiktok")
-        self.keyframe_extractor = KeyframeExtractorFactory.build(
+        self.keyframe_extractor = build_keyframe_extractor(
             keyframe_dir=self.keyframe_storage_path,
             create_dirs=True
         )

@@ -118,7 +118,7 @@ class TestErrorHandling:
     def test_extract_keyframes_exception(self):
         """Test exception handling during keyframe extraction"""
         with patch('os.path.join') as mock_join, \
-                patch('keyframe_extractor.factory.KeyframeExtractorFactory.build'):
+                patch('keyframe_extractor.router.build_keyframe_extractor'):
 
             # Mock keyframes directory creation to raise exception
             mock_join.side_effect = Exception("File system error")
