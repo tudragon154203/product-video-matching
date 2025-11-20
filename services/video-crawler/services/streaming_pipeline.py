@@ -211,9 +211,6 @@ class StreamingVideoPipeline:
                         await self.download_queue.put(task)
                         self.stats["search_results_found"] += 1
 
-                        # Yield immediate result for monitoring
-                        yield {"type": "video_queued", "video_id": video_data.get("video_id"), "platform": platform}
-
                     except asyncio.QueueFull:
                         logger.warning(f"Download queue full, dropping video: {video_data.get('video_id')}")
                         self.stats["errors"] += 1

@@ -151,8 +151,8 @@ class TestYoutubeTitleDeduplication:
             {"video_id": "yt3", "title": "Different Title", "local_path": "/path/yt3.mp4"},
         ])
 
-        with patch('platform_crawler.youtube.youtube_searcher.YoutubeSearcher', return_value=mock_searcher), \
-                patch('platform_crawler.youtube.downloader.YoutubeDownloader', return_value=mock_downloader), \
+        with patch('platform_crawler.youtube.youtube_crawler.YoutubeSearcher', return_value=mock_searcher), \
+                patch('platform_crawler.youtube.youtube_crawler.YoutubeDownloader', return_value=mock_downloader), \
                 patch('platform_crawler.youtube.youtube_crawler.config'), \
                 patch('asyncio.Semaphore'), \
                 patch('asyncio.gather', return_value=[{"video_id": "yt1"}, {"video_id": "yt3"}]):

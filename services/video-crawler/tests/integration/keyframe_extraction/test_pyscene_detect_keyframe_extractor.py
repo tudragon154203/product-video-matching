@@ -1,4 +1,4 @@
-"""Unit tests for the PySceneDetect-based keyframe extractor."""
+"""Integration tests for the PySceneDetect-based keyframe extractor."""
 
 import shutil
 import tempfile
@@ -12,7 +12,7 @@ from config_loader import PySceneDetectSettings
 from keyframe_extractor import pyscene_detect_extractor as extractor_module
 from keyframe_extractor.pyscene_detect_extractor import PySceneDetectKeyframeExtractor
 
-pytestmark = pytest.mark.unit
+pytestmark = pytest.mark.integration
 
 
 @pytest.fixture

@@ -5,7 +5,7 @@ import pytest
 
 from platform_crawler.youtube.youtube_crawler import YoutubeCrawler
 
-pytestmark = pytest.mark.unit
+pytestmark = pytest.mark.integration
 
 
 class MockYoutubeDownloader:

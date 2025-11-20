@@ -1,4 +1,4 @@
-"""Tests for the PyAV extractor and codec-aware router."""
+"""Integration tests for the PyAV extractor and codec-aware router."""
 
 import shutil
 import tempfile
@@ -16,7 +16,7 @@ from keyframe_extractor.interface import KeyframeExtractorInterface
 from keyframe_extractor.pyav_extractor import PyAVKeyframeExtractor
 from keyframe_extractor.router import CodecDetector, ExtractorRouter
 
-pytestmark = pytest.mark.unit
+pytestmark = pytest.mark.integration
 
 
 @pytest.fixture
