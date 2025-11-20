@@ -114,3 +114,137 @@ def tiktok_env_mock(temp_dir):
     """Mock TIKTOK_VIDEO_STORAGE_PATH environment variable for TikTok-related tests"""
     with patch.dict(os.environ, {'TIKTOK_VIDEO_STORAGE_PATH': temp_dir}):
         yield temp_dir
+
+
+@pytest.fixture
+def mock_db():
+    """Mock database manager for testing."""
+    from unittest.mock import AsyncMock
+    from common_py.database import DatabaseManager
+
+    db = AsyncMock(spec=DatabaseManager)
+
+    # Setup default mock responses
+    db.fetch_one.return_value = None
+    db.fetch_all.return_value = []
+    db.execute.return_value = None
+
+    # Add mock pool for connection validation
+    mock_pool = AsyncMock()
+    db.pool = mock_pool
+
+    return db
+
+
+@pytest.fixture
+def parallel_video_service(mock_db):
+    """Parallel video service instance for testing."""
+    from services.parallel_video_service import ParallelVideoService
+    from services.streaming_pipeline import PipelineConfig
+
+    config = PipelineConfig(
+        max_concurrent_downloads=2,
+        max_concurrent_processing=2,
+        download_queue_size=10,
+        processing_queue_size=10,
+        batch_size_for_processing=5,
+        search_result_buffer_size=5
+    )
+
+    return ParallelVideoService(mock_db, config=config)
+
+
+@pytest.fixture
+def platform_queries():
+    """Sample platform queries for testing."""
+    return {
+        "youtube": ["ergonomic pillows review", "pillow unboxing"],
+        "tiktok": ["#pillow", "#sleep", "#bedding"]
+    }
+
+
+@pytest.fixture
+def sample_video_data():
+    """Sample video data for testing."""
+    return {
+        "video_id": "test_video_123",
+        "platform": "youtube",
+        "url": "https://youtube.com/watch?v=test123",
+        "title": "Test Video Title",
+        "duration_s": 120,
+        "published_at": "2025-01-01T00:00:00Z"
+    }
+
+
+@pytest.fixture
+def sample_video_data_list():
+    """List of sample video data for testing."""
+    return [
+        {
+            "video_id": f"video_{i}",
+            "platform": "youtube" if i % 2 == 0 else "tiktok",
+            "url": f"https://example.com/video_{i}",
+            "title": f"Test Video {i}",
+            "duration_s": 30 + (i * 10)
+        }
+        for i in range(5)
+    ]
+
+
+@pytest.fixture
+def mock_event_emitter():
+    """Mock event emitter for testing."""
+    from unittest.mock import AsyncMock
+    emitter = AsyncMock()
+    emitter.publish_videos_keyframes_ready = AsyncMock()
+    return emitter
+
+
+@pytest.fixture
+def mock_progress_manager():
+    """Mock job progress manager for testing."""
+    from unittest.mock import AsyncMock
+    manager = AsyncMock()
+    manager.update_job_progress = AsyncMock()
+    return manager
+
+
+@pytest.fixture
+def video_processor(mock_db):
+    """Video processor instance for testing."""
+    from services.video_processor import VideoProcessor
+    return VideoProcessor(mock_db)
+
+
+@pytest.fixture
+def streaming_pipeline(mock_db):
+    """Streaming pipeline instance for testing."""
+    from services.streaming_pipeline import StreamingVideoPipeline, PipelineConfig
+
+    config = PipelineConfig(
+        max_concurrent_downloads=2,
+        max_concurrent_processing=2,
+        download_queue_size=10,
+        processing_queue_size=10,
+        batch_size_for_processing=5,
+        search_result_buffer_size=5
+    )
+
+    return StreamingVideoPipeline(mock_db, config)
+
+
+@pytest.fixture
+def sample_keyframes():
+    """Sample keyframe data for testing."""
+    return [
+        (0.0, "/path/to/frame_0.jpg"),
+        (5.0, "/path/to/frame_1.jpg"),
+        (10.0, "/path/to/frame_2.jpg")
+    ]
+
+
+@pytest.fixture
+def idempotency_manager(mock_db):
+    """Idempotency manager instance for testing."""
+    from services.idempotency_manager import IdempotencyManager
+    return IdempotencyManager(mock_db)
