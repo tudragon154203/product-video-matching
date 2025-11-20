@@ -15,11 +15,13 @@ except ImportError:  # pragma: no cover
 try:  # pragma: no cover - imported lazily in tests
     from scenedetect import SceneManager
     from scenedetect.detectors import AdaptiveDetector
+    from scenedetect.detectors.content_detector import ContentDetector
     from scenedetect.stats_manager import StatsManager
     from scenedetect.video_manager import VideoManager
 except ImportError:  # pragma: no cover
     SceneManager = None
     AdaptiveDetector = None
+    ContentDetector = None
     StatsManager = None
     VideoManager = None
 
@@ -138,7 +140,12 @@ class PySceneDetectKeyframeExtractor(AbstractKeyframeExtractor):
         stats_manager = StatsManager()
         scene_manager = SceneManager(stats_manager)
 
-        weights = (1.0, 0.0, 0.0) if self.settings.weights_luma_only else (1.0, 1.0, 1.0)
+        weights = ContentDetector.Components(
+            delta_lum=1.0,
+            delta_hue=0.0 if self.settings.weights_luma_only else 1.0,
+            delta_sat=0.0 if self.settings.weights_luma_only else 1.0,
+            delta_edges=0.0
+        )
         detector = AdaptiveDetector(
             adaptive_threshold=self.settings.adaptive_threshold,
             min_scene_len=self.settings.min_scene_len,
@@ -155,8 +162,16 @@ class PySceneDetectKeyframeExtractor(AbstractKeyframeExtractor):
             video_manager.set_downscale_factor(downscale)
             video_manager.start()
             scene_manager.detect_scenes(frame_source=video_manager)
-            base_timecode = video_manager.get_base_timecode()
-            for start_time, end_time in scene_manager.get_scene_list(base_timecode):
+
+            # Try modern API first (no base_timecode parameter)
+            try:
+                scene_list = scene_manager.get_scene_list()
+            except Exception:
+                # Fallback to deprecated API
+                base_timecode = video_manager.get_base_timecode()
+                scene_list = scene_manager.get_scene_list(base_timecode)
+
+            for start_time, end_time in scene_list:
                 start_seconds = max(0.0, start_time.get_seconds())
                 end_seconds = max(0.0, end_time.get_seconds())
                 if end_seconds <= start_seconds:
