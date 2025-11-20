@@ -64,7 +64,8 @@ class ParallelVideoService:
         self,
         platform_queries: Dict[str, List[str]],
         job_id: str,
-        use_streaming: bool = True
+        use_streaming: bool = True,
+        progress_callback: Optional[callable] = None
     ) -> Dict[str, Any]:
         """
         Process videos using parallel approach.
@@ -78,14 +79,15 @@ class ParallelVideoService:
             Processing results with statistics
         """
         if use_streaming:
-            return await self._process_videos_streaming(platform_queries, job_id)
+            return await self._process_videos_streaming(platform_queries, job_id, progress_callback)
         else:
             return await self._process_videos_batch(platform_queries, job_id)
 
     async def _process_videos_streaming(
         self,
         platform_queries: Dict[str, List[str]],
-        job_id: str
+        job_id: str,
+        progress_callback: Optional[callable] = None
     ) -> Dict[str, Any]:
         """Process videos using streaming pipeline for maximum parallelism."""
         logger.info(f"Starting streaming parallel processing for job {job_id}")
@@ -102,7 +104,7 @@ class ParallelVideoService:
             async for result in self.pipeline.process_videos_streaming(
                 platform_queries=platform_queries,
                 job_id=job_id,
-                progress_callback=self._update_progress_callback
+                progress_callback=progress_callback or self._update_progress_callback
             ):
                 results.append(result)
 
@@ -135,7 +137,7 @@ class ParallelVideoService:
                 "total_processed": total_processed,
                 "total_skipped": total_skipped,
                 "total_errors": total_errors,
-                "success_rate": (total_processed / max(1, total_processed + total_errors)) * 100
+                "success_rate": round((total_processed / max(1, total_processed + total_errors)) * 100, 2)
             }
         }
 
@@ -239,7 +241,7 @@ class ParallelVideoService:
                 "total_processed": total_processed,
                 "total_skipped": total_skipped,
                 "total_errors": total_errors,
-                "success_rate": (total_processed / max(1, total_processed + total_errors)) * 100
+                "success_rate": round((total_processed / max(1, total_processed + total_errors)) * 100, 2)
             }
         }
 

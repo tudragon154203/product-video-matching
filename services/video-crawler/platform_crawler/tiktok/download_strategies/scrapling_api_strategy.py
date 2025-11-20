@@ -37,7 +37,7 @@ class ScraplingApiDownloadStrategy(TikTokDownloadStrategy):
         )
         self.keyframe_extractor = build_keyframe_extractor(
             keyframe_dir=self.keyframe_storage_path,
-            create_dirs=True
+            create_dirs=False  # Directories already created by TikTokDownloader
         )
 
     @property

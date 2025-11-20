@@ -133,6 +133,9 @@ class TestStreamingProcessing:
         callback_calls = []
 
         async def mock_stream(platform_queries=None, job_id=None, progress_callback=None):
+            # Call the progress callback
+            if progress_callback:
+                await progress_callback({"processing_completed": 2})
             yield {"type": "pipeline_complete", "stats": {"processing_completed": 2}}
 
         async def mock_callback(stats):
@@ -140,13 +143,11 @@ class TestStreamingProcessing:
 
         parallel_video_service.pipeline.process_videos_streaming = mock_stream
 
-        # Replace the private progress callback
-        parallel_video_service._update_progress_callback = mock_callback
-
         await parallel_video_service.process_videos_parallel(
             platform_queries=platform_queries,
             job_id="test_job",
-            use_streaming=True
+            use_streaming=True,
+            progress_callback=mock_callback
         )
 
         # Progress callback should have been called

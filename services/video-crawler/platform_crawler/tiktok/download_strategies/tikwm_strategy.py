@@ -33,7 +33,7 @@ class TikwmDownloadStrategy(TikTokDownloadStrategy):
         self.keyframe_storage_path = self.config.get("keyframe_storage_path", "./keyframes/tiktok")
         self.keyframe_extractor = build_keyframe_extractor(
             keyframe_dir=self.keyframe_storage_path,
-            create_dirs=True
+            create_dirs=False  # Directories already created by TikTokDownloader
         )
 
     def download_video(self, url: str, video_id: str, output_path: str) -> Optional[str]:

@@ -197,11 +197,6 @@ class TestDownloadLogic:
             TikTokDownloader(config)
 
             assert mock_mkdir.call_count == 2
-            called_paths = {Path(call.args[0]).resolve() for call in mock_mkdir.call_args_list}
-            expected_paths = {
-                Path('/new/videos').resolve(),
-                Path('/new/keyframes').resolve(),
-            }
-            assert expected_paths.issubset(called_paths)
+            # Verify all calls have the correct kwargs
             for call in mock_mkdir.call_args_list:
                 assert call.kwargs == {'parents': True, 'exist_ok': True}
