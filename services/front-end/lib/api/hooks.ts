@@ -5,7 +5,8 @@ import {
   videoApiService,
   imageApiService,
   featureApiService,
-  resultsApiService
+  resultsApiService,
+  matchingApiService
 } from './services';
 import { getPollingInterval } from '@/lib/config/pagination';
 import type {
@@ -51,6 +52,10 @@ export const queryKeys = {
     videoFrames: (jobId: string, params?: any) => ['features', 'video-frames', jobId, params] as const,
     productImage: (imgId: string) => ['features', 'product-image', imgId] as const,
     videoFrame: (frameId: string) => ['features', 'video-frame', frameId] as const,
+  },
+  matching: {
+    all: ['matching'] as const,
+    summary: (jobId: string) => ['matching', 'summary', jobId] as const,
   },
   results: {
     all: ['results'] as const,
@@ -296,5 +301,20 @@ export const useResults = (
     queryKey: ['results', 'all', params],
     queryFn: () => resultsApiService.getResults(params),
     enabled,
+  });
+};
+
+// Matching hooks
+export const useMatchingSummary = (
+  jobId: string,
+  enabled = true,
+  refetchInterval?: number | false
+) => {
+  return useQuery({
+    queryKey: queryKeys.matching.summary(jobId),
+    queryFn: () => matchingApiService.getMatchingSummary(jobId),
+    enabled: enabled && !!jobId,
+    refetchInterval: refetchInterval !== undefined ? refetchInterval : false,
+    staleTime: 0,
   });
 };

@@ -9,6 +9,7 @@ from api.image_endpoints import router as image_router
 from api.video_endpoints import router as video_router
 from api.health_endpoints import router as health_router
 from api.job_endpoints import router as job_router
+from api.matching_endpoints import router as matching_router
 from handlers.lifecycle_handler import LifecycleHandler
 from services.job.job_service import JobService
 from api.dependency import init_dependencies, get_db, get_broker
@@ -67,6 +68,7 @@ app.include_router(image_router)
 app.include_router(static_router)
 app.include_router(product_router)
 app.include_router(features_router)
+app.include_router(matching_router)
 app.include_router(results_router)
 
 if __name__ == "__main__":

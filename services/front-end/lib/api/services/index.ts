@@ -33,3 +33,8 @@ export {
   ResultsApiService, 
   resultsApiService 
 } from './result.api';
+
+// Matching API service
+export { 
+  matchingApiService 
+} from './matching.api';

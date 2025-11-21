@@ -491,6 +491,63 @@ Get a single video frame feature by ID.
 - `404`: Video frame not found
 - `500`: Internal server error
 
+### Get Matching Summary
+
+Get matching phase summary for a job including progress, match statistics, and health signals.
+
+**Endpoint:** `GET /jobs/{job_id}/matching/summary`
+
+**Path Parameters:**
+- `job_id` (string, required): The job ID
+
+**Query Parameters:**
+- `force_refresh` (boolean, optional, default: false): Force refresh from database
+
+**Response:**
+```json
+{
+  "job_id": "3ef304c7-000a-4f23-8762-761bf3dc6d78",
+  "status": "completed",
+  "started_at": "2025-11-21T09:52:31.635073",
+  "completed_at": "2025-11-21T09:55:28.361802",
+  "last_event_at": "2025-11-21T09:55:28.361802",
+  "candidates_total": 14935,
+  "candidates_processed": 14935,
+  "vector_pass_total": 14935,
+  "vector_pass_done": 14935,
+  "ransac_checked": 755,
+  "matches_found": 755,
+  "matches_with_evidence": 0,
+  "avg_score": 0.95,
+  "p90_score": 0.98,
+  "queue_depth": 0,
+  "eta_seconds": null,
+  "blockers": []
+}
+```
+
+**Response Fields:**
+- `status`: Current status (pending | running | completed | failed)
+- `candidates_total`: Total product-video pairs to process (product_images × video_frames)
+- `candidates_processed`: Number of pairs processed so far
+- `matches_found`: Number of matches found
+- `matches_with_evidence`: Number of matches with evidence generated
+- `avg_score`: Average match score (0-1)
+- `p90_score`: 90th percentile match score (0-1)
+- `queue_depth`: Current queue depth (0 if not available)
+- `eta_seconds`: Estimated time to completion in seconds (null if not available)
+- `blockers`: Array of blocking issues (empty if none)
+
+**Status Codes:**
+- `200`: Summary retrieved successfully
+- `404`: Job not found
+- `500`: Internal server error
+
+**Usage Notes:**
+- Available when job phase is `matching`, `evidence`, or `completed`
+- Polls automatically in the UI every 4 seconds during matching phase
+- Use `force_refresh=true` to bypass any caching
+
 
 
 

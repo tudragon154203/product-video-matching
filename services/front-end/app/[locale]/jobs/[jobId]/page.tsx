@@ -9,11 +9,13 @@ import { VideosPanel } from '@/components/jobs/VideosPanel';
 import { JobStatusHeader } from '@/components/jobs/JobStatusHeader';
 import { FeatureExtractionBanner } from '@/components/jobs/FeatureExtractionBanner';
 import { FeatureExtractionPanel } from '@/components/jobs/FeatureExtractionPanel';
+import { MatchingBanner } from '@/components/jobs/MatchingPanel';
+import { MatchingPanel } from '@/components/jobs/MatchingPanel';
 import { CollectionSummary } from '@/components/jobs/CollectionSummary';
 import { JobActionButtons } from '@/components/jobs/JobActionButtons';
 import { jobApiService } from '@/lib/api/services/job.api';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { useFeaturesSummary } from '@/lib/api/hooks';
+import { useFeaturesSummary, useMatchingSummary } from '@/lib/api/hooks';
 import type { Phase } from '@/lib/zod/job';
 
 
@@ -47,6 +49,19 @@ export default function JobDetailsPage({ params }: JobDetailsPageProps) {
     jobId, 
     isFeaturePhase,
     phase === 'feature_extraction' ? 5000 : false
+  );
+  
+  // Fetch matching summary when in matching, evidence, or completed phase
+  const isMatchingPhase = phase === 'matching' || phase === 'evidence' || phase === 'completed';
+  const {
+    data: matchingSummary,
+    isLoading: isMatchingLoading,
+    isError: isMatchingError,
+    refetch: refetchMatching
+  } = useMatchingSummary(
+    jobId,
+    isMatchingPhase,
+    phase === 'matching' ? 4000 : false
   );
   
   // Invalidate jobs list when job detail page loads to ensure sidebar is up-to-date
@@ -90,7 +105,27 @@ export default function JobDetailsPage({ params }: JobDetailsPageProps) {
               />
             )}
             
+            {/* Matching Banner */}
+            {phase === 'matching' && (
+              <MatchingBanner 
+                percent={percent}
+                matchesFound={matchingSummary?.matches_found}
+              />
+            )}
+            
             <JobStatusHeader jobId={jobId} isCollecting={isCollecting} />
+            
+            {/* Matching Panel - appears during matching phase */}
+            {(phase === 'matching' || phase === 'evidence' || phase === 'completed') && (
+              <MatchingPanel
+                jobId={jobId}
+                summary={matchingSummary}
+                isLoading={isMatchingLoading}
+                isError={isMatchingError}
+                onRetry={refetchMatching}
+                isActive={phase === 'matching'}
+              />
+            )}
             
             {/* Feature Extraction Progress Board - stays visible after phase advances */}
             {(phase === 'feature_extraction' || phase === 'matching' || phase === 'evidence') && (

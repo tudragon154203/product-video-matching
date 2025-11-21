@@ -9,7 +9,7 @@ import { notFound } from 'next/navigation'
 import './globals.css'
 import '@/public/fonts/inter.css'
 
-export async function generateMetadata({ params: { locale } }): Promise<Metadata> {
+export async function generateMetadata({ params: { locale } }: { params: { locale: string } }): Promise<Metadata> {
   const t = await getTranslations({ locale })
 
   return {

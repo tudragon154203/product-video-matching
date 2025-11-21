@@ -233,6 +233,58 @@
       "description": "Building visual evidence packets for matched products and videos."
     }
   },
+  "jobMatching": {
+    "banner": {
+      "title": "Matching in progress",
+      "description": "Finding product-video matches using vector similarity and geometric verification.",
+      "matchesFound": "{count} matches found"
+    },
+    "cards": {
+      "pairsProcessed": "Pairs Processed",
+      "matchesFound": "Matches Found",
+      "evidenceReady": "Evidence Ready",
+      "complete": "complete",
+      "avgScore": "Avg score",
+      "p90Score": "P90 score",
+      "evidencePending": "Evidence generation pending"
+    },
+    "health": {
+      "queueDepth": "Queue",
+      "lastEvent": "Last event",
+      "eta": "ETA",
+      "stalled": "Stalled",
+      "blockers": "blockers"
+    },
+    "status": {
+      "pending": "Pending",
+      "running": "Running",
+      "completed": "Completed",
+      "failed": "Failed"
+    },
+    "results": {
+      "title": "Live Matches",
+      "minScore": "Min Score",
+      "product": "Product",
+      "video": "Video",
+      "score": "Score",
+      "evidence": "Evidence",
+      "ready": "Ready",
+      "pending": "Pending",
+      "showing": "Showing {count} of {total} matches"
+    },
+    "empty": {
+      "title": "Waiting for matches",
+      "description": "Matches will appear here as they are found."
+    },
+    "complete": {
+      "title": "Matching complete"
+    },
+    "errors": {
+      "summaryFailed": "Failed to load matching summary",
+      "matchesFailed": "Failed to load matches",
+      "retry": "Retry"
+    }
+  },
   "app": {
     "title": "Product Video Matching",
     "description": "Monitor and manage product video matching jobs"

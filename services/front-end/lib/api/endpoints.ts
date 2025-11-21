@@ -37,6 +37,11 @@ export const MAIN_API_ENDPOINTS = {
     videoFrame: (frameId: string) => `/features/video-frames/${frameId}`,
   },
   
+  // Matching endpoints
+  matching: {
+    summary: (jobId: string) => `/jobs/${jobId}/matching/summary`,
+  },
+  
   // Results endpoints (migrated from results-api)
   results: '/results',
   matches: {
