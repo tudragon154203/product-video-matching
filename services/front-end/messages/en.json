@@ -288,5 +288,51 @@
   "app": {
     "title": "Product Video Matching",
     "description": "Monitor and manage product video matching jobs"
+  },
+  "jobActions": {
+    "cancelJob": "Cancel Job",
+    "deleteJob": "Delete Job",
+    "cancelling": "Cancelling...",
+    "deleting": "Deleting...",
+    "cancelDialog": {
+      "title": "Cancel Job?",
+      "description": "This will stop all processing for this job. Workers will be notified to stop, and queued tasks will be removed.",
+      "warning": "This action cannot be undone.",
+      "confirm": "Confirm Cancellation"
+    },
+    "deleteDialog": {
+      "title": "Delete Job?",
+      "description": "This will permanently delete:",
+      "items": {
+        "jobData": "All job data and metadata",
+        "productImages": "Product images and masks",
+        "videoFrames": "Video frames and keyframes",
+        "matchResults": "Match results and evidence",
+        "dbRecords": "All associated database records"
+      },
+      "activeWarning": "This job is still running. It will be cancelled first, then deleted after workers acknowledge.",
+      "warning": "This action cannot be undone.",
+      "confirm": "Delete Permanently"
+    },
+    "forceDeleteDialog": {
+      "title": "Force Delete Active Job?",
+      "description": "This job is still in progress. Force delete will:",
+      "items": {
+        "cancelImmediate": "Cancel the job immediately",
+        "deleteData": "Delete all associated data",
+        "skipWait": "Skip waiting for worker acknowledgement"
+      },
+      "warning": "This is a forceful operation and cannot be undone.",
+      "confirm": "Force Delete"
+    },
+    "toast": {
+      "cancelled": "Job cancelled",
+      "cancelledDescription": "The job has been cancelled successfully.",
+      "cancelFailed": "Failed to cancel job",
+      "deleted": "Job deleted",
+      "deletedDescription": "The job has been deleted successfully.",
+      "deleteFailed": "Failed to delete job",
+      "errorDescription": "An error occurred while {action} the job."
+    }
   }
 }

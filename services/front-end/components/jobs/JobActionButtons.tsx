@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { XCircle, Trash2 } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { Button } from '@/components/ui/button';
 import { useCancelJob, useDeleteJob } from '@/lib/api/hooks';
 import { ConfirmationDialog } from './ConfirmationDialog';
@@ -17,6 +18,7 @@ interface JobActionButtonsProps {
 export function JobActionButtons({ jobId, phase }: JobActionButtonsProps) {
   const router = useRouter();
   const { toast } = useToast();
+  const t = useTranslations('jobActions');
   const [showCancelDialog, setShowCancelDialog] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [showForceDeleteDialog, setShowForceDeleteDialog] = useState(false);
@@ -36,16 +38,16 @@ export function JobActionButtons({ jobId, phase }: JobActionButtonsProps) {
     try {
       await cancelMutation.mutateAsync({ jobId });
       toast({
-        title: 'Job cancelled',
-        description: 'The job has been cancelled successfully.',
+        title: t('toast.cancelled'),
+        description: t('toast.cancelledDescription'),
       });
       setShowCancelDialog(false);
       // Optimistically update local phase to show delete button immediately
       setLocalPhase('cancelled');
     } catch (error: any) {
       toast({
-        title: 'Failed to cancel job',
-        description: error.message || 'An error occurred while cancelling the job.',
+        title: t('toast.cancelFailed'),
+        description: error.message || t('toast.errorDescription', { action: 'cancelling' }),
         variant: 'destructive',
       });
     }
@@ -55,8 +57,8 @@ export function JobActionButtons({ jobId, phase }: JobActionButtonsProps) {
     try {
       await deleteMutation.mutateAsync({ jobId, force });
       toast({
-        title: 'Job deleted',
-        description: 'The job has been deleted successfully.',
+        title: t('toast.deleted'),
+        description: t('toast.deletedDescription'),
       });
       setShowDeleteDialog(false);
       setShowForceDeleteDialog(false);
@@ -67,8 +69,8 @@ export function JobActionButtons({ jobId, phase }: JobActionButtonsProps) {
         setShowForceDeleteDialog(true);
       } else {
         toast({
-          title: 'Failed to delete job',
-          description: error.message || 'An error occurred while deleting the job.',
+          title: t('toast.deleteFailed'),
+          description: error.message || t('toast.errorDescription', { action: 'deleting' }),
           variant: 'destructive',
         });
       }
@@ -91,7 +93,7 @@ export function JobActionButtons({ jobId, phase }: JobActionButtonsProps) {
             className="text-orange-600 hover:text-orange-700 hover:bg-orange-50"
           >
             <XCircle className="h-4 w-4 mr-2" />
-            {cancelMutation.isPending ? 'Cancelling...' : 'Cancel Job'}
+            {cancelMutation.isPending ? t('cancelling') : t('cancelJob')}
           </Button>
         )}
 
@@ -104,7 +106,7 @@ export function JobActionButtons({ jobId, phase }: JobActionButtonsProps) {
             className="text-red-600 hover:text-red-700 hover:bg-red-50"
           >
             <Trash2 className="h-4 w-4 mr-2" />
-            {deleteMutation.isPending ? 'Deleting...' : 'Delete Job'}
+            {deleteMutation.isPending ? t('deleting') : t('deleteJob')}
           </Button>
         )}
       </div>
@@ -112,14 +114,14 @@ export function JobActionButtons({ jobId, phase }: JobActionButtonsProps) {
       <ConfirmationDialog
         open={showCancelDialog}
         onOpenChange={setShowCancelDialog}
-        title="Cancel Job?"
+        title={t('cancelDialog.title')}
         description={
           <>
-            <p>This will stop all processing for this job. Workers will be notified to stop, and queued tasks will be removed.</p>
-            <p className="font-semibold">This action cannot be undone.</p>
+            <p>{t('cancelDialog.description')}</p>
+            <p className="font-semibold">{t('cancelDialog.warning')}</p>
           </>
         }
-        confirmText="Confirm Cancellation"
+        confirmText={t('cancelDialog.confirm')}
         onConfirm={handleCancelConfirm}
         isLoading={cancelMutation.isPending}
         variant="destructive"
@@ -128,26 +130,26 @@ export function JobActionButtons({ jobId, phase }: JobActionButtonsProps) {
       <ConfirmationDialog
         open={showDeleteDialog}
         onOpenChange={setShowDeleteDialog}
-        title="Delete Job?"
+        title={t('deleteDialog.title')}
         description={
           <>
-            <p>This will permanently delete:</p>
+            <p>{t('deleteDialog.description')}</p>
             <ul className="list-disc list-inside space-y-1 text-sm">
-              <li>All job data and metadata</li>
-              <li>Product images and masks</li>
-              <li>Video frames and keyframes</li>
-              <li>Match results and evidence</li>
-              <li>All associated database records</li>
+              <li>{t('deleteDialog.items.jobData')}</li>
+              <li>{t('deleteDialog.items.productImages')}</li>
+              <li>{t('deleteDialog.items.videoFrames')}</li>
+              <li>{t('deleteDialog.items.matchResults')}</li>
+              <li>{t('deleteDialog.items.dbRecords')}</li>
             </ul>
             {isActive && (
               <p className="font-semibold text-orange-600 mt-2">
-                This job is still running. It will be cancelled first, then deleted after workers acknowledge.
+                {t('deleteDialog.activeWarning')}
               </p>
             )}
-            <p className="font-semibold mt-2">This action cannot be undone.</p>
+            <p className="font-semibold mt-2">{t('deleteDialog.warning')}</p>
           </>
         }
-        confirmText="Delete Permanently"
+        confirmText={t('deleteDialog.confirm')}
         onConfirm={() => handleDeleteConfirm(false)}
         isLoading={deleteMutation.isPending}
         variant="destructive"
@@ -156,19 +158,19 @@ export function JobActionButtons({ jobId, phase }: JobActionButtonsProps) {
       <ConfirmationDialog
         open={showForceDeleteDialog}
         onOpenChange={setShowForceDeleteDialog}
-        title="Force Delete Active Job?"
+        title={t('forceDeleteDialog.title')}
         description={
           <>
-            <p>This job is still in progress. Force delete will:</p>
+            <p>{t('forceDeleteDialog.description')}</p>
             <ul className="list-disc list-inside space-y-1 text-sm">
-              <li>Cancel the job immediately</li>
-              <li>Delete all associated data</li>
-              <li>Skip waiting for worker acknowledgement</li>
+              <li>{t('forceDeleteDialog.items.cancelImmediate')}</li>
+              <li>{t('forceDeleteDialog.items.deleteData')}</li>
+              <li>{t('forceDeleteDialog.items.skipWait')}</li>
             </ul>
-            <p className="font-semibold text-red-600 mt-2">This is a forceful operation and cannot be undone.</p>
+            <p className="font-semibold text-red-600 mt-2">{t('forceDeleteDialog.warning')}</p>
           </>
         }
-        confirmText="Force Delete"
+        confirmText={t('forceDeleteDialog.confirm')}
         onConfirm={() => handleDeleteConfirm(true)}
         isLoading={deleteMutation.isPending}
         variant="destructive"

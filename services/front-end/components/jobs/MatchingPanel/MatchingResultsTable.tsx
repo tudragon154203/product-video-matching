@@ -4,7 +4,6 @@ import React from 'react';
 import { useTranslations } from 'next-intl';
 import { useJobMatches } from '@/lib/api/hooks';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { AlertCircle, CheckCircle, Clock } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -19,7 +18,7 @@ export function MatchingResultsTable({
   enabled = true 
 }: MatchingResultsTableProps) {
   const t = useTranslations('jobMatching');
-  const [minScore, setMinScore] = React.useState(0.5);
+  const [minScore, setMinScore] = React.useState(0.8);
 
   const { 
     data: matchesData, 
@@ -29,8 +28,30 @@ export function MatchingResultsTable({
   } = useJobMatches(
     jobId,
     { limit: 25, offset: 0, min_score: minScore },
-    enabled
+    enabled,
+    enabled ? 5000 : false // Poll every 5 seconds when enabled
   );
+
+  const matches = matchesData?.items || [];
+
+  // Group matches by product - MUST be before any conditional returns
+  const productGroups = React.useMemo(() => {
+    const groups = new Map<string, typeof matches>();
+    matches.forEach((match) => {
+      const productKey = match.product_id || 'unknown';
+      if (!groups.has(productKey)) {
+        groups.set(productKey, []);
+      }
+      groups.get(productKey)!.push(match);
+    });
+    return Array.from(groups.entries()).map(([productId, productMatches]) => ({
+      productId,
+      productTitle: productMatches[0].product_title || 'Product',
+      matches: productMatches.sort((a, b) => b.score - a.score),
+      bestScore: Math.max(...productMatches.map(m => m.score)),
+      videoCount: productMatches.length,
+    }));
+  }, [matches]);
 
   if (isLoading) {
     return (
@@ -58,8 +79,6 @@ export function MatchingResultsTable({
       </Alert>
     );
   }
-
-  const matches = matchesData?.items || [];
 
   if (matches.length === 0) {
     return (
@@ -94,65 +113,74 @@ export function MatchingResultsTable({
         </div>
       </div>
 
-      <div className="border rounded-lg overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead className="bg-slate-50 border-b">
-              <tr>
-                <th className="px-4 py-3 text-left text-xs font-medium text-slate-600">
-                  {t('results.product')}
-                </th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-slate-600">
-                  {t('results.video')}
-                </th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-slate-600">
-                  {t('results.score')}
-                </th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-slate-600">
-                  {t('results.evidence')}
-                </th>
-              </tr>
-            </thead>
-            <tbody className="divide-y">
-              {matches.map((match) => (
-                <tr key={match.match_id} className="hover:bg-slate-50">
-                  <td className="px-4 py-3 text-sm">
-                    {match.product_title || 'Product'}
-                  </td>
-                  <td className="px-4 py-3 text-sm">
-                    {match.video_title || 'Video'}
-                  </td>
-                  <td className="px-4 py-3">
-                    <div className="space-y-1">
-                      <div className="flex items-center gap-2">
-                        <span className="text-sm font-medium">
-                          {match.score.toFixed(2)}
-                        </span>
-                      </div>
-                      <Progress 
-                        value={match.score * 100} 
-                        className="h-1 w-20" 
-                      />
+      <div className="space-y-3">
+        {productGroups.map((group) => (
+          <div key={group.productId} className="border rounded-lg overflow-hidden">
+            {/* Product Header */}
+            <div className="bg-slate-50 px-4 py-3 border-b">
+              <div className="flex items-center justify-between">
+                <div className="flex-1">
+                  <h4 className="font-semibold text-base">{group.productTitle}</h4>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {group.videoCount} {group.videoCount === 1 ? 'video' : 'videos'} • 
+                    Best score: {group.bestScore.toFixed(2)}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Video Matches */}
+            <div className="divide-y">
+              {group.matches.map((match) => (
+                <div 
+                  key={match.match_id} 
+                  className="px-4 py-3 hover:bg-slate-50 transition-colors"
+                >
+                  <div className="flex items-center justify-between gap-4">
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium truncate">
+                        {match.video_title || 'Video'}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        Match ID: {match.match_id.substring(0, 8)}...
+                      </p>
                     </div>
-                  </td>
-                  <td className="px-4 py-3">
-                    {match.evidence_path ? (
-                      <Badge className="bg-green-100 text-green-800">
-                        <CheckCircle className="h-3 w-3 mr-1" />
-                        {t('results.ready')}
-                      </Badge>
-                    ) : (
-                      <Badge variant="outline" className="text-amber-600">
-                        <Clock className="h-3 w-3 mr-1" />
-                        {t('results.pending')}
-                      </Badge>
-                    )}
-                  </td>
-                </tr>
+                    
+                    <div className="flex items-center gap-3">
+                      {/* Score */}
+                      <div className="flex items-center gap-2">
+                        <div className="text-right">
+                          <div className="text-sm font-medium">
+                            {match.score.toFixed(2)}
+                          </div>
+                          <Progress 
+                            value={match.score * 100} 
+                            className="h-1 w-16" 
+                          />
+                        </div>
+                      </div>
+
+                      {/* Evidence Badge */}
+                      <div className="w-24">
+                        {match.evidence_path ? (
+                          <Badge className="bg-green-100 text-green-800 text-xs">
+                            <CheckCircle className="h-3 w-3 mr-1" />
+                            {t('results.ready')}
+                          </Badge>
+                        ) : (
+                          <Badge variant="outline" className="text-amber-600 text-xs">
+                            <Clock className="h-3 w-3 mr-1" />
+                            {t('results.pending')}
+                          </Badge>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
               ))}
-            </tbody>
-          </table>
-        </div>
+            </div>
+          </div>
+        ))}
       </div>
 
       {matchesData && matchesData.total > matches.length && (

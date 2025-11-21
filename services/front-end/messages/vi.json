@@ -233,8 +233,104 @@
       "description": "Đang xây dựng các gói bằng chứng hình ảnh cho sản phẩm và video đã khớp."
     }
   },
+  "jobMatching": {
+    "banner": {
+      "title": "Đang tiến hành so khớp",
+      "description": "Tìm kiếm các kết quả khớp giữa sản phẩm và video bằng độ tương đồng vector và xác minh hình học.",
+      "matchesFound": "Đã tìm thấy {count} kết quả khớp"
+    },
+    "cards": {
+      "pairsProcessed": "Cặp Đã Xử Lý",
+      "matchesFound": "Kết Quả Khớp",
+      "evidenceReady": "Bằng Chứng Sẵn Sàng",
+      "complete": "hoàn thành",
+      "avgScore": "Điểm TB",
+      "p90Score": "Điểm P90",
+      "evidencePending": "Đang tạo bằng chứng"
+    },
+    "health": {
+      "queueDepth": "Hàng đợi",
+      "eta": "Thời gian còn lại",
+      "blockers": "vấn đề"
+    },
+    "status": {
+      "pending": "Đang chờ",
+      "running": "Đang chạy",
+      "completed": "Hoàn thành",
+      "failed": "Thất bại"
+    },
+    "results": {
+      "title": "Kết Quả Trực Tiếp",
+      "minScore": "Điểm Tối Thiểu",
+      "product": "Sản phẩm",
+      "video": "Video",
+      "score": "Điểm",
+      "evidence": "Bằng chứng",
+      "ready": "Sẵn sàng",
+      "pending": "Đang chờ",
+      "showing": "Hiển thị {count} trong số {total} kết quả"
+    },
+    "empty": {
+      "title": "Đang chờ kết quả khớp",
+      "description": "Các kết quả khớp sẽ xuất hiện ở đây khi được tìm thấy."
+    },
+    "complete": {
+      "title": "Hoàn thành so khớp"
+    },
+    "errors": {
+      "summaryFailed": "Không thể tải tóm tắt so khớp",
+      "matchesFailed": "Không thể tải kết quả khớp",
+      "retry": "Thử lại"
+    }
+  },
   "app": {
     "title": "Phù hợp Video Sản Phẩm",
     "description": "Theo dõi và quản lý các công việc phù hợp video sản phẩm"
+  },
+  "jobActions": {
+    "cancelJob": "Hủy Công việc",
+    "deleteJob": "Xóa Công việc",
+    "cancelling": "Đang hủy...",
+    "deleting": "Đang xóa...",
+    "cancelDialog": {
+      "title": "Hủy Công việc?",
+      "description": "Điều này sẽ dừng tất cả quá trình xử lý cho công việc này. Các worker sẽ được thông báo để dừng lại và các tác vụ trong hàng đợi sẽ bị xóa.",
+      "warning": "Hành động này không thể hoàn tác.",
+      "confirm": "Xác nhận Hủy"
+    },
+    "deleteDialog": {
+      "title": "Xóa Công việc?",
+      "description": "Điều này sẽ xóa vĩnh viễn:",
+      "items": {
+        "jobData": "Tất cả dữ liệu và metadata công việc",
+        "productImages": "Hình ảnh sản phẩm và mặt nạ",
+        "videoFrames": "Khung hình video và khung hình chính",
+        "matchResults": "Kết quả khớp và bằng chứng",
+        "dbRecords": "Tất cả các bản ghi cơ sở dữ liệu liên quan"
+      },
+      "activeWarning": "Công việc này vẫn đang chạy. Nó sẽ bị hủy trước, sau đó bị xóa sau khi worker xác nhận.",
+      "warning": "Hành động này không thể hoàn tác.",
+      "confirm": "Xóa Vĩnh viễn"
+    },
+    "forceDeleteDialog": {
+      "title": "Buộc Xóa Công việc Đang Hoạt động?",
+      "description": "Công việc này vẫn đang tiến hành. Buộc xóa sẽ:",
+      "items": {
+        "cancelImmediate": "Hủy công việc ngay lập tức",
+        "deleteData": "Xóa tất cả dữ liệu liên quan",
+        "skipWait": "Bỏ qua việc chờ xác nhận từ worker"
+      },
+      "warning": "Đây là thao tác mạnh và không thể hoàn tác.",
+      "confirm": "Buộc Xóa"
+    },
+    "toast": {
+      "cancelled": "Đã hủy công việc",
+      "cancelledDescription": "Công việc đã được hủy thành công.",
+      "cancelFailed": "Không thể hủy công việc",
+      "deleted": "Đã xóa công việc",
+      "deletedDescription": "Công việc đã được xóa thành công.",
+      "deleteFailed": "Không thể xóa công việc",
+      "errorDescription": "Đã xảy ra lỗi khi {action} công việc."
+    }
   }
 }

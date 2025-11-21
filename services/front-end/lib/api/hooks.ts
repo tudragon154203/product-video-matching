@@ -270,12 +270,14 @@ export const useJobMatches = (
     limit?: number;
     offset?: number;
   },
-  enabled = true
+  enabled = true,
+  refetchInterval?: number | false
 ) => {
   return useQuery({
     queryKey: queryKeys.results.matches(jobId, params),
     queryFn: () => resultsApiService.getJobResults(jobId, params),
     enabled: enabled && !!jobId,
+    refetchInterval: refetchInterval !== undefined ? refetchInterval : false,
   });
 };
 
