@@ -29,12 +29,22 @@ export function FeatureExtractionPanel({
 }: FeatureExtractionPanelProps) {
   const t = useTranslations('jobFeatureExtraction');
 
-  // State for accordion - must be at top level (hooks rule)
+  // State for accordion - collapsed by default when not active
   const [isExpanded, setIsExpanded] = React.useState(() => {
     if (typeof window === 'undefined') return false;
+    // If not active (phase past feature_extraction), default to collapsed
+    if (!isActive) return false;
+    // Otherwise check sessionStorage
     const stored = sessionStorage.getItem('featureExtractionPanelExpanded');
     return stored !== null ? stored === 'true' : false;
   });
+
+  // Auto-collapse when phase advances past feature_extraction
+  React.useEffect(() => {
+    if (!isActive && isExpanded) {
+      setIsExpanded(false);
+    }
+  }, [isActive, isExpanded]);
 
   React.useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -256,16 +266,6 @@ export function FeatureExtractionPanel({
   }
 
   const { product_images, video_frames } = summary;
-
-  // Check if all steps are complete
-  const allComplete =
-    product_images.keypoints.percent >= 100 &&
-    video_frames.keypoints.percent >= 100;
-
-  // Skip rendering when feature extraction is complete
-  if (allComplete) {
-    return null;
-  }
 
   // Show alert if no assets
   if (product_images.total === 0 && video_frames.total === 0) {

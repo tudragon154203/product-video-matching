@@ -36,8 +36,8 @@ export default function JobDetailsPage({ params }: JobDetailsPageProps) {
   // Use job status polling to auto-refresh while collecting
   const { phase, percent, isCollecting, collection, counts } = useJobStatusPolling(jobId, { enabled: true });
   
-  // Fetch feature summary when in feature extraction or matching phase
-  const isFeaturePhase = phase === 'feature_extraction' || phase === 'matching';
+  // Fetch feature summary when in feature extraction, matching, or evidence phase
+  const isFeaturePhase = phase === 'feature_extraction' || phase === 'matching' || phase === 'evidence';
   const { 
     data: featureSummary, 
     isLoading: isSummaryLoading,

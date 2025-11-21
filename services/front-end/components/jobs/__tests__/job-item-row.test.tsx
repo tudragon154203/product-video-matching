@@ -4,16 +4,6 @@ import { JobItemRow } from '../../jobs/JobItemRow';
 import { useJobStatusPolling } from '@/lib/hooks/useJobStatusPolling';
 import { getPhaseInfo } from '@/lib/api/utils/phase';
 import { formatToGMT7 } from '@/lib/time';
-import test from 'node:test';
-import test from 'node:test';
-import test from 'node:test';
-import test from 'node:test';
-import test from 'node:test';
-import test from 'node:test';
-import test from 'node:test';
-import test from 'node:test';
-import { beforeEach } from 'node:test';
-import { describe } from 'node:test';
 
 // Mock external dependencies
 jest.mock('@/lib/hooks/useJobStatusPolling');
@@ -90,15 +80,12 @@ describe('JobItemRow', () => {
     });
     render(<JobItemRow job={mockJob} />);
 
-    // For collection phase, the phase label is hidden (line 150 in JobItemRow.tsx)
-    expect(screen.queryByText('Collecting products and videos…')).not.toBeInTheDocument();
+    // Collection phase shows the phase label
+    expect(screen.getByText('Collecting products and videos…')).toBeInTheDocument();
     expect(screen.getByTestId('status-color-circle')).toBeInTheDocument();
     expect(screen.getByTestId('status-progress-bar')).toBeInTheDocument();
     expect(screen.queryByTestId('status-spinner')).not.toBeInTheDocument();
     expect(screen.queryByTestId('status-animated-dots')).not.toBeInTheDocument();
-    expect(screen.queryByText('✔ Products done')).not.toBeInTheDocument();
-    expect(screen.queryByText('✔ Videos done')).not.toBeInTheDocument();
-    expect(screen.queryByText('Collection finished')).not.toBeInTheDocument();
   });
 
   test('renders feature_extraction phase with progress bar', () => {

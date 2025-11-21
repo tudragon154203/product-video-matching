@@ -32,6 +32,7 @@ infra/qdrant/data
 .next/
 playwright-report/
 *.stackdump
+test-results/
 
 # Python
 *.npz
