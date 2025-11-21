@@ -117,6 +117,7 @@ def upgrade() -> None:
           ts                FLOAT,
           score             FLOAT NOT NULL,
           evidence_path     VARCHAR(500),
+          status            VARCHAR(50) DEFAULT 'accepted',
           created_at        TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         );
         """
