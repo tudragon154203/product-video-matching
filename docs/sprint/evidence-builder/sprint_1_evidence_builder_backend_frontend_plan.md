@@ -154,3 +154,21 @@
 4. **Observability (1 day):** health endpoint, logging, counters, dashboards follow-up.
 
 If time-limited, prioritize 1 → 3 to unblock operators, then 2 for quality of artifacts.
+
+---
+
+## 8) Execution TODOs (Backend first, Front-end later)
+
+### Backend (must complete before FE)
+- [ ] Fix handler signature mismatch: accept `correlation_id` and validate events with `@validate_event("match_result")` / `@validate_event("matchings_process_completed")`.
+- [ ] Implement idempotency/dedup per match (`event_id` or deterministic composite key) and persist processed events (DB-backed, not in-memory).
+- [ ] Correct completion semantics: emit `evidences.generation.completed` only when all `matches` rows for the job have evidence or when total matches == 0.
+- [ ] Make evidence outputs deterministic: stable file naming under `/app/data/evidence/{job_id}/`, no random kp overlays; embed metadata and watermark; handle kp blobs if present.
+- [ ] Harden asset loading and error handling (retries/backoff, structured logs, DLQ-friendly failures).
+- [ ] Expose evidence URL via main-api (`StaticFileService.build_full_url` using public base, `EvidenceResponse` includes `evidence_url`) and ensure path validation.
+- [ ] Add health/readiness for evidence-builder (DB, broker, writable evidence dir) plus counters/metrics for evidence backlog and failures.
+
+### Front-end (after backend is stable)
+- [ ] Extend Zod schemas and API client to surface `evidence_url`; update matching hooks to poll while evidence pending.
+- [ ] Add evidence thumbnail column + “Evidence ready” filter; render drawer/lightbox with full image, metadata, download/share link, and “open video at t=ts”.
+- [ ] Handle pending/failed evidence states gracefully with retry CTA; add unit/component/Playwright coverage for evidence flows.
