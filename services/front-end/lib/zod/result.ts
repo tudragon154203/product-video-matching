@@ -41,6 +41,7 @@ export const MatchResponse = z.object({
   ts: z.number().nullable(),
   score: z.number(),
   evidence_path: z.string().nullable(),
+  evidence_url: z.string().nullable(),
   created_at: z.string(),
   // Enriched fields
   product_title: z.string().nullable(),
@@ -59,6 +60,7 @@ export const MatchDetailResponse = z.object({
   ts: z.number().nullable(),
   score: z.number(),
   evidence_path: z.string().nullable(),
+  evidence_url: z.string().nullable(),
   created_at: z.string(),
   product: ProductResponse,
   video: VideoResponse,
@@ -69,6 +71,7 @@ export const MatchDetailResponse = z.object({
  */
 export const EvidenceResponse = z.object({
   evidence_path: z.string(),
+  evidence_url: z.string().nullable(),
 });
 
 /**

@@ -16,13 +16,59 @@ class EvidencePublisher:
     def __init__(self, broker: MessageBroker, db: DatabaseManager) -> None:
         self.broker = broker
         self.db = db
-        self.processed_jobs: set[str] = set()
 
-    async def publish_evidence_completion_if_needed(self, job_id: str) -> None:
-        if job_id in self.processed_jobs:
+    async def has_published_completion(self, job_id: str) -> bool:
+        """Check if completion event has already been published for this job."""
+        query = """
+            SELECT EXISTS(
+                SELECT 1 FROM processed_events
+                WHERE event_type = 'evidences_generation_completed'
+                AND dedup_key = $1
+            )
+        """
+        result = await self.db.fetch_val(query, job_id)
+        return bool(result)
+
+    async def mark_completion_published(self, job_id: str) -> None:
+        """Mark completion event as published for idempotency."""
+        query = """
+            INSERT INTO processed_events (event_type, dedup_key, processed_at)
+            VALUES ('evidences_generation_completed', $1, NOW())
+            ON CONFLICT (event_type, dedup_key) DO NOTHING
+        """
+        await self.db.execute(query, job_id)
+
+    async def check_and_publish_completion(self, job_id: str) -> None:
+        """Check if all evidence is ready and publish completion if so."""
+        if await self.has_published_completion(job_id):
+            logger.debug(
+                "Completion already published for job",
+                job_id=job_id,
+            )
             return
 
-        self.processed_jobs.add(job_id)
+        # Get match counts
+        total_query = "SELECT COUNT(*) FROM matches WHERE job_id = $1"
+        evidence_query = """
+            SELECT COUNT(*) FROM matches
+            WHERE job_id = $1 AND evidence_path IS NOT NULL
+        """
+        total_matches = await self.db.fetch_val(total_query, job_id) or 0
+        matches_with_evidence = await self.db.fetch_val(evidence_query, job_id) or 0
+
+        logger.info(
+            "Checking evidence completion status",
+            job_id=job_id,
+            total_matches=total_matches,
+            matches_with_evidence=matches_with_evidence,
+        )
+
+        # Only publish if all matches have evidence
+        if total_matches > 0 and matches_with_evidence >= total_matches:
+            await self._publish_completion(job_id)
+
+    async def _publish_completion(self, job_id: str) -> None:
+        """Publish evidences.generation.completed event."""
         evidences_completed_event = {
             "job_id": job_id,
             "event_id": str(uuid.uuid4()),
@@ -32,22 +78,17 @@ class EvidencePublisher:
             evidences_completed_event,
             correlation_id=job_id,
         )
+        await self.mark_completion_published(job_id)
         logger.info(
             "Published evidences.generation.completed",
             job_id=job_id,
             event_id=evidences_completed_event["event_id"],
         )
 
-    async def check_and_complete_zero_matches_job(self, job_id: str) -> None:
-        logger.info(
-            "No matches found, completing evidence generation immediately",
-            job_id=job_id,
-        )
-        await self.publish_evidence_completion_if_needed(job_id)
-
     async def handle_matchings_completed(
         self,
         event_data: Dict[str, Any],
+        correlation_id: str,
     ) -> None:
         """Handle matchings completion events, covering zero-match cases."""
         job_id = event_data.get("job_id")
@@ -57,6 +98,7 @@ class EvidencePublisher:
         logger.info(
             "Checking job for matches after matching completed",
             job_id=job_id,
+            correlation_id=correlation_id,
         )
 
         match_count = await self.db.fetch_val(
@@ -68,13 +110,22 @@ class EvidencePublisher:
             "Match count for job",
             job_id=job_id,
             match_count=match_count,
+            correlation_id=correlation_id,
         )
 
+        # For zero-match jobs, publish completion immediately
         if match_count == 0:
-            await self.check_and_complete_zero_matches_job(job_id)
+            if not await self.has_published_completion(job_id):
+                logger.info(
+                    "No matches found, completing evidence generation immediately",
+                    job_id=job_id,
+                    correlation_id=correlation_id,
+                )
+                await self._publish_completion(job_id)
         else:
             logger.info(
                 "Job has matches, evidence will be generated via match.result events",
                 job_id=job_id,
                 match_count=match_count,
+                correlation_id=correlation_id,
             )

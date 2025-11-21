@@ -36,6 +36,7 @@ def _setup_match_record_manager(image_info=None, frame_info=None):
 def _setup_evidence_publisher():
     return SimpleNamespace(
         publish_evidence_completion_if_needed=AsyncMock(),
+        check_and_publish_completion=AsyncMock(),
         handle_matchings_completed=AsyncMock(),
     )
 
@@ -59,6 +60,7 @@ async def test_handle_match_result_generates_evidence(service):
         "best_pair": {"img_id": "img123", "frame_id": "frame456"},
         "score": 0.92,
         "ts": 10.5,
+        "event_id": "evt123",
     }
 
     image_info = {"local_path": "/tmp/product.jpg", "kp_blob_path": None}
@@ -68,12 +70,15 @@ async def test_handle_match_result_generates_evidence(service):
         image_info=image_info,
         frame_info=frame_info,
     )
+    service.match_record_manager.is_evidence_processed = AsyncMock(return_value=False)
+    service.match_record_manager.mark_evidence_processed = AsyncMock()
     service.evidence_generator = MagicMock()
     service.evidence_generator.create_evidence.return_value = \
         "/tmp/evidence.jpg"
     service.evidence_publisher = _setup_evidence_publisher()
+    service.evidence_publisher.check_and_publish_completion = AsyncMock()
 
-    await service.handle_match_result(event_data)
+    await service.handle_match_result(event_data, "correlation123")
 
     service.evidence_generator.create_evidence.assert_called_once()
     service.match_record_manager.update_match_record_and_log.assert_called_once_with(
@@ -82,7 +87,7 @@ async def test_handle_match_result_generates_evidence(service):
         "video789",
         "/tmp/evidence.jpg",
     )
-    service.evidence_publisher.publish_evidence_completion_if_needed.assert_called_once_with(
+    service.evidence_publisher.check_and_publish_completion.assert_called_once_with(
         "job123"
     )
 
@@ -97,20 +102,22 @@ async def test_handle_match_result_missing_assets(service):
         "best_pair": {"img_id": "img123", "frame_id": "frame456"},
         "score": 0.92,
         "ts": 10.5,
+        "event_id": "evt123",
     }
 
     service.match_record_manager = _setup_match_record_manager(
         image_info=None,
         frame_info=None,
     )
+    service.match_record_manager.is_evidence_processed = AsyncMock(return_value=False)
     service.evidence_generator = MagicMock()
     service.evidence_publisher = _setup_evidence_publisher()
 
-    await service.handle_match_result(event_data)
+    await service.handle_match_result(event_data, "correlation123")
 
     service.evidence_generator.create_evidence.assert_not_called()
     service.match_record_manager.update_match_record_and_log.assert_not_called()
-    service.evidence_publisher.publish_evidence_completion_if_needed.assert_not_called()
+    service.evidence_publisher.check_and_publish_completion.assert_not_called()
 
 
 @pytest.mark.asyncio
@@ -119,8 +126,9 @@ async def test_handle_matchings_completed_delegates(service):
     event_data = {"job_id": "job123"}
     service.evidence_publisher = _setup_evidence_publisher()
 
-    await service.handle_matchings_completed(event_data)
+    await service.handle_matchings_completed(event_data, "correlation123")
 
     service.evidence_publisher.handle_matchings_completed.assert_called_once_with(
-        event_data
+        event_data,
+        "correlation123"
     )

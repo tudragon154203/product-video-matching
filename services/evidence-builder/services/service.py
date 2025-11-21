@@ -29,7 +29,11 @@ class EvidenceBuilderService:
         self.match_record_manager = MatchRecordManager(db)
         self.evidence_publisher = EvidencePublisher(broker, db)
 
-    async def handle_match_result(self, event_data: Dict[str, Any]) -> None:
+    async def handle_match_result(
+        self,
+        event_data: Dict[str, Any],
+        correlation_id: str,
+    ) -> None:
         """Handle match result event and generate evidence."""
         job_id = event_data.get("job_id")
         product_id = event_data.get("product_id")
@@ -37,9 +41,27 @@ class EvidenceBuilderService:
         best_pair = event_data.get("best_pair")
         score = event_data.get("score")
         timestamp = event_data.get("ts")
+        event_id = event_data.get("event_id")
 
         if None in [job_id, product_id, video_id, best_pair, score, timestamp]:
             raise ValueError("match.result event is missing required fields")
+
+        img_id = best_pair.get("img_id") if isinstance(best_pair, dict) else None
+        frame_id = best_pair.get("frame_id") if isinstance(best_pair, dict) else None
+        if not img_id or not frame_id:
+            raise ValueError("match.result best_pair must contain img_id and frame_id")
+
+        # Check idempotency using deterministic key
+        dedup_key = f"{job_id}:{product_id}:{video_id}:{img_id}:{frame_id}"
+        if await self.match_record_manager.is_evidence_processed(dedup_key):
+            logger.info(
+                "Evidence already processed, skipping",
+                job_id=job_id,
+                product_id=product_id,
+                video_id=video_id,
+                correlation_id=correlation_id,
+            )
+            return
 
         logger.info(
             "Processing match result for evidence",
@@ -47,12 +69,8 @@ class EvidenceBuilderService:
             product_id=product_id,
             video_id=video_id,
             score=score,
+            correlation_id=correlation_id,
         )
-
-        img_id = best_pair.get("img_id") if isinstance(best_pair, dict) else None
-        frame_id = best_pair.get("frame_id") if isinstance(best_pair, dict) else None
-        if not img_id or not frame_id:
-            raise ValueError("match.result best_pair must contain img_id and frame_id")
 
         image_info = await self.match_record_manager.get_image_info(img_id)
         frame_info = await self.match_record_manager.get_frame_info(frame_id)
@@ -62,10 +80,12 @@ class EvidenceBuilderService:
                 "Failed to get image or frame info",
                 img_id=img_id,
                 frame_id=frame_id,
+                correlation_id=correlation_id,
             )
             return
 
         evidence_path = self.evidence_generator.create_evidence(
+            job_id=job_id,
             image_path=image_info["local_path"],
             frame_path=frame_info["local_path"],
             img_id=img_id,
@@ -83,18 +103,24 @@ class EvidenceBuilderService:
                 video_id,
                 evidence_path,
             )
-            await self.evidence_publisher.publish_evidence_completion_if_needed(job_id)
+            await self.match_record_manager.mark_evidence_processed(dedup_key)
+            await self.evidence_publisher.check_and_publish_completion(job_id)
         else:
             logger.error(
                 "Failed to generate evidence",
                 job_id=job_id,
                 product_id=product_id,
                 video_id=video_id,
+                correlation_id=correlation_id,
             )
 
     async def handle_matchings_completed(
         self,
         event_data: Dict[str, Any],
+        correlation_id: str,
     ) -> None:
         """Handle matchings completed event, covering zero-match jobs."""
-        await self.evidence_publisher.handle_matchings_completed(event_data)
+        await self.evidence_publisher.handle_matchings_completed(
+            event_data,
+            correlation_id,
+        )

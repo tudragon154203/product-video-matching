@@ -61,7 +61,7 @@ export default function JobDetailsPage({ params }: JobDetailsPageProps) {
   } = useMatchingSummary(
     jobId,
     isMatchingPhase,
-    phase === 'matching' ? 4000 : false
+    phase === 'matching' || phase === 'evidence' ? 4000 : false
   );
   
   // Invalidate jobs list when job detail page loads to ensure sidebar is up-to-date
@@ -106,7 +106,7 @@ export default function JobDetailsPage({ params }: JobDetailsPageProps) {
             )}
             
             {/* Matching Banner */}
-            {phase === 'matching' && (
+            {(phase === 'matching' || phase === 'evidence') && (
               <MatchingBanner 
                 percent={percent}
                 matchesFound={matchingSummary?.matches_found}
@@ -115,7 +115,7 @@ export default function JobDetailsPage({ params }: JobDetailsPageProps) {
             
             <JobStatusHeader jobId={jobId} isCollecting={isCollecting} />
             
-            {/* Matching Panel - appears during matching phase */}
+            {/* Matching Panel - appears during matching and evidence phases */}
             {(phase === 'matching' || phase === 'evidence' || phase === 'completed') && (
               <MatchingPanel
                 jobId={jobId}
@@ -123,7 +123,7 @@ export default function JobDetailsPage({ params }: JobDetailsPageProps) {
                 isLoading={isMatchingLoading}
                 isError={isMatchingError}
                 onRetry={refetchMatching}
-                isActive={phase === 'matching'}
+                isActive={phase === 'matching' || phase === 'evidence'}
               />
             )}
             

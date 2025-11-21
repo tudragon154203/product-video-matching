@@ -19,6 +19,7 @@ class EvidenceImageRenderer:
         timestamp: float,
         img_id: str,
         frame_id: str,
+        job_id: str,
     ) -> np.ndarray:
         """Create side-by-side comparison image."""
         try:
@@ -38,6 +39,7 @@ class EvidenceImageRenderer:
                 timestamp,
                 img_id,
                 frame_id,
+                job_id,
             )
             return combined
         except (cv2.error, ValueError, TypeError) as exc:
@@ -92,6 +94,7 @@ class EvidenceImageRenderer:
         timestamp: float,
         img_id: str,
         frame_id: str,
+        job_id: str,
     ) -> np.ndarray:
         padding = 20
         header_height = 80
@@ -169,4 +172,18 @@ class EvidenceImageRenderer:
             (0, 255, 0),
             2,
         )
+
+        # Add watermark
+        watermark_text = f"evidence-builder | Job: {job_id[:8]}"
+        watermark_y = combined.shape[0] - 10
+        cv2.putText(
+            combined,
+            watermark_text,
+            (padding, watermark_y),
+            font,
+            0.4,
+            (128, 128, 128),
+            1,
+        )
+
         return combined

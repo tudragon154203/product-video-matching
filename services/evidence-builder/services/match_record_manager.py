@@ -14,6 +14,27 @@ class MatchRecordManager:
     def __init__(self, db: DatabaseManager) -> None:
         self.db = db
 
+    async def is_evidence_processed(self, dedup_key: str) -> bool:
+        """Check if evidence has already been processed for this match."""
+        query = """
+            SELECT EXISTS(
+                SELECT 1 FROM processed_events
+                WHERE event_type = 'evidence_generated'
+                AND dedup_key = $1
+            )
+        """
+        result = await self.db.fetch_val(query, dedup_key)
+        return bool(result)
+
+    async def mark_evidence_processed(self, dedup_key: str) -> None:
+        """Mark evidence as processed for idempotency."""
+        query = """
+            INSERT INTO processed_events (event_type, dedup_key, processed_at)
+            VALUES ('evidence_generated', $1, NOW())
+            ON CONFLICT (event_type, dedup_key) DO NOTHING
+        """
+        await self.db.execute(query, dedup_key)
+
     async def update_match_record_and_log(
         self,
         job_id: str,
@@ -52,3 +73,14 @@ class MatchRecordManager:
             "SELECT local_path, kp_blob_path FROM video_frames WHERE frame_id = $1"
         )
         return await self.db.fetch_one(query, frame_id)
+
+    async def get_match_counts(self, job_id: str) -> tuple[int, int]:
+        """Get total matches and evidence-ready matches for a job."""
+        total_query = "SELECT COUNT(*) FROM matches WHERE job_id = $1"
+        evidence_query = """
+            SELECT COUNT(*) FROM matches
+            WHERE job_id = $1 AND evidence_path IS NOT NULL
+        """
+        total = await self.db.fetch_val(total_query, job_id) or 0
+        with_evidence = await self.db.fetch_val(evidence_query, job_id) or 0
+        return total, with_evidence

@@ -264,9 +264,14 @@
     "results": {
       "title": "Live Matches",
       "minScore": "Min Score",
+      "evidenceOnly": "Evidence ready only",
+      "sortBy": "Sort by",
+      "score": "Score",
+      "createdAt": "Created",
+      "ascending": "Sort ascending",
+      "descending": "Sort descending",
       "product": "Product",
       "video": "Video",
-      "score": "Score",
       "evidence": "Evidence",
       "ready": "Ready",
       "pending": "Pending",
@@ -274,7 +279,24 @@
     },
     "empty": {
       "title": "Waiting for matches",
-      "description": "Matches will appear here as they are found."
+      "description": "Matches will appear here as they are found.",
+      "noEvidence": "No matches with evidence yet",
+      "evidenceDescription": "Evidence is being generated. Check back soon or disable the filter."
+    },
+    "evidence": {
+      "title": "Match Evidence",
+      "openFull": "Open Full Size",
+      "download": "Download",
+      "pending": "Evidence is being generated for this match. Please check back in a moment.",
+      "matchDetails": "Match Details",
+      "score": "Score",
+      "timestamp": "Timestamp",
+      "product": "Product",
+      "brand": "Brand",
+      "viewProduct": "View Product",
+      "video": "Video",
+      "openVideo": "Open Video",
+      "openVideoAt": "Open at {time}s"
     },
     "complete": {
       "title": "Matching complete"

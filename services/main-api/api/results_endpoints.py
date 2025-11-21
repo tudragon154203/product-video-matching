@@ -110,23 +110,28 @@ async def get_match(
     "/evidence/{match_id}",
     response_model=EvidenceResponse,
     summary="Get evidence image",
-    description="Get the evidence image path for a specific match"
+    description="Get the evidence image path and URL for a specific match"
 )
 async def get_evidence_image(
     match_id: str = Path(..., description="Match ID"),
     results_service: ResultsService = Depends(get_results_service)
 ) -> EvidenceResponse:
-    """Get evidence image path for a match"""
+    """Get evidence image path and URL for a match"""
     try:
-        evidence_path = await results_service.get_evidence_path(match_id)
+        result = await results_service.get_evidence_path(match_id)
 
-        if not evidence_path:
+        if not result or not result[0]:
             raise HTTPException(
                 status_code=404, detail=f"Evidence image for match {match_id} not found"
             )
 
+        evidence_path, evidence_url = result
+
         logger.info(f"Retrieved evidence for match {match_id}")
-        return EvidenceResponse(evidence_path=evidence_path)
+        return EvidenceResponse(
+            evidence_path=evidence_path,
+            evidence_url=evidence_url
+        )
 
     except HTTPException:
         raise

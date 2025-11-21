@@ -58,6 +58,7 @@ def test_create_side_by_side_comparison(evidence_generator, sample_images):
         10.5,
         "img123",
         "frame456",
+        "job123",
     )
 
     assert result is not None
@@ -76,6 +77,7 @@ def test_create_evidence(evidence_generator, sample_images, temp_dir):
     cv2.imwrite(str(frame_path), frame_img)
 
     evidence_path = evidence_generator.create_evidence(
+        "job123",
         str(product_path),
         str(frame_path),
         "img123",
@@ -86,7 +88,8 @@ def test_create_evidence(evidence_generator, sample_images, temp_dir):
 
     assert evidence_path is not None
     assert Path(evidence_path).exists()
-    assert "img123_frame456_evidence.jpg" in evidence_path
+    assert "img123_frame456.jpg" in evidence_path
+    assert "job123" in evidence_path
 
 
 def test_create_evidence_with_keypoints(
@@ -104,6 +107,7 @@ def test_create_evidence_with_keypoints(
     cv2.imwrite(str(frame_path), frame_img)
 
     evidence_path = evidence_generator.create_evidence(
+        "job123",
         str(product_path),
         str(frame_path),
         "img123",
@@ -121,6 +125,7 @@ def test_create_evidence_with_keypoints(
 def test_create_evidence_missing_images(evidence_generator):
     """Test creating evidence with missing images."""
     evidence_path = evidence_generator.create_evidence(
+        "job123",
         "/nonexistent/product.jpg",
         "/nonexistent/frame.jpg",
         "img123",

@@ -24,6 +24,7 @@ class EvidenceGenerator:
 
     def create_evidence(
         self,
+        job_id: str,
         image_path: str,
         frame_path: str,
         img_id: str,
@@ -35,8 +36,12 @@ class EvidenceGenerator:
     ) -> Optional[str]:
         """Create an evidence image showing the matching pair."""
         try:
-            evidence_filename = f"{img_id}_{frame_id}_evidence.jpg"
-            evidence_path = self.evidence_dir / evidence_filename
+            # Create job-specific directory
+            job_evidence_dir = self.evidence_dir / job_id
+            job_evidence_dir.mkdir(parents=True, exist_ok=True)
+
+            evidence_filename = f"{img_id}_{frame_id}.jpg"
+            evidence_path = job_evidence_dir / evidence_filename
 
             product_img = cv2.imread(image_path)
             frame_img = cv2.imread(frame_path)
@@ -56,6 +61,7 @@ class EvidenceGenerator:
                 timestamp,
                 img_id,
                 frame_id,
+                job_id,
             )
 
             if kp_img_path and kp_frame_path:
@@ -73,6 +79,7 @@ class EvidenceGenerator:
                 "Created evidence image",
                 evidence_path=str(evidence_path),
                 score=score,
+                job_id=job_id,
             )
             return str(evidence_path)
         except (cv2.error, OSError, ValueError) as exc:

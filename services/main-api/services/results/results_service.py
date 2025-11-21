@@ -15,6 +15,8 @@ from models.results_schemas import (
     MatchResponse, MatchDetailResponse, StatsResponse,
     ProductResponse, VideoResponse, MatchListResponse
 )
+from services.static_file_service import StaticFileService
+from config_loader import config
 
 logger = configure_logging("main-api:results_service")
 
@@ -33,6 +35,10 @@ class ResultsService:
         self.product_crud = ProductCRUD(db)
         self.video_crud = VideoCRUD(db)
         self.match_crud = MatchCRUD(db)
+        self.static_file_service = StaticFileService(
+            base_url=config.MAIN_API_URL,
+            data_root=config.DATA_ROOT_CONTAINER,
+        )
 
         logger.debug("ResultsService initialized")
 
@@ -154,6 +160,12 @@ class ResultsService:
             if industry and product and industry.lower() not in (product.title or "").lower():
                 return None
 
+            evidence_url = None
+            if match.evidence_path:
+                evidence_url = self.static_file_service.build_url_from_local_path(
+                    match.evidence_path
+                )
+
             return MatchResponse(
                 match_id=match.match_id,
                 job_id=match.job_id,
@@ -164,6 +176,7 @@ class ResultsService:
                 ts=match.ts,
                 score=match.score,
                 evidence_path=match.evidence_path,
+                evidence_url=evidence_url,
                 created_at=match.created_at.isoformat() if match.created_at else "",
                 product_title=product.title if product else None,
                 video_title=video.title if video else None,
@@ -208,6 +221,12 @@ class ResultsService:
                 match, correlation_id
             )
 
+            evidence_url = None
+            if match.evidence_path:
+                evidence_url = self.static_file_service.build_url_from_local_path(
+                    match.evidence_path
+                )
+
             result = MatchDetailResponse(
                 match_id=match.match_id,
                 job_id=match.job_id,
@@ -216,6 +235,7 @@ class ResultsService:
                 ts=match.ts,
                 score=match.score,
                 evidence_path=match.evidence_path,
+                evidence_url=evidence_url,
                 created_at=match.created_at.isoformat() if match.created_at else "",
                 product=ProductResponse(
                     product_id=product.product_id,
@@ -329,12 +349,16 @@ class ResultsService:
                 )
                 return None
 
+            evidence_url = self.static_file_service.build_url_from_local_path(
+                match.evidence_path
+            )
+
             logger.debug(
                 f"Retrieved evidence path for match {match_id}",
                 extra={"correlation_id": correlation_id}
             )
 
-            return match.evidence_path
+            return match.evidence_path, evidence_url
 
         except Exception as e:
             logger.error(

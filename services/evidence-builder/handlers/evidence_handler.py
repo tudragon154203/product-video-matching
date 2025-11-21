@@ -8,7 +8,7 @@ from common_py.messaging import MessageBroker
 from config_loader import config
 from services.service import EvidenceBuilderService
 
-from .decorators import handle_errors
+from .decorators import handle_errors, validate_event
 
 
 class EvidenceHandler:
@@ -24,9 +24,19 @@ class EvidenceHandler:
         )
 
     @handle_errors
-    async def handle_match_result(self, event_data: Dict[str, Any]) -> None:
-        await self.service.handle_match_result(event_data)
+    @validate_event("match_result")
+    async def handle_match_result(
+        self,
+        event_data: Dict[str, Any],
+        correlation_id: str,
+    ) -> None:
+        await self.service.handle_match_result(event_data, correlation_id)
 
     @handle_errors
-    async def handle_matchings_completed(self, event_data: Dict[str, Any]) -> None:
-        await self.service.handle_matchings_completed(event_data)
+    @validate_event("matchings_process_completed")
+    async def handle_matchings_completed(
+        self,
+        event_data: Dict[str, Any],
+        correlation_id: str,
+    ) -> None:
+        await self.service.handle_matchings_completed(event_data, correlation_id)
