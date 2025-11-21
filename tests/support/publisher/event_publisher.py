@@ -697,3 +697,46 @@ class MatchingEventPublisher:
             event_id=event_data.get("event_id"),
             correlation_id=correlation_id
         )
+
+
+
+class EvidenceEventPublisher:
+    """Event publisher for evidence phase tests"""
+
+    def __init__(self, message_broker: MessageBroker):
+        self.message_broker = message_broker
+        self.published_events = []
+
+    async def publish_match_result(self, event_data: Dict[str, Any]):
+        """Publish match.result event to trigger evidence generation"""
+        await self._publish_event("match.result", event_data)
+
+    async def publish_matchings_completed(self, event_data: Dict[str, Any]):
+        """Publish matchings.process.completed event"""
+        await self._publish_event("matchings.process.completed", event_data)
+
+    async def _publish_event(self, routing_key: str, event_data: Dict[str, Any]):
+        """Publish event via common MessageBroker to the configured topic exchange"""
+        correlation_id = event_data.get("correlation_id") or (
+            f"test_{event_data.get('job_id', 'unknown')}_{datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')}"
+        )
+
+        await self.message_broker.publish_event(
+            topic=routing_key,
+            event_data=event_data,
+            correlation_id=correlation_id
+        )
+
+        self.published_events.append({
+            "routing_key": routing_key,
+            "payload": event_data,
+            "correlation_id": correlation_id,
+            "timestamp": datetime.now(timezone.utc).isoformat()
+        })
+
+        logger.info(
+            f"Published evidence event: {routing_key}",
+            job_id=event_data.get("job_id"),
+            event_id=event_data.get("event_id"),
+            correlation_id=correlation_id
+        )

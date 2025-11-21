@@ -31,12 +31,13 @@ class EvidencePublisher:
 
     async def mark_completion_published(self, job_id: str) -> None:
         """Mark completion event as published for idempotency."""
+        event_id = str(uuid.uuid4())
         query = """
-            INSERT INTO processed_events (event_type, dedup_key, processed_at)
-            VALUES ('evidences_generation_completed', $1, NOW())
+            INSERT INTO processed_events (event_id, event_type, dedup_key, processed_at)
+            VALUES ($1, 'evidences_generation_completed', $2, NOW())
             ON CONFLICT (event_type, dedup_key) DO NOTHING
         """
-        await self.db.execute(query, job_id)
+        await self.db.execute(query, event_id, job_id)
 
     async def check_and_publish_completion(self, job_id: str) -> None:
         """Check if all evidence is ready and publish completion if so."""

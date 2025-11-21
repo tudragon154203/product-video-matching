@@ -1,5 +1,6 @@
 """Database helpers for evidence builder match records."""
 
+import uuid
 from typing import Any, Optional
 
 from common_py.database import DatabaseManager
@@ -28,12 +29,13 @@ class MatchRecordManager:
 
     async def mark_evidence_processed(self, dedup_key: str) -> None:
         """Mark evidence as processed for idempotency."""
+        event_id = str(uuid.uuid4())
         query = """
-            INSERT INTO processed_events (event_type, dedup_key, processed_at)
-            VALUES ('evidence_generated', $1, NOW())
+            INSERT INTO processed_events (event_id, event_type, dedup_key, processed_at)
+            VALUES ($1, 'evidence_generated', $2, NOW())
             ON CONFLICT (event_type, dedup_key) DO NOTHING
         """
-        await self.db.execute(query, dedup_key)
+        await self.db.execute(query, event_id, dedup_key)
 
     async def update_match_record_and_log(
         self,

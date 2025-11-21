@@ -130,8 +130,8 @@ class MessageSpy:
             candidates: list[str] = []
             if env_exchange:
                 candidates.append(env_exchange.strip())
-            # Ordered fallbacks - only use exchanges that actually exist
-            candidates.extend(["amq.topic"])
+            # Ordered fallbacks - prioritize product_video_matching, then amq.topic
+            candidates.extend(["product_video_matching", "amq.topic"])
             # Deduplicate while preserving order
             seen: set[str] = set()
             self._candidate_exchanges = [x for x in candidates if not (x in seen or seen.add(x))]

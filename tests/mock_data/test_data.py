@@ -306,3 +306,88 @@ def build_low_similarity_matching_dataset(job_id: str) -> Dict[str, Any]:
         "product_records": product_records,
         "match_request": match_request,
     }
+
+
+
+def build_evidence_test_dataset(job_id: str, num_matches: int = 2) -> Dict[str, Any]:
+    """Build a complete test dataset for evidence phase integration tests."""
+
+    # Create video and frames
+    video_record = build_video_record(job_id)
+    video_id = video_record["video_id"]
+
+    # Create products
+    products = []
+    product_images = []
+    video_frames = []
+    matches = []
+    match_results = []
+
+    for idx in range(1, num_matches + 1):
+        product_id = f"{job_id}_product_{idx:03d}"
+        img_id = f"{job_id}_img_{idx:03d}"
+        frame_id = f"{video_id}_frame_{idx:03d}"
+
+        # Product record
+        products.append({
+            "product_id": product_id,
+            "src": "amazon" if idx % 2 else "ebay",
+            "asin_or_itemid": f"TEST_ASIN_{idx:03d}",
+            "marketplace": "us",
+        })
+
+        # Product image record
+        product_images.append({
+            "img_id": img_id,
+            "product_id": product_id,
+            "local_path": f"/app/data/tests/products/ready/prod_{idx:03d}.jpg",
+        })
+
+        # Video frame record
+        video_frames.append({
+            "frame_id": frame_id,
+            "video_id": video_id,
+            "ts": float(idx),
+            "local_path": f"/app/data/tests/videos/ready/video_001_frame_{idx:03d}.jpg",
+        })
+
+        # Match record
+        matches.append({
+            "product_id": product_id,
+            "video_id": video_id,
+            "best_img_id": img_id,
+            "best_frame_id": frame_id,
+            "ts": float(idx),
+            "score": 0.85 + (idx * 0.01),
+        })
+
+        # match.result event
+        match_results.append({
+            "job_id": job_id,
+            "product_id": product_id,
+            "video_id": video_id,
+            "best_pair": {
+                "img_id": img_id,
+                "frame_id": frame_id,
+                "score_pair": 0.85 + (idx * 0.01),
+            },
+            "score": 0.85 + (idx * 0.01),
+            "ts": float(idx),
+        })
+
+    # matchings.process.completed event
+    matchings_completed = {
+        "job_id": job_id,
+        "event_id": str(uuid.uuid4()),
+    }
+
+    return {
+        "job_id": job_id,
+        "video_record": video_record,
+        "products": products,
+        "product_images": product_images,
+        "video_frames": video_frames,
+        "matches": matches,
+        "match_results": match_results,
+        "matchings_completed": matchings_completed,
+    }
