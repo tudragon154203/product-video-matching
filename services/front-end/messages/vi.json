@@ -262,17 +262,39 @@
     "results": {
       "title": "Kết Quả Trực Tiếp",
       "minScore": "Điểm Tối Thiểu",
+      "evidenceOnly": "Chỉ hiển thị có bằng chứng",
+      "sortBy": "Sắp xếp theo",
+      "score": "Điểm",
+      "createdAt": "Thời gian tạo",
+      "ascending": "Sắp xếp tăng dần",
+      "descending": "Sắp xếp giảm dần",
       "product": "Sản phẩm",
       "video": "Video",
-      "score": "Điểm",
       "evidence": "Bằng chứng",
       "ready": "Sẵn sàng",
       "pending": "Đang chờ",
       "showing": "Hiển thị {count} trong số {total} kết quả"
     },
+    "evidence": {
+      "title": "Bằng Chứng Khớp",
+      "openFull": "Mở Kích Thước Đầy Đủ",
+      "download": "Tải xuống",
+      "pending": "Bằng chứng đang được tạo cho kết quả khớp này. Vui lòng kiểm tra lại sau.",
+      "matchDetails": "Chi Tiết Khớp",
+      "score": "Điểm",
+      "timestamp": "Thời gian",
+      "product": "Sản phẩm",
+      "brand": "Thương hiệu",
+      "viewProduct": "Xem Sản phẩm",
+      "video": "Video",
+      "openVideo": "Mở Video",
+      "openVideoAt": "Mở tại {time}s"
+    },
     "empty": {
       "title": "Đang chờ kết quả khớp",
-      "description": "Các kết quả khớp sẽ xuất hiện ở đây khi được tìm thấy."
+      "description": "Các kết quả khớp sẽ xuất hiện ở đây khi được tìm thấy.",
+      "noEvidence": "Chưa có kết quả khớp nào có bằng chứng",
+      "evidenceDescription": "Bằng chứng đang được tạo. Vui lòng kiểm tra lại sau hoặc tắt bộ lọc."
     },
     "complete": {
       "title": "Hoàn thành so khớp"

@@ -277,6 +277,21 @@
       "pending": "Pending",
       "showing": "Showing {count} of {total} matches"
     },
+    "evidence": {
+      "title": "Match Evidence",
+      "openFull": "Open Full Size",
+      "download": "Download",
+      "pending": "Evidence is being generated for this match. Please check back in a moment.",
+      "matchDetails": "Match Details",
+      "score": "Score",
+      "timestamp": "Timestamp",
+      "product": "Product",
+      "brand": "Brand",
+      "viewProduct": "View Product",
+      "video": "Video",
+      "openVideo": "Open Video",
+      "openVideoAt": "Open at {time}s"
+    },
     "empty": {
       "title": "Waiting for matches",
       "description": "Matches will appear here as they are found.",

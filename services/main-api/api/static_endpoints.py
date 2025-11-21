@@ -6,6 +6,7 @@ from fastapi import APIRouter, HTTPException, Request, Response, Depends
 from fastapi.responses import FileResponse
 from services.static_file_service import StaticFileService
 from common_py.logging_config import configure_logging
+from config_loader import config
 
 logger = configure_logging("main-api:static_endpoints")
 
@@ -15,7 +16,10 @@ router = APIRouter()
 
 
 def get_static_file_service() -> StaticFileService:
-    return StaticFileService()
+    return StaticFileService(
+        base_url=config.MAIN_API_URL,
+        data_root=config.DATA_ROOT_CONTAINER
+    )
 
 
 @router.get("/files/{filename:path}")
