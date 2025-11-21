@@ -43,7 +43,6 @@ def extractor(temp_dir):
         window_width=2,
         min_content_val=10.0,
         weights_luma_only=True,
-        downscale_factor=1,
         min_scene_duration_seconds=0.2,
         boundary_guard_seconds=0.05,
         fallback_offset_seconds=0.1,

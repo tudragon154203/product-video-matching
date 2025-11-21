@@ -158,8 +158,6 @@ class PySceneDetectKeyframeExtractor(AbstractKeyframeExtractor):
         boundaries: List[Tuple[float, float]] = []
 
         try:
-            downscale = max(1, int(self.settings.downscale_factor))
-            video_manager.set_downscale_factor(downscale)
             video_manager.start()
             scene_manager.detect_scenes(frame_source=video_manager)
 
