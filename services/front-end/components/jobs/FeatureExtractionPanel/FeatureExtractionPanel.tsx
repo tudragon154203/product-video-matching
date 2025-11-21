@@ -32,18 +32,23 @@ export function FeatureExtractionPanel({
   // State for accordion - collapsed by default when not active
   const [isExpanded, setIsExpanded] = React.useState(() => {
     if (typeof window === 'undefined') return false;
-    // If not active (phase past feature_extraction), default to collapsed
-    if (!isActive) return false;
-    // Otherwise check sessionStorage
+    // Check sessionStorage first
     const stored = sessionStorage.getItem('featureExtractionPanelExpanded');
-    return stored !== null ? stored === 'true' : false;
+    if (stored !== null) {
+      return stored === 'true';
+    }
+    // If no stored value, default to collapsed when not active
+    return isActive;
   });
 
-  // Auto-collapse when phase advances past feature_extraction
+  // Auto-collapse only when phase transitions from active to inactive
+  const prevIsActiveRef = React.useRef(isActive);
   React.useEffect(() => {
-    if (!isActive && isExpanded) {
+    // Only collapse if we just transitioned from active to inactive
+    if (prevIsActiveRef.current && !isActive && isExpanded) {
       setIsExpanded(false);
     }
+    prevIsActiveRef.current = isActive;
   }, [isActive, isExpanded]);
 
   React.useEffect(() => {
