@@ -7,7 +7,7 @@
 ---
 
 ## 1) Purpose
-- Stabilize the evidence-builder so it reliably consumes `match.result`/`matchings.process.completed`, renders deterministic artifacts, and only emits `evidences.generation.completed` when all matches are covered (including zero-match jobs).
+- Stabilize the evidence-builder so it reliably consumes `match.result`/`match.results.completed`, renders deterministic artifacts, and only emits `evidences.generation.completed` when all matches are covered (including zero-match jobs).
 - Ship a first-class evidence experience in the front-end (job detail + match detail) that shows thumbnails, full-resolution artifacts, and status when evidence is pending or failed.
 
 ---
@@ -15,14 +15,14 @@
 ## 2) Current State (repo scan)
 
 ### Backend (Python service)
-- Entry: `services/evidence-builder/main.py` subscribes to `match.result` and `matchings.process.completed` and loops forever. Prefetch is set (10 for per-asset, 1 for completion).
+- Entry: `services/evidence-builder/main.py` subscribes to `match.result` and `match.results.completed` and loops forever. Prefetch is set (10 for per-asset, 1 for completion).
 - Handlers: `handlers/evidence_handler.py` wraps `EvidenceBuilderService` but **does not accept `correlation_id`**, even though `common_py.messaging_handler` invokes handlers as `(event_data, correlation_id)`. This currently raises `TypeError` on real messages. No schema validation decorator is applied.
 - Service flow (`services/service.py`):
   - Validates required fields manually; pulls `img_id`/`frame_id` from `best_pair`.
   - Fetches asset paths and kp blobs from Postgres (`MatchRecordManager` uses raw queries on `product_images`/`video_frames`).
   - Calls `EvidenceGenerator.create_evidence(...)` to build a side-by-side JPG under `<DATA_ROOT>/evidence/`. Keypoint overlays are **randomly synthesized**, not derived from stored `kp_blob_path`.
   - Updates `matches.evidence_path` and immediately asks `EvidencePublisher` to publish `evidences.generation.completed`.
-  - Zero-match path: `handle_matchings_completed` delegates to publisher, which publishes completion when count == 0.
+  - Zero-match path: `handle_match_results_completed` delegates to publisher, which publishes completion when count == 0.
 - Publisher (`services/evidence-builder/services/evidence_publisher.py`):
   - Holds an in-memory `processed_jobs` set only; restarts will re-publish completions.
   - Emits `evidences.generation.completed` **as soon as the first evidence is written**. It never waits for all `matches` rows to have `evidence_path`, so jobs can be marked complete prematurely.
@@ -59,7 +59,7 @@
 - Goals:
   1. Contract-correct ingestion with retries and idempotency that survives restarts.
   2. Generate deterministic, inspectable evidence artifacts and store them predictably under `/app/data/evidence/{job_id}/`.
-  3. Emit `evidences.generation.completed` only when **all** matches for the job have an evidence asset, or immediately when `matchings.process.completed` sees zero matches.
+  3. Emit `evidences.generation.completed` only when **all** matches for the job have an evidence asset, or immediately when `match.results.completed` sees zero matches.
   4. Expose `evidence_url` via main-api so UI can fetch images through `/files/...`.
   5. Front-end: show evidence thumbnails in the matching table, full-size viewer with product/video context, and clear pending/failed states.
 - Non-Goals (this sprint):
@@ -71,7 +71,7 @@
 ## 4) Backend Plan (evidence-builder + main-api touchpoints)
 
 ### 4.1 Contracts, handlers, idempotency
-- Align handler signatures with broker (`async def handle_match_result(event_data, correlation_id)`), and attach `@validate_event("match_result")` / `@validate_event("matchings_process_completed")` in `handlers/evidence_handler.py`.
+- Align handler signatures with broker (`async def handle_match_result(event_data, correlation_id)`), and attach `@validate_event("match_result")` / `@validate_event("match_results_completed")` in `handlers/evidence_handler.py`.
 - Use `correlation_id` or a derived deterministic key (`job_id` + `product_id` + `video_id` + `best_pair.img_id` + `best_pair.frame_id`) to dedupe per-match generation and to guard against retries/DLQ replays.
 - Write a lightweight `processed_events` table or reuse `phase_events` to persist `match.result` processing (mirroring matcher idempotency), so restarts don’t regenerate the same evidence twice.
 
@@ -88,7 +88,7 @@
 - On `match.result`:
   - Generate evidence → update `matches.evidence_path`.
   - Re-count evidence-ready matches; if `evidence_ready == total_matches`, emit `evidences.generation.completed`.
-- On `matchings.process.completed`:
+- On `match.results.completed`:
   - If `total_matches == 0`, emit completion immediately.
   - Else, log and wait for per-match completions (no-op).
 - Persist completion emission (e.g., into `phase_events` or `processed_jobs` table) so we never double-send across restarts.
@@ -160,7 +160,7 @@ If time-limited, prioritize 1 → 3 to unblock operators, then 2 for quality of 
 ## 8) Execution TODOs (Backend first, Front-end later)
 
 ### Backend (must complete before FE)
-- [ ] Fix handler signature mismatch: accept `correlation_id` and validate events with `@validate_event("match_result")` / `@validate_event("matchings_process_completed")`.
+- [ ] Fix handler signature mismatch: accept `correlation_id` and validate events with `@validate_event("match_result")` / `@validate_event("match_results_completed")`.
 - [ ] Implement idempotency/dedup per match (`event_id` or deterministic composite key) and persist processed events (DB-backed, not in-memory).
 - [ ] Correct completion semantics: emit `evidences.generation.completed` only when all `matches` rows for the job have evidence or when total matches == 0.
 - [ ] Make evidence outputs deterministic: stable file naming under `/app/data/evidence/{job_id}/`, no random kp overlays; embed metadata and watermark; handle kp blobs if present.

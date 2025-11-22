@@ -72,5 +72,5 @@ The current `libs/contracts/contracts/schemas/match_request.json` schema require
 
 ## Appendix
 - Current schema: `libs/contracts/contracts/schemas/match_request.json` (v before change).
-- Related schemas for reference: `libs/contracts/contracts/schemas/match_result.json`, `libs/contracts/contracts/schemas/matchings_process_completed.json`.
+- Related schemas for reference: `libs/contracts/contracts/schemas/match_result.json`, `libs/contracts/contracts/schemas/match_results_completed.json`.
 - For implementation tasks, see Jira epic MATCHER-102.

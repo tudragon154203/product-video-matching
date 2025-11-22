@@ -5,9 +5,9 @@ Owners: QA/Infra
 Related docs: [docker-compose.dev.cpu.yml](../../infra/pvm/docker-compose.dev.cpu.yml), [RUN.md](../../RUN.md), [infra README](../../infra/pvm/README.md), [sprint_12_unified_test_structure.md](./sprint_12_unified_test_structure.md), [sprint_13.2_feature_extraction_phase_integration_tests_prd.md](./sprint_13.2_feature_extraction_phase_integration_tests_prd.md), [sprint_2_matcher_microservice_implementation.md](../matcher/sprint_2_matcher_microservice_implementation.md), [test_matching_phase_integration.py](../../tests/integration/test_matching_phase_integration.py)
 
 ## 1) Overview and Objectives
-- Purpose: 🟡 Deliver an end-to-end matching phase integration suite that exercises `match.request` ingestion through `matchings.process.completed`, validating persistence and emissions across the live stack.
+- Purpose: 🟡 Deliver an end-to-end matching phase integration suite that exercises `match.request` ingestion through `match.results.completed`, validating persistence and emissions across the live stack.
 - Objectives:
-  - 🟡 Contract fidelity for ingress/egress events (`match.request`, `match.result`, `matchings.process.completed`) and supporting DB writes.
+  - 🟡 Contract fidelity for ingress/egress events (`match.request`, `match.result`, `match.results.completed`) and supporting DB writes.
   - 🟡 Validate job transitions to `evidence` driven by [PhaseTransitionManager._process_matching_phase](../../services/main-api/services/phase/phase_transition_manager.py:115).
   - 🟡 Prove matcher idempotency by replaying identical events and asserting [EventCRUD.record_event](../../libs/common-py/common_py/crud/event_crud.py:8) suppresses duplicates.
 - Non-goals:
@@ -23,7 +23,7 @@ Related docs: [docker-compose.dev.cpu.yml](../../infra/pvm/docker-compose.dev.cp
 
 ## 2) Actors and Systems
 - 🟡 `matcher` service: entry point [MatcherHandler.handle_match_request](../../services/matcher/handlers/matcher_handler.py:24) delegates to [MatcherService.handle_match_request](../../services/matcher/services/service.py:43) which persists matches and publishes completion.
-- 🟡 `main-api`: phase orchestration via [PhaseTransitionManager.check_phase_transitions](../../services/main-api/services/phase/phase_transition_manager.py:15) and `_process_matching_phase` to promote jobs on `matchings.process.completed`.
+- 🟡 `main-api`: phase orchestration via [PhaseTransitionManager.check_phase_transitions](../../services/main-api/services/phase/phase_transition_manager.py:15) and `_process_matching_phase` to promote jobs on `match.results.completed`.
 - 🟡 RabbitMQ `product_video_matching` topic exchange observed through [MessageSpy](../../tests/support/spy/message_spy.py:61) for `match.request`, `match.result`, and completion events.
 - 🟡 Postgres surfaces: `products`, `product_images`, `videos`, `video_frames`, `matches`, `processed_events`, and `phase_events` defined in [001_initial_schema](../../infra/migrations/versions/001_initial_schema.py:108) and [005_processed_events](../../infra/migrations/versions/005_add_processed_events_table.py:18).
 - 🟡 Observability: out of scope for this sprint; rely on existing logging without additional validation.
@@ -32,7 +32,7 @@ Related docs: [docker-compose.dev.cpu.yml](../../infra/pvm/docker-compose.dev.cp
 - Input contract: [match_request.json](../../libs/contracts/contracts/schemas/match_request.json) published by `main-api`.
 - Output contracts:
   - [match_result.json](../../libs/contracts/contracts/schemas/match_result.json) emitted per accepted product/video pair.
-  - [matchings_process_completed.json](../../libs/contracts/contracts/schemas/matchings_process_completed.json) emitted once per job.
+  - [match_results_completed.json](../../libs/contracts/contracts/schemas/match_results_completed.json) emitted once per job.
 - Persistence and ledgers:
   - `matches` via [MatchCRUD.create_match](../../libs/common-py/common_py/crud/match_crud.py:9).
   - Idempotency ledger `processed_events` via [EventCRUD](../../libs/common-py/common_py/crud/event_crud.py:8) to block duplicate processing.
@@ -50,7 +50,7 @@ Related docs: [docker-compose.dev.cpu.yml](../../infra/pvm/docker-compose.dev.cp
 - ✅ Extended [tests/mock_data/test_data.py](../../tests/mock_data/test_data.py:16) with `build_matching_test_dataset` and `build_low_similarity_matching_dataset` helpers that attach deterministic `emb_rgb`, `emb_gray`, and `kp_blob_path` values to products and frames.
 - ✅ Combined dataset builders return product/video records plus ready-to-publish `match_request` events with expected results for validation.
 - ✅ Implemented `matching_test_environment` fixture in [test_matching_phase_integration.py](../../tests/integration/test_matching_phase_integration.py:52) composing:
-  - `MessageSpy` queues for `match.result` and `matchings.process.completed` topics.
+  - `MessageSpy` queues for `match.result` and `match.results.completed` topics.
   - Database cleanup via `cleanup_test_database_state` scoped to test job IDs.
   - `DatabaseStateValidator` assertions for matches, processed events, and job phase transitions.
   - `MatchingEventPublisher` with `publish_match_request` helper for event emission.
@@ -65,7 +65,7 @@ Related docs: [docker-compose.dev.cpu.yml](../../infra/pvm/docker-compose.dev.cp
 - **Validations**:
   - ✅ Asserts `match.result` payload structure matches expected result with `score_pair` ≥ 0.8 (MATCH_BEST_MIN threshold).
   - ✅ Confirms `matches` table contains persisted rows with correct job_id, score ≥ 0.8, and status "accepted".
-  - ✅ Validates exactly one `matchings.process.completed` event fired.
+  - ✅ Validates exactly one `match.results.completed` event fired.
   - ✅ Verifies job phase advanced to "evidence" via `DatabaseStateValidator.assert_job_phase`.
   - ✅ Checks `processed_events` contains the dispatched `event_id`.
 - **Notes**: Uses existing routing keys and tables without schema changes.
@@ -73,7 +73,7 @@ Related docs: [docker-compose.dev.cpu.yml](../../infra/pvm/docker-compose.dev.cp
 ### 6.2) Matching — Zero Acceptable Matches (Fail-Gating) ✅
 - **Implementation**: [test_matching_zero_acceptable_matches](../../tests/integration/test_matching_phase_integration.py:177)
 - **Setup**: Seeds dataset with low similarity embeddings via `build_low_similarity_matching_dataset` to ensure scores fall below acceptance thresholds.
-- **Execution**: Publishes `match.request`; waits for `matchings.process.completed` without expecting `match.result`.
+- **Execution**: Publishes `match.request`; waits for `match.results.completed` without expecting `match.result`.
 - **Validations**:
   - ✅ Asserts zero `match.result` events captured by spy.
   - ✅ Confirms `matches` table has zero inserts for the test job.
@@ -107,7 +107,7 @@ Related docs: [docker-compose.dev.cpu.yml](../../infra/pvm/docker-compose.dev.cp
 
 ## 7) Support Infrastructure Requirements ✅
 - ✅ Implemented `MatchingEventPublisher` in [event_publisher.py](../../tests/support/publisher/event_publisher.py) with `publish_match_request` method for direct event emission.
-- ✅ Extended `MessageSpy` infrastructure to capture `match.result` and `matchings.process.completed` events via dedicated spy queues created in `matching_test_environment` fixture.
+- ✅ Extended `MessageSpy` infrastructure to capture `match.result` and `match.results.completed` events via dedicated spy queues created in `matching_test_environment` fixture.
 - ✅ Reused existing `DatabaseStateValidator` for matches, processed events, and job phase assertions without requiring new validator classes.
 - ✅ Implemented synthetic embedding/keypoint fixtures in [test_data.py](../../tests/mock_data/test_data.py) with deterministic values ensuring consistent acceptance threshold behavior.
 - ✅ Created setup helpers in [matching_phase_setup.py](../../tests/support/fixtures/matching_phase_setup.py) including `setup_comprehensive_matching_database_state`, `setup_low_similarity_matching_database_state`, `setup_partial_asset_matching_database_state`, and `cleanup_test_database_state`.

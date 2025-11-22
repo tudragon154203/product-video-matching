@@ -9,7 +9,7 @@
 - Avoid timeouts or stalled jobs when one or both asset types are missing.
 - Preserve event-driven flow by still emitting **batch** and **completed** events with `total_* = 0`.
 - Trigger phase transitions automatically when zero-asset jobs are detected.
-- Ensure job-level completion (`matchings.process.completed` and `evidences.generation.completed`) happens without manual intervention.
+- Ensure job-level completion (`match.results.completed` and `evidences.generation.completed`) happens without manual intervention.
 
 ---
 
@@ -80,7 +80,7 @@
 
 ## 5) Matcher
 - If either side (products or videos) is empty:
-  - Immediately emit `matchings.process.completed` with:
+  - Immediately emit `match.results.completed` with:
     ```json
     {
       "job_id": "...",
@@ -89,12 +89,12 @@
       "matches": []
     }
     ```
-- **Contract**: `matchings_process_completed.json`.
+- **Contract**: `match_results_completed.json`.
 
 ---
 
 ## 6) Evidence Builder
-- On `matchings.process.completed` with `total_matches = 0`:
+- On `match.results.completed` with `total_matches = 0`:
   - Immediately emit `evidences.generation.completed`.
 - **Contract**: `evidences_generation_completed.json`.
 

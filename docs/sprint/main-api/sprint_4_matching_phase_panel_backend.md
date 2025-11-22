@@ -353,7 +353,7 @@ logger.error(f"Error getting matching summary for job {job_id}: {e}")
 ## 11. Future Enhancements
 
 ### 11.1 Event Tracking
-- Store `match.request` and `matchings.process.completed` events
+- Store `match.request` and `match.results.completed` events
 - Track actual candidates processed from matcher worker
 - Use event timestamps for accurate `last_event_at`
 

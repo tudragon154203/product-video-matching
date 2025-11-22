@@ -16,7 +16,8 @@ consumers.
    keypoint signals.
 5. Aggregate matches via `MatchAggregator`, apply acceptance thresholds, and
    publish `match.result` events plus a terminal
-   `matchings.process.completed` event.
+   `match.results.completed` event (always emitted once per job, even when no
+   pairs are accepted, to unblock the evidence builder).
 
 ## Code structure
 - `matching/` – `MatchingEngine`, the orchestration layer around search,

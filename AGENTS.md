@@ -90,7 +90,7 @@
    - `matcher` receives `match.request` after feature extraction completes
    - Performs product-video matching using vector similarity + geometric verification
    - Publishes `match.result` events for each match
-   - Completes with `matchings.process.completed`
+   - Completes with `match.results.completed`
 
 6. **Evidence Phase**:
    - `evidence-builder` creates visual proof of matches
@@ -139,10 +139,12 @@ All events follow JSON schemas in `libs/contracts/contracts/schemas/` with valid
 - `videos_collections_completed`: Video collection finished
 - `image_embeddings_completed`: Product embeddings ready
 - `video_embeddings_completed`: Video embeddings ready
-- `matchings_process_completed`: Matching finished
+- `match_results_completed`: Matching finished
 - `evidences_generation_completed`: Evidence generation finished
 - `job_completed`: Final job completion
 - `job_failed`: Job failure notification
+
+`match_results_completed` is emitted once per job even when zero matches are accepted so the evidence builder can advance and emit `evidences_generation_completed`.
 
 #### Batch Processing Events
 - `products_images_masked_batch`: Background removal for multiple product images
@@ -198,12 +200,12 @@ All events include:
 #### Matching & Evidence
 - `matcher`: Core matching engine
   - Consumes: `match.request` (triggered after feature extraction)
-  - Publishes: `match.result`, `matchings.process.completed`
+  - Publishes: `match.result`, `match.results.completed`
   - Logic: Vector similarity search + RANSAC geometric verification
   - Stores: Match results in database
 
 - `evidence-builder`: Visual proof generation
-  - Consumes: `matchings.process.completed`
+  - Consumes: `match.results.completed`
   - Publishes: `evidences.generation.completed`
   - Creates: Composite images showing matched products in video frames
 

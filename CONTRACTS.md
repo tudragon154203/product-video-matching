@@ -38,7 +38,7 @@ After comprehensive analysis of service implementations, **all events serve esse
 - `video.embeddings.completed`: Main API barrier for phase transition with asset counts
 - `image.keypoints.completed`: Main API barrier for phase transition with asset counts
 - `video.keypoints.completed`: Main API barrier for phase transition with asset counts
-- `matchings.process.completed`: Main API barrier for matching phase completion
+- `match.results.completed`: Main API barrier for matching phase completion
 - `evidences.generation.completed`: Main API barrier for evidence phase completion
 
 **Purpose**: Provide Main API with completion data for job orchestration and phase transitions.
@@ -268,11 +268,13 @@ Note: `additionalProperties` are allowed; publishers may include `job_id` for tr
 }
 ```
 
-### matchings.process.completed (`matchings_process_completed.json`)
+### match.results.completed (`match_results_completed.json`)
 
 ```json
 { "job_id": "string", "event_id": "uuid" }
 ```
+
+Notes: Emitted once per job to signal matching is finished, even when zero matches are accepted, so the evidence builder can finalize (and emit `evidences.generation.completed` for empty match sets).
 
 ### evidences.generation.completed (`evidences_generation_completed.json`)
 
@@ -296,7 +298,7 @@ Note: `additionalProperties` are allowed; publishers may include `job_id` for tr
 ### main-api
 
 - Publishes: `products.collect.request`, `videos.search.request`, `match.request`, `job.completed`
-- Subscribes: `products.collections.completed`, `videos.collections.completed`, `image.embeddings.completed`, `video.embeddings.completed`, `image.keypoints.completed`, `video.keypoints.completed`, `matchings.process.completed`, `evidences.generation.completed`
+- Subscribes: `products.collections.completed`, `videos.collections.completed`, `image.embeddings.completed`, `video.embeddings.completed`, `image.keypoints.completed`, `video.keypoints.completed`, `match.results.completed`, `evidences.generation.completed`
 
 ### dropship-product-finder
 
@@ -327,12 +329,11 @@ Note: Some internal completion events like `products.images.masked.completed` an
 
 ### matcher
 
-- Publishes: `match.result`, `matchings.process.completed`
+- Publishes: `match.result`, `match.results.completed`
 - Subscribes: `match.request`
 
 ### evidence-builder
 
 - Publishes: `evidences.generation.completed`
-- Subscribes: `match.result`, `matchings.process.completed`
-
+- Subscribes: `match.result`, `match.results.completed`
 

@@ -19,7 +19,7 @@ Key alignment with repo:
 ## 2) Goals (Must-haves)
 - Retrieve product image → video frame candidates via vector similarity and produce **top‑K** shortlists per image.
 - Compute pair scores (embedding + keypoint signals). Note: keypoint scoring is currently a lightweight placeholder, not full RANSAC.
-- Publish contract-compliant events (**match.result**) and a terminal **matchings.process.completed** per job.
+- Publish contract-compliant events (**match.result**) and a terminal **match.results.completed** per job.
 - Respect **MatchRequest** inputs and integrate cleanly with the event‑driven architecture (RabbitMQ + DLQ semantics).
 
 ### Non-Goals
@@ -48,7 +48,7 @@ Minimal, authoritative schema (current):
   - `job_id`, `product_id`, `video_id`
   - `best_pair { img_id, frame_id, score_pair }`
   - `score ∈ [0,1]`, `ts`
-- `matchings.process.completed` (once per job): `{ job_id, event_id }`.
+- `match.results.completed` (once per job): `{ job_id, event_id }`.
 - Note: `job.failed` is not emitted by the matcher service at present; failures are retried and may be routed to DLQ by the common message handler.
 
 Source of truth: contract JSON Schemas in `main/libs/contracts/contracts/schemas/`.
@@ -63,7 +63,7 @@ Source of truth: contract JSON Schemas in `main/libs/contracts/contracts/schemas
 5. Pair scoring: embedding similarity + keypoint placeholder produce `pair_score`.
 6. Aggregate/accept: choose best pair and apply acceptance heuristics; compute final score with small boosts.
 7. Emit `match.result` for accepted pairs.
-8. Emit `matchings.process.completed { job_id, event_id }`.
+8. Emit `match.results.completed { job_id, event_id }`.
 
 ---
 
@@ -131,7 +131,7 @@ Source of truth: contract JSON Schemas in `main/libs/contracts/contracts/schemas
 
 ## 12) API & Events (Routing Keys)
 - Consume: `match.request` — payload `{ job_id, event_id }` (UUID format for `event_id`), `additionalProperties: false`.
-- Produce: `match.result`, `matchings.process.completed`.
+- Produce: `match.result`, `match.results.completed`.
 - All events include `job_id`; `event_id` passes through unchanged.
 
 ---
@@ -139,7 +139,7 @@ Source of truth: contract JSON Schemas in `main/libs/contracts/contracts/schemas
 ## 13) Acceptance Criteria (Testable)
 1. Given a minimal `MatchRequest { job_id, event_id }`, the service retrieves products/videos from DB, performs vector search (or fallback), and can publish ≥1 `match.result` for seeded data.
 2. Each `match.result` conforms to schema; `score ∈ [0,1]`, `best_pair.score_pair ∈ [0,1]`.
-3. On completion, emit exactly one `matchings.process.completed { job_id, event_id }`.
+3. On completion, emit exactly one `match.results.completed { job_id, event_id }`.
 4. Transient failures trigger retries; on max attempts, message lands in DLQ with failure metadata.
 5. Idempotency guard on `event_id` is documented but not implemented; `job.failed` is not emitted by matcher.
 
@@ -166,7 +166,7 @@ Source of truth: contract JSON Schemas in `main/libs/contracts/contracts/schemas
 ---
 
 ## Appendix A — What's Implemented (Repo)
-- Contracts / Schemas: `match_request.json` minimal `{ job_id, event_id }` with `additionalProperties=false`; `match_result`, `matchings_process_completed` present.
+- Contracts / Schemas: `match_request.json` minimal `{ job_id, event_id }` with `additionalProperties=false`; `match_result`, `match_results_completed` present.
 - Service wiring & handler: config loader, handler, service structure, Dockerfile, requirements; handler validates minimal request and runs matching.
 - Matching components: `EmbeddingSimilarity`, `VectorSearcher` (temp‑table pgvector + fallback), `PairScoreCalculator` (placeholder with inliers‑driven proxy), `MatchAggregator`.
 - Configs & thresholds: `.env.example` exposes matching thresholds; `config_loader.py` maps env + global config.
