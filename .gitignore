@@ -1,18 +1,15 @@
 # Mac dev 
 infra/pvm/sync_compose.py.backup
 
-
 # LLM
 demo/
 desktop.ini
 *repomix*
 cline_mcp_settings.json
 model_cache/
-/data/
 .crush/
 /*.sh
 mcp.json
-infra/qdrant/data
 .stfolder
 .stignore
 .kiro/
@@ -21,6 +18,11 @@ infra/qdrant/data
 .roo*
 .clinerules*
 .playwright-mcp
+
+# Data
+/data/
+**/tests/data
+infra/qdrant/data
 
 # Environment variables - ALL .env files except examples
 .env*
