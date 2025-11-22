@@ -61,6 +61,7 @@ class PySceneDetectSettings:
     frame_quality: int = 90
     frame_format: str = "jpg"
     max_scenes: int = 50  # 0 => unlimited timestamps
+    frame_skip: int = 1  # 0=every frame, 1=every 2nd, 2=every 3rd, 3=every 4th
 
 
 @dataclass

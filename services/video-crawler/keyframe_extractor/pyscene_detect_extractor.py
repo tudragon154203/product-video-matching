@@ -159,7 +159,7 @@ class PySceneDetectKeyframeExtractor(AbstractKeyframeExtractor):
 
         try:
             video_manager.start()
-            scene_manager.detect_scenes(frame_source=video_manager)
+            scene_manager.detect_scenes(frame_source=video_manager, frame_skip=self.settings.frame_skip)
 
             # Try modern API first (no base_timecode parameter)
             try:
