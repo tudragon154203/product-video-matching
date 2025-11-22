@@ -38,7 +38,7 @@ After comprehensive analysis of service implementations, **all events serve esse
 - `video.embeddings.completed`: Main API barrier for phase transition with asset counts
 - `image.keypoints.completed`: Main API barrier for phase transition with asset counts
 - `video.keypoints.completed`: Main API barrier for phase transition with asset counts
-- `match.results.completed`: Main API barrier for matching phase completion
+- `match.request.completed`: Main API barrier for matching phase completion
 - `evidences.generation.completed`: Main API barrier for evidence phase completion
 
 **Purpose**: Provide Main API with completion data for job orchestration and phase transitions.
@@ -268,7 +268,7 @@ Note: `additionalProperties` are allowed; publishers may include `job_id` for tr
 }
 ```
 
-### match.results.completed (`match_results_completed.json`)
+### match.request.completed (`match_request_completed.json`)
 
 ```json
 { "job_id": "string", "event_id": "uuid" }
@@ -298,7 +298,7 @@ Notes: Emitted once per job to signal matching is finished, even when zero match
 ### main-api
 
 - Publishes: `products.collect.request`, `videos.search.request`, `match.request`, `job.completed`
-- Subscribes: `products.collections.completed`, `videos.collections.completed`, `image.embeddings.completed`, `video.embeddings.completed`, `image.keypoints.completed`, `video.keypoints.completed`, `match.results.completed`, `evidences.generation.completed`
+- Subscribes: `products.collections.completed`, `videos.collections.completed`, `image.embeddings.completed`, `video.embeddings.completed`, `image.keypoints.completed`, `video.keypoints.completed`, `match.request.completed`, `evidences.generation.completed`
 
 ### dropship-product-finder
 
@@ -329,11 +329,11 @@ Note: Some internal completion events like `products.images.masked.completed` an
 
 ### matcher
 
-- Publishes: `match.result`, `match.results.completed`
+- Publishes: `match.result`, `match.request.completed`
 - Subscribes: `match.request`
 
 ### evidence-builder
 
 - Publishes: `evidences.generation.completed`
-- Subscribes: `match.result`, `match.results.completed`
+- Subscribes: `match.result`, `match.request.completed`
 

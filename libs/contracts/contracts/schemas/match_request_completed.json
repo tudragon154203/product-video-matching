@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "title": "MatchResultsCompleted",
-  "description": "Emitted when matching results are finalized for a job, including zero accepted matches.",
+  "title": "MatchRequestCompleted",
+  "description": "Emitted when a match.request has fully completed for a job, including zero accepted matches.",
   "type": "object",
   "required": ["job_id", "event_id"],
   "properties": {

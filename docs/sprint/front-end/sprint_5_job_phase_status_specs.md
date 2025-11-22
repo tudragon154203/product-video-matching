@@ -49,7 +49,7 @@ This document specifies how the **status line** should be displayed in the front
 - **Text:** "Matching products with videos…"
 - **Effect:** spinner.
 - **Color:** purple.
-- **Backend condition:** waits for `match.results.completed` event to move to `evidence`.
+- **Backend condition:** waits for `match.request.completed` event to move to `evidence`.
 
 ### 5. `evidence`
 

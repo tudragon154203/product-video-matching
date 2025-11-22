@@ -6,7 +6,7 @@
   - Catalog Ingestion: Dropship‑Product‑Finder collects catalog items; downstream emits `products_images_ready` or `products_images_masked_batch` as assets prepare.
   - Media Ingestion: Video‑Crawler fetches videos and extracts frames; emits `videos_keyframes_ready` (and batch variants) and, when applicable, masked keyframes.
   - Vision Processing: Vision‑Keypoint produces keypoints (`image_keypoint_ready` / `image_keypoints_completed`). Vision‑Embedding generates embeddings (`image_embedding_ready`, `video_embedding_ready`, `*_embeddings_completed`).
-  - Matching: Matcher consumes product and video embeddings directly from Qdrant vector database and outputs `match_result` and pipeline completion signals (`match_results_completed`, `job_completed`).
+  - Matching: Matcher consumes product and video embeddings directly from Qdrant vector database and outputs `match_result` and pipeline completion signals (`match_request_completed`, `job_completed`).
   - Evidence: Evidence‑Builder compiles visual/metric evidence and emits `evidences_generation_completed`.
   - Results Serving: Results‑API aggregates and exposes final results for retrieval.
   - Batching and Pre‑announce: Contracts include multiple‑event and pre‑announce patterns (sprint 6.2) to improve throughput and reduce tail latency.

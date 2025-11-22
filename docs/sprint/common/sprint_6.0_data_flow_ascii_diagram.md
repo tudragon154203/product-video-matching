@@ -14,9 +14,9 @@ Vision Keypoint (image, per_asset)  → image.keypoint.ready {job_id, asset_id, 
 Vision Embedding (video, per_asset) → video.embedding.ready {job_id, asset_id, event_id}
 Vision Keypoint (video, per_asset)  → video.keypoint.ready {job_id, asset_id, event_id}
 
-(image.embeddings.completed + video.embeddings.completed + image.keypoints.completed + video.keypoints.completed) → Barrier → Matcher → match.results.completed {job_id, event_id}
+(image.embeddings.completed + video.embeddings.completed + image.keypoints.completed + video.keypoints.completed) → Barrier → Matcher → match.request.completed {job_id, event_id}
 
-match.results.completed → Evidence Builder → evidences.generation.completed {job_id, event_id} → Results API → Client
+match.request.completed → Evidence Builder → evidences.generation.completed {job_id, event_id} → Results API → Client
 ```
 
 ## Nguyên tắc
@@ -38,7 +38,7 @@ match.results.completed → Evidence Builder → evidences.generation.completed 
 - `video.embeddings.completed` (per-job)
 - `video.keypoint.ready` (per_asset)
 - `video.keypoints.completed` (per-job)
-- `match.results.completed`
+- `match.request.completed`
 - `evidences.generation.completed`
 
 ## Điều kiện chuyển pha
@@ -46,7 +46,7 @@ match.results.completed → Evidence Builder → evidences.generation.completed 
 | ------------------- | --------------------------------------------------------------------------------------------------------------- | ------------------- |
 | collection          | products & videos collections                                                                                   | feature_extraction  |
 | feature_extraction  | image.embeddings.completed + video.embeddings.completed + image.keypoints.completed + video.keypoints.completed | matching            |
-| matching            | match.results.completed                                                                                     | evidence            |
+| matching            | match.request.completed                                                                                     | evidence            |
 | evidence            | evidences.generation.completed                                                                                  | completed           |
 
 ## Payload chuẩn
@@ -84,14 +84,14 @@ match.results.completed → Evidence Builder → evidences.generation.completed 
   - [ ] `products_collections_completed.json`, `videos_collections_completed.json`
   - [ ] `image_embeddings_completed.json`, `video_embeddings_completed.json`
   - [ ] `image_keypoints_completed.json`, `video_keypoints_completed.json`
-  - [ ] `match_results_completed.json`, `evidences_generation_completed.json`
+  - [ ] `match_request_completed.json`, `evidences_generation_completed.json`
 - [ ] Cập nhật **registry/index** để nạp các schema mới.
 - [ ] Viết test validator cho tất cả schemas mới.
 - [ ] Đánh dấu @deprecated và **xoá** sau khi switch: `features_extraction_completed.json`, `match_result_enriched.json`.
 
 ### 2) Main API (Phase Manager)
 - [ ] Tạo bảng `phase_events(event_id PK, job_id, name, received_at)` và cột `phase` trong `jobs` (nếu chưa có).
-- [ ] Subscribe các topic: `products.collections.completed`, `videos.collections.completed`, `image.embeddings.completed`, `video.embeddings.completed`, `image.keypoints.completed`, `video.keypoints.completed`, `match.results.completed`, `evidences.generation.completed`.
+- [ ] Subscribe các topic: `products.collections.completed`, `videos.collections.completed`, `image.embeddings.completed`, `video.embeddings.completed`, `image.keypoints.completed`, `video.keypoints.completed`, `match.request.completed`, `evidences.generation.completed`.
 - [ ] Implement dedup theo `event_id` và barrier theo bảng pha.
 - [ ] Khi qua barrier Vision (đủ 4 completed) → publish `match.request {job_id}` (giữ schema cũ).
 - [ ] Bỏ logic đếm `features.ready`/`FeatureCompletionTracker` liên quan phase.
@@ -124,8 +124,8 @@ match.results.completed → Evidence Builder → evidences.generation.completed 
 ### 7) Matcher
 - [ ] Consume `match.request` (schema cũ).
 - [ ] Publish `match.result` cho từng cặp; **không** dùng `match.result.enriched` nữa.
-- [ ] Khi xong job: publish `match.results.completed`.
-- [ ] Tests: verify publish `match.results.completed` đúng 1 lần/job.
+- [ ] Khi xong job: publish `match.request.completed`.
+- [ ] Tests: verify publish `match.request.completed` đúng 1 lần/job.
 
 ### 8) Evidence Builder
 - [ ] Consume `match.result`.

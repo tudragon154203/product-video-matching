@@ -16,7 +16,7 @@ consumers.
    keypoint signals.
 5. Aggregate matches via `MatchAggregator`, apply acceptance thresholds, and
    publish `match.result` events plus a terminal
-   `match.results.completed` event (always emitted once per job, even when no
+   `match.request.completed` event (always emitted once per job, even when no
    pairs are accepted, to unblock the evidence builder).
 
 ## Code structure
