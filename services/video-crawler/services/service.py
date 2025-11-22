@@ -1,3 +1,4 @@
+import asyncio
 import os
 from pathlib import Path
 from typing import Any, Dict, List, Optional
@@ -242,8 +243,15 @@ class VideoCrawlerService:
         """
         batch_payload: List[Dict[str, Any]] = []
 
-        for video_data in all_videos:
-            result = await self.video_processor.process_video(video_data, job_id)
+        # Process videos in parallel instead of sequentially
+        tasks = [self.video_processor.process_video(video_data, job_id) for video_data in all_videos]
+        results = await asyncio.gather(*tasks, return_exceptions=True)
+        
+        # Collect results, handling exceptions
+        for result in results:
+            if isinstance(result, Exception):
+                logger.error("Video processing failed", error=str(result), job_id=job_id)
+                continue
             # Only include videos that have frames in the batch payload
             if result.get("video_id") and result.get("frames"):
                 batch_payload.append(result)

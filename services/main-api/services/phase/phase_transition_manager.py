@@ -142,29 +142,22 @@ class PhaseTransitionManager:
     async def _handle_cross_phase_evidence_completion(self, job_id: str, event_type: str, current_phase: str):
         if event_type == "evidences.generation.completed" and current_phase != "evidence":
             logger.debug(
-                f"Evidence generation completed but job {job_id} is in {current_phase} phase, checking if we should transition")
+                f"Evidence generation completed but job {job_id} is in {current_phase} phase, transitioning to completed")
+            try:
+                if current_phase != "evidence":
+                    await self.db_handler.update_job_phase(job_id, "evidence")
+                    logger.debug(f"Updated job {job_id} phase to evidence")
 
-            if await self.db_handler.has_phase_event(job_id, "match.request.completed"):
-                logger.debug(
-                    f"Matching is complete, transitioning job {job_id} to evidence then completed")
-                try:
-                    if current_phase != "evidence":
-                        await self.db_handler.update_job_phase(job_id, "evidence")
-                        logger.debug(f"Updated job {job_id} phase to evidence")
+                await self.db_handler.update_job_phase(job_id, "completed")
+                logger.info(
+                    f"Successfully updated job {job_id} phase to completed")
 
-                    await self.db_handler.update_job_phase(job_id, "completed")
-                    logger.info(
-                        f"Successfully updated job {job_id} phase to completed")
-
-                    await self.broker_handler.publish_job_completed(job_id)
-                    logger.info(
-                        f"Published job completion event for job {job_id}")
-                except Exception as e:
-                    logger.error(f"Failed to complete job {job_id}: {str(e)}")
-                    raise
-            else:
-                logger.warning(
-                    f"Evidence generation completed for job {job_id} but matching is not complete yet")
+                await self.broker_handler.publish_job_completed(job_id)
+                logger.info(
+                    f"Published job completion event for job {job_id}")
+            except Exception as e:
+                logger.error(f"Failed to complete job {job_id}: {str(e)}")
+                raise
 
     async def _publish_match_request_for_job(self, job_id: str):
         """Helper method to publish match request for a job"""

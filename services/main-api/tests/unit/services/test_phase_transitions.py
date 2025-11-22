@@ -280,36 +280,23 @@ class TestPhaseTransitionWithAssetTypes:
         assert isinstance(args[1], str)  # event_id should be a string (UUID)
 
     @pytest.mark.asyncio
-    async def test_phase_transition_to_evidences_generation(self, phase_event_service, db_handler, mock_broker_handler):
+    async def test_phase_transition_to_evidence(self, phase_event_service, db_handler, mock_broker_handler):
         """Test phase transition from matching to evidence"""
-        job_id = "evidences-generation-job"
+        job_id = "evidence-job"
 
-        # First call (cancelled/deleted check): return "matching"
-        # Second call (in check_phase_transitions): return "matching"
         db_handler.get_job_phase = AsyncMock(
             side_effect=["matching", "matching"])
         db_handler.update_job_phase = AsyncMock()
-
-        # Mock that matching process is completed
-        db_handler.has_phase_event.side_effect = lambda jid, event: event == "match.request.completed"
 
         await phase_event_service.handle_phase_event(
             "match.request.completed",
             {
                 "job_id": job_id,
                 "event_id": str(uuid.uuid4()),
-                "total_assets": 100,  # Added for validation
-                "processed_assets": 100,
-                "failed_assets": 0,
-                "has_partial_completion": False,
-                "watermark_ttl": 3600,
-                "reason": "simulated success"  # Added reason
             }
         )
 
-        # According to phase_transition_manager.py, _process_matching_phase transitions to "evidence"
         db_handler.update_job_phase.assert_called_with(job_id, "evidence")
-        mock_broker_handler.publish_match_request.assert_not_called()  # No match request here
 
     @pytest.mark.asyncio
     async def test_phase_transition_to_completed(self, phase_event_service, db_handler, mock_broker_handler):

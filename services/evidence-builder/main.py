@@ -49,6 +49,7 @@ async def main() -> None:
             await handler.broker.subscribe_to_topic(
                 "match.request.completed",
                 handler.handle_match_request_completed,
+                queue_name="queue.match.request.completed.evidence-builder",
                 prefetch_count=1,
             )
 

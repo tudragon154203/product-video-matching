@@ -112,22 +112,27 @@ export function CollectionSummary({
             )}
           </div>
 
-          {/* Show counts when collapsed */}
+          {/* Show counts when collapsed - emphasized totals */}
           {!isExpanded && (
-            <div className="flex items-center gap-4 text-sm text-muted-foreground">
-              <div className="flex items-center gap-1">
-                <Package className="h-3 w-3" />
-                <span>{t('collection.summary.productsCount')}: {counts.products}</span>
+            <div className="flex items-center gap-6">
+              {/* Total count - most prominent */}
+              <div className="flex items-center gap-2 px-3 py-1 bg-slate-100 rounded-md">
+                <span className="text-xs text-muted-foreground">Total:</span>
+                <span className="text-lg font-bold text-slate-900">{counts.products + counts.videos}</span>
               </div>
-              <div className="flex items-center gap-1">
-                <span>{t('collection.summary.imagesCount')}: {counts.images}</span>
-              </div>
-              <div className="flex items-center gap-1">
-                <Video className="h-3 w-3" />
-                <span>{t('collection.summary.videosCount')}: {counts.videos}</span>
-              </div>
-              <div className="flex items-center gap-1">
-                <span>{t('collection.summary.framesCount')}: {counts.frames}</span>
+              
+              {/* Individual counts */}
+              <div className="flex items-center gap-4 text-sm">
+                <div className="flex items-center gap-1.5">
+                  <Package className="h-4 w-4 text-slate-600" />
+                  <span className="font-semibold text-slate-900">{counts.products}</span>
+                  <span className="text-muted-foreground">{t('collection.summary.productsCount').toLowerCase()}</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <Video className="h-4 w-4 text-slate-600" />
+                  <span className="font-semibold text-slate-900">{counts.videos}</span>
+                  <span className="text-muted-foreground">{t('collection.summary.videosCount').toLowerCase()}</span>
+                </div>
               </div>
             </div>
           )}
