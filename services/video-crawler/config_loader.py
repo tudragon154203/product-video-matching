@@ -53,14 +53,14 @@ class PySceneDetectSettings:
     min_scene_len: int = 15
     window_width: int = 2
     min_content_val: float = 15.0
-    weights_luma_only: bool = False
+    weights_luma_only: bool = True
     min_scene_duration_seconds: float = 0.5
     boundary_guard_seconds: float = 0.15
     fallback_offset_seconds: float = 0.25
     min_blur_threshold: float = 100.0
     frame_quality: int = 90
     frame_format: str = "jpg"
-    max_scenes: int = 0  # 0 => unlimited timestamps
+    max_scenes: int = 50  # 0 => unlimited timestamps
 
 
 @dataclass
