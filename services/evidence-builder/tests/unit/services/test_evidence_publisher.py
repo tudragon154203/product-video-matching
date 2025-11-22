@@ -81,7 +81,9 @@ async def test_check_and_publish_completion_all_evidence_ready(publisher, mock_d
     await publisher.check_and_publish_completion("job_123")
     
     mock_broker.publish_event.assert_called_once()
-    event_name, event_data, _ = mock_broker.publish_event.call_args[0]
+    call_args = mock_broker.publish_event.call_args
+    event_name = call_args[0][0]
+    event_data = call_args[0][1]
     assert event_name == "evidences.generation.completed"
     assert event_data["job_id"] == "job_123"
     assert "event_id" in event_data

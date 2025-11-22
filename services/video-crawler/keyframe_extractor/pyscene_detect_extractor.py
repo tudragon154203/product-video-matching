@@ -137,8 +137,14 @@ class PySceneDetectKeyframeExtractor(AbstractKeyframeExtractor):
             raise RuntimeError("PySceneDetect is not available")
 
         video_manager = VideoManager([video_path])
-        stats_manager = StatsManager()
-        scene_manager = SceneManager(stats_manager)
+        
+        # Fast mode: no StatsManager when frame_skip > 0
+        # StatsManager doesn't support frame skipping
+        if self.settings.frame_skip > 0:
+            scene_manager = SceneManager()
+        else:
+            stats_manager = StatsManager()
+            scene_manager = SceneManager(stats_manager)
 
         weights = ContentDetector.Components(
             delta_lum=1.0,
