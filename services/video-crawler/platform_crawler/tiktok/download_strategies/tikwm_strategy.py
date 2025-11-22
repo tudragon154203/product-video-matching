@@ -30,7 +30,7 @@ class TikwmDownloadStrategy(TikTokDownloadStrategy):
         self.retry_delay = 1  # seconds
 
         # Video storage configuration
-        self.keyframe_storage_path = self.config.get("keyframe_storage_path", "./keyframes/tiktok")
+        self.keyframe_storage_path = self.config.get("keyframe_storage_path", "/app/data/keyframes/tiktok")
         self.keyframe_extractor = build_keyframe_extractor(
             keyframe_dir=self.keyframe_storage_path,
             create_dirs=False  # Directories already created by TikTokDownloader

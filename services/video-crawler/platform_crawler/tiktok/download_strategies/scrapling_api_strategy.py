@@ -33,7 +33,7 @@ class ScraplingApiDownloadStrategy(TikTokDownloadStrategy):
         self.keyframe_storage_path = (
             config.get("keyframe_storage_path") or
             config.get("TIKTOK_KEYFRAME_STORAGE_PATH") or
-            "./keyframes/tiktok"
+            "/app/data/keyframes/tiktok"
         )
         self.keyframe_extractor = build_keyframe_extractor(
             keyframe_dir=self.keyframe_storage_path,

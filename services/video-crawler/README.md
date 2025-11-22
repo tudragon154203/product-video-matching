@@ -59,8 +59,8 @@ The TikTok downloader provides robust video download capabilities with configura
 - **API Host**: `TIKTOK_CRAWL_HOST` (default: `localhost`)
 - **API Port**: `TIKTOK_CRAWL_HOST_PORT` (default: `5680`)
 - **Download Timeout**: `TIKTOK_DOWNLOAD_TIMEOUT` (default: `180` seconds)
-- **Storage Path**: `TIKTOK_VIDEO_STORAGE_PATH` (default: `/tmp/videos/tiktok`)
-- **Keyframe Path**: `TIKTOK_KEYFRAME_STORAGE_PATH` (default: `/tmp/keyframes/tiktok`)
+- **Storage Path**: `TIKTOK_VIDEO_STORAGE_PATH` (default: `{DATA_ROOT_CONTAINER}/videos/tiktok`)
+- **Keyframe Path**: `TIKTOK_KEYFRAME_STORAGE_PATH` (default: `{DATA_ROOT_CONTAINER}/keyframes/tiktok`)
 - **Retry Attempts**: Configurable number of download retries (default: 3)
 - **Timeout**: Download timeout in seconds (default: 30)
 
