@@ -8,7 +8,6 @@ services:
       - "${PORT_POSTGRES_HOST}:5432"
     volumes:
       - ../../${DATA_ROOT_HOST}/postgres_data:/var/lib/postgresql/data
-      # - postgres_data:/var/lib/postgresql/data
       - ../../infra/init_db:/docker-entrypoint-initdb.d:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
@@ -209,6 +208,7 @@ services:
       - ../../services/product-segmentor:/app/app
       - ../../${MODEL_CACHE}:/app/model_cache
       - ../../${MODEL_CACHE}:/root/.ultralytics
+      - ../../${MODEL_CACHE}:/root/.cache/huggingface
     depends_on:
       postgres:
         condition: service_healthy
@@ -316,7 +316,6 @@ services:
     command: ["python", "app/main.py"]
 
 volumes:
-  # postgres_data:
   rabbitmq_data:
   redis_data:
   redis_insight_data:
