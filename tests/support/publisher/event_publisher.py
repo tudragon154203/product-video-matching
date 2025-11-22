@@ -359,6 +359,16 @@ class EventValidator:
         queries = event_data["queries"]
         if not isinstance(queries, dict):
             return False
+        
+        # Ensure at least one language is present
+        if len(queries) == 0:
+            return False
+        
+        # If vi or zh are present, they should be non-empty lists
+        for lang in ["vi", "zh"]:
+            if lang in queries:
+                if not isinstance(queries[lang], list) or len(queries[lang]) == 0:
+                    return False
 
         # Validate platforms
         platforms = event_data["platforms"]

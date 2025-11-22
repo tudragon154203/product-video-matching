@@ -118,7 +118,7 @@ async def test_videos_search_request_required_fields():
 
 @pytest.mark.asyncio
 async def test_videos_search_request_queries_structure():
-    """Test that queries field has the correct structure with vi and zh required."""
+    """Test that queries field has the correct structure with at least one language."""
     
     # Get the schema
     schema = validator.get_schema("videos_search_request")
@@ -127,12 +127,15 @@ async def test_videos_search_request_queries_structure():
     # Verify queries is an object
     assert queries_schema["type"] == "object"
     
-    # Verify vi and zh are required
-    queries_required = queries_schema.get("required", [])
-    assert "vi" in queries_required, "vi should be required in queries"
-    assert "zh" in queries_required, "zh should be required in queries"
+    # Verify minProperties is set to 1
+    assert queries_schema.get("minProperties") == 1, "At least one language should be required"
     
-    # Verify vi and zh are arrays of strings
+    # Verify vi and zh are NOT in required (they're optional)
+    queries_required = queries_schema.get("required", [])
+    assert "vi" not in queries_required, "vi should be optional"
+    assert "zh" not in queries_required, "zh should be optional"
+    
+    # Verify vi and zh properties exist and are arrays of strings
     assert queries_schema["properties"]["vi"]["type"] == "array"
     assert queries_schema["properties"]["vi"]["items"]["type"] == "string"
     assert queries_schema["properties"]["zh"]["type"] == "array"
@@ -169,3 +172,48 @@ async def test_videos_search_request_recency_days_minimum():
     # Verify it's an integer with minimum 1
     assert recency_schema["type"] == "integer"
     assert recency_schema["minimum"] == 1
+
+
+@pytest.mark.asyncio
+async def test_videos_search_request_single_language():
+    """Test that videos_search_request works with only one language."""
+    
+    # Test with only vi
+    event_vi_only = {
+        "job_id": "test-job-vi",
+        "industry": "electronics",
+        "queries": {"vi": ["chuột không dây"]},
+        "platforms": ["youtube"],
+        "recency_days": 30
+    }
+    
+    is_valid = validator.validate_event("videos_search_request", event_vi_only)
+    assert is_valid, "Event with only vi should be valid"
+    
+    # Test with only zh
+    event_zh_only = {
+        "job_id": "test-job-zh",
+        "industry": "electronics",
+        "queries": {"zh": ["无线鼠标"]},
+        "platforms": ["bilibili"],
+        "recency_days": 30
+    }
+    
+    is_valid = validator.validate_event("videos_search_request", event_zh_only)
+    assert is_valid, "Event with only zh should be valid"
+    
+    # Test with empty queries (should fail)
+    event_empty = {
+        "job_id": "test-job-empty",
+        "industry": "electronics",
+        "queries": {},
+        "platforms": ["youtube"],
+        "recency_days": 30
+    }
+    
+    try:
+        validator.validate_event("videos_search_request", event_empty)
+        assert False, "Event with empty queries should fail validation"
+    except Exception:
+        # Expected to fail
+        pass

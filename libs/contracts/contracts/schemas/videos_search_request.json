@@ -16,8 +16,8 @@
     },
     "queries": {
       "type": "object",
-      "description": "Search queries by language",
-      "required": ["vi", "zh"],
+      "description": "Search queries by language. At least one language must be provided.",
+      "minProperties": 1,
       "properties": {
         "vi": {
           "type": "array",

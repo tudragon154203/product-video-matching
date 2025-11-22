@@ -128,6 +128,11 @@ Note: `additionalProperties` are allowed; publishers may include `job_id` for tr
 }
 ```
 
+Notes: 
+- The `queries` field must contain at least one language (`minProperties: 1`). Both `vi` (Vietnamese) and `zh` (Chinese) are optional individually, but at least one must be present.
+- Platform-language mapping: YouTube/TikTok use `vi` queries, Bilibili/Douyin use `zh` queries.
+- If only one language is provided, the video-crawler will use it for all platforms with appropriate fallback logic.
+
 ### videos.keyframes.ready.batch (`videos_keyframes_ready_batch.json`)
 
 ```json

@@ -121,10 +121,11 @@ All events follow JSON schemas in `libs/contracts/contracts/schemas/` with valid
     "job_id": "uuid",
     "industry": "furniture",
     "queries": {"vi": ["gối"], "zh": ["枕头"]},
-    "platforms": ["youtube"],
+    "platforms": ["youtube", "bilibili"],
     "recency_days": 365
   }
   ```
+  Note: The `queries` field must contain at least one language. Both `vi` (Vietnamese) and `zh` (Chinese) are optional, but at least one must be present. Platform-language mapping: YouTube/TikTok use `vi`, Bilibili/Douyin use `zh`.
 
 - `match_request`: Triggers matching process
   ```json

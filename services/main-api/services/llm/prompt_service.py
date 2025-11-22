@@ -126,17 +126,29 @@ Rules:
         }
 
     def route_video_queries(self, queries: Dict[str, Any], platforms: list) -> Dict[str, list]:
-        """Route video queries based on platforms, ensuring both vi and zh are present."""
-        video_queries = {
-            "vi": [],
-            "zh": []
-        }
-        if "youtube" in platforms and "vi" in queries["video"]:
+        """Route video queries based on platforms, ensuring at least one language is present."""
+        video_queries = {}
+        
+        # Map platforms to their primary languages
+        vi_platforms = {"youtube", "tiktok"}
+        zh_platforms = {"bilibili", "douyin"}
+        
+        platforms_lower = {p.lower() for p in platforms}
+        
+        # Add vi queries if relevant platforms are selected
+        if vi_platforms & platforms_lower and "vi" in queries.get("video", {}):
             video_queries["vi"] = queries["video"]["vi"]
-        if "douyin" in platforms and "vi" in queries["video"]:
-            video_queries["vi"] = queries["video"]["vi"]
-        if "tiktok" in platforms and "vi" in queries["video"]:
-            video_queries["vi"] = queries["video"]["vi"]
-        if "bilibili" in platforms and "zh" in queries["video"]:
+        
+        # Add zh queries if relevant platforms are selected
+        if zh_platforms & platforms_lower and "zh" in queries.get("video", {}):
             video_queries["zh"] = queries["video"]["zh"]
+        
+        # Ensure at least one language is present (fallback)
+        if not video_queries:
+            # If no platform-specific match, include whatever is available
+            if "vi" in queries.get("video", {}):
+                video_queries["vi"] = queries["video"]["vi"]
+            if "zh" in queries.get("video", {}):
+                video_queries["zh"] = queries["video"]["zh"]
+        
         return video_queries

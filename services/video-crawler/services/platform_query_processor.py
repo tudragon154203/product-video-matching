@@ -41,9 +41,24 @@ class PlatformQueryProcessor:
             prioritized = PlatformQueryProcessor._normalize_to_list(queries.get("vi"))
             if prioritized:
                 return prioritized
+            # Fallback to zh if vi is not available
+            fallback = PlatformQueryProcessor._normalize_to_list(queries.get("zh"))
+            if fallback:
+                return fallback
             return []
 
-        # Aggregate queries from all platforms
+        # For Bilibili, prioritize zh queries
+        if "bilibili" in platforms_lower:
+            prioritized = PlatformQueryProcessor._normalize_to_list(queries.get("zh"))
+            if prioritized:
+                return prioritized
+            # Fallback to vi if zh is not available
+            fallback = PlatformQueryProcessor._normalize_to_list(queries.get("vi"))
+            if fallback:
+                return fallback
+            return []
+
+        # Aggregate queries from all available languages
         aggregated: List[str] = []
         for value in queries.values():
             aggregated.extend(PlatformQueryProcessor._normalize_to_list(value))

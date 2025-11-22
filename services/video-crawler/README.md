@@ -119,9 +119,11 @@ success = await downloader.orchestrate_download_and_extract(
 ## In/Out Events
 ### Input Events
 - `videos.search.request`: Request to initiate video search across platforms.
-  - Data: `{"job_id": "job-123", "industry": "ergonomic pillows", "queries": {"vi": ["query1", "query2"]}, "platforms": ["youtube", "tiktok"], "recency_days": 30}`
-  
-  - Data: `{"video_id": "vid-789", "video_url": "http://youtube.com/watch?v=example"}`
+  - Data: `{"job_id": "job-123", "industry": "ergonomic pillows", "queries": {"vi": ["query1", "query2"], "zh": ["query3"]}, "platforms": ["youtube", "tiktok"], "recency_days": 30}`
+  - Note: The `queries` field must contain at least one language (`vi` for Vietnamese or `zh` for Chinese). Both languages are optional but at least one must be present.
+  - Platform-language mapping:
+    - YouTube, TikTok: Use `vi` (Vietnamese) queries
+    - Bilibili, Douyin: Use `zh` (Chinese) queries
 
 ### Output Events
 - `videos.collections.completed`: Event indicating that video collection has completed across all platforms.
