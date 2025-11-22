@@ -250,7 +250,9 @@
     },
     "health": {
       "queueDepth": "Hàng đợi",
+      "lastEvent": "Sự kiện cuối",
       "eta": "Thời gian còn lại",
+      "stalled": "Bị treo",
       "blockers": "vấn đề"
     },
     "status": {

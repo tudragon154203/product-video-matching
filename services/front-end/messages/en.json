@@ -298,21 +298,6 @@
       "noEvidence": "No matches with evidence yet",
       "evidenceDescription": "Evidence is being generated. Check back soon or disable the filter."
     },
-    "evidence": {
-      "title": "Match Evidence",
-      "openFull": "Open Full Size",
-      "download": "Download",
-      "pending": "Evidence is being generated for this match. Please check back in a moment.",
-      "matchDetails": "Match Details",
-      "score": "Score",
-      "timestamp": "Timestamp",
-      "product": "Product",
-      "brand": "Brand",
-      "viewProduct": "View Product",
-      "video": "Video",
-      "openVideo": "Open Video",
-      "openVideoAt": "Open at {time}s"
-    },
     "complete": {
       "title": "Matching complete"
     },
