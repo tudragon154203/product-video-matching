@@ -164,7 +164,7 @@ class TestMatcherService:
                 mock_crud.create_match.assert_called_once()
                 mock_broker.publish_event.assert_called()
                 call_args = mock_broker.publish_event.call_args
-                assert call_args[0][0] == "matchings.process.completed"
+                assert call_args[0][0] == "match.request.completed"
 
     @pytest.mark.asyncio
     async def test_handle_match_request_no_match(

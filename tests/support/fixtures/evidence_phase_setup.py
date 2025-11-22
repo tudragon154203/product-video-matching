@@ -84,7 +84,7 @@ async def setup_evidence_phase_database_state(
         """INSERT INTO phase_events (event_id, job_id, name, received_at)
            VALUES ($1, $2, $3, NOW())
            ON CONFLICT (event_id) DO NOTHING;""",
-        str(uuid.uuid4()), job_id, "matchings.process.completed"
+        str(uuid.uuid4()), job_id, "match.request.completed"
     )
 
 

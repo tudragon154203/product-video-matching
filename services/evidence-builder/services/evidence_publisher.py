@@ -86,15 +86,15 @@ class EvidencePublisher:
             event_id=evidences_completed_event["event_id"],
         )
 
-    async def handle_matchings_completed(
+    async def handle_match_request_completed(
         self,
         event_data: Dict[str, Any],
         correlation_id: str,
     ) -> None:
-        """Handle matchings completion events, covering zero-match cases."""
+        """Handle match.request.completed events, covering zero-match cases."""
         job_id = event_data.get("job_id")
         if not job_id:
-            raise ValueError("matchings.completed event is missing job_id")
+            raise ValueError("match.request.completed event is missing job_id")
 
         logger.info(
             "Checking job for matches after matching completed",

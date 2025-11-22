@@ -47,8 +47,8 @@ async def main() -> None:
             )
             # Completion event: prefetch_count=1 (process one job completion at a time)
             await handler.broker.subscribe_to_topic(
-                "matchings.process.completed",
-                handler.handle_matchings_completed,
+                "match.request.completed",
+                handler.handle_match_request_completed,
                 prefetch_count=1,
             )
 

@@ -33,6 +33,8 @@
     "noRecentJobs": "No recent jobs found.",
     "running": "Running",
     "completed": "Completed",
+    "completedWithMatches": "Job completed successfully with {count} matches found.",
+    "completedNoMatches": "Job completed successfully. No matches were found.",
     "showAdvancedOptions": "Show Advanced Options",
     "hideAdvancedOptions": "Hide Advanced Options",
     "topAmazonProductsTooltip": "Number of top-ranked Amazon products to search for your query",

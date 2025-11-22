@@ -88,6 +88,10 @@ class LifecycleHandler:
                 "video.keypoints.completed",
                 self.handle_video_keypoints_completed,
             )
+            await self.broker.subscribe_to_topic(
+                "evidences.generation.completed",
+                self.handle_evidences_generation_completed,
+            )
 
             logger.info("Subscribed to phase completion events")
         except Exception as e:
@@ -183,3 +187,20 @@ class LifecycleHandler:
             logger.info(f"Processed video keypoints completed event for job {event_data.get('job_id')}")
         except Exception as e:
             logger.error(f"Failed to handle video keypoints completed event: {e}")
+
+    async def handle_evidences_generation_completed(self, event_data, correlation_id):
+        """Handle evidences.generation.completed event"""
+        try:
+            logger.info(
+                "Handling evidences.generation.completed",
+                job_id=event_data.get("job_id"),
+                correlation_id=correlation_id,
+            )
+            await self.phase_event_service.handle_phase_event(
+                "evidences.generation.completed", event_data
+            )
+            logger.info(
+                f"Processed evidences.generation.completed event for job {event_data.get('job_id')}"
+            )
+        except Exception as e:
+            logger.error(f"Failed to handle evidences.generation.completed event: {e}")

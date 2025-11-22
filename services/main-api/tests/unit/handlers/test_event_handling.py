@@ -334,7 +334,7 @@ class TestEventHandling:
                 "has_partial_completion": False,
                 "watermark_ttl": 3600
             }),
-            ("matchings.process.completed", {
+            ("match.request.completed", {
                 "job_id": job_id,
                 "event_id": str(uuid.uuid4()),
                 "total_assets": 1,  # Added for validation

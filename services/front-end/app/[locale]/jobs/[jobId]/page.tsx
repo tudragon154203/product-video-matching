@@ -38,8 +38,8 @@ export default function JobDetailsPage({ params }: JobDetailsPageProps) {
   // Use job status polling to auto-refresh while collecting
   const { phase, percent, isCollecting, collection, counts } = useJobStatusPolling(jobId, { enabled: true });
   
-  // Fetch feature summary when in feature extraction, matching, or evidence phase
-  const isFeaturePhase = phase === 'feature_extraction' || phase === 'matching' || phase === 'evidence';
+  // Fetch feature summary when in feature extraction, matching, evidence, or completed phase
+  const isFeaturePhase = phase === 'feature_extraction' || phase === 'matching' || phase === 'evidence' || phase === 'completed';
   const { 
     data: featureSummary, 
     isLoading: isSummaryLoading,
@@ -97,6 +97,25 @@ export default function JobDetailsPage({ params }: JobDetailsPageProps) {
           </div>
         }>
           <div className="space-y-6">
+            {/* Completion Banner */}
+            {phase === 'completed' && (
+              <div className="bg-green-50 dark:bg-green-950 border border-green-200 dark:border-green-800 rounded-lg p-6">
+                <div className="flex items-center gap-3">
+                  <div className="text-3xl">✅</div>
+                  <div className="flex-1">
+                    <h3 className="text-lg font-semibold text-green-900 dark:text-green-100">
+                      {t('jobStatus.completed')}
+                    </h3>
+                    <p className="text-sm text-green-700 dark:text-green-300 mt-1">
+                      {matchingSummary?.matches_found 
+                        ? t('jobs.completedWithMatches', { count: matchingSummary.matches_found })
+                        : t('jobs.completedNoMatches')}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+            
             {/* Feature Extraction Banner */}
             {phase === 'feature_extraction' && (
               <FeatureExtractionBanner 
@@ -128,7 +147,7 @@ export default function JobDetailsPage({ params }: JobDetailsPageProps) {
             )}
             
             {/* Feature Extraction Progress Board - stays visible after phase advances */}
-            {(phase === 'feature_extraction' || phase === 'matching' || phase === 'evidence') && (
+            {(phase === 'feature_extraction' || phase === 'matching' || phase === 'evidence' || phase === 'completed') && (
               <FeatureExtractionPanel
                 jobId={jobId}
                 summary={featureSummary}

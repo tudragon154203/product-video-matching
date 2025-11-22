@@ -98,6 +98,20 @@ async def serve_static_file(
             except Exception:
                 pass  # Ignore logging errors
             raise HTTPException(status_code=500, detail="Internal server error")
+    except OSError as e:
+        # Handle OS-level path errors (e.g., filename too long or directory access)
+        import errno
+
+        is_name_too_long = getattr(e, "errno", None) == errno.ENAMETOOLONG
+        status_code = 404 if is_name_too_long else 500
+        logger.warning(f"Invalid file path {filename}: {e}")
+        try:
+            static_service.log_request(request, filename, file_path, status=status_code)
+        except Exception:
+            pass  # Ignore logging errors
+        if is_name_too_long:
+            raise HTTPException(status_code=status_code, detail="File not found")
+        raise HTTPException(status_code=status_code, detail="Internal server error")
     except Exception as e:
         logger.error(f"Error serving file {filename}: {e}")
         # Note: file_path might not be defined if an exception occurred early

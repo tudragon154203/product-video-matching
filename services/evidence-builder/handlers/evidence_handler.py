@@ -33,10 +33,10 @@ class EvidenceHandler:
         await self.service.handle_match_result(event_data, correlation_id)
 
     @handle_errors
-    @validate_event("matchings_process_completed")
-    async def handle_matchings_completed(
+    @validate_event("match_request_completed")
+    async def handle_match_request_completed(
         self,
         event_data: Dict[str, Any],
         correlation_id: str,
     ) -> None:
-        await self.service.handle_matchings_completed(event_data, correlation_id)
+        await self.service.handle_match_request_completed(event_data, correlation_id)

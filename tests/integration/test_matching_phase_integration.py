@@ -49,18 +49,18 @@ class TestMatchingPhaseIntegration:
 
         # Set up message spies for matching events
         match_result_spy = MessageSpy(broker_url)
-        matchings_completed_spy = MessageSpy(broker_url)
+        match_request_completed_spy = MessageSpy(broker_url)
 
         # Connect spies and create spy queues for topics
         await match_result_spy.connect()
-        await matchings_completed_spy.connect()
+        await match_request_completed_spy.connect()
 
         match_result_queue = await match_result_spy.create_spy_queue("match.result")
-        matchings_completed_queue = await matchings_completed_spy.create_spy_queue("matchings.process.completed")
+        match_request_completed_queue = await match_request_completed_spy.create_spy_queue("match.request.completed")
 
         # Start consuming from the queues
         await match_result_spy.start_consuming(match_result_queue)
-        await matchings_completed_spy.start_consuming(matchings_completed_queue)
+        await match_request_completed_spy.start_consuming(match_request_completed_queue)
 
         # Create validators
         db_validator = DatabaseStateValidator(db_manager)
@@ -68,9 +68,9 @@ class TestMatchingPhaseIntegration:
 
         yield {
             "match_result_spy": match_result_spy,
-            "matchings_completed_spy": matchings_completed_spy,
+            "match_request_completed_spy": match_request_completed_spy,
             "match_result_queue": match_result_queue,
-            "matchings_completed_queue": matchings_completed_queue,
+            "match_request_completed_queue": match_request_completed_queue,
             "db_validator": db_validator,
             "publisher": publisher,
             "db_manager": db_manager,
@@ -78,9 +78,9 @@ class TestMatchingPhaseIntegration:
 
         # Cleanup spies
         await match_result_spy.stop_consuming(match_result_queue)
-        await matchings_completed_spy.stop_consuming(matchings_completed_queue)
+        await match_request_completed_spy.stop_consuming(match_request_completed_queue)
         await match_result_spy.disconnect()
-        await matchings_completed_spy.disconnect()
+        await match_request_completed_spy.disconnect()
 
     async def seed_job_with_prerequisites(self, db_manager, job_id: str, dataset: Dict[str, Any]):
         """Seed job with products, videos, frames and prerequisite phase events."""
@@ -155,7 +155,7 @@ class TestMatchingPhaseIntegration:
         assert match["status"] == "accepted"
 
         # Validate completion event
-        completion_events = env["matchings_completed_spy"].get_captured_messages(env["matchings_completed_queue"])
+        completion_events = env["match_request_completed_spy"].get_captured_messages(env["match_request_completed_queue"])
         assert len(completion_events) == 1, "Expected exactly one completion event"
 
         completion = completion_events[0]["event_data"]
@@ -205,7 +205,7 @@ class TestMatchingPhaseIntegration:
         assert len(matches) == 0, "Expected no matches in database"
 
         # Validate completion event still occurs
-        completion_events = env["matchings_completed_spy"].get_captured_messages(env["matchings_completed_queue"])
+        completion_events = env["match_request_completed_spy"].get_captured_messages(env["match_request_completed_queue"])
         assert len(completion_events) == 1, "Expected completion event even with zero matches"
 
         completion = completion_events[0]["event_data"]
@@ -264,7 +264,7 @@ class TestMatchingPhaseIntegration:
         assert len(processed_events) == 1, "Expected event_id recorded only once"
 
         # Validate completion event occurs only once
-        completion_events = env["matchings_completed_spy"].get_captured_messages(env["matchings_completed_queue"])
+        completion_events = env["match_request_completed_spy"].get_captured_messages(env["match_request_completed_queue"])
         completion_job_events = [e for e in completion_events if e["event_data"]["job_id"] == job_id]
         initial_completion_count = len(completion_job_events)
         assert initial_completion_count == 1, f"Expected exactly one completion event, got {initial_completion_count}"
@@ -284,7 +284,7 @@ class TestMatchingPhaseIntegration:
 
         # Clear spies before new event
         env["match_result_spy"].clear_captured_messages(env["match_result_queue"])
-        env["matchings_completed_spy"].clear_captured_messages(env["matchings_completed_queue"])
+        env["match_request_completed_spy"].clear_captured_messages(env["match_request_completed_queue"])
 
         await env["publisher"].publish_match_request(new_match_request)
         await asyncio.sleep(2.0)
@@ -338,7 +338,7 @@ class TestMatchingPhaseIntegration:
         # The key is that fallback path doesn't crash and completes normally
 
         # Validate completion event occurs
-        completion_events = env["matchings_completed_spy"].get_captured_messages(env["matchings_completed_queue"])
+        completion_events = env["match_request_completed_spy"].get_captured_messages(env["match_request_completed_queue"])
         assert len(completion_events) >= 1, "Expected completion event despite missing keypoints"
 
         completion = completion_events[0]["event_data"]

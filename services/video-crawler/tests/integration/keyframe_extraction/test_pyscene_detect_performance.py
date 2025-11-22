@@ -331,5 +331,127 @@ async def test_pyscene_detect_processing_speed_benchmark(extractor):
         f"Processing too slow: {processing_speed:.2f}x (expected >{min_speed}x). Consider implementing downscaling."
 
 
+@pytest.mark.asyncio
+async def test_pyscene_detect_frame_skip_performance(temp_dir):
+    """
+    Test performance impact of frame_skip parameter.
+    
+    Frame skipping can significantly improve processing speed by analyzing
+    fewer frames during scene detection, at the cost of potentially missing
+    some scene changes.
+    
+    Note: Higher frame_skip values may result in fewer scenes detected,
+    especially in short videos with minimal scene changes.
+    """
+    videos = find_real_videos(max_videos=1)
+    video_path = videos[0]
+    video_id = video_path.stem
+    
+    import cv2
+    cap = cv2.VideoCapture(str(video_path))
+    width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+    height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+    fps = cap.get(cv2.CAP_PROP_FPS)
+    frame_count = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+    duration = frame_count / fps if fps > 0 else 0
+    cap.release()
+    
+    print(f"\nFrame Skip Test - Video: {video_path.name}")
+    print(f"Resolution: {width}x{height}, Duration: {duration:.2f}s, FPS: {fps:.2f}")
+    
+    # Test different frame_skip values
+    # Note: frame_skip=0 means every frame, 1=every 2nd, 2=every 3rd, etc.
+    skip_configs = [
+        ("No Skip", 0),
+        ("Skip 1", 1),
+        ("Skip 2", 2)
+    ]
+    
+    results = []
+    successful_configs = []
+    
+    for config_name, frame_skip in skip_configs:
+        # Use lenient settings
+        settings = PySceneDetectSettings(
+            adaptive_threshold=1.0,
+            min_scene_len=3,
+            window_width=2,
+            min_content_val=5.0,
+            weights_luma_only=True,
+            min_blur_threshold=30.0,
+            max_scenes=50,
+            frame_quality=90,
+            frame_format="jpg",
+            frame_skip=frame_skip
+        )
+        
+        extractor = PySceneDetectKeyframeExtractor(
+            keyframe_root_dir=temp_dir,
+            settings=settings
+        )
+        
+        start_time = time.time()
+        frames = await extractor.extract_keyframes(
+            video_url=str(video_path),
+            video_id=f"{video_id}_skip{frame_skip}",
+            local_path=str(video_path)
+        )
+        elapsed = time.time() - start_time
+        
+        processing_speed = duration / elapsed if elapsed > 0 else 0
+        
+        result = {
+            "config": config_name,
+            "frame_skip": frame_skip,
+            "frames": len(frames),
+            "time": elapsed,
+            "speed": processing_speed
+        }
+        results.append(result)
+        
+        print(f"\n{config_name} (frame_skip={frame_skip}):")
+        print(f"  Frames extracted: {len(frames)}")
+        print(f"  Processing time: {elapsed:.2f}s")
+        print(f"  Processing speed: {processing_speed:.2f}x realtime")
+        
+        if len(frames) > 0:
+            successful_configs.append(result)
+    
+    # Compare results
+    print(f"\n{'='*70}")
+    print("FRAME SKIP COMPARISON")
+    print(f"{'='*70}")
+    print(f"{'Config':<15} {'Skip':<6} {'Frames':<8} {'Time(s)':<10} {'Speed':<10} {'Speedup':<10}")
+    print(f"{'-'*70}")
+    
+    if successful_configs:
+        baseline_time = successful_configs[0]['time']
+        
+        for r in results:
+            speedup = baseline_time / r['time'] if r['time'] > 0 else 0
+            status = "✓" if r['frames'] > 0 else "✗"
+            print(f"{r['config']:<15} {r['frame_skip']:<6} {r['frames']:<8} "
+                  f"{r['time']:<10.2f} {r['speed']:<10.2f}x {speedup:<10.2f}x {status}")
+    
+    # At least frame_skip=0 should work
+    assert len(successful_configs) > 0, "At least one config should extract frames"
+    
+    # Verify no-skip config works
+    no_skip_result = next((r for r in results if r['frame_skip'] == 0), None)
+    assert no_skip_result is not None, "No-skip config should be tested"
+    assert no_skip_result['frames'] > 0, "No-skip config should extract frames"
+    
+    # If multiple configs succeeded, compare performance
+    if len(successful_configs) >= 2:
+        speedup = successful_configs[0]['time'] / successful_configs[1]['time']
+        print(f"\nSpeedup from frame_skip={successful_configs[0]['frame_skip']} to "
+              f"frame_skip={successful_configs[1]['frame_skip']}: {speedup:.2f}x")
+        
+        # Frame skipping should not significantly slow down processing
+        assert speedup > 0.5, f"Frame skip caused unexpected slowdown: {speedup:.2f}x"
+    
+    print(f"\nSuccessful configs: {len(successful_configs)}/{len(results)}")
+
+
 if __name__ == "__main__":
     pytest.main([__file__, "-v", "-s"])

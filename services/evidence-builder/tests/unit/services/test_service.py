@@ -37,7 +37,7 @@ def _setup_evidence_publisher():
     return SimpleNamespace(
         publish_evidence_completion_if_needed=AsyncMock(),
         check_and_publish_completion=AsyncMock(),
-        handle_matchings_completed=AsyncMock(),
+        handle_match_request_completed=AsyncMock(),
     )
 
 
@@ -121,14 +121,14 @@ async def test_handle_match_result_missing_assets(service):
 
 
 @pytest.mark.asyncio
-async def test_handle_matchings_completed_delegates(service):
-    """Delegate matchings completion handling to the publisher."""
+async def test_handle_match_request_completed_delegates(service):
+    """Delegate match request completion handling to the publisher."""
     event_data = {"job_id": "job123"}
     service.evidence_publisher = _setup_evidence_publisher()
 
-    await service.handle_matchings_completed(event_data, "correlation123")
+    await service.handle_match_request_completed(event_data, "correlation123")
 
-    service.evidence_publisher.handle_matchings_completed.assert_called_once_with(
+    service.evidence_publisher.handle_match_request_completed.assert_called_once_with(
         event_data,
         "correlation123"
     )

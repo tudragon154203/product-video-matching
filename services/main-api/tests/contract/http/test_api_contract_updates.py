@@ -3,7 +3,7 @@ Integration tests for API contract updates to include URL fields.
 """
 from main import app
 from fastapi.testclient import TestClient
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch, MagicMock, AsyncMock
 import pytest
 pytestmark = pytest.mark.integration
 
@@ -230,12 +230,14 @@ class TestResultsApiContract:
             mock_match.video_title = "Test Video"
             mock_match.video_platform = "youtube"
 
-            mock_service.return_value.get_results.return_value = MagicMock(
+            mock_results = MagicMock(
                 items=[mock_match],
                 total=1,
                 limit=100,
                 offset=0
             )
+            
+            mock_service.return_value.get_results = AsyncMock(return_value=mock_results)
 
             response = client.get("/results")
 
@@ -303,7 +305,7 @@ class TestResultsApiContract:
             mock_match.product = mock_product
             mock_match.video = mock_video
 
-            mock_service.return_value.get_match.return_value = mock_match
+            mock_service.return_value.get_match = AsyncMock(return_value=mock_match)
 
             response = client.get("/matches/match_001")
 
@@ -329,7 +331,7 @@ class TestResultsApiContract:
     def test_evidence_response_includes_url(self, client):
         """Test that evidence response includes URL field."""
         with patch('api.results_endpoints.ResultsService') as mock_service:
-            mock_service.return_value.get_evidence_path.return_value = "/app/data/evidence/match_001.jpg"
+            mock_service.return_value.get_evidence_path = AsyncMock(return_value="/app/data/evidence/match_001.jpg")
 
             response = client.get("/evidence/match_001")
 
@@ -346,7 +348,7 @@ class TestResultsApiContract:
     def test_evidence_url_null_for_invalid_path(self, client):
         """Test that evidence URL is null for invalid paths."""
         with patch('api.results_endpoints.ResultsService') as mock_service:
-            mock_service.return_value.get_evidence_path.return_value = "/invalid/path/evidence.jpg"
+            mock_service.return_value.get_evidence_path = AsyncMock(return_value="/invalid/path/evidence.jpg")
 
             response = client.get("/evidence/match_001")
 

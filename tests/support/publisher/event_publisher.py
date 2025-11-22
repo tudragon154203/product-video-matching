@@ -711,9 +711,9 @@ class EvidenceEventPublisher:
         """Publish match.result event to trigger evidence generation"""
         await self._publish_event("match.result", event_data)
 
-    async def publish_matchings_completed(self, event_data: Dict[str, Any]):
-        """Publish matchings.process.completed event"""
-        await self._publish_event("matchings.process.completed", event_data)
+    async def publish_match_request_completed(self, event_data: Dict[str, Any]):
+        """Publish match.request.completed event"""
+        await self._publish_event("match.request.completed", event_data)
 
     async def _publish_event(self, routing_key: str, event_data: Dict[str, Any]):
         """Publish event via common MessageBroker to the configured topic exchange"""

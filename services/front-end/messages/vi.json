@@ -33,6 +33,8 @@
     "noRecentJobs": "Không tìm thấy công việc gần đây.",
     "running": "Đang chạy",
     "completed": "Hoàn thành",
+    "completedWithMatches": "Công việc hoàn thành thành công với {count} kết quả khớp.",
+    "completedNoMatches": "Công việc hoàn thành thành công. Không tìm thấy kết quả khớp nào.",
     "showAdvancedOptions": "Hiển thị Tùy chọn Nâng cao",
     "hideAdvancedOptions": "Ẩn Tùy chọn Nâng cao",
     "topAmazonProductsTooltip": "Số lượng sản phẩm Amazon hàng đầu để tìm kiếm theo từ khóa của bạn",

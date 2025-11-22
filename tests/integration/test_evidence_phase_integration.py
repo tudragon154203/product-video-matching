@@ -3,7 +3,7 @@ Integration tests for evidence builder phase workflow.
 
 Tests the evidence builder service's ability to:
 1. Process match.result events and generate evidence images
-2. Handle matchings.process.completed events
+2. Handle match.request.completed events
 3. Publish evidences.generation.completed events
 4. Update matches table with evidence paths
 5. Advance job phase to completed
@@ -121,7 +121,7 @@ class TestEvidencePhaseIntegration:
         """
         Test 7.2: Evidence Phase with Zero Matches
 
-        Verifies that when matchings.process.completed is received with no matches,
+        Verifies that when match.request.completed is received with no matches,
         the evidence builder still publishes evidences.generation.completed
         and advances job to completed phase.
         """
@@ -141,9 +141,9 @@ class TestEvidencePhaseIntegration:
         )
         assert len(matches) == 0, "Expected no matches for zero-match scenario"
 
-        # Publish matchings.process.completed event
-        matchings_completed = dataset["matchings_completed"]
-        await env["publisher"].publish_matchings_completed(matchings_completed)
+        # Publish match.request.completed event
+        match_request_completed = dataset["match_request_completed"]
+        await env["publisher"].publish_match_request_completed(match_request_completed)
 
         # Wait for processing
         await asyncio.sleep(2.0)

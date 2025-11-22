@@ -291,10 +291,10 @@ class TestPhaseTransitionWithAssetTypes:
         db_handler.update_job_phase = AsyncMock()
 
         # Mock that matching process is completed
-        db_handler.has_phase_event.side_effect = lambda jid, event: event == "matchings.process.completed"
+        db_handler.has_phase_event.side_effect = lambda jid, event: event == "match.request.completed"
 
         await phase_event_service.handle_phase_event(
-            "matchings.process.completed",
+            "match.request.completed",
             {
                 "job_id": job_id,
                 "event_id": str(uuid.uuid4()),

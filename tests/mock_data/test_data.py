@@ -239,8 +239,8 @@ def build_expected_match_result_event(job_id: str, product_id: str, video_id: st
     }
 
 
-def build_expected_matchings_process_completed_event(job_id: str, event_id: str = None) -> Dict[str, Any]:
-    """Create an expected matchings.process.completed event for test validation."""
+def build_expected_match_request_completed_event(job_id: str, event_id: str = None) -> Dict[str, Any]:
+    """Create an expected match.request.completed event for test validation."""
     return {
         "job_id": job_id,
         "event_id": event_id or str(uuid.uuid4()),
@@ -375,8 +375,8 @@ def build_evidence_test_dataset(job_id: str, num_matches: int = 2) -> Dict[str, 
             "ts": float(idx),
         })
 
-    # matchings.process.completed event
-    matchings_completed = {
+    # match.request.completed event
+    match_request_completed = {
         "job_id": job_id,
         "event_id": str(uuid.uuid4()),
     }
@@ -389,5 +389,5 @@ def build_evidence_test_dataset(job_id: str, num_matches: int = 2) -> Dict[str, 
         "video_frames": video_frames,
         "matches": matches,
         "match_results": match_results,
-        "matchings_completed": matchings_completed,
+        "match_request_completed": match_request_completed,
     }

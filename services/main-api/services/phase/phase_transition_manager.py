@@ -113,7 +113,7 @@ class PhaseTransitionManager:
         return all_events_received, missing_events
 
     async def _process_matching_phase(self, job_id: str, event_type: str):
-        if event_type == "matchings.process.completed":
+        if event_type == "match.request.completed":
             logger.info(
                 f"Matching completed, transitioning to evidence for job {job_id}")
             await self.db_handler.update_job_phase(job_id, "evidence")
@@ -144,7 +144,7 @@ class PhaseTransitionManager:
             logger.debug(
                 f"Evidence generation completed but job {job_id} is in {current_phase} phase, checking if we should transition")
 
-            if await self.db_handler.has_phase_event(job_id, "matchings.process.completed"):
+            if await self.db_handler.has_phase_event(job_id, "match.request.completed"):
                 logger.debug(
                     f"Matching is complete, transitioning job {job_id} to evidence then completed")
                 try:

@@ -128,7 +128,7 @@ class MatcherService:
                     )
 
             await self.broker.publish_event(
-                "matchings.process.completed",
+                "match.request.completed",
                 {
                     "job_id": job_id,
                     "event_id": event_id,

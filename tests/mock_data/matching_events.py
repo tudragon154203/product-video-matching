@@ -38,8 +38,8 @@ def get_expected_match_result_happy_path() -> Dict[str, Any]:
     }
 
 
-def get_expected_matchings_process_completed() -> Dict[str, Any]:
-    """Get expected matchings.process.completed event for validation."""
+def get_expected_match_request_completed() -> Dict[str, Any]:
+    """Get expected match.request.completed event for validation."""
     return {
         "job_id": "test_job_001",
         "event_id": "550e8400-e29b-41d4-a716-446655440003",
@@ -137,7 +137,7 @@ MATCHING_TEST_SCENARIOS = {
         "description": "Successful matching with acceptable pairs",
         "match_request": get_match_request_happy_path(),
         "expected_match_result": get_expected_match_result_happy_path(),
-        "expected_completion": get_expected_matchings_process_completed(),
+        "expected_completion": get_expected_match_request_completed(),
         "embeddings": get_mock_embeddings_and_keypoints(),
     },
     "zero_matches": {

@@ -114,13 +114,13 @@ class EvidenceBuilderService:
                 correlation_id=correlation_id,
             )
 
-    async def handle_matchings_completed(
+    async def handle_match_request_completed(
         self,
         event_data: Dict[str, Any],
         correlation_id: str,
     ) -> None:
-        """Handle matchings completed event, covering zero-match jobs."""
-        await self.evidence_publisher.handle_matchings_completed(
+        """Handle match.request.completed events, covering zero-match jobs."""
+        await self.evidence_publisher.handle_match_request_completed(
             event_data,
             correlation_id,
         )
