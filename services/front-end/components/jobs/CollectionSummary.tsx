@@ -112,27 +112,30 @@ export function CollectionSummary({
             )}
           </div>
 
-          {/* Show counts when collapsed - emphasized totals */}
+          {/* Show counts when collapsed */}
           {!isExpanded && (
-            <div className="flex items-center gap-6">
-              {/* Total count - most prominent */}
-              <div className="flex items-center gap-2 px-3 py-1 bg-slate-100 rounded-md">
-                <span className="text-xs text-muted-foreground">Total:</span>
-                <span className="text-lg font-bold text-slate-900">{counts.products + counts.videos}</span>
+            <div className="flex items-center gap-6 text-sm">
+              <div className="flex items-center gap-2">
+                <Package className="h-4 w-4 text-slate-600" />
+                <span className="text-slate-900">{counts.products}</span>
+                <span className="text-muted-foreground">{t('collection.summary.productsCount').toLowerCase()}</span>
+                {collection.products_done && (
+                  <Badge variant="outline" className="text-xs bg-emerald-50 text-emerald-700 border-emerald-200 ml-1">
+                    <CheckCircle2 className="h-3 w-3 mr-1" />
+                    {t('collection.summary.productsBadge')}
+                  </Badge>
+                )}
               </div>
-              
-              {/* Individual counts */}
-              <div className="flex items-center gap-4 text-sm">
-                <div className="flex items-center gap-1.5">
-                  <Package className="h-4 w-4 text-slate-600" />
-                  <span className="font-semibold text-slate-900">{counts.products}</span>
-                  <span className="text-muted-foreground">{t('collection.summary.productsCount').toLowerCase()}</span>
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <Video className="h-4 w-4 text-slate-600" />
-                  <span className="font-semibold text-slate-900">{counts.videos}</span>
-                  <span className="text-muted-foreground">{t('collection.summary.videosCount').toLowerCase()}</span>
-                </div>
+              <div className="flex items-center gap-2">
+                <Video className="h-4 w-4 text-slate-600" />
+                <span className="text-slate-900">{counts.videos}</span>
+                <span className="text-muted-foreground">{t('collection.summary.videosCount').toLowerCase()}</span>
+                {collection.videos_done && (
+                  <Badge variant="outline" className="text-xs bg-emerald-50 text-emerald-700 border-emerald-200 ml-1">
+                    <CheckCircle2 className="h-3 w-3 mr-1" />
+                    {t('collection.summary.videosBadge')}
+                  </Badge>
+                )}
               </div>
             </div>
           )}

@@ -21,10 +21,15 @@ export function PanelHeader({ title, subtitle, count, children }: PanelHeaderPro
             <p className="text-sm text-muted-foreground mt-1">{subtitle}</p>
           )}
         </div>
-        {count !== undefined && (
-          <Badge variant="secondary">{count.toLocaleString()}</Badge>
-        )}
-        {children}
+        <div className="flex items-center gap-3">
+          {count !== undefined && (
+            <div className="flex items-baseline gap-2">
+              <span className="text-2xl font-bold text-slate-900 leading-none">{count.toLocaleString()}</span>
+              <span className="text-xs text-muted-foreground">total</span>
+            </div>
+          )}
+          {children}
+        </div>
       </div>
     </CardHeader>
   );
